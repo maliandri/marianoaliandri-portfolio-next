@@ -2,7 +2,8 @@
 
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { lazy, Suspense, useState } from 'react';
+import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import { CartProvider } from '@/context/CartContext';
 import { queryClient } from '@/utils/queryClient';
@@ -18,13 +19,13 @@ import Footer from '@/components/Footer';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import LinkedInSidebar from '@/components/LinkedInSidebar';
 
-// Tools (lazy - only loaded when route is active)
-const KpiRadar = lazy(() => import('@/components/KpiRadar'));
-const DashboardStats = lazy(() => import('@/components/DashboardStats'));
-const CVATSUploader = lazy(() => import('@/components/CVATSUploader'));
-const ROICalculator = lazy(() => import('@/components/Calculadora'));
-const WebCalculator = lazy(() => import('@/components/CalculadoraWeb'));
-const RadarWeb = lazy(() => import('@/components/RadarWeb'));
+// Tools: ssr:false evita que se pre-rendericen en servidor (usan window/browser APIs)
+const KpiRadar = dynamic(() => import('@/components/KpiRadar'), { ssr: false });
+const DashboardStats = dynamic(() => import('@/components/DashboardStats'), { ssr: false });
+const CVATSUploader = dynamic(() => import('@/components/CVATSUploader'), { ssr: false });
+const ROICalculator = dynamic(() => import('@/components/Calculadora'), { ssr: false });
+const WebCalculator = dynamic(() => import('@/components/CalculadoraWeb'), { ssr: false });
+const RadarWeb = dynamic(() => import('@/components/RadarWeb'), { ssr: false });
 
 const TOOL_PATHS = ['/web', '/roi', '/stats', '/ats', '/kpi', '/radarweb'];
 
