@@ -138,7 +138,7 @@ export default function LeadFinderPanel() {
 
   // ── Netlify function call ────────────────────────────────────────────
   const callFn = useCallback(async (action, params = {}) => {
-    const resp = await fetch('/.netlify/functions/lead-finder', {
+    const resp = await fetch('/api/lead-finder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, apiKey: configRef.current.apiKey, ...params }),

@@ -10,7 +10,7 @@ export function useSearchConsoleStats(days = 28) {
   return useQuery({
     queryKey: ['searchConsole', 'all', days],
     queryFn: async () => {
-      const res = await fetch('/.netlify/functions/search-console', {
+      const res = await fetch('/api/search-console', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ days })

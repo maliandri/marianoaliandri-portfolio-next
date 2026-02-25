@@ -171,7 +171,7 @@ export default function CVATSUploader({ isOpen: isOpenProp, onClose: onCloseProp
 
     setPaymentLoading(true);
     try {
-      const response = await fetch('/.netlify/functions/cv-payment', {
+      const response = await fetch('/api/cv-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

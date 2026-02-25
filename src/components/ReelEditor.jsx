@@ -18,7 +18,7 @@ const ReelEditor = ({ product, onClose, onPublish }) => {
       console.log('🎬 Generando reel con:', { productName, price });
 
       // Paso 1: Generar el video con Shotstack (solo texto + video de fondo + audio)
-      const response = await fetch('/.netlify/functions/generate-reel', {
+      const response = await fetch('/api/generate-reel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -45,7 +45,7 @@ const ReelEditor = ({ product, onClose, onPublish }) => {
       while (!videoReady && attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 3000));
 
-        const statusResponse = await fetch(`/.netlify/functions/check-reel-status?renderId=${result.renderId}`);
+        const statusResponse = await fetch(`/api/check-reel-status?renderId=${result.renderId}`);
         const statusData = await statusResponse.json();
 
         console.log(`📊 Estado (intento ${attempts + 1}):`, statusData.status);

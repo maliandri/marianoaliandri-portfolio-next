@@ -73,7 +73,7 @@ class MakeService {
       console.log('📤 PAYLOAD ENVIADO A NETLIFY FUNCTION:', JSON.stringify(payload, null, 2));
 
       // Llamar a la Netlify Function en lugar de Make.com directamente
-      const response = await fetch('/.netlify/functions/publish-social', {
+      const response = await fetch('/api/publish-social', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -326,7 +326,7 @@ class MakeService {
         aiProvider
       };
 
-      const response = await fetch('/.netlify/functions/publish-social', {
+      const response = await fetch('/api/publish-social', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

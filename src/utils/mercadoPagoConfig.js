@@ -23,7 +23,7 @@ export const initializeMercadoPago = () => {
 // Función para crear una preferencia de pago
 export const createPaymentPreference = async (paymentData) => {
   try {
-    const response = await fetch('/.netlify/functions/create-payment', {
+    const response = await fetch('/api/create-payment', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

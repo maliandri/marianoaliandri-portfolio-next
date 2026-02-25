@@ -6,21 +6,20 @@ import { motion } from 'framer-motion';
 function ThemeToggle() {
   const [darkMode, setDarkMode] = useState(false);
 
-  // Cargar el tema guardado al iniciar
+  // Cargar el tema guardado al iniciar (dark por defecto)
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
 
-    // Solo usar dark mode si está explícitamente guardado
-    if (savedTheme === 'dark') {
-      setDarkMode(true);
-      document.documentElement.classList.add('dark');
-    } else {
-      // Por defecto usar light mode
+    // Dark mode por defecto si no hay preferencia guardada
+    if (savedTheme === 'light') {
       setDarkMode(false);
       document.documentElement.classList.remove('dark');
-      // Guardar la preferencia si no existe
+    } else {
+      // Por defecto dark mode
+      setDarkMode(true);
+      document.documentElement.classList.add('dark');
       if (!savedTheme) {
-        localStorage.setItem('theme', 'light');
+        localStorage.setItem('theme', 'dark');
       }
     }
   }, []);

@@ -14,14 +14,21 @@ export function useCart() {
 
 export function CartProvider({ children }) {
   const [cart, setCart] = useState(() => {
-    // Cargar carrito desde localStorage
-    const savedCart = localStorage.getItem('marianoaliandri_cart');
-    return savedCart ? JSON.parse(savedCart) : [];
+    // Cargar carrito desde localStorage (SSR-safe)
+    if (typeof window === 'undefined') return [];
+    try {
+      const savedCart = localStorage.getItem('marianoaliandri_cart');
+      return savedCart ? JSON.parse(savedCart) : [];
+    } catch {
+      return [];
+    }
   });
 
   // Guardar carrito en localStorage cuando cambie
   useEffect(() => {
-    localStorage.setItem('marianoaliandri_cart', JSON.stringify(cart));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('marianoaliandri_cart', JSON.stringify(cart));
+    }
   }, [cart]);
 
   // Agregar producto al carrito

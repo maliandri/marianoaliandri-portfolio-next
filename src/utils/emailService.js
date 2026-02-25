@@ -1,5 +1,5 @@
 // src/utils/emailService.js
-const SEND_EMAIL_URL = '/.netlify/functions/send-email';
+const SEND_EMAIL_URL = '/api/send-email';
 
 export class EmailService {
   async _send(type, data) {

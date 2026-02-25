@@ -235,7 +235,7 @@ export default function Footer() {
                 <li key={link.name}>
                   {link.type === 'route' ? (
                     <Link
-                      to={link.href}
+                      href={link.href}
                       className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm"
                     >
                       {link.name}

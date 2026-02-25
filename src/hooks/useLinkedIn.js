@@ -11,7 +11,7 @@ const LINKEDIN_KEYS = {
 };
 
 async function linkedinAuthAction(action) {
-  const res = await fetch('/.netlify/functions/linkedin-auth', {
+  const res = await fetch('/api/linkedin-auth', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action })
@@ -21,7 +21,7 @@ async function linkedinAuthAction(action) {
 }
 
 async function linkedinDataAction(action) {
-  const res = await fetch('/.netlify/functions/linkedin-data', {
+  const res = await fetch('/api/linkedin-data', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action })

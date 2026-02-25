@@ -26,7 +26,7 @@ class ReelService {
 
     try {
       // Llamar a la Netlify Function que genera el video con Shotstack
-      const response = await fetch('/.netlify/functions/generate-reel', {
+      const response = await fetch('/api/generate-reel', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -70,7 +70,7 @@ class ReelService {
     }
 
     try {
-      const response = await fetch(`/.netlify/functions/check-reel-status?renderId=${renderId}`);
+      const response = await fetch(`/api/check-reel-status?renderId=${renderId}`);
 
       if (!response.ok) {
         const error = await response.json();

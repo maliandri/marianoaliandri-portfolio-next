@@ -93,7 +93,7 @@ export default function AdminPage() {
             // PRODUCCIÓN: Netlify Function
             console.log('🔄 [PROD] Cargando desde Netlify Function...');
 
-            const response = await fetch('/.netlify/functions/admin-get-data', {
+            const response = await fetch('/api/admin-get-data', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -167,7 +167,7 @@ export default function AdminPage() {
 
     try {
       setLoading(true);
-      const response = await fetch('/.netlify/functions/reset-products', {
+      const response = await fetch('/api/reset-products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -201,7 +201,7 @@ export default function AdminPage() {
 
     try {
       setLoading(true);
-      const response = await fetch('/.netlify/functions/update-all-descriptions', {
+      const response = await fetch('/api/update-all-descriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -233,7 +233,7 @@ export default function AdminPage() {
   const resendCVEmail = async (order) => {
     try {
       setLoading(true);
-      const response = await fetch('/.netlify/functions/send-cv-analysis', {
+      const response = await fetch('/api/send-cv-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -270,7 +270,7 @@ export default function AdminPage() {
         });
       } else {
         // PRODUCCIÓN: usar Netlify Function con Admin SDK
-        const response = await fetch('/.netlify/functions/update-product', {
+        const response = await fetch('/api/update-product', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -828,7 +828,7 @@ function LinkedInPanel() {
           <ol className="text-sm text-blue-700 dark:text-blue-400 space-y-2 list-decimal list-inside">
             <li>Asegurate de tener la app creada en LinkedIn Developers</li>
             <li>Configura LINKEDIN_CLIENT_ID y LINKEDIN_CLIENT_SECRET en Netlify</li>
-            <li>Agrega la redirect URL: <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">https://marianoaliandri.com.ar/.netlify/functions/linkedin-auth</code></li>
+            <li>Agrega la redirect URL: <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">https://marianoaliandri.com.ar/api/linkedin-auth</code></li>
             <li>Click en "Conectar LinkedIn" y autoriza la app</li>
           </ol>
         </div>
@@ -1024,7 +1024,7 @@ function AdminUsersPanel({ users, formatDate }) {
     setSendingId(user.id);
     setActionResult(null);
     try {
-      const res = await fetch('/.netlify/functions/send-email', {
+      const res = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

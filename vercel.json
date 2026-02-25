@@ -1,5 +1,4 @@
 {
-  "framework": "nextjs",
   "headers": [
     {
       "source": "/(.*)",
@@ -11,13 +10,6 @@
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" },
         { "key": "Cross-Origin-Embedder-Policy", "value": "unsafe-none" }
       ]
-    }
-  ],
-  "redirects": [
-    {
-      "source": "https://www.marianoaliandri.com.ar/(.*)",
-      "destination": "https://marianoaliandri.com.ar/$1",
-      "permanent": true
     }
   ]
 }
