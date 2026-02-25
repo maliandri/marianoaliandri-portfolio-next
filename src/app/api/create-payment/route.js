@@ -1,11 +1,11 @@
 export const dynamic = 'force-dynamic';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 
-const client = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN });
-const preference = new Preference(client);
 
 export async function POST(request) {
   try {
+    const client = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN });
+    const preference = new Preference(client);
     const body = await request.json();
     const { items, title, price, quantity, payer, metadata } = body;
     const baseUrl = new URL(request.url).origin;

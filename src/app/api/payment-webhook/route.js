@@ -4,8 +4,6 @@ import crypto from 'crypto';
 import admin, { getDb } from '@/lib/firebase-admin';
 const db = getDb();
 
-const client = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN });
-const payment = new Payment(client);
 
 function verifyWebhookSignature(rawBody, headers) {
   const xSignature = headers.get('x-signature');
@@ -88,6 +86,8 @@ export async function POST(request) {
     if (body.type === 'payment') {
       const baseUrl = new URL(request.url).origin;
       const paymentId = body.data.id;
+      const client = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN });
+      const payment = new Payment(client);
       const paymentData = await payment.get({ id: paymentId });
 
       if (paymentData.status === 'approved') {

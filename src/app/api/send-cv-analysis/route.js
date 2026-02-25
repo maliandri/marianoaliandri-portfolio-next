@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 function getScoreColor(score) {
   if (score >= 80) return '#059669';
@@ -50,6 +50,7 @@ function generateAnalysisHTML(cvAnalysis, paymentId, amount, timestamp) {
 
 export async function POST(request) {
   try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const { email, cvAnalysis, paymentId, amount, timestamp } = await request.json();
 
     if (!email || !cvAnalysis) {
