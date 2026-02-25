@@ -335,7 +335,7 @@ export default function DashboardStats({
 
       {/* Modal centrado - Cuadrado 1:1 (1080x1080) */}
       {open && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
           <motion.div
             id="stats-card"
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-2xl aspect-square overflow-y-auto border border-gray-200 dark:border-gray-700 flex flex-col"

@@ -134,7 +134,7 @@ export default function KpiRadar({ isOpen: isOpenProp, onClose: onCloseProp, hid
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fixed inset-0 bg-black z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black z-[1100] flex items-center justify-center p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
