@@ -1,4 +1,4 @@
-import Hero from '@/components/Hero';
+import HeroBuild from '@/components/HeroBuild';
 import ServiciosCarousel from '@/components/ServiciosCarousel';
 import Skills from '@/components/Skills';
 import Carrousel from '@/components/Carrousel';
@@ -16,7 +16,7 @@ export default function HomePage() {
   return (
     <main className="animation-section">
       <div className="animation-content-wrapper">
-        <Hero />
+        <HeroBuild />
         <section id="servicios" aria-label="Servicios profesionales">
           <ServiciosCarousel />
         </section>
