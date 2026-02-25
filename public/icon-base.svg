@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo con color brand -->
+  <rect width="512" height="512" fill="#4f46e5"/>
+
+  <!-- Iniciales MA -->
+  <text x="256" y="320"
+        font-family="Arial, sans-serif"
+        font-size="200"
+        font-weight="bold"
+        fill="white"
+        text-anchor="middle">MA</text>
+
+  <!-- Subtítulo -->
+  <text x="256" y="380"
+        font-family="Arial, sans-serif"
+        font-size="40"
+        fill="rgba(255,255,255,0.8)"
+        text-anchor="middle">Full Stack & BI</text>
+</svg>

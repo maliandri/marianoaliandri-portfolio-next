@@ -1,0 +1,111 @@
+# Robots.txt optimizado para Google e IAs
+# Portfolio Mariano Aliandri - Desarrollador Full Stack & Analista de Datos
+
+# ========================================
+# BOTS DE BÚSQUEDA PRINCIPALES
+# ========================================
+
+# Google Bot
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+# Bing Bot
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 0
+
+# ========================================
+# BOTS DE INTELIGENCIA ARTIFICIAL
+# ========================================
+
+# OpenAI GPT (ChatGPT)
+User-agent: GPTBot
+Allow: /
+Crawl-delay: 1
+
+# OpenAI Chat Interface
+User-agent: ChatGPT-User
+Allow: /
+
+# Anthropic Claude
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+# Common Crawl (dataset para entrenar IAs)
+User-agent: CCBot
+Allow: /
+
+# Google Bard / Gemini
+User-agent: Google-Extended
+Allow: /
+
+# Meta AI
+User-agent: FacebookBot
+Allow: /
+
+# Perplexity AI
+User-agent: PerplexityBot
+Allow: /
+
+# ========================================
+# OTROS CRAWLERS ÚTILES
+# ========================================
+
+# Yahoo
+User-agent: Slurp
+Allow: /
+
+# DuckDuckGo
+User-agent: DuckDuckBot
+Allow: /
+
+# Yandex
+User-agent: YandexBot
+Allow: /
+
+# ========================================
+# TODOS LOS DEMÁS BOTS (regla general)
+# ========================================
+
+User-agent: *
+Allow: /
+
+# ========================================
+# RUTAS PRIVADAS Y NO INDEXABLES
+# ========================================
+
+# Panel de administración (requiere auth)
+Disallow: /admin
+Disallow: /perfil
+Disallow: /mis-compras
+
+# Callbacks de pagos (no deben indexarse)
+Disallow: /payment-pending
+Disallow: /payment-success
+Disallow: /payment-failure
+Disallow: /success
+Disallow: /failure
+Disallow: /pending
+
+# Netlify functions
+Disallow: /.netlify/
+
+# ========================================
+# SITEMAP
+# ========================================
+
+Sitemap: https://marianoaliandri.com.ar/sitemap.xml
+
+# ========================================
+# NOTAS ADICIONALES
+# ========================================
+
+# Host preferido (opcional, si tenés www y sin www)
+# Host: https://marianoaliandri.com.ar
+
+# Cache (opcional)
+# Cache-delay: 0

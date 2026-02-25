@@ -1,0 +1,67 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Reglas para usuarios autenticados
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Reglas para órdenes
+    match /orders/{orderId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+    }
+
+    // ✅ PRODUCTOS: Lectura pública, escritura solo vía Admin SDK
+    match /products/{productId} {
+      allow read: if true;  // Cualquiera puede leer productos
+      allow write: if false; // Solo Admin SDK puede escribir (desde Netlify Functions)
+    }
+
+    // Analytics (público para leer, cualquiera puede escribir)
+    match /analytics/{document=**} {
+      allow read, write: if true;
+    }
+
+    match /visitors/{document=**} {
+      allow read, write: if true;
+    }
+
+    match /userVotes/{document=**} {
+      allow read, write: if true;
+    }
+
+    match /events/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if true;
+    }
+
+    // Estadísticas de páginas visitadas
+    match /pageStats/{document=**} {
+      allow read, write: if true;
+    }
+
+    match /pageViews/{document=**} {
+      allow read, write: if true;
+    }
+
+    // Estadísticas de productos visitados
+    match /productStats/{document=**} {
+      allow read, write: if true;
+    }
+
+    match /productViews/{document=**} {
+      allow read, write: if true;
+    }
+
+    // Preguntas y respuestas de productos
+    match /productQuestions/{questionId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if false;
+    }
+  }
+}
