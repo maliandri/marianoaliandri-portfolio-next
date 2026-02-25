@@ -42,6 +42,12 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+        {/* Script síncrono: aplica dark mode ANTES de que React hidrate — evita flash */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem('theme');if(t!=='light'){document.documentElement.classList.add('dark');if(!t)localStorage.setItem('theme','dark');}})();`,
+          }}
+        />
       </head>
       <body>
         <Providers>{children}</Providers>
