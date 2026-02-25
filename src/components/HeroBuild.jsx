@@ -79,7 +79,7 @@ export default function HeroBuild() {
   const show = (key) => triggered.has(key);
 
   return (
-    <div className="relative w-full overflow-hidden rounded-3xl bg-gray-950 border border-gray-800 shadow-2xl">
+    <div className="relative w-full overflow-hidden rounded-3xl bg-gray-950 border border-gray-800 shadow-2xl min-h-[580px] isolate">
       {/* Scanline overlay */}
       <div className="pointer-events-none absolute inset-0 z-10 opacity-[0.03]"
         style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.5) 2px, rgba(255,255,255,0.5) 4px)' }}
@@ -165,7 +165,7 @@ export default function HeroBuild() {
         <div className="hidden lg:block w-px bg-gradient-to-b from-transparent via-purple-700/40 to-transparent shrink-0" />
 
         {/* ── PANEL DERECHO: UI que se construye ── */}
-        <div className="flex-1 flex flex-col items-center justify-center p-8 gap-5 relative overflow-hidden">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 gap-5 relative overflow-hidden bg-gray-950">
           {/* Background grid */}
           <div className="absolute inset-0 opacity-[0.04]"
             style={{ backgroundImage: 'linear-gradient(rgba(139,92,246,1) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,1) 1px, transparent 1px)', backgroundSize: '32px 32px' }}
