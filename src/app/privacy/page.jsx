@@ -1,4 +1,4 @@
-import PrivacyPage from '@/pages/PrivacyPage';
+import PrivacyPage from '@/views/PrivacyPage';
 
 export const metadata = {
   title: 'Política de Privacidad',

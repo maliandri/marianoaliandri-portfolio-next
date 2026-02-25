@@ -1,0 +1,6 @@
+# Netlify functions (no se usan en Vercel)
+netlify/
+
+# Dev files
+.env.local
+*.log

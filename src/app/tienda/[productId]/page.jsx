@@ -1,4 +1,4 @@
-import ProductDetailPage from '@/pages/ProductDetailPage';
+import ProductDetailPage from '@/views/ProductDetailPage';
 import { products } from '@/data/products';
 
 export async function generateStaticParams() {
@@ -26,6 +26,7 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export default function ProductPage() {
-  return <ProductDetailPage />;
+export default async function ProductPage({ params }) {
+  const { productId } = await params;
+  return <ProductDetailPage productId={productId} />;
 }

@@ -1,5 +1,7 @@
+export const dynamic = 'force-dynamic';
 import crypto from 'crypto';
-import admin, { db } from '@/lib/firebase-admin';
+import admin, { getDb } from '@/lib/firebase-admin';
+const db = getDb();
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const MARIANO_CONTEXT_BASE = `Sos el asistente comercial profesional de Mariano Aliandri. Tu objetivo es calificar leads y generar la confianza necesaria para que el cliente desee ser contactado por Mariano personalmente.

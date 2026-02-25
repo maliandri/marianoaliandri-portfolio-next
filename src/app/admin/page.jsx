@@ -1,4 +1,4 @@
-import AdminPage from '@/pages/AdminPage';
+import AdminPage from '@/views/AdminPage';
 
 export const metadata = {
   title: 'Panel de Administración',

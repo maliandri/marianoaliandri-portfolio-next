@@ -1,6 +1,8 @@
+export const dynamic = 'force-dynamic';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import crypto from 'crypto';
-import admin, { db } from '@/lib/firebase-admin';
+import admin, { getDb } from '@/lib/firebase-admin';
+const db = getDb();
 
 const client = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN });
 const payment = new Payment(client);

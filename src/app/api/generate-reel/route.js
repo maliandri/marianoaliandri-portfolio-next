@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 export async function POST(request) {
   try {
     const { productName, price, productId } = await request.json();

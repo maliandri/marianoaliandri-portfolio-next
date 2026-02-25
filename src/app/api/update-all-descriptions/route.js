@@ -1,4 +1,6 @@
-import admin, { db } from '@/lib/firebase-admin';
+export const dynamic = 'force-dynamic';
+import admin, { getDb } from '@/lib/firebase-admin';
+const db = getDb();
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Maliandri$#652542026';
 const CLOUDINARY_BASE = 'https://res.cloudinary.com/dlshym1te/image/upload/c_fill,w_400,h_300,f_auto,q_auto/v1765836744';

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const MARIANO_CONTEXT = `

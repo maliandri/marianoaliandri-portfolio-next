@@ -10,8 +10,9 @@ import priceService from '../utils/priceService';
 import SEO from '../components/SEO';
 import ProductQA from '../components/ProductQA';
 
-export default function ProductDetailPage() {
-  const { productId } = useParams();
+export default function ProductDetailPage({ productId: propProductId }) {
+  const params = useParams();
+  const productId = propProductId ?? params?.productId;
   const router = useRouter();
   const { addToCart } = useCart();
   const [product, setProduct] = useState(null);

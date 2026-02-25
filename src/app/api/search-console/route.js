@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { google } from 'googleapis';
 
 const SITES = [

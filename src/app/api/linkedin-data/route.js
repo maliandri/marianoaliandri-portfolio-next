@@ -1,4 +1,6 @@
-import { db } from '@/lib/firebase-admin';
+export const dynamic = 'force-dynamic';
+import { getDb } from '@/lib/firebase-admin';
+const db = getDb();
 
 async function getAccessToken() {
   const doc = await db.doc('integrations/linkedin').get();

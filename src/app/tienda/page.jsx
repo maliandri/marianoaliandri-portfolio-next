@@ -1,4 +1,4 @@
-import StorePage from '@/pages/StorePage';
+import StorePage from '@/views/StorePage';
 
 export const metadata = {
   title: 'Tienda | Servicios de Desarrollo Web y Data',

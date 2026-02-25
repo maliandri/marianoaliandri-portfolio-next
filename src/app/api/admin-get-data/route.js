@@ -1,4 +1,6 @@
-import admin, { db } from '@/lib/firebase-admin';
+export const dynamic = 'force-dynamic';
+import { getDb } from '@/lib/firebase-admin';
+const db = getDb();
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'mariano';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';

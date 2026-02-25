@@ -1,3 +1,4 @@
+'use client';
 import React from 'react';
 import Store from '../components/Store';
 import SEO from '../components/SEO';

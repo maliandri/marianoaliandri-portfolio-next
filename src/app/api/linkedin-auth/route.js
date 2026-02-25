@@ -1,4 +1,6 @@
-import admin, { db } from '@/lib/firebase-admin';
+export const dynamic = 'force-dynamic';
+import admin, { getDb } from '@/lib/firebase-admin';
+const db = getDb();
 
 const LINKEDIN_CLIENT_ID = process.env.LINKEDIN_CLIENT_ID;
 const LINKEDIN_CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET;

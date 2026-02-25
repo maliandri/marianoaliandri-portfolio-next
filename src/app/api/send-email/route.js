@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { Resend } from 'resend';
 
 const ADMIN_EMAIL = 'yo@marianoaliandri.com.ar';
