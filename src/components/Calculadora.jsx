@@ -85,10 +85,10 @@ function ROICalculator({ isOpen: isOpenProp, onClose: onCloseProp, hideFloatingB
 
   const closeAndCleanUrl = () => {
     if (onCloseProp) {
-      onCloseProp(); // Usar callback del padre
-    } else {
-      setIsOpenInternal(false); // Cerrar estado interno
+      onCloseProp(); // El router maneja la URL, no tocar history
+      return;
     }
+    setIsOpenInternal(false);
     const url = new URL(window.location.href);
     if (url.hash === '#roi') url.hash = '';
     if (url.searchParams.get('tool') === 'roi') url.searchParams.delete('tool');

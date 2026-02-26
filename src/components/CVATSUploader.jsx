@@ -66,11 +66,10 @@ export default function CVATSUploader({ isOpen: isOpenProp, onClose: onCloseProp
 
   const closeAndCleanUrl = () => {
     if (onCloseProp) {
-      onCloseProp(); // Usa el callback del padre para cerrar
-    } else {
-      setIsOpenInternal(false); // Cierra su estado interno
+      onCloseProp(); // El router maneja la URL, no tocar history
+      return;
     }
-    // La limpieza de URL se mantiene igual
+    setIsOpenInternal(false);
     const url = new URL(window.location.href);
     if (url.hash === "#ats") url.hash = "";
     if (url.searchParams.get("tool") === "ats") url.searchParams.delete("tool");
