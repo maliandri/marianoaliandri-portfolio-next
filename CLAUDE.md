@@ -201,7 +201,11 @@ Carrousel son las que mas pesan — si se reemplazan, usar el componente
 # Desarrollo local
 npm run dev
 
-# Deploy a produccion
+# Deploy a produccion (flujo normal via GitHub)
+git add . && git commit -m "feat/fix: descripcion" && git push
+# Vercel detecta el push y deploya automaticamente a marianoaliandri.com.ar
+
+# Deploy de emergencia sin commitear (bypass de GitHub)
 vercel --prod
 
 # Ver logs de Vercel
