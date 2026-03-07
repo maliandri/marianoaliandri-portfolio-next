@@ -131,21 +131,30 @@ export default function AdminPage() {
     }
   }, [isAuthenticated]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
+    setLoading(true);
 
-    // Credenciales hardcodeadas (se pueden cambiar por variables de entorno)
-    const ADMIN_USER = 'maliandri';
-    const ADMIN_PASS = 'Maliandri$#652542026';
+    try {
+      const response = await fetch('/api/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
 
-    if (username === ADMIN_USER && password === ADMIN_PASS) {
-      sessionStorage.setItem('adminAuth', 'true');
-      sessionStorage.setItem('adminUsername', username);
-      sessionStorage.setItem('adminPassword', password);
-      setIsAuthenticated(true);
-    } else {
-      setLoginError('Usuario o contraseña incorrectos');
+      if (response.ok) {
+        sessionStorage.setItem('adminAuth', 'true');
+        sessionStorage.setItem('adminUsername', username);
+        sessionStorage.setItem('adminPassword', password);
+        setIsAuthenticated(true);
+      } else {
+        setLoginError('Usuario o contraseña incorrectos');
+      }
+    } catch {
+      setLoginError('Error de conexión. Intentá de nuevo.');
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -10,14 +10,16 @@ import { queryClient } from '@/utils/queryClient';
 
 // UI Components (critical - load immediately)
 import ThemeToggle from '@/components/ThemeToggle';
-import LikeSystem from '@/components/LikeSystem';
-import VisitorCounter from '@/components/VisitorCounter';
-import AIChatBot from '@/components/AIChatBot';
-import AuthButton from '@/components/AuthButton';
 import ShopButton from '@/components/ShopButton';
 import Footer from '@/components/Footer';
 import WhatsAppButton from '@/components/WhatsAppButton';
-import LinkedInSidebar from '@/components/LinkedInSidebar';
+
+// Firebase-dependent components — deferred to keep Firebase out of the critical render path
+const AuthButton = dynamic(() => import('@/components/AuthButton'), { ssr: false, loading: () => <div className="w-24 h-8 bg-gray-100 dark:bg-gray-800 rounded-full" /> });
+const LikeSystem = dynamic(() => import('@/components/LikeSystem'), { ssr: false, loading: () => null });
+const VisitorCounter = dynamic(() => import('@/components/VisitorCounter'), { ssr: false, loading: () => null });
+const AIChatBot = dynamic(() => import('@/components/AIChatBot'), { ssr: false, loading: () => null });
+const LinkedInSidebar = dynamic(() => import('@/components/LinkedInSidebar'), { ssr: false, loading: () => null });
 
 // Tools: ssr:false evita que se pre-rendericen en servidor (usan window/browser APIs)
 const KpiRadar = dynamic(() => import('@/components/KpiRadar'), { ssr: false });

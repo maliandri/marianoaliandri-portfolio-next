@@ -2,7 +2,7 @@
 
 // src/components/DashboardStats.jsx
 // ✨ VERSIÓN ADAPTADA PARA BADGE CENTRAL con React Query
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useBasicStats } from "../hooks/useFirebaseStats";
 import { useSearchConsoleStats } from "../hooks/useSearchConsole";
@@ -21,6 +21,7 @@ export default function DashboardStats({
 
   // 🔄 Estado híbrido para el modal
   const [openInternal, setOpenInternal] = useState(false);
+  const modalRef = useRef(null);
   const open = isOpenProp !== undefined ? isOpenProp : openInternal;
   
   // Función de setOpen adaptada
@@ -31,6 +32,13 @@ export default function DashboardStats({
       setOpenInternal(value); // Usar estado interno
     }
   };
+
+  // ===== Scroll to top when modal opens or GSC data arrives
+  useEffect(() => {
+    if (open && modalRef.current) {
+      modalRef.current.scrollTop = 0;
+    }
+  }, [open, gscData]);
 
   // ===== Reloj
   useEffect(() => {
@@ -337,8 +345,10 @@ export default function DashboardStats({
       {open && (
         <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
           <motion.div
+            ref={modalRef}
             id="stats-card"
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-2xl aspect-square overflow-y-auto border border-gray-200 dark:border-gray-700 flex flex-col"
+            style={{ overflowAnchor: 'none' }}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             onClick={(e) => e.stopPropagation()}
