@@ -204,6 +204,23 @@ class MakeService {
   }
 
   /**
+   * Resuelve la URL de Microlink embed a la URL directa del CDN.
+   * Microlink genera el screenshot y lo guarda en su CDN (s.microlink.io).
+   * LinkedIn y otras redes necesitan una URL directa sin redirects lentos.
+   */
+  async resolveScreenshotUrl(siteUrl) {
+    try {
+      const apiUrl = `https://api.microlink.io/?url=${encodeURIComponent(siteUrl)}&screenshot=true&meta=false`;
+      const res = await fetch(apiUrl, { signal: AbortSignal.timeout(25000) });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data?.data?.screenshot?.url || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Publicar un proyecto del portfolio (AI generará el post)
    */
   async publishProyecto(proyecto, aiProvider = 'gemini') {
@@ -217,18 +234,24 @@ class MakeService {
       `URL: ${proyecto.url}`,
     ].filter(Boolean).join(' ');
 
+    // Resolver URL directa del CDN de Microlink para evitar timeout 504 en LinkedIn
+    const directScreenshotUrl = await this.resolveScreenshotUrl(proyecto.url);
+    const imageUrl = directScreenshotUrl || proyecto.screenshotUrl || null;
+
+    console.log(`📸 Screenshot URL para ${proyecto.domain}:`, imageUrl);
+
     return this.publish({
       text: partes,
       type: 'proyecto',
       useAI: true,
-      imageUrl: proyecto.screenshotUrl || null,
+      imageUrl,
       aiProvider,
       metadata: {
         domain: proyecto.domain,
         url: proyecto.url,
         clicks: proyecto.clicks,
         impressions: proyecto.impressions,
-        screenshotUrl: proyecto.screenshotUrl,
+        screenshotUrl: imageUrl,
       }
     });
   }
