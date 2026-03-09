@@ -51,7 +51,17 @@ function formatNum(n) {
   return String(n);
 }
 
+const SECCIONES = [
+  { key: 'descripcionCorta', label: 'DESCRIPCIÓN CORTA' },
+  { key: 'stack',            label: 'STACK TÉCNICO' },
+  { key: 'funcionalidades',  label: 'FUNCIONALIDADES DESTACADAS' },
+  { key: 'impacto',          label: 'DATO DE IMPACTO' },
+];
+
 function ProyectoCard({ proyecto, index }) {
+  const [expanded, setExpanded] = useState(false);
+  const tieneDetalle = SECCIONES.some(s => proyecto[s.key]);
+
   return (
     <motion.div
       className="group rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300"
@@ -67,14 +77,37 @@ function ProyectoCard({ proyecto, index }) {
           {proyecto.domain}
         </h3>
 
-        {proyecto.descripcionCorta ? (
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
-            {proyecto.descripcionCorta}
-          </p>
+        {/* Secciones colapsables */}
+        {tieneDetalle ? (
+          <div className="mt-3 space-y-1">
+            {SECCIONES.map(({ key, label }) => {
+              if (!proyecto[key]) return null;
+              return (
+                <div key={key} className="border border-gray-100 dark:border-gray-700 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setExpanded(prev => prev === key ? null : key)}
+                    className="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 tracking-wide">{label}</span>
+                    <svg className={`w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform ${expanded === key ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {expanded === key ? (
+                    <div className="px-3 pb-3 text-xs text-gray-600 dark:text-gray-300 whitespace-pre-line leading-relaxed">
+                      {proyecto[key]}
+                    </div>
+                  ) : (
+                    <p className="px-3 pb-1.5 text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {proyecto[key]}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         ) : (
-          <p className="mt-2 text-sm text-gray-400 dark:text-gray-600 italic">
-            Sin descripción
-          </p>
+          <p className="mt-2 text-sm text-gray-400 dark:text-gray-600 italic">Sin descripción</p>
         )}
 
         {/* Stats */}
