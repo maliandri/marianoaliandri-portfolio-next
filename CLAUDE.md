@@ -34,7 +34,7 @@ URL en produccion: https://marianoaliandri.com.ar
 ```
 src/
   app/                  # App Router de Next.js
-    page.jsx            # Home: HeroBuild + Servicios + Skills + Carrousel + Contact
+    page.jsx            # Home: HeroBuild + Servicios + Skills + ProyectosGrid + Contact
     layout.jsx          # Root layout: metadata, preconnects, dark mode script
     providers.jsx       # QueryClient, CartProvider, AppChrome (header, footer, tools)
     api/                # API Routes (server-side)
@@ -44,7 +44,8 @@ src/
       cv-payment/       # Pago por analisis de CV
       lead-finder/      # Google Places + scraping de emails
       publish-social/   # Make.com webhook para redes sociales
-      search-console/   # Google Search Console via Firebase Admin
+      search-console/   # GSC stats — dinámico via gscClient (sin SITES hardcodeado)
+      proyectos/        # GET: GSC sites.list() + clicks/imp + Firestore desc + Microlink URLs
       send-email/       # Envio de emails
       admin-login/      # Login del panel admin
       ...otros          # Webhooks de pago, LinkedIn, reels, productos
@@ -54,9 +55,9 @@ src/
   components/           # Componentes React reutilizables
   views/                # Vistas completas (StorePage, AdminPage, ProfilePage, etc.)
   context/              # CartContext
-  hooks/                # useAnalytics, useFirebaseStats, useSearchConsole, etc.
+  hooks/                # useAnalytics, useFirebaseStats, useSearchConsole, useProyectos, etc.
   utils/                # Servicios: cloudinary, firebase, mercadopago, gemini, etc.
-  lib/                  # firebase-admin.js (servidor)
+  lib/                  # firebase-admin.js + gscClient.js (servidor)
   schemas/              # firebaseSchemas.js
   data/                 # linkedinPosts.js, products.js
 ```
@@ -65,7 +66,8 @@ src/
 
 ## Deploy y entorno
 
-- **Deploy**: `vercel --prod` desde la raiz del proyecto
+- **Deploy**: `git push` → Vercel auto-deploy via GitHub. Emergencias: `vercel --prod`
+- **GitHub**: `https://github.com/maliandri/marianoaliandri-portfolio-next` (privado, rama `main`)
 - **DNS**: Vercel DNS (nameservers: ns1.vercel-dns.com)
 - **Dominio principal**: marianoaliandri.com.ar (apex)
 - **Email**: Zoho Mail — MX apuntando a mx.zoho.com (configurado en Vercel DNS)
@@ -121,7 +123,7 @@ que rompe headers HTTP. Siempre usar: `printf "VALUE" | vercel env add VAR produ
 
 ## Funcionalidades activas
 
-- **Home**: Hero animado con editor de codigo en vivo, carrusel de servicios, skills, galeria, contacto
+- **Home**: Hero animado con editor de codigo en vivo, carrusel de servicios, skills, Proyectos Realizados (grid dinamico con GSC), contacto
 - **Tienda**: E-commerce de servicios con MercadoPago, carrito, detalle de producto, Q&A
 - **Herramientas** (modales / rutas dedicadas):
   - `/ats` — Analizador de CV con Gemini AI (PDF upload)
@@ -164,10 +166,17 @@ no al nivel del modulo. Esto evita errores en pre-render del servidor.
 Script sincrono en `<head>` aplica la clase `dark` antes de que React hidrate.
 El script en providers.jsx desregistra el Service Worker viejo de Netlify.
 
+### ProyectosGrid — GSC dinamico sin hardcodeo
+`src/components/ProyectosGrid.jsx` muestra los proyectos del portfolio con stats
+reales de GSC (clicks + impresiones). La lista de sitios viene de `sites.list()` de
+Search Console via `src/lib/gscClient.js` — **no hay array hardcodeado en ninguna ruta**.
+Las descripciones y orden se editan desde el panel Admin tab "Proyectos" y se guardan en
+Firestore (coleccion `proyectos`, doc por dominio). Los screenshots usan Microlink API
+como `<img src>` directo (CDN cachea 24h). **No agregar arrays de dominios hardcodeados.**
+
 ### Cloudinary con srcSet responsive
-`CloudinaryImage` genera srcset con [400, 800, 1200, 1920]w. Las imagenes del
-Carrousel son las que mas pesan — si se reemplazan, usar el componente
-`CloudinaryImage` con `responsive={true}`.
+`CloudinaryImage` genera srcset con [400, 800, 1200, 1920]w. **No usar el Carrousel
+viejo** — fue reemplazado por ProyectosGrid.
 
 ---
 
@@ -192,6 +201,13 @@ Carrousel son las que mas pesan — si se reemplazan, usar el componente
 - **Rutas de herramientas**: `/ats`, `/roi`, `/web`, `/kpi`, `/radarweb`, `/stats`
   son paginas reales (no solo modales). Los modales se abren desde el home pero
   cada herramienta tiene su propia URL compartible.
+
+- **`src/lib/gscClient.js`**: Unico lugar donde se define auth y `getVerifiedSites()`.
+  Ambas rutas (`/api/proyectos` y `/api/search-console`) lo importan. No duplicar
+  la logica de sites.list() en otro lugar.
+
+- **`src/components/ProyectosGrid.jsx`**: Reemplaza al Carrousel. No restaurar el
+  componente `Carrousel` en `page.jsx`.
 
 ---
 

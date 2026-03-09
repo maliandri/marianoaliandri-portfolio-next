@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { collection, getDocs, doc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { db, firebaseQA } from '../utils/firebaseservice';
 import priceService from '../utils/priceService';
 import SocialMediaDashboard from '../components/SocialMediaDashboard';
@@ -466,7 +466,8 @@ export default function AdminPage() {
               { id: 'social', label: 'Redes Sociales', icon: '📱' },
               { id: 'linkedin', label: 'LinkedIn', icon: '💼' },
               { id: 'leads', label: 'Lead Finder', icon: '🎯' },
-              { id: 'questions', label: 'Preguntas', icon: '💬' }
+              { id: 'questions', label: 'Preguntas', icon: '💬' },
+              { id: 'proyectos', label: 'Proyectos', icon: '🌐' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -677,7 +678,133 @@ export default function AdminPage() {
         {!loading && activeTab === 'questions' && (
           <AdminQuestionsPanel />
         )}
+
+        {activeTab === 'proyectos' && (
+          <AdminProyectosPanel db={db} />
+        )}
       </div>
+    </div>
+  );
+}
+
+// Panel de edición de Proyectos
+function AdminProyectosPanel({ db }) {
+  const [proyectos, setProyectos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(null);
+  const [edits, setEdits] = useState({});
+
+  useEffect(() => {
+    fetch('/api/proyectos')
+      .then(r => r.json())
+      .then(data => {
+        const list = data.proyectos || [];
+        setProyectos(list);
+        const initial = {};
+        list.forEach(p => {
+          initial[p.domain] = { descripcion: p.descripcion || '', orden: p.orden ?? 99, visible: p.visible !== false };
+        });
+        setEdits(initial);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async (domain) => {
+    setSaving(domain);
+    try {
+      const e = edits[domain];
+      await setDoc(doc(db, 'proyectos', domain), {
+        descripcion: e.descripcion,
+        orden: Number(e.orden),
+        visible: e.visible,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      alert(`✅ ${domain} guardado`);
+    } catch (err) {
+      alert('❌ Error: ' + err.message);
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  if (loading) return <div className="flex justify-center py-12"><div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          Proyectos — desde Google Search Console
+        </h3>
+        <span className="text-sm text-gray-500">{proyectos.length} sitios detectados</span>
+      </div>
+
+      {proyectos.map(p => {
+        const e = edits[p.domain] || { descripcion: '', orden: 99, visible: true };
+        const isSaving = saving === p.domain;
+        return (
+          <div key={p.domain} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img
+                  src={p.screenshotUrl}
+                  alt={p.domain}
+                  className="w-16 h-10 object-cover rounded border border-gray-200 dark:border-gray-600"
+                  onError={e => { e.target.style.display = 'none'; }}
+                />
+                <div>
+                  <a href={p.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+                    {p.domain}
+                  </a>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {p.clicks} clicks · {p.impressions} imp. (28 días)
+                  </div>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={e.visible}
+                  onChange={ev => setEdits(prev => ({ ...prev, [p.domain]: { ...prev[p.domain], visible: ev.target.checked } }))}
+                  className="w-4 h-4 rounded"
+                />
+                Visible
+              </label>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
+              <textarea
+                rows={3}
+                value={e.descripcion}
+                onChange={ev => setEdits(prev => ({ ...prev, [p.domain]: { ...prev[p.domain], descripcion: ev.target.value } }))}
+                placeholder="Describí brevemente el trabajo realizado en este sitio..."
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Orden</label>
+                <input
+                  type="number"
+                  value={e.orden}
+                  min={0}
+                  onChange={ev => setEdits(prev => ({ ...prev, [p.domain]: { ...prev[p.domain], orden: ev.target.value } }))}
+                  className="w-20 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <button
+                onClick={() => handleSave(p.domain)}
+                disabled={isSaving}
+                className="mt-5 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                {isSaving ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

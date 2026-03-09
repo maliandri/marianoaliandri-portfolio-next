@@ -1,7 +1,7 @@
 import HeroBuild from '@/components/HeroBuild';
 import ServiciosCarousel from '@/components/ServiciosCarousel';
 import Skills from '@/components/Skills';
-import Carrousel from '@/components/Carrousel';
+import ProyectosGrid from '@/components/ProyectosGrid';
 import Contact from '@/components/Contact';
 
 export const metadata = {
@@ -23,8 +23,8 @@ export default function HomePage() {
         <section id="skills" aria-label="Habilidades técnicas">
           <Skills />
         </section>
-        <section aria-label="Carrousel de imagenes">
-          <Carrousel />
+        <section id="proyectos" aria-label="Proyectos realizados">
+          <ProyectosGrid />
         </section>
         <section id="contact" aria-label="Información de contacto">
           <Contact />
