@@ -66,7 +66,10 @@ export async function GET() {
           domain: site.domain,
           url: site.url,
           screenshotUrl: `https://api.microlink.io/?url=${encodeURIComponent(site.url)}&screenshot=true&embed=screenshot.url`,
-          descripcion: fs.descripcion || '',
+          descripcionCorta: fs.descripcionCorta || '',
+          stack: fs.stack || '',
+          funcionalidades: fs.funcionalidades || '',
+          impacto: fs.impacto || '',
           orden: fs.orden ?? 99,
           visible: fs.visible !== false,
           clicks: stats.clicks,
@@ -84,12 +87,12 @@ export async function GET() {
 
 export async function PATCH(request) {
   try {
-    const { domain, descripcion, orden, visible } = await request.json();
+    const { domain, descripcionCorta, stack, funcionalidades, impacto, orden, visible } = await request.json();
     if (!domain) return Response.json({ error: 'domain requerido' }, { status: 400 });
 
     const db = getDb();
     await db.collection('proyectos').doc(domain).set(
-      { descripcion, orden: Number(orden), visible, updatedAt: new Date() },
+      { descripcionCorta, stack, funcionalidades, impacto, orden: Number(orden), visible, updatedAt: new Date() },
       { merge: true }
     );
 

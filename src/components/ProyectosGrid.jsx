@@ -67,9 +67,9 @@ function ProyectoCard({ proyecto, index }) {
           {proyecto.domain}
         </h3>
 
-        {proyecto.descripcion ? (
+        {proyecto.descripcionCorta ? (
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
-            {proyecto.descripcion}
+            {proyecto.descripcionCorta}
           </p>
         ) : (
           <p className="mt-2 text-sm text-gray-400 dark:text-gray-600 italic">

@@ -688,11 +688,14 @@ export default function AdminPage() {
 }
 
 // Panel de edición de Proyectos
+const EMPTY_EDIT = { descripcionCorta: '', stack: '', funcionalidades: '', impacto: '', orden: 99, visible: true };
+
 function AdminProyectosPanel({ db }) {
   const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
   const [edits, setEdits] = useState({});
+  const [expanded, setExpanded] = useState({});
 
   useEffect(() => {
     fetch('/api/proyectos')
@@ -702,13 +705,23 @@ function AdminProyectosPanel({ db }) {
         setProyectos(list);
         const initial = {};
         list.forEach(p => {
-          initial[p.domain] = { descripcion: p.descripcion || '', orden: p.orden ?? 99, visible: p.visible !== false };
+          initial[p.domain] = {
+            descripcionCorta: p.descripcionCorta || '',
+            stack: p.stack || '',
+            funcionalidades: p.funcionalidades || '',
+            impacto: p.impacto || '',
+            orden: p.orden ?? 99,
+            visible: p.visible !== false,
+          };
         });
         setEdits(initial);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const setField = (domain, field, value) =>
+    setEdits(prev => ({ ...prev, [domain]: { ...prev[domain], [field]: value } }));
 
   const handleSave = async (domain) => {
     setSaving(domain);
@@ -717,7 +730,7 @@ function AdminProyectosPanel({ db }) {
       const res = await fetch('/api/proyectos', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain, descripcion: e.descripcion, orden: Number(e.orden), visible: e.visible }),
+        body: JSON.stringify({ domain, ...e, orden: Number(e.orden) }),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Error');
       alert(`✅ ${domain} guardado`);
@@ -731,8 +744,8 @@ function AdminProyectosPanel({ db }) {
   if (loading) return <div className="flex justify-center py-12"><div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-2">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           Proyectos — desde Google Search Console
         </h3>
@@ -740,68 +753,116 @@ function AdminProyectosPanel({ db }) {
       </div>
 
       {proyectos.map(p => {
-        const e = edits[p.domain] || { descripcion: '', orden: 99, visible: true };
+        const e = edits[p.domain] || EMPTY_EDIT;
         const isSaving = saving === p.domain;
+        const isOpen = !!expanded[p.domain];
         return (
-          <div key={p.domain} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-            <div className="flex items-center justify-between">
+          <div key={p.domain} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {/* Header colapsable */}
+            <button
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              onClick={() => setExpanded(prev => ({ ...prev, [p.domain]: !prev[p.domain] }))}
+            >
               <div className="flex items-center gap-3">
                 <img
                   src={p.screenshotUrl}
                   alt={p.domain}
-                  className="w-16 h-10 object-cover rounded border border-gray-200 dark:border-gray-600"
-                  onError={e => { e.target.style.display = 'none'; }}
+                  className="w-14 h-9 object-cover rounded border border-gray-200 dark:border-gray-600"
+                  onError={ev => { ev.target.style.display = 'none'; }}
                 />
-                <div>
-                  <a href={p.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
-                    {p.domain}
-                  </a>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {p.clicks} clicks · {p.impressions} imp. (28 días)
-                  </div>
+                <div className="text-left">
+                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">{p.domain}</span>
+                  <div className="text-xs text-gray-500 mt-0.5">{p.clicks} clicks · {p.impressions} imp. · orden {e.orden}</div>
                 </div>
               </div>
-              <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                <input
-                  type="checkbox"
-                  checked={e.visible}
-                  onChange={ev => setEdits(prev => ({ ...prev, [p.domain]: { ...prev[p.domain], visible: ev.target.checked } }))}
-                  className="w-4 h-4 rounded"
-                />
-                Visible
-              </label>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
-              <textarea
-                rows={3}
-                value={e.descripcion}
-                onChange={ev => setEdits(prev => ({ ...prev, [p.domain]: { ...prev[p.domain], descripcion: ev.target.value } }))}
-                placeholder="Describí brevemente el trabajo realizado en este sitio..."
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Orden</label>
-                <input
-                  type="number"
-                  value={e.orden}
-                  min={0}
-                  onChange={ev => setEdits(prev => ({ ...prev, [p.domain]: { ...prev[p.domain], orden: ev.target.value } }))}
-                  className="w-20 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+              <div className="flex items-center gap-3">
+                {e.descripcionCorta && (
+                  <span className="hidden sm:block text-xs text-green-600 dark:text-green-400 font-medium">Completo</span>
+                )}
+                <svg className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
-              <button
-                onClick={() => handleSave(p.domain)}
-                disabled={isSaving}
-                className="mt-5 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                {isSaving ? 'Guardando...' : 'Guardar'}
-              </button>
-            </div>
+            </button>
+
+            {/* Contenido expandido */}
+            {isOpen && (
+              <div className="px-5 pb-5 space-y-4 border-t border-gray-100 dark:border-gray-700 pt-4">
+
+                <div>
+                  <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Descripción corta</label>
+                  <textarea
+                    rows={2}
+                    value={e.descripcionCorta}
+                    onChange={ev => setField(p.domain, 'descripcionCorta', ev.target.value)}
+                    placeholder="→ Sitio de ventas de viviendas modulares que convierte visitas en leads calificados..."
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Stack técnico</label>
+                  <textarea
+                    rows={2}
+                    value={e.stack}
+                    onChange={ev => setField(p.domain, 'stack', ev.target.value)}
+                    placeholder="→ React 19 + Vite · Tailwind CSS · Framer Motion · Google Gemini · Supabase..."
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Funcionalidades destacadas</label>
+                  <textarea
+                    rows={5}
+                    value={e.funcionalidades}
+                    onChange={ev => setField(p.domain, 'funcionalidades', ev.target.value)}
+                    placeholder={"→ Chatbot de ventas con IA — asesora al cliente y captura leads\n→ Catálogo interactivo con filtros en tiempo real\n→ SEO híbrido SPA + HTML estático"}
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Dato de impacto</label>
+                  <textarea
+                    rows={2}
+                    value={e.impacto}
+                    onChange={ev => setField(p.domain, 'impacto', ev.target.value)}
+                    placeholder="→ 97/100 de salud SEO en Ahrefs, indexado en GSC con presencia en búsquedas de..."
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div className="flex items-center gap-4 pt-1">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Orden</label>
+                    <input
+                      type="number"
+                      value={e.orden}
+                      min={0}
+                      onChange={ev => setField(p.domain, 'orden', ev.target.value)}
+                      className="w-20 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-4">
+                    <input
+                      type="checkbox"
+                      checked={e.visible}
+                      onChange={ev => setField(p.domain, 'visible', ev.target.checked)}
+                      className="w-4 h-4 rounded"
+                    />
+                    Visible en el portfolio
+                  </label>
+                  <button
+                    onClick={() => handleSave(p.domain)}
+                    disabled={isSaving}
+                    className="ml-auto mt-4 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    {isSaving ? 'Guardando...' : 'Guardar'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         );
       })}
