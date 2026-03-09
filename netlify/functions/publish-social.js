@@ -16,7 +16,7 @@ export async function handler(event) {
 
     // Usar el mismo webhook para ambos AIs (Make.com tiene límite de webhooks en plan gratuito)
     // El Router en Make.com decidirá qué AI usar basándose en data.aiProvider
-    const webhookURL = 'https://hook.us2.make.com/qcvtjdf5o81w8lu9vwx1v5arhsty3f28';
+    const webhookURL = 'https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi';
 
     console.log(`🤖 Usando AI: ${aiProvider.toUpperCase()}`);
     console.log(`📡 Webhook: ${webhookURL}`);

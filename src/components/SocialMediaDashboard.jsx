@@ -44,6 +44,11 @@ function SocialMediaDashboard() {
     imageUrl: '' // URL de imagen para estadística
   });
 
+  // Proyectos state
+  const [proyectos, setProyectos] = useState([]);
+  const [loadingProyectos, setLoadingProyectos] = useState(false);
+  const [publishingProyectoId, setPublishingProyectoId] = useState(null);
+
   // Firebase stats (productos más visitados, páginas, usuarios)
   const { data: firebaseStats, isLoading: loadingStats, error: statsError } = useExtendedStats();
 
@@ -55,6 +60,59 @@ function SocialMediaDashboard() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'proyectos' && proyectos.length === 0) {
+      loadProyectos();
+    }
+  }, [activeTab]);
+
+  const loadProyectos = async () => {
+    setLoadingProyectos(true);
+    try {
+      const res = await fetch('/api/proyectos');
+      const data = await res.json();
+      if (data.success) setProyectos(data.proyectos);
+    } catch (error) {
+      console.error('Error cargando proyectos:', error);
+    } finally {
+      setLoadingProyectos(false);
+    }
+  };
+
+  const handlePublishProyecto = async (proyecto) => {
+    setPublishingProyectoId(proyecto.domain);
+    try {
+      const result = await makeService.publishProyecto(proyecto, aiProvider);
+      if (result.success) {
+        showMessage('success', `✅ ${proyecto.domain} enviado a publicar`);
+      } else {
+        showMessage('error', `Error: ${result.message}`);
+      }
+    } catch (error) {
+      showMessage('error', `Error publicando ${proyecto.domain}`);
+    } finally {
+      setPublishingProyectoId(null);
+    }
+  };
+
+  const handlePublishAllProyectos = async () => {
+    if (proyectos.length === 0) return;
+    setIsPublishing(true);
+    try {
+      for (const proyecto of proyectos) {
+        setPublishingProyectoId(proyecto.domain);
+        await makeService.publishProyecto(proyecto, aiProvider);
+        await new Promise(r => setTimeout(r, 2500));
+      }
+      showMessage('success', `✅ ${proyectos.length} proyectos enviados a publicar`);
+    } catch (error) {
+      showMessage('error', 'Error publicando proyectos');
+    } finally {
+      setIsPublishing(false);
+      setPublishingProyectoId(null);
+    }
+  };
 
   const loadProducts = async () => {
     try {
@@ -428,7 +486,8 @@ function SocialMediaDashboard() {
   const tabs = [
     { id: 'custom', label: 'Libre', fullLabel: 'Publicación Libre', icon: '✍️' },
     { id: 'products', label: 'Productos', fullLabel: 'Productos/Servicios', icon: '🎯' },
-    { id: 'statistics', label: 'Stats', fullLabel: 'Estadísticas', icon: '📊' }
+    { id: 'statistics', label: 'Stats', fullLabel: 'Estadísticas', icon: '📊' },
+    { id: 'proyectos', label: 'Proyectos', fullLabel: 'Mis Proyectos', icon: '🌐' }
   ];
 
   const templates = {
@@ -1074,6 +1133,132 @@ ${selectedProduct.description?.substring(0, 100)}...
               {isPublishing ? '⏳ Publicando...' : '🚀 Publicar Estadística'}
             </button>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'proyectos' && (
+        <div className="space-y-4">
+          {/* Header + botón publicar todos */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Cada proyecto se publica con su screenshot, descripción y stats de GSC.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={loadProyectos}
+                disabled={loadingProyectos}
+                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-xs disabled:opacity-50"
+              >
+                {loadingProyectos ? '⏳' : '🔄'} Recargar
+              </button>
+              <button
+                onClick={handlePublishAllProyectos}
+                disabled={isPublishing || loadingProyectos || proyectos.length === 0}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              >
+                {isPublishing ? '⏳ Publicando...' : `🚀 Publicar todos (${proyectos.length})`}
+              </button>
+            </div>
+          </div>
+
+          {/* Loading skeleton */}
+          {loadingProyectos && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-pulse">
+                  <div className="h-36 bg-gray-200 dark:bg-gray-700" />
+                  <div className="p-4 space-y-2">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3" />
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-full" />
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-4/5" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Grid de proyectos */}
+          {!loadingProyectos && proyectos.length === 0 && (
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400 py-8">
+              No hay proyectos cargados. Revisá que tengas proyectos visibles en el panel Proyectos.
+            </p>
+          )}
+
+          {!loadingProyectos && proyectos.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {proyectos.map(proyecto => {
+                const isPublishingThis = publishingProyectoId === proyecto.domain;
+                return (
+                  <div
+                    key={proyecto.domain}
+                    className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800"
+                  >
+                    {/* Screenshot */}
+                    <div className="h-36 bg-gray-100 dark:bg-gray-700 overflow-hidden relative">
+                      <img
+                        src={proyecto.screenshotUrl}
+                        alt={proyecto.domain}
+                        className="w-full h-full object-cover object-top"
+                        onError={e => { e.target.style.display = 'none'; }}
+                      />
+                      {/* Badge GSC stats */}
+                      <div className="absolute bottom-2 left-2 flex gap-1.5">
+                        <span className="bg-indigo-600/90 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                          {proyecto.clicks >= 1000 ? `${(proyecto.clicks/1000).toFixed(1)}k` : proyecto.clicks} clicks
+                        </span>
+                        <span className="bg-purple-600/90 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                          {proyecto.impressions >= 1000 ? `${(proyecto.impressions/1000).toFixed(1)}k` : proyecto.impressions} imp.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Info */}
+                    <div className="p-4 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">
+                          {proyecto.domain}
+                        </h4>
+                        <a
+                          href={proyecto.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo-500 hover:text-indigo-700 text-xs flex-shrink-0"
+                        >
+                          ↗ Ver
+                        </a>
+                      </div>
+
+                      {proyecto.descripcionCorta && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+                          {proyecto.descripcionCorta}
+                        </p>
+                      )}
+
+                      {proyecto.stack && (
+                        <p className="text-xs text-indigo-600 dark:text-indigo-400 truncate">
+                          🛠 {proyecto.stack}
+                        </p>
+                      )}
+
+                      {!proyecto.descripcionCorta && !proyecto.stack && (
+                        <p className="text-xs text-gray-400 dark:text-gray-600 italic">Sin descripción</p>
+                      )}
+
+                      <button
+                        onClick={() => handlePublishProyecto(proyecto)}
+                        disabled={isPublishing || isPublishingThis || publishingProyectoId !== null}
+                        className="w-full mt-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isPublishingThis ? '⏳ Publicando...' : '🚀 Publicar este proyecto'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

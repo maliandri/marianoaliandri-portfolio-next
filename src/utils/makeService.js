@@ -6,7 +6,7 @@ class MakeService {
   constructor() {
     // Webhook URL de Make.com (único para evitar límite de webhooks en plan gratuito)
     // El Router en Make.com decide qué AI usar según el campo aiProvider del payload
-    this.webhookURL = 'https://hook.us2.make.com/t9o6h2qpt85npf78qc52lgx6gpukza2i';
+    this.webhookURL = 'https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi';
   }
 
   /**
@@ -199,6 +199,36 @@ class MakeService {
         serviceDescription: service.description,
         benefits: service.benefits || [],
         serviceUrl: 'https://marianoaliandri.com.ar/#servicios'
+      }
+    });
+  }
+
+  /**
+   * Publicar un proyecto del portfolio (AI generará el post)
+   */
+  async publishProyecto(proyecto, aiProvider = 'gemini') {
+    const partes = [
+      `Proyecto desarrollado: ${proyecto.domain}.`,
+      proyecto.descripcionCorta ? proyecto.descripcionCorta : '',
+      proyecto.stack ? `Stack: ${proyecto.stack}.` : '',
+      proyecto.funcionalidades ? `Funcionalidades: ${proyecto.funcionalidades}.` : '',
+      proyecto.impacto ? `Impacto: ${proyecto.impacto}.` : '',
+      `Estadísticas (últimos 28 días): ${proyecto.clicks} clicks, ${proyecto.impressions} impresiones en Google.`,
+      `URL: ${proyecto.url}`,
+    ].filter(Boolean).join(' ');
+
+    return this.publish({
+      text: partes,
+      type: 'proyecto',
+      useAI: true,
+      imageUrl: proyecto.screenshotUrl || null,
+      aiProvider,
+      metadata: {
+        domain: proyecto.domain,
+        url: proyecto.url,
+        clicks: proyecto.clicks,
+        impressions: proyecto.impressions,
+        screenshotUrl: proyecto.screenshotUrl,
       }
     });
   }
