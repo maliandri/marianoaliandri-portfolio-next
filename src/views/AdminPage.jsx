@@ -714,12 +714,12 @@ function AdminProyectosPanel({ db }) {
     setSaving(domain);
     try {
       const e = edits[domain];
-      await setDoc(doc(db, 'proyectos', domain), {
-        descripcion: e.descripcion,
-        orden: Number(e.orden),
-        visible: e.visible,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
+      const res = await fetch('/api/proyectos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain, descripcion: e.descripcion, orden: Number(e.orden), visible: e.visible }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Error');
       alert(`✅ ${domain} guardado`);
     } catch (err) {
       alert('❌ Error: ' + err.message);

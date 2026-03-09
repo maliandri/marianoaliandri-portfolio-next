@@ -81,3 +81,20 @@ export async function GET() {
     return Response.json({ error: 'Error obteniendo proyectos', details: error.message }, { status: 500 });
   }
 }
+
+export async function PATCH(request) {
+  try {
+    const { domain, descripcion, orden, visible } = await request.json();
+    if (!domain) return Response.json({ error: 'domain requerido' }, { status: 400 });
+
+    const db = getDb();
+    await db.collection('proyectos').doc(domain).set(
+      { descripcion, orden: Number(orden), visible, updatedAt: new Date() },
+      { merge: true }
+    );
+
+    return Response.json({ success: true });
+  } catch (error) {
+    return Response.json({ error: 'Error guardando proyecto', details: error.message }, { status: 500 });
+  }
+}
