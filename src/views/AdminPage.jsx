@@ -6,6 +6,7 @@ import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, serverTimestamp
 import { db, firebaseQA } from '../utils/firebaseservice';
 import priceService from '../utils/priceService';
 import SocialMediaDashboard from '../components/SocialMediaDashboard';
+import SocialPublisher from '../components/admin/SocialPublisher';
 import LeadFinderPanel from '../components/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 
@@ -16,6 +17,7 @@ export default function AdminPage() {
   const [loginError, setLoginError] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [socialSubTab, setSocialSubTab] = useState('publisher');
 
   // Data states
   const [users, setUsers] = useState([]);
@@ -664,7 +666,29 @@ export default function AdminPage() {
         )}
 
         {!loading && activeTab === 'social' && (
-          <SocialMediaDashboard />
+          <div className="space-y-4">
+            {/* Sub-tabs */}
+            <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 pb-1">
+              {[
+                { id: 'publisher', label: '📢 Publicar Servicio' },
+                { id: 'dashboard', label: '📱 Dashboard General' },
+              ].map(sub => (
+                <button
+                  key={sub.id}
+                  onClick={() => setSocialSubTab(sub.id)}
+                  className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
+                    socialSubTab === sub.id
+                      ? 'bg-purple-600 text-white'
+                      : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {sub.label}
+                </button>
+              ))}
+            </div>
+            {socialSubTab === 'publisher' && <SocialPublisher />}
+            {socialSubTab === 'dashboard' && <SocialMediaDashboard />}
+          </div>
         )}
 
         {!loading && activeTab === 'linkedin' && (
