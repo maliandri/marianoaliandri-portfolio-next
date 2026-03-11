@@ -155,7 +155,7 @@ export default function SocialPublisher() {
           tone:       selectedTono,
           type:       'post',
           aiProvider: 'gemini',
-          url:        imageUrl || undefined,
+          url:        imageUrl,
         }),
       });
 
