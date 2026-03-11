@@ -93,6 +93,7 @@ export default function SocialPublisher() {
   const [selectedCategoria, setSelectedCategoria] = useState(null);
   const [selectedTema,      setSelectedTema]      = useState(null);
   const [selectedTono,      setSelectedTono]      = useState('profesional');
+  const [imageUrl,          setImageUrl]          = useState('');
   const [status,            setStatus]            = useState(STATUS.idle);
   const [errorMsg,          setErrorMsg]          = useState('');
 
@@ -120,6 +121,7 @@ export default function SocialPublisher() {
           tone:       selectedTono,
           type:       'post',
           aiProvider: 'gemini',
+          url:        imageUrl || undefined,
         }),
       });
 
@@ -261,6 +263,26 @@ export default function SocialPublisher() {
         </div>
       </div>
 
+      {/* 5. Imagen */}
+      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
+        <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
+          <span className="bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+            {categoriaActual ? '5' : '4'}
+          </span>
+          URL de imagen <span className="text-gray-500 font-normal">(requerida para Facebook/Instagram)</span>
+        </h3>
+        <input
+          type="text"
+          value={imageUrl}
+          onChange={e => setImageUrl(e.target.value)}
+          placeholder="https://res.cloudinary.com/... o cualquier URL pública"
+          className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500 placeholder-gray-500"
+        />
+        {imageUrl && (
+          <img src={imageUrl} alt="preview" className="mt-3 w-full h-36 object-cover rounded-lg" onError={e => e.target.style.display='none'} />
+        )}
+      </div>
+
       {/* Resumen */}
       {selectedTema && (
         <motion.div
@@ -271,6 +293,7 @@ export default function SocialPublisher() {
           <p><span className="text-gray-500">Red:</span> <span style={{ color: redActual?.color }}>{redActual?.icon} {redActual?.label}</span></p>
           <p><span className="text-gray-500">Tema:</span> {selectedTema}</p>
           <p><span className="text-gray-500">Tono:</span> <span className="capitalize">{selectedTono}</span></p>
+          <p><span className="text-gray-500">Imagen:</span> {imageUrl ? <span className="text-green-400">✓ URL cargada</span> : <span className="text-yellow-400">⚠ Sin imagen</span>}</p>
         </motion.div>
       )}
 
