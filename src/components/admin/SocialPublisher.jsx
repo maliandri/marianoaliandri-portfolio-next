@@ -150,12 +150,22 @@ export default function SocialPublisher() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topic:      selectedTema,
-          network:    selectedRed,
-          tone:       selectedTono,
-          type:       'post',
-          aiProvider: 'gemini',
-          imageUrl:   imageUrl,
+          // Campos compatibles con makeService.js / prompt de Make.com
+          text:        selectedTema,
+          content:     selectedTema,
+          caption:     selectedTema,
+          description: selectedTema,
+          message:     selectedTema,
+          networks:    selectedRed === 'all' ? ['linkedin', 'facebook'] : [selectedRed.toLowerCase()],
+          type:        'service',
+          useAI:       true,
+          aiProvider:  'gemini',
+          imageUrl:    imageUrl,
+          metadata: {
+            tone:        selectedTono,
+            topic:       selectedTema,
+            serviceUrl:  'https://marianoaliandri.com.ar',
+          },
         }),
       });
 
