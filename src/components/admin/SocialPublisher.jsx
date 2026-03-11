@@ -107,18 +107,11 @@ export default function SocialPublisher() {
   const handleSend = async () => {
     if (!selectedTema) return;
 
-    const webhookUrl = process.env.NEXT_PUBLIC_MAKE_WEBHOOK_GEMINI;
-    if (!webhookUrl) {
-      setErrorMsg('NEXT_PUBLIC_MAKE_WEBHOOK_GEMINI no configurada en .env.local');
-      setStatus(STATUS.error);
-      return;
-    }
-
     setStatus(STATUS.sending);
     setErrorMsg('');
 
     try {
-      const res = await fetch(webhookUrl, {
+      const res = await fetch('/api/publish-social', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
