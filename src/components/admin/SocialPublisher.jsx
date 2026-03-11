@@ -107,9 +107,9 @@ export default function SocialPublisher() {
   const handleSend = async () => {
     if (!selectedTema) return;
 
-    const webhookUrl = process.env.NEXT_PUBLIC_MAKE_SOCIAL_WEBHOOK;
+    const webhookUrl = process.env.NEXT_PUBLIC_MAKE_WEBHOOK_GEMINI;
     if (!webhookUrl) {
-      setErrorMsg('NEXT_PUBLIC_MAKE_SOCIAL_WEBHOOK no configurada en .env.local');
+      setErrorMsg('NEXT_PUBLIC_MAKE_WEBHOOK_GEMINI no configurada en .env.local');
       setStatus(STATUS.error);
       return;
     }
