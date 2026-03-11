@@ -118,6 +118,7 @@ export default function SocialPublisher() {
           topic:   selectedTema,
           network: selectedRed,
           tone:    selectedTono,
+          type:    'post',
         }),
       });
 
