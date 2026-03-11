@@ -1,6 +1,31 @@
 'use client';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SERVICE_LOGOS } from '@/data/serviceLogos';
+
+// Mapa tema → clave de logo
+const TEMA_LOGO = {
+  'Integración de MercadoPago Checkout':             'mercadopago',
+  'Suscripciones y pagos recurrentes con MercadoPago': 'mercadopago',
+  'Bindx para pagos recurrentes':                    'mercadopago',
+  'Gestión de imágenes y video con Cloudinary':      'cloudinary',
+  'CDN y optimización de medios':                    'cloudinary',
+  'Chatbots inteligentes con Gemini AI':             'googlegemini',
+  'Automatización con IA para negocios':             'googlegemini',
+  'Generación de contenido con IA':                  'googlegemini',
+  'Firebase Firestore para apps en tiempo real':     'firebase',
+  'MongoDB Atlas para proyectos escalables':         'mongodb',
+  'Supabase como alternativa open source':           'supabase',
+  'Email transaccional con Resend':                  'resend',
+  'Notificaciones automáticas por email':            'resend',
+  'Deploy en Vercel para proyectos Next.js':         'vercel',
+  'Netlify con Serverless Functions':                'netlify',
+  'Deploy full-stack sin servidor propio':           'vercel',
+  'Flujos automáticos con Make.com':                 'make',
+  'Webhooks e integraciones entre servicios':        'make',
+  'Generación y edición de video con Shotstack':     'framermotion',
+  'Thumbnails dinámicos con Microlink API':          'nextdotjs',
+};
 
 const CATEGORIAS = [
   {
@@ -103,6 +128,15 @@ export default function SocialPublisher() {
   const handleCategoriaChange = (catId) => {
     setSelectedCategoria(catId);
     setSelectedTema(null);
+    setImageUrl('');
+  };
+
+  const handleTemaChange = (tema) => {
+    setSelectedTema(tema);
+    const logoKey = TEMA_LOGO[tema];
+    if (logoKey && SERVICE_LOGOS[logoKey]) {
+      setImageUrl(SERVICE_LOGOS[logoKey]);
+    }
   };
 
   const handleSend = async () => {
@@ -222,7 +256,7 @@ export default function SocialPublisher() {
               {categoriaActual.temas.map(tema => (
                 <button
                   key={tema}
-                  onClick={() => setSelectedTema(tema)}
+                  onClick={() => handleTemaChange(tema)}
                   className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all border ${
                     selectedTema === tema
                       ? 'border-purple-500 bg-purple-500/20 text-white'
@@ -269,17 +303,46 @@ export default function SocialPublisher() {
           <span className="bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
             {categoriaActual ? '5' : '4'}
           </span>
-          URL de imagen <span className="text-gray-500 font-normal">(requerida para Facebook/Instagram)</span>
+          Imagen
+          {imageUrl && TEMA_LOGO[selectedTema] && SERVICE_LOGOS[TEMA_LOGO[selectedTema]] === imageUrl && (
+            <span className="text-xs text-purple-400 font-normal">— logo auto-detectado</span>
+          )}
         </h3>
+
+        {/* Preview del logo / imagen */}
+        <AnimatePresence mode="wait">
+          {imageUrl && (
+            <motion.div
+              key={imageUrl}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="mb-3 flex items-center justify-center bg-gray-900 rounded-xl p-6 border border-gray-700"
+            >
+              <img
+                src={imageUrl}
+                alt="preview"
+                className="max-h-24 max-w-full object-contain"
+                onError={e => e.target.style.display = 'none'}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <input
           type="text"
           value={imageUrl}
           onChange={e => setImageUrl(e.target.value)}
-          placeholder="https://res.cloudinary.com/... o cualquier URL pública"
+          placeholder="URL override — o dejá el logo auto-detectado"
           className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500 placeholder-gray-500"
         />
         {imageUrl && (
-          <img src={imageUrl} alt="preview" className="mt-3 w-full h-36 object-cover rounded-lg" onError={e => e.target.style.display='none'} />
+          <button
+            onClick={() => setImageUrl('')}
+            className="mt-2 text-xs text-gray-500 hover:text-red-400 transition-colors"
+          >
+            ✕ Quitar imagen
+          </button>
         )}
       </div>
 
