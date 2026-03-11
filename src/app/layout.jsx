@@ -42,7 +42,7 @@ export default function RootLayout({ children }) {
         {/* Favicon dinámico: cambia el emoji según el día de la semana */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var e=['🚀','💡','⚡','🌟','🎯','✨','🛠️'];var d=new Date().getDay();var em=e[d];var svg='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">'+em+'</text></svg>';var l=document.getElementById('favicon-link');if(l){l.href=svg;}else{var n=document.createElement('link');n.rel='icon';n.href=svg;document.head.appendChild(n);}})();`,
+            __html: `(function(){var e=['😴','😊','😄','🥳','😎','🤩','😁'];var d=new Date().getDay();var em=e[d];var svg='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">'+em+'</text></svg>';var l=document.getElementById('favicon-link');if(l){l.href=svg;}else{var n=document.createElement('link');n.rel='icon';n.href=svg;document.head.appendChild(n);}})();`,
           }}
         />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
