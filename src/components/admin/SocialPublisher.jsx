@@ -115,10 +115,11 @@ export default function SocialPublisher() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topic:   selectedTema,
-          network: selectedRed,
-          tone:    selectedTono,
-          type:    'post',
+          topic:      selectedTema,
+          network:    selectedRed,
+          tone:       selectedTono,
+          type:       'post',
+          aiProvider: 'gemini',
         }),
       });
 
