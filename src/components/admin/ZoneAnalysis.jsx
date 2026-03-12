@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Loader } from '@googlemaps/js-api-loader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { collection, addDoc, getDocs, orderBy, query, limit, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../utils/firebaseservice';
@@ -153,23 +154,13 @@ export default function ZoneAnalysis() {
   // Zonas guardadas
   const [zonasGuardadas, setZonasGuardadas] = useState([]);
 
-  // Load Google Maps (solo para el mapa visual — sin Places API en el browser)
+  // Load Google Maps con @googlemaps/js-api-loader
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (window.google) { initMap(); return; }
-
-    const scriptId = 'google-maps-script';
-    if (!document.getElementById(scriptId)) {
-      const script = document.createElement('script');
-      script.id = scriptId;
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || ''}&loading=async`;
-      script.async = true;
-      script.defer = true;
-      script.onload = initMap;
-      document.head.appendChild(script);
-    } else {
-      document.getElementById(scriptId).addEventListener('load', initMap);
-    }
+    const loader = new Loader({
+      apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || '',
+      version: 'weekly',
+    });
+    loader.load().then(initMap).catch(e => console.error('Maps load error:', e));
   }, []);
 
   const initMap = useCallback(() => {
