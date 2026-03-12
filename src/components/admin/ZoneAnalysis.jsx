@@ -119,7 +119,9 @@ export default function ZoneAnalysis() {
   const googleMapRef = useRef(null);
   const markerRef = useRef(null);
   const circleRef = useRef(null);
-  const autocompleteContainerRef = useRef(null);
+  const [addressInput, setAddressInput] = useState('');
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodeError, setGeocodeError] = useState('');
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -151,7 +153,7 @@ export default function ZoneAnalysis() {
   // Zonas guardadas
   const [zonasGuardadas, setZonasGuardadas] = useState([]);
 
-  // Load Google Maps
+  // Load Google Maps (solo para el mapa visual — sin Places API en el browser)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (window.google) { initMap(); return; }
@@ -160,7 +162,7 @@ export default function ZoneAnalysis() {
     if (!document.getElementById(scriptId)) {
       const script = document.createElement('script');
       script.id = scriptId;
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || ''}&libraries=maps,marker,places&loading=async`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || ''}&loading=async`;
       script.async = true;
       script.defer = true;
       script.onload = initMap;
@@ -170,7 +172,7 @@ export default function ZoneAnalysis() {
     }
   }, []);
 
-  const initMap = useCallback(async () => {
+  const initMap = useCallback(() => {
     if (!mapRef.current || !window.google) return;
     const map = new window.google.maps.Map(mapRef.current, {
       center: { lat, lng },
@@ -178,7 +180,6 @@ export default function ZoneAnalysis() {
       styles: [{ featureType: 'poi', stylers: [{ visibility: 'simplified' }] }],
     });
     googleMapRef.current = map;
-
     markerRef.current = new window.google.maps.Marker({ position: { lat, lng }, map });
     circleRef.current = new window.google.maps.Circle({
       map,
@@ -190,25 +191,30 @@ export default function ZoneAnalysis() {
       fillColor: '#7c3aed',
       fillOpacity: 0.1,
     });
-
-    if (autocompleteContainerRef.current) {
-      const { PlaceAutocompleteElement } = await window.google.maps.importLibrary('places');
-      const pac = new PlaceAutocompleteElement();
-      pac.style.width = '100%';
-      autocompleteContainerRef.current.innerHTML = '';
-      autocompleteContainerRef.current.appendChild(pac);
-      pac.addEventListener('gmp-placeselect', async ({ place }) => {
-        await place.fetchFields({ fields: ['location', 'formattedAddress'] });
-        const newLat = place.location.lat();
-        const newLng = place.location.lng();
-        setLat(newLat);
-        setLng(newLng);
-        map.setCenter({ lat: newLat, lng: newLng });
-        markerRef.current.setPosition({ lat: newLat, lng: newLng });
-        circleRef.current.setCenter({ lat: newLat, lng: newLng });
-      });
-    }
   }, []);
+
+  const handleGeocode = async () => {
+    if (!addressInput.trim()) return;
+    setIsGeocoding(true);
+    setGeocodeError('');
+    try {
+      const res = await fetch(`/api/geocode?address=${encodeURIComponent(addressInput)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se encontró la dirección');
+      setLat(data.lat);
+      setLng(data.lng);
+      setAddressInput(data.formatted_address);
+      if (googleMapRef.current) {
+        googleMapRef.current.setCenter({ lat: data.lat, lng: data.lng });
+        markerRef.current?.setPosition({ lat: data.lat, lng: data.lng });
+        circleRef.current?.setCenter({ lat: data.lat, lng: data.lng });
+      }
+    } catch (e) {
+      setGeocodeError(e.message);
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
 
   // Update circle on radio change
   useEffect(() => {
@@ -398,7 +404,25 @@ export default function ZoneAnalysis() {
 
                 <div>
                   <label className="text-gray-400 text-xs mb-1 block">Ubicación central</label>
-                  <div ref={autocompleteContainerRef} className="w-full rounded-lg overflow-hidden" />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={addressInput}
+                      onChange={e => setAddressInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleGeocode()}
+                      placeholder="Ej: Av. Argentina 1234, Neuquén"
+                      className="flex-1 bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500 placeholder-gray-500"
+                    />
+                    <button
+                      onClick={handleGeocode}
+                      disabled={isGeocoding || !addressInput.trim()}
+                      className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white rounded-lg text-sm transition-all"
+                    >
+                      {isGeocoding ? '⏳' : '🔍'}
+                    </button>
+                  </div>
+                  {geocodeError && <p className="text-red-400 text-xs mt-1">{geocodeError}</p>}
+                  {lat !== -38.9516 && <p className="text-green-400 text-xs mt-1">📍 {lat.toFixed(5)}, {lng.toFixed(5)}</p>}
                 </div>
 
                 <div>
