@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request) {
   try {
     const data = await request.json();
-    const webhookURL = 'https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi';
+    const webhookURL = process.env.MAKE_SOCIAL_WEBHOOK_URL || 'https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi';
 
     const response = await fetch(webhookURL, {
       method: 'POST',
