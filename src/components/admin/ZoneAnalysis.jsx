@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
+import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { collection, addDoc, getDocs, orderBy, query, limit, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../utils/firebaseservice';
@@ -154,13 +154,10 @@ export default function ZoneAnalysis() {
   // Zonas guardadas
   const [zonasGuardadas, setZonasGuardadas] = useState([]);
 
-  // Load Google Maps con @googlemaps/js-api-loader
+  // Load Google Maps con @googlemaps/js-api-loader v2
   useEffect(() => {
-    const loader = new Loader({
-      apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || '',
-      version: 'weekly',
-    });
-    loader.load().then(initMap).catch(e => console.error('Maps load error:', e));
+    setOptions({ apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || '', version: 'weekly' });
+    importLibrary('maps').then(initMap).catch(e => console.error('Maps load error:', e));
   }, []);
 
   const initMap = useCallback(() => {
