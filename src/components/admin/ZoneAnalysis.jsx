@@ -129,8 +129,6 @@ export default function ZoneAnalysis() {
   const [lng, setLng] = useState(-68.0591);
   const [radio, setRadio] = useState(1000);
   const [tipos, setTipos] = useState(['todos']);
-  const [locationQuery, setLocationQuery] = useState('');
-
   // Períodos
   const [periodo1, setPeriodo1] = useState({ label: 'Mañana pico', date: today, time: '08:00' });
   const [periodo2, setPeriodo2] = useState({ label: 'Tarde libre', date: today, time: '18:00' });
@@ -146,6 +144,7 @@ export default function ZoneAnalysis() {
   const [showPublish, setShowPublish] = useState(false);
   const [pubNetwork, setPubNetwork] = useState('LinkedIn');
   const [pubTone, setPubTone] = useState('informativo');
+  const [extraContext, setExtraContext] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishStatus, setPublishStatus] = useState('');
 
@@ -207,7 +206,6 @@ export default function ZoneAnalysis() {
         map.setCenter({ lat: newLat, lng: newLng });
         markerRef.current.setPosition({ lat: newLat, lng: newLng });
         circleRef.current.setCenter({ lat: newLat, lng: newLng });
-        setLocationQuery(place.formattedAddress || '');
       });
     }
   }, []);
@@ -306,6 +304,7 @@ export default function ZoneAnalysis() {
           useAI: true,
           aiProvider: 'gemini',
           imageUrl: result.map_image_url,
+          extra_context: extraContext.trim() || undefined,
           metadata: {
             tone: pubTone,
             zona_titulo: result.zona_titulo,
@@ -637,6 +636,16 @@ export default function ZoneAnalysis() {
                               </button>
                             ))}
                           </div>
+                        </div>
+                        <div>
+                          <label className="text-gray-400 text-xs mb-1 block">Contexto adicional para Gemini <span className="text-gray-600">(opcional)</span></label>
+                          <textarea
+                            value={extraContext}
+                            onChange={e => setExtraContext(e.target.value)}
+                            rows={3}
+                            placeholder="Ej: Este análisis es para un cliente del rubro inmobiliario. Destacar el crecimiento comercial de la zona."
+                            className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500 resize-none placeholder-gray-500"
+                          />
                         </div>
                         {publishStatus === 'success' && <p className="text-green-400 text-sm text-center">✅ Enviado a Make.com</p>}
                         {publishStatus === 'error' && <p className="text-red-400 text-sm text-center">❌ Error al publicar</p>}
