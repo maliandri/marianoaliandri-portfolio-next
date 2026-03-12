@@ -119,8 +119,7 @@ export default function ZoneAnalysis() {
   const googleMapRef = useRef(null);
   const markerRef = useRef(null);
   const circleRef = useRef(null);
-  const autocompleteRef = useRef(null);
-  const inputRef = useRef(null);
+  const autocompleteContainerRef = useRef(null);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -162,7 +161,7 @@ export default function ZoneAnalysis() {
     if (!document.getElementById(scriptId)) {
       const script = document.createElement('script');
       script.id = scriptId;
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || ''}&libraries=places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || ''}&libraries=maps,marker,places&loading=async`;
       script.async = true;
       script.defer = true;
       script.onload = initMap;
@@ -172,7 +171,7 @@ export default function ZoneAnalysis() {
     }
   }, []);
 
-  const initMap = useCallback(() => {
+  const initMap = useCallback(async () => {
     if (!mapRef.current || !window.google) return;
     const map = new window.google.maps.Map(mapRef.current, {
       center: { lat, lng },
@@ -193,20 +192,22 @@ export default function ZoneAnalysis() {
       fillOpacity: 0.1,
     });
 
-    if (inputRef.current) {
-      const ac = new window.google.maps.places.Autocomplete(inputRef.current);
-      autocompleteRef.current = ac;
-      ac.addListener('place_changed', () => {
-        const place = ac.getPlace();
-        if (!place.geometry) return;
-        const newLat = place.geometry.location.lat();
-        const newLng = place.geometry.location.lng();
+    if (autocompleteContainerRef.current) {
+      const { PlaceAutocompleteElement } = await window.google.maps.importLibrary('places');
+      const pac = new PlaceAutocompleteElement();
+      pac.style.width = '100%';
+      autocompleteContainerRef.current.innerHTML = '';
+      autocompleteContainerRef.current.appendChild(pac);
+      pac.addEventListener('gmp-placeselect', async ({ place }) => {
+        await place.fetchFields({ fields: ['location', 'formattedAddress'] });
+        const newLat = place.location.lat();
+        const newLng = place.location.lng();
         setLat(newLat);
         setLng(newLng);
         map.setCenter({ lat: newLat, lng: newLng });
         markerRef.current.setPosition({ lat: newLat, lng: newLng });
         circleRef.current.setCenter({ lat: newLat, lng: newLng });
-        setLocationQuery(place.formatted_address || '');
+        setLocationQuery(place.formattedAddress || '');
       });
     }
   }, []);
@@ -398,12 +399,7 @@ export default function ZoneAnalysis() {
 
                 <div>
                   <label className="text-gray-400 text-xs mb-1 block">Ubicación central</label>
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    placeholder="Buscar dirección o lugar..."
-                    className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500"
-                  />
+                  <div ref={autocompleteContainerRef} className="w-full rounded-lg overflow-hidden" />
                 </div>
 
                 <div>
