@@ -13,18 +13,27 @@ export async function GET(request) {
     return Response.json({ error: 'API key not configured' }, { status: 500 });
   }
 
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
-  const res = await fetch(url);
+  // Usar Places API (New) Text Search — ya habilitada en la key
+  const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': 'places.location,places.formattedAddress',
+    },
+    body: JSON.stringify({ textQuery: address }),
+  });
+
   const data = await res.json();
 
-  if (data.status !== 'OK' || !data.results?.length) {
-    return Response.json({ error: 'No results found', status: data.status }, { status: 404 });
+  if (!data.places?.length) {
+    return Response.json({ error: 'No results found' }, { status: 404 });
   }
 
-  const result = data.results[0];
+  const place = data.places[0];
   return Response.json({
-    lat: result.geometry.location.lat,
-    lng: result.geometry.location.lng,
-    formatted_address: result.formatted_address,
+    lat: place.location.latitude,
+    lng: place.location.longitude,
+    formatted_address: place.formattedAddress,
   });
 }
