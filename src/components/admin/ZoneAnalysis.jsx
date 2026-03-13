@@ -157,7 +157,9 @@ export default function ZoneAnalysis() {
   // Load Google Maps con @googlemaps/js-api-loader v2
   useEffect(() => {
     setOptions({ apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || '', version: 'weekly' });
-    importLibrary('maps').then(initMap).catch(e => console.error('Maps load error:', e));
+    Promise.all([importLibrary('maps'), importLibrary('places')])
+      .then(initMap)
+      .catch(e => console.error('Maps load error:', e));
   }, []);
 
   const initMap = useCallback(() => {
