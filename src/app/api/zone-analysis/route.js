@@ -2,6 +2,8 @@ export const runtime = 'nodejs';
 export const maxDuration = 30;
 
 const API_KEY = process.env.GOOGLE_PLACES_API_KEY;
+// Static Maps usa la clave del browser (tiene Static Maps API habilitada + restricción de dominio)
+const MAPS_STATIC_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || process.env.GOOGLE_PLACES_API_KEY;
 
 function congestionLevel(minutes, baseMinutes) {
   const ratio = minutes / (baseMinutes || 5);
@@ -111,7 +113,7 @@ function buildStaticMapUrl(lat, lng, radiusMeters) {
     maptype: 'roadmap',
     markers: `color:red|${lat},${lng}`,
     path: `color:0x4f46e599|fillcolor:0x4f46e522|weight:2|${circlePath}`,
-    key: API_KEY,
+    key: MAPS_STATIC_KEY,
   });
   return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
 }
