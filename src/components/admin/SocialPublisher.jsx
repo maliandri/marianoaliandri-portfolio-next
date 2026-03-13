@@ -161,6 +161,7 @@ export default function SocialPublisher() {
           useAI:       true,
           aiProvider:  'gemini',
           imageUrl:    imageUrl,
+          url:         imageUrl,
           metadata: {
             tone:        selectedTono,
             topic:       selectedTema,

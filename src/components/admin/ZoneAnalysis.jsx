@@ -315,6 +315,7 @@ export default function ZoneAnalysis() {
           useAI: true,
           aiProvider: 'gemini',
           imageUrl: result.map_image_url,
+          url:      result.map_image_url,
           extra_context: extraContext.trim() || undefined,
           metadata: {
             tone: pubTone,
