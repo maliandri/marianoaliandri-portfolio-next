@@ -14,29 +14,14 @@ const TIPOS = [
   { id: 'todos', label: 'Todos', emoji: '📍' },
 ];
 
-const TIME_PRESETS = ['08:00', '12:00', '18:00', '20:00'];
-
 const QUICK_PRESETS = [
   {
     label: 'Hoy: mañana vs tarde',
     apply: () => {
       const today = new Date().toISOString().split('T')[0];
       return {
-        p1: { label: 'Mañana pico', date: today, time: '08:00' },
-        p2: { label: 'Tarde libre', date: today, time: '18:00' },
-      };
-    },
-  },
-  {
-    label: 'Hoy vs ayer mismo horario',
-    apply: () => {
-      const now = new Date();
-      const today = now.toISOString().split('T')[0];
-      const yesterday = new Date(now - 86400000).toISOString().split('T')[0];
-      const time = '12:00';
-      return {
-        p1: { label: 'Ayer', date: yesterday, time },
-        p2: { label: 'Hoy', date: today, time },
+        p1: { label: 'Mañana pico', dateFrom: today, timeFrom: '07:00', dateTo: today, timeTo: '10:00' },
+        p2: { label: 'Tarde-noche', dateFrom: today, timeFrom: '17:00', dateTo: today, timeTo: '20:00' },
       };
     },
   },
@@ -44,11 +29,31 @@ const QUICK_PRESETS = [
     label: 'Esta semana vs semana pasada',
     apply: () => {
       const now = new Date();
-      const thisWeek = now.toISOString().split('T')[0];
-      const lastWeek = new Date(now - 7 * 86400000).toISOString().split('T')[0];
+      const day = now.getDay() || 7;
+      const mon = new Date(now.getTime() - (day - 1) * 86400000);
+      const fmt = d => d.toISOString().split('T')[0];
+      const thisMon = fmt(mon);
+      const thisFri = fmt(new Date(mon.getTime() + 4 * 86400000));
+      const lastMon = fmt(new Date(mon.getTime() - 7 * 86400000));
+      const lastFri = fmt(new Date(mon.getTime() - 3 * 86400000));
       return {
-        p1: { label: 'Semana pasada', date: lastWeek, time: '12:00' },
-        p2: { label: 'Esta semana', date: thisWeek, time: '12:00' },
+        p1: { label: 'Semana pasada', dateFrom: lastMon, timeFrom: '08:00', dateTo: lastFri, timeTo: '18:00' },
+        p2: { label: 'Esta semana', dateFrom: thisMon, timeFrom: '08:00', dateTo: thisFri, timeTo: '18:00' },
+      };
+    },
+  },
+  {
+    label: 'Este mes vs mes pasado',
+    apply: () => {
+      const now = new Date();
+      const fmt = d => d.toISOString().split('T')[0];
+      const thisStart = fmt(new Date(now.getFullYear(), now.getMonth(), 1));
+      const thisEnd = fmt(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+      const lastStart = fmt(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+      const lastEnd = fmt(new Date(now.getFullYear(), now.getMonth(), 0));
+      return {
+        p1: { label: 'Mes pasado', dateFrom: lastStart, timeFrom: '08:00', dateTo: lastEnd, timeTo: '20:00' },
+        p2: { label: 'Este mes', dateFrom: thisStart, timeFrom: '08:00', dateTo: thisEnd, timeTo: '20:00' },
       };
     },
   },
@@ -66,49 +71,56 @@ const CONGESTION_LABELS = { LOW: 'Fluido', MEDIUM: 'Moderado', HIGH: 'Congestion
 
 function PeriodoPicker({ label, value, onChange }) {
   return (
-    <div className="bg-gray-700/50 rounded-xl p-4 border border-gray-600">
-      <p className="text-purple-400 font-semibold text-sm mb-3">{label}</p>
-      <div className="space-y-3">
+    <div className="bg-gray-700/50 rounded-xl p-4 border border-gray-600 space-y-3">
+      <p className="text-purple-400 font-semibold text-sm">{label}</p>
+      <div>
+        <label className="text-gray-400 text-xs mb-1 block">Etiqueta</label>
+        <input
+          type="text"
+          value={value.label}
+          onChange={e => onChange({ ...value, label: e.target.value })}
+          placeholder="Ej: Enero mañana"
+          className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-gray-400 text-xs mb-1 block">Etiqueta</label>
-          <input
-            type="text"
-            value={value.label}
-            onChange={e => onChange({ ...value, label: e.target.value })}
-            placeholder="Ej: Mañana pico"
-            className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500"
-          />
-        </div>
-        <div>
-          <label className="text-gray-400 text-xs mb-1 block">Fecha</label>
+          <label className="text-gray-400 text-xs mb-1 block">Desde — fecha</label>
           <input
             type="date"
-            value={value.date}
-            onChange={e => onChange({ ...value, date: e.target.value })}
-            className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500"
+            value={value.dateFrom}
+            onChange={e => onChange({ ...value, dateFrom: e.target.value })}
+            className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-2 py-2 rounded-lg focus:outline-none focus:border-purple-500"
           />
         </div>
         <div>
-          <label className="text-gray-400 text-xs mb-1 block">Hora</label>
-          <div className="flex gap-2 flex-wrap">
-            {TIME_PRESETS.map(t => (
-              <button
-                key={t}
-                onClick={() => onChange({ ...value, time: t })}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                  value.time === t ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-            <input
-              type="time"
-              value={value.time}
-              onChange={e => onChange({ ...value, time: e.target.value })}
-              className="bg-gray-700 border border-gray-600 text-white text-xs px-2 py-1 rounded-lg focus:outline-none focus:border-purple-500"
-            />
-          </div>
+          <label className="text-gray-400 text-xs mb-1 block">Desde — hora</label>
+          <input
+            type="time"
+            value={value.timeFrom}
+            onChange={e => onChange({ ...value, timeFrom: e.target.value })}
+            className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-2 py-2 rounded-lg focus:outline-none focus:border-purple-500"
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-gray-400 text-xs mb-1 block">Hasta — fecha</label>
+          <input
+            type="date"
+            value={value.dateTo}
+            onChange={e => onChange({ ...value, dateTo: e.target.value })}
+            className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-2 py-2 rounded-lg focus:outline-none focus:border-purple-500"
+          />
+        </div>
+        <div>
+          <label className="text-gray-400 text-xs mb-1 block">Hasta — hora</label>
+          <input
+            type="time"
+            value={value.timeTo}
+            onChange={e => onChange({ ...value, timeTo: e.target.value })}
+            className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-2 py-2 rounded-lg focus:outline-none focus:border-purple-500"
+          />
         </div>
       </div>
     </div>
@@ -133,8 +145,8 @@ export default function ZoneAnalysis() {
   const [radio, setRadio] = useState(1000);
   const [tipos, setTipos] = useState(['todos']);
   // Períodos
-  const [periodo1, setPeriodo1] = useState({ label: 'Mañana pico', date: today, time: '08:00' });
-  const [periodo2, setPeriodo2] = useState({ label: 'Tarde libre', date: today, time: '18:00' });
+  const [periodo1, setPeriodo1] = useState({ label: 'Mañana pico', dateFrom: today, timeFrom: '07:00', dateTo: today, timeTo: '10:00' });
+  const [periodo2, setPeriodo2] = useState({ label: 'Tarde-noche', dateFrom: today, timeFrom: '17:00', dateTo: today, timeTo: '20:00' });
 
   // UI states
   const [step, setStep] = useState(1);
@@ -255,8 +267,8 @@ export default function ZoneAnalysis() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           zona: { titulo, lat, lng, radio, tipos },
-          periodo1: { label: periodo1.label, datetime: `${periodo1.date}T${periodo1.time}:00` },
-          periodo2: { label: periodo2.label, datetime: `${periodo2.date}T${periodo2.time}:00` },
+          periodo1: { label: periodo1.label, dateFrom: periodo1.dateFrom, timeFrom: periodo1.timeFrom, dateTo: periodo1.dateTo, timeTo: periodo1.timeTo },
+          periodo2: { label: periodo2.label, dateFrom: periodo2.dateFrom, timeFrom: periodo2.timeFrom, dateTo: periodo2.dateTo, timeTo: periodo2.timeTo },
         }),
       });
 
@@ -513,8 +525,8 @@ export default function ZoneAnalysis() {
                 <div className="bg-gray-700/50 rounded-lg p-3 text-sm text-gray-300 space-y-1">
                   <p><span className="text-gray-500">Zona:</span> {titulo}</p>
                   <p><span className="text-gray-500">Radio:</span> {RADIOS.find(r => r.value === radio)?.label}</p>
-                  <p><span className="text-gray-500">Período 1:</span> {periodo1.label} — {periodo1.date} {periodo1.time}</p>
-                  <p><span className="text-gray-500">Período 2:</span> {periodo2.label} — {periodo2.date} {periodo2.time}</p>
+                  <p><span className="text-gray-500">Período 1:</span> {periodo1.label} — {periodo1.dateFrom} {periodo1.timeFrom} → {periodo1.dateTo} {periodo1.timeTo}</p>
+                  <p><span className="text-gray-500">Período 2:</span> {periodo2.label} — {periodo2.dateFrom} {periodo2.timeFrom} → {periodo2.dateTo} {periodo2.timeTo}</p>
                   <p><span className="text-gray-500">Tipos:</span> {tipos.join(', ')}</p>
                 </div>
                 {error && <p className="text-red-400 text-sm">{error}</p>}

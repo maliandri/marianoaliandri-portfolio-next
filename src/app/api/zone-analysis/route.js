@@ -116,14 +116,46 @@ function buildStaticMapUrl(lat, lng, radiusMeters) {
   return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
 }
 
+// Genera N datetimes equidistantes dentro del rango.
+// Si alguno cae en el pasado, lo avanza por semanas completas hasta que sea futuro.
+function sampleDatetimes(dateFrom, timeFrom, dateTo, timeTo, n = 3) {
+  const start = new Date(`${dateFrom}T${timeFrom}:00`);
+  const end = new Date(`${dateTo}T${timeTo}:00`);
+  if (isNaN(start) || isNaN(end)) return [];
+  const diff = end.getTime() - start.getTime();
+  const minFuture = Date.now() + 5 * 60 * 1000;
+  const samples = [];
+  for (let i = 0; i < n; i++) {
+    const fraction = n === 1 ? 0.5 : i / (n - 1);
+    let dt = new Date(start.getTime() + diff * fraction);
+    // Avanzar por semanas hasta que sea futuro
+    while (dt.getTime() < minFuture) {
+      dt = new Date(dt.getTime() + 7 * 24 * 3600 * 1000);
+    }
+    samples.push(dt.toISOString());
+  }
+  return samples;
+}
+
+async function fetchTrafficRange(lat, lng, datetimes) {
+  const results = await Promise.all(datetimes.map(dt => fetchTraffic(lat, lng, dt)));
+  const valid = results.filter(r => r.minutes !== null);
+  if (!valid.length) return { minutes: null };
+  const avg = Math.round(valid.reduce((a, r) => a + r.minutes, 0) / valid.length);
+  return { minutes: avg };
+}
+
 export async function POST(req) {
   try {
     const { zona, periodo1, periodo2 } = await req.json();
     const { lat, lng, radio, tipos = ['todos'], titulo } = zona;
 
+    const samples1 = sampleDatetimes(periodo1.dateFrom, periodo1.timeFrom, periodo1.dateTo, periodo1.timeTo, 3);
+    const samples2 = sampleDatetimes(periodo2.dateFrom, periodo2.timeFrom, periodo2.dateTo, periodo2.timeTo, 3);
+
     const [traffic1, traffic2, places] = await Promise.all([
-      fetchTraffic(lat, lng, periodo1.datetime),
-      fetchTraffic(lat, lng, periodo2.datetime),
+      fetchTrafficRange(lat, lng, samples1),
+      fetchTrafficRange(lat, lng, samples2),
       fetchPlaces(lat, lng, radio, tipos),
     ]);
 
@@ -178,7 +210,8 @@ export async function POST(req) {
     const mapImageUrl = buildStaticMapUrl(lat, lng, radio);
 
     const congestionLabel = { LOW: 'baja', MEDIUM: 'moderada', HIGH: 'alta' };
-    const summary = `Análisis de zona "${titulo}": En ${periodo1.label}, el tráfico tardó ${t1Minutes} min (congestión ${congestionLabel[trafficResult.periodo1.congestion]}). En ${periodo2.label}, ${t2Minutes} min (congestión ${congestionLabel[trafficResult.periodo2.congestion]}). Diferencia: ${Math.abs(deltaMins)} min ${deltaMins > 0 ? 'más lento' : 'más rápido'} (${Math.abs(deltaPercent)}%). Zona comercial: ${totalPlaces} locales encontrados, ${openNow} abiertos ahora, rating promedio ${avgRating}.`;
+    const fmtRange = p => `${p.dateFrom} ${p.timeFrom} – ${p.dateTo} ${p.timeTo}`;
+    const summary = `Análisis de zona "${titulo}": Período 1 (${periodo1.label}: ${fmtRange(periodo1)}) promedio ${t1Minutes} min (congestión ${congestionLabel[trafficResult.periodo1.congestion]}). Período 2 (${periodo2.label}: ${fmtRange(periodo2)}) promedio ${t2Minutes} min (congestión ${congestionLabel[trafficResult.periodo2.congestion]}). Diferencia: ${Math.abs(deltaMins)} min ${deltaMins > 0 ? 'más lento' : 'más rápido'} en el período 2 (${Math.abs(deltaPercent)}%). Zona comercial: ${totalPlaces} locales, ${openNow} abiertos, rating promedio ${avgRating}.`;
 
     return Response.json({
       zona_titulo: titulo,
