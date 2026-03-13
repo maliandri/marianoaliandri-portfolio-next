@@ -157,7 +157,6 @@ export default function ZoneAnalysis() {
   // Load Google Maps con @googlemaps/js-api-loader v1
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || '';
-    console.log('[ZoneAnalysis] MAPS KEY:', apiKey ? `${apiKey.slice(0,8)}...` : 'EMPTY');
     const loader = new Loader({
       apiKey,
       version: 'weekly',
