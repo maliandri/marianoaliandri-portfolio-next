@@ -83,6 +83,9 @@ Disallow: /admin
 Disallow: /perfil
 Disallow: /mis-compras
 
+# Herramientas internas
+Disallow: /radarweb
+
 # Callbacks de pagos (no deben indexarse)
 Disallow: /payment-pending
 Disallow: /payment-success

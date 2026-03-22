@@ -47,7 +47,7 @@ export default function ProductCard({ product, onViewDetails }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      onClick={() => navigate(`/tienda/${product.id}`)}
+      onClick={() => router.push(`/tienda/${product.id}`)}
     >
       {/* Badge Featured */}
       {product.featured && (
