@@ -17,6 +17,7 @@ export default function Store({ isOpen, onClose, asPage = false }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [rentMode, setRentMode] = useState(false);
+  const [rentalMap, setRentalMap] = useState({});
   const { getCartCount } = useCart();
 
   // Cargar productos desde Firebase
@@ -75,8 +76,19 @@ export default function Store({ isOpen, onClose, asPage = false }) {
       }
     };
 
+    async function loadRentalMap() {
+      try {
+        const res = await fetch('/api/rental-data');
+        const data = await res.json();
+        setRentalMap(data || {});
+      } catch {
+        // sin datos de alquiler
+      }
+    }
+
     if (isOpen) {
       loadProducts();
+      loadRentalMap();
     }
 
     return () => {
@@ -218,6 +230,7 @@ export default function Store({ isOpen, onClose, asPage = false }) {
                     product={product}
                     onViewDetails={setSelectedProduct}
                     rentMode={rentMode}
+                    rental={rentalMap[product.id] || null}
                   />
                 ))}
               </div>

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '../context/CartContext';
 import { ExchangeService, formatARS, formatUSD } from '../utils/exchangeService';
 
-export default function ProductCard({ product, onViewDetails, rentMode = false }) {
+export default function ProductCard({ product, onViewDetails, rentMode = false, rental = null }) {
   const { addToCart } = useCart();
   const router = useRouter();
   const [fx, setFx] = useState({ rate: null, loading: true });
@@ -38,9 +38,9 @@ export default function ProductCard({ product, onViewDetails, rentMode = false }
   };
 
   const isCustom = product.priceUSD === null || product.priceUSD === undefined;
-  const monthlyRate = product.rentalMonthly || null;
-  const hasRental = !isCustom && monthlyRate > 0;
-  const sena = hasRental ? Math.round(product.priceUSD * 0.35) : null;
+  const hasRental = !isCustom && !!rental;
+  const sena = rental?.seña ?? 0;
+  const monthlyRate = rental?.cuota ?? 0;
   const showRental = rentMode && hasRental;
 
   return (
