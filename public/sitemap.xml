@@ -18,55 +18,37 @@
 
   <!-- Productos individuales -->
   <url>
-    <loc>https://marianoaliandri.com.ar/tienda/roi-consulting/</loc>
+    <loc>https://marianoaliandri.com.ar/tienda/roi-consulting-basic/</loc>
     <lastmod>2026-02-06</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://marianoaliandri.com.ar/tienda/landing-page/</loc>
+    <loc>https://marianoaliandri.com.ar/tienda/landing-page-professional/</loc>
     <lastmod>2026-02-06</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://marianoaliandri.com.ar/tienda/business-website/</loc>
+    <loc>https://marianoaliandri.com.ar/tienda/website-corporate/</loc>
     <lastmod>2026-02-06</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://marianoaliandri.com.ar/tienda/ecommerce/</loc>
+    <loc>https://marianoaliandri.com.ar/tienda/ecommerce-basic/</loc>
     <lastmod>2026-02-06</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://marianoaliandri.com.ar/tienda/ai-chatbot-website/</loc>
+    <loc>https://marianoaliandri.com.ar/tienda/website-chatbot-ia/</loc>
     <lastmod>2026-02-06</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://marianoaliandri.com.ar/tienda/powerbi-dashboard/</loc>
-    <lastmod>2026-02-06</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://marianoaliandri.com.ar/tienda/portfolio/</loc>
-    <lastmod>2026-02-06</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://marianoaliandri.com.ar/tienda/blog/</loc>
-    <lastmod>2026-02-06</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://marianoaliandri.com.ar/tienda/webapp/</loc>
+    <loc>https://marianoaliandri.com.ar/tienda/dashboard-powerbi-basic/</loc>
     <lastmod>2026-02-06</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -77,10 +59,42 @@
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
+
+  <!-- Herramientas interactivas -->
   <url>
-    <loc>https://marianoaliandri.com.ar/tienda/dashboard-powerbi-basic/</loc>
-    <lastmod>2026-02-06</lastmod>
+    <loc>https://marianoaliandri.com.ar/ats/</loc>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://marianoaliandri.com.ar/roi/</loc>
+    <lastmod>2026-03-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://marianoaliandri.com.ar/kpi/</loc>
+    <lastmod>2026-03-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://marianoaliandri.com.ar/radarweb/</loc>
+    <lastmod>2026-03-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://marianoaliandri.com.ar/web/</loc>
+    <lastmod>2026-03-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://marianoaliandri.com.ar/stats/</loc>
+    <lastmod>2026-03-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
 </urlset>
