@@ -9,7 +9,7 @@ import Cart from './Cart';
 import { useCart } from '../context/CartContext';
 import priceService from '../utils/priceService';
 
-export default function Store({ isOpen, onClose }) {
+export default function Store({ isOpen, onClose, asPage = false }) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -115,22 +115,8 @@ export default function Store({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-      >
-        <motion.div
-          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col"
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          onClick={(e) => e.stopPropagation()}
-        >
+  const innerContent = (
+    <>
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -142,7 +128,6 @@ export default function Store({ isOpen, onClose }) {
                 <p className="text-sm text-purple-100">Soluciones tecnológicas para tu negocio</p>
               </div>
             </div>
-
             <div className="flex items-center gap-3">
               {/* Toggle Compra / Alquiler */}
               <div className="flex items-center gap-1 bg-white/20 rounded-lg p-1">
@@ -159,7 +144,6 @@ export default function Store({ isOpen, onClose }) {
                   Alquiler
                 </button>
               </div>
-
               {/* Botón del carrito */}
               <button
                 onClick={() => setShowCart(true)}
@@ -174,22 +158,21 @@ export default function Store({ isOpen, onClose }) {
                   </span>
                 )}
               </button>
-
-              {/* Botón cerrar */}
-              <button
-                onClick={onClose}
-                className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              {!asPage && (
+                <button
+                  onClick={onClose}
+                  className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
 
           {/* Barra de búsqueda y filtros */}
           <div className="p-6 border-b border-gray-200 dark:border-gray-700 space-y-4">
-            {/* Búsqueda */}
             <div className="relative">
               <input
                 type="text"
@@ -202,8 +185,6 @@ export default function Store({ isOpen, onClose }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-
-            {/* Categorías */}
             <div className="flex flex-wrap gap-2">
               {categories.map((cat) => (
                 <button
@@ -223,13 +204,11 @@ export default function Store({ isOpen, onClose }) {
           </div>
 
           {/* Grid de productos */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className={asPage ? 'p-6' : 'flex-1 overflow-y-auto p-6'}>
             {loading ? (
               <div className="text-center py-16">
                 <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-purple-600 mb-4"></div>
-                <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300">
-                  Cargando productos...
-                </h3>
+                <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Cargando productos...</h3>
               </div>
             ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -247,15 +226,47 @@ export default function Store({ isOpen, onClose }) {
                 <svg className="w-24 h-24 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                 </svg>
-                <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  No se encontraron productos
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400">
-                  Intenta con otros términos de búsqueda o categorías
-                </p>
+                <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No se encontraron productos</h3>
+                <p className="text-gray-500 dark:text-gray-400">Intenta con otros términos de búsqueda o categorías</p>
               </div>
             )}
           </div>
+    </>
+  );
+
+  if (asPage) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 pb-12">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden">
+            {innerContent}
+          </div>
+        </div>
+        {selectedProduct && (
+          <ProductDetailModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+        )}
+        {showCart && <Cart onClose={() => setShowCart(false)} />}
+      </div>
+    );
+  }
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      >
+        <motion.div
+          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {innerContent}
         </motion.div>
 
         {/* Modal de detalle del producto */}

@@ -11,7 +11,7 @@ export default function StorePage() {
         description="Explorá los servicios de desarrollo web, e-commerce, landing pages, dashboards Power BI y más. Soluciones tecnológicas a medida para tu negocio."
         canonical="/tienda"
       />
-      <Store isOpen={true} onClose={() => window.history.back()} />
+      <Store isOpen={true} onClose={() => window.history.back()} asPage={true} />
     </>
   );
 }
