@@ -3,8 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../utils/firebaseservice';
 import { useCart } from '../context/CartContext';
 import { ExchangeService, formatARS, formatUSD } from '../utils/exchangeService';
 import { FirebaseAnalyticsService } from '../utils/firebaseservice';
@@ -62,13 +60,11 @@ export default function ProductDetailPage({ productId: propProductId }) {
 
     async function loadRental() {
       try {
-        const snap = await getDoc(doc(db, 'productos_alquiler', productId));
-        if (snap.exists()) {
-          const data = snap.data();
-          if (data.activo) setRental(data);
-        }
+        const res = await fetch(`/api/rental-data/${productId}`);
+        const data = await res.json();
+        if (data) setRental(data);
       } catch (e) {
-        // colección no existe o sin permisos — ignorar silenciosamente
+        // sin datos de alquiler — ignorar
       }
     }
 
