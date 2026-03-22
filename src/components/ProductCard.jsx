@@ -7,7 +7,16 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '../context/CartContext';
 import { ExchangeService, formatARS, formatUSD } from '../utils/exchangeService';
 
-export default function ProductCard({ product, onViewDetails }) {
+const RENTAL_MONTHLY = {
+  'landing-page-professional': 80,
+  'website-corporate': 120,
+  'website-chatbot-ia': 120,
+  'ecommerce-basic': 150,
+  'roi-consulting-basic': 100,
+  'dashboard-powerbi-basic': 100,
+};
+
+export default function ProductCard({ product, onViewDetails, rentMode = false }) {
   const { addToCart } = useCart();
   const router = useRouter();
   const [fx, setFx] = useState({ rate: null, loading: true });
@@ -37,8 +46,11 @@ export default function ProductCard({ product, onViewDetails }) {
     }
   };
 
-  // Productos personalizados no tienen precio fijo (priceUSD es null)
   const isCustom = product.priceUSD === null || product.priceUSD === undefined;
+  const monthlyRate = RENTAL_MONTHLY[product.id] || null;
+  const hasRental = !isCustom && monthlyRate !== null;
+  const sena = hasRental ? Math.round(product.priceUSD * 0.35) : null;
+  const showRental = rentMode && hasRental;
 
   return (
     <motion.div
@@ -138,6 +150,15 @@ export default function ProductCard({ product, onViewDetails }) {
                 Contactanos para un presupuesto a medida
               </p>
             </div>
+          ) : showRental ? (
+            <div className="mb-3 space-y-0.5">
+              <p className="text-base font-bold text-gray-900 dark:text-gray-100">Seña: USD {sena}</p>
+              <p className="text-base font-bold text-gray-900 dark:text-gray-100">USD {monthlyRate}/mes</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Mínimo 6 meses</p>
+              <span className="inline-block mt-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-semibold px-2 py-0.5 rounded-full">
+                Hosting incluido
+              </span>
+            </div>
           ) : (
             <div className="mb-3">
               {fx.loading ? (
@@ -167,7 +188,17 @@ export default function ProductCard({ product, onViewDetails }) {
               Ver Detalles
             </Link>
 
-            {!isCustom && (
+            {showRental ? (
+              <a
+                href={`https://wa.me/5492995414422?text=${encodeURIComponent(`Hola! Me interesa alquilar ${product.name} - Seña USD ${sena} + ${monthlyRate}/mes`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all text-sm font-semibold text-center shadow-md"
+              >
+                Alquilar
+              </a>
+            ) : !isCustom && (
               <button
                 id={`add-to-cart-${product.id}`}
                 onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}

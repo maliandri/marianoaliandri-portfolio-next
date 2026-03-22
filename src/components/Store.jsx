@@ -16,6 +16,7 @@ export default function Store({ isOpen, onClose }) {
   const [showCart, setShowCart] = useState(false);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [rentMode, setRentMode] = useState(false);
   const { getCartCount } = useCart();
 
   // Cargar productos desde Firebase
@@ -143,6 +144,22 @@ export default function Store({ isOpen, onClose }) {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Toggle Compra / Alquiler */}
+              <div className="flex items-center gap-1 bg-white/20 rounded-lg p-1">
+                <button
+                  onClick={() => setRentMode(false)}
+                  className={`px-3 py-1 rounded-md text-sm font-semibold transition-all ${!rentMode ? 'bg-white text-purple-700 shadow' : 'text-white'}`}
+                >
+                  Compra
+                </button>
+                <button
+                  onClick={() => setRentMode(true)}
+                  className={`px-3 py-1 rounded-md text-sm font-semibold transition-all ${rentMode ? 'bg-white text-purple-700 shadow' : 'text-white'}`}
+                >
+                  Alquiler
+                </button>
+              </div>
+
               {/* Botón del carrito */}
               <button
                 onClick={() => setShowCart(true)}
@@ -221,6 +238,7 @@ export default function Store({ isOpen, onClose }) {
                     key={product.id}
                     product={product}
                     onViewDetails={setSelectedProduct}
+                    rentMode={rentMode}
                   />
                 ))}
               </div>
