@@ -1072,7 +1072,8 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
     name: product.name || product.title || '',
     description: product.description || '',
     priceUSD: product.priceUSD || 0,
-    priceARS: product.priceARS || 0
+    priceARS: product.priceARS || 0,
+    rentalMonthly: product.rentalMonthly || 0,
   });
 
   const handleChange = (field, value) => {
@@ -1086,9 +1087,12 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
       priceUSD: parseFloat(formData.priceUSD) || 0
     };
 
-    // Solo actualizar priceARS si existe
     if (formData.priceARS) {
       updates.priceARS = parseFloat(formData.priceARS);
+    }
+
+    if (formData.rentalMonthly) {
+      updates.rentalMonthly = parseFloat(formData.rentalMonthly);
     }
 
     onUpdate(product.id, updates);
@@ -1100,7 +1104,8 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
       name: product.name || product.title || '',
       description: product.description || '',
       priceUSD: product.priceUSD || 0,
-      priceARS: product.priceARS || 0
+      priceARS: product.priceARS || 0,
+      rentalMonthly: product.rentalMonthly || 0,
     });
     setEditing(false);
   };
@@ -1174,6 +1179,24 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
             </p>
           </div>
 
+          {/* Cuota mensual alquiler */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              🏠 Cuota Mensual Alquiler (USD)
+            </label>
+            <input
+              type="number"
+              value={formData.rentalMonthly}
+              onChange={(e) => handleChange('rentalMonthly', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="0 = sin opción de alquiler"
+              min="0"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              La seña se calcula automáticamente (35% del precio USD). 0 = no mostrar alquiler.
+            </p>
+          </div>
+
           {/* Botones */}
           <div className="flex gap-2">
             <button
@@ -1213,6 +1236,11 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
               {product.priceARS && (
                 <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
                   {formatARS(product.priceARS)}
+                </span>
+              )}
+              {product.rentalMonthly > 0 && (
+                <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                  🏠 Alquiler: USD {product.rentalMonthly}/mes · Seña USD {Math.round(product.priceUSD * 0.35)}
                 </span>
               )}
               {!product.priceUSD && !product.priceARS && (

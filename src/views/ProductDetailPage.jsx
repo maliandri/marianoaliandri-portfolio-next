@@ -10,15 +10,6 @@ import priceService from '../utils/priceService';
 import SEO from '../components/SEO';
 import ProductQA from '../components/ProductQA';
 
-const RENTAL_MONTHLY = {
-  'landing-page-professional': 80,
-  'website-corporate': 120,
-  'website-chatbot-ia': 120,
-  'ecommerce-basic': 150,
-  'roi-consulting-basic': 100,
-  'dashboard-powerbi-basic': 100,
-};
-
 export default function ProductDetailPage({ productId: propProductId }) {
   const params = useParams();
   const productId = propProductId ?? params?.productId;
@@ -93,8 +84,8 @@ export default function ProductDetailPage({ productId: propProductId }) {
   }
 
   const isCustom = product.priceUSD === null || product.priceUSD === undefined;
-  const monthlyRate = RENTAL_MONTHLY[product.id] || null;
-  const hasRental = !isCustom && monthlyRate !== null;
+  const monthlyRate = product.rentalMonthly || null;
+  const hasRental = !isCustom && monthlyRate > 0;
   const sena = hasRental ? Math.round(product.priceUSD * 0.35) : null;
   const total6 = hasRental ? sena + monthlyRate * 6 : null;
 
