@@ -8,6 +8,7 @@ import priceService from '../utils/priceService';
 import SocialMediaDashboard from '../components/SocialMediaDashboard';
 import SocialPublisher from '../components/admin/SocialPublisher';
 import CanvasReelGenerator from '../components/admin/CanvasReelGenerator';
+import CronScheduler from '../components/admin/CronScheduler';
 import ZoneAnalysis from '../components/admin/ZoneAnalysis';
 import LeadFinderPanel from '../components/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
@@ -472,7 +473,8 @@ export default function AdminPage() {
               { id: 'leads', label: 'Lead Finder', icon: '🎯' },
               { id: 'questions', label: 'Preguntas', icon: '💬' },
               { id: 'proyectos', label: 'Proyectos', icon: '🌐' },
-              { id: 'zonas', label: 'Zonas', icon: '🗺️' }
+              { id: 'zonas', label: 'Zonas', icon: '🗺️' },
+              { id: 'cron', label: 'Cron Social', icon: '⏰' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -721,6 +723,11 @@ export default function AdminPage() {
         {activeTab === 'zonas' && (
           <div className="p-6">
             <ZoneAnalysis />
+          </div>
+        )}
+        {activeTab === 'cron' && (
+          <div className="p-6">
+            <CronScheduler />
           </div>
         )}
       </div>
