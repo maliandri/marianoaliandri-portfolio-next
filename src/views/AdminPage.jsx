@@ -7,6 +7,7 @@ import { db, firebaseQA } from '../utils/firebaseservice';
 import priceService from '../utils/priceService';
 import SocialMediaDashboard from '../components/SocialMediaDashboard';
 import SocialPublisher from '../components/admin/SocialPublisher';
+import CanvasReelGenerator from '../components/admin/CanvasReelGenerator';
 import ZoneAnalysis from '../components/admin/ZoneAnalysis';
 import LeadFinderPanel from '../components/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
@@ -674,6 +675,7 @@ export default function AdminPage() {
               {[
                 { id: 'publisher', label: '📢 Publicar Servicio' },
                 { id: 'dashboard', label: '📱 Dashboard General' },
+                { id: 'reel',      label: '🎬 Generar Reel' },
               ].map(sub => (
                 <button
                   key={sub.id}
@@ -690,6 +692,7 @@ export default function AdminPage() {
             </div>
             {socialSubTab === 'publisher' && <SocialPublisher />}
             {socialSubTab === 'dashboard' && <SocialMediaDashboard />}
+            {socialSubTab === 'reel'      && <CanvasReelGenerator />}
           </div>
         )}
 
