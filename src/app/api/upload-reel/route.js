@@ -28,7 +28,8 @@ export async function POST(request) {
 
     if (!uploadRes.ok) {
       const err = await uploadRes.text();
-      return Response.json({ error: 'Cloudinary upload failed', details: err }, { status: 502 });
+      console.error('[upload-reel] Cloudinary error:', uploadRes.status, err);
+      return Response.json({ error: 'Cloudinary upload failed', details: err, cloudinaryStatus: uploadRes.status }, { status: 502 });
     }
 
     const { secure_url: videoUrl } = await uploadRes.json();
