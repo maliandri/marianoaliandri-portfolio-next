@@ -90,15 +90,12 @@ export default function CanvasReelGenerator() {
 
   function buildConfig() {
     return {
-      title:      selectedContent?.name || selectedContent?.sitio || 'Sin título',
-      subtitle:   selectedContent?.priceUSD
-                    ? `USD ${selectedContent.priceUSD}`
-                    : selectedContent?.category || selectedContent?.clicks
-                      ? `${selectedContent.clicks || 0} clicks GSC`
-                      : '',
+      title:       selectedContent?.name || selectedContent?.sitio || 'Sin título',
+      subtitle:    selectedContent?.category || selectedContent?.description || '',
       textEffect,
       duration,
-      musicUrl:   selectedMusic.url,
+      musicUrl:    selectedMusic.url,
+      contentType: selectedContent?.type || 'default',
     };
   }
 

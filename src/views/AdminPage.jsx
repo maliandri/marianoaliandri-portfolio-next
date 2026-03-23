@@ -19,7 +19,7 @@ export default function AdminPage() {
   const [loginError, setLoginError] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [socialSubTab, setSocialSubTab] = useState('publisher');
+  const [socialSubTab, setSocialSubTab] = useState('publicar');
 
   // Data states
   const [users, setUsers] = useState([]);
@@ -673,9 +673,11 @@ export default function AdminPage() {
             {/* Sub-tabs */}
             <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 pb-1">
               {[
-                { id: 'publisher', label: '📢 Publicar Servicio' },
-                { id: 'dashboard', label: '📱 Dashboard General' },
-                { id: 'reel',      label: '🎬 Generar Reel' },
+                { id: 'publicar',     label: '📢 Publicar' },
+                { id: 'estadisticas', label: '📊 Estadísticas' },
+                { id: 'productos',    label: '🛍️ Productos/Servicios' },
+                { id: 'proyectos',    label: '📁 Mis Proyectos' },
+                { id: 'reel',         label: '🎬 Generar Reel' },
               ].map(sub => (
                 <button
                   key={sub.id}
@@ -690,9 +692,11 @@ export default function AdminPage() {
                 </button>
               ))}
             </div>
-            {socialSubTab === 'publisher' && <SocialPublisher />}
-            {socialSubTab === 'dashboard' && <SocialMediaDashboard />}
-            {socialSubTab === 'reel'      && <CanvasReelGenerator />}
+            {socialSubTab === 'publicar'     && <SocialMediaDashboard key="publicar"     initialTab="custom" />}
+            {socialSubTab === 'estadisticas' && <SocialMediaDashboard key="estadisticas" initialTab="statistics" />}
+            {socialSubTab === 'productos'    && <SocialMediaDashboard key="productos"    initialTab="products" />}
+            {socialSubTab === 'proyectos'    && <SocialMediaDashboard key="proyectos"    initialTab="proyectos" />}
+            {socialSubTab === 'reel'         && <CanvasReelGenerator />}
           </div>
         )}
 

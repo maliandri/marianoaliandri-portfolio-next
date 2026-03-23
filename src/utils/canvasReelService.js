@@ -20,10 +20,18 @@ export const TEXT_EFFECTS = [
   { id: 'particles',  label: 'Partículas' },
 ];
 
+// CTA por tipo de contenido
+const CTA_TEXT = {
+  producto:   'Consultá disponibilidad',
+  tecnologia: 'Lo implemento en tu proyecto',
+  proyecto:   'Ver proyecto en vivo',
+  default:    'marianoaliandri.com.ar',
+};
+
 class CanvasReelService {
   constructor() {
     this.animationId = null;
-    this.startTime = null;
+    this.startTime  = null;
   }
 
   // ── Image helpers ──────────────────────────────────────────────────────────
@@ -33,227 +41,353 @@ class CanvasReelService {
       (urls || []).filter(Boolean).map(
         (url) =>
           new Promise((resolve) => {
-            const img = new Image();
+            const img     = new Image();
             img.crossOrigin = 'anonymous';
-            img.onload = () => resolve(img);
+            img.onload  = () => resolve(img);
             img.onerror = () => resolve(null);
-            img.src = url;
+            img.src     = url;
           })
       )
     );
   }
 
-  drawBgImage(ctx, img, w, h, alpha = 1) {
+  // Cover crop: imagen cubre TODO el canvas sin bordes negros
+  drawBgImage(ctx, img, W, H, alpha = 1) {
     if (!img) return;
+    const imgRatio    = img.width / img.height;
+    const canvasRatio = W / H;
+    let sx, sy, sw, sh;
+    if (imgRatio > canvasRatio) {
+      sh = img.height;
+      sw = sh * canvasRatio;
+      sx = (img.width - sw) / 2;
+      sy = 0;
+    } else {
+      sw = img.width;
+      sh = sw / canvasRatio;
+      sx = 0;
+      sy = (img.height - sh) / 2;
+    }
     ctx.save();
     ctx.globalAlpha = alpha;
-    const scale = Math.max(w / img.width, h / img.height);
-    const sw = img.width * scale;
-    const sh = img.height * scale;
-    ctx.drawImage(img, (w - sw) / 2, (h - sh) / 2, sw, sh);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
     ctx.restore();
   }
 
-  // ── Frame rendering ────────────────────────────────────────────────────────
+  // ── Text helpers ───────────────────────────────────────────────────────────
 
-  drawFrame(ctx, w, h, elapsed, config) {
-    const { images = [], duration, title, subtitle, textEffect } = config;
+  wrapText(ctx, text, maxWidth) {
+    const words = text.split(' ');
+    const lines = [];
+    let current = '';
+    for (const word of words) {
+      const test = current ? `${current} ${word}` : word;
+      if (ctx.measureText(test).width > maxWidth && current) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = test;
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
+  }
+
+  adaptiveFontSize(ctx, text, maxWidth, base, min = 28) {
+    let size = base;
+    while (size > min) {
+      ctx.font = `900 ${size}px Montserrat, sans-serif`;
+      if (ctx.measureText(text).width <= maxWidth) break;
+      size -= 4;
+    }
+    return size;
+  }
+
+  // ── Frame rendering — layout 3 zonas ──────────────────────────────────────
+  // Zona superior  0–20%  : branding
+  // Zona central  20–80%  : imagen + texto animado
+  // Zona inferior 80–100% : CTA + progress bar
+
+  drawFrame(ctx, W, H, elapsed, config) {
+    const { images = [], duration, title, subtitle, textEffect, contentType = 'default' } = config;
     const validImgs = images.filter(Boolean);
+    const topH      = H * 0.20;
+    const midH      = H * 0.60;
+    const botH      = H * 0.20;
+    const midY      = topH;
+    const botY      = topH + midH;
 
-    // Background
-    ctx.clearRect(0, 0, w, h);
+    // ── 1. Fondo negro base ──────────────────────────────────────────────────
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+
+    // ── 2. Imagen de fondo (cover, zona central) ─────────────────────────────
     if (validImgs.length > 0) {
-      const imgDur = duration / validImgs.length;
-      const idx = Math.floor(elapsed / imgDur) % validImgs.length;
-      const next = (idx + 1) % validImgs.length;
-      const localP = (elapsed % imgDur) / imgDur;
+      const imgDur   = duration / validImgs.length;
+      const idx      = Math.floor(elapsed / imgDur) % validImgs.length;
+      const next     = (idx + 1) % validImgs.length;
+      const localP   = (elapsed % imgDur) / imgDur;
       const crossStart = 0.75;
 
+      // Recortar contexto a zona central para el crossfade
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, midY, W, midH);
+      ctx.clip();
+
       if (localP > crossStart) {
-        const alpha = (localP - crossStart) / (1 - crossStart);
-        this.drawBgImage(ctx, validImgs[idx], w, h, 1);
-        this.drawBgImage(ctx, validImgs[next], w, h, alpha);
+        const crossAlpha = (localP - crossStart) / (1 - crossStart);
+        this._drawCoverInZone(ctx, validImgs[idx],  W, midH, midY, 1);
+        this._drawCoverInZone(ctx, validImgs[next], W, midH, midY, crossAlpha);
       } else {
-        this.drawBgImage(ctx, validImgs[idx], w, h, 1);
+        this._drawCoverInZone(ctx, validImgs[idx], W, midH, midY, 1);
       }
+      ctx.restore();
     } else {
-      // Animated gradient fallback
-      const grad = ctx.createLinearGradient(0, 0, w, h);
-      const hue = (elapsed * 15) % 360;
+      // Gradiente animado fallback
+      const hue  = (elapsed * 15) % 360;
+      const grad = ctx.createLinearGradient(0, midY, W, midY + midH);
       grad.addColorStop(0, `hsl(${hue}, 70%, 18%)`);
       grad.addColorStop(1, `hsl(${(hue + 60) % 360}, 70%, 8%)`);
       ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, h);
+      ctx.fillRect(0, midY, W, midH);
     }
 
-    // Dark overlay
-    ctx.fillStyle = 'rgba(0,0,0,0.42)';
-    ctx.fillRect(0, 0, w, h);
+    // ── 3. Overlay sobre imagen ──────────────────────────────────────────────
+    ctx.fillStyle = 'rgba(0,0,0,0.50)';
+    ctx.fillRect(0, midY, W, midH);
 
-    // Text
-    this._drawText(ctx, w, h, elapsed, title, subtitle, textEffect);
+    // ── 4. Zona superior: gradiente oscuro + branding ────────────────────────
+    const topGrad = ctx.createLinearGradient(0, 0, 0, topH);
+    topGrad.addColorStop(0, 'rgba(0,0,0,0.85)');
+    topGrad.addColorStop(1, 'rgba(0,0,0,0.10)');
+    ctx.fillStyle = topGrad;
+    ctx.fillRect(0, 0, W, topH);
 
-    // Progress bar
-    const barH = Math.max(5, h * 0.004);
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.fillRect(0, h - barH, w, barH);
-    const pg = ctx.createLinearGradient(0, 0, w, 0);
+    const brandSize = Math.max(22, W * 0.032);
+    ctx.save();
+    ctx.font        = `700 ${brandSize}px Montserrat, sans-serif`;
+    ctx.fillStyle   = '#FFD700';
+    ctx.shadowColor = 'rgba(0,0,0,0.9)';
+    ctx.shadowBlur  = 10;
+    ctx.textAlign   = 'center';
+    ctx.fillText('marianoaliandri.com.ar', W / 2, topH * 0.6);
+    ctx.restore();
+
+    // ── 5. Texto principal (zona central) ────────────────────────────────────
+    this._drawText(ctx, W, H, midY, midH, elapsed, title, subtitle, textEffect, duration);
+
+    // ── 6. Zona inferior: fondo oscuro + CTA ─────────────────────────────────
+    const botGrad = ctx.createLinearGradient(0, botY, 0, H);
+    botGrad.addColorStop(0, 'rgba(0,0,0,0.15)');
+    botGrad.addColorStop(1, 'rgba(0,0,0,0.90)');
+    ctx.fillStyle = botGrad;
+    ctx.fillRect(0, botY, W, botH);
+
+    const cta      = CTA_TEXT[contentType] || CTA_TEXT.default;
+    const ctaSize  = Math.max(18, W * 0.028);
+    ctx.save();
+    ctx.font        = `600 ${ctaSize}px Montserrat, sans-serif`;
+    ctx.fillStyle   = '#ffffff';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur  = 8;
+    ctx.textAlign   = 'center';
+    ctx.fillText(cta, W / 2, botY + botH * 0.45);
+    ctx.restore();
+
+    // ── 7. Barra de progreso ─────────────────────────────────────────────────
+    const barH = Math.max(6, H * 0.005);
+    const barY = H - barH;
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(0, barY, W, barH);
+    const pg = ctx.createLinearGradient(0, 0, W, 0);
     pg.addColorStop(0, '#a855f7');
     pg.addColorStop(1, '#3b82f6');
     ctx.fillStyle = pg;
-    ctx.fillRect(0, h - barH, w * Math.min(elapsed / duration, 1), barH);
+    ctx.fillRect(0, barY, W * Math.min(elapsed / duration, 1), barH);
+  }
 
-    // Branding
-    const brandSize = Math.max(18, w * 0.027);
+  // Dibuja imagen cover dentro de una zona Y offset (sin clip externo)
+  _drawCoverInZone(ctx, img, W, zoneH, zoneY, alpha) {
+    if (!img) return;
+    const imgRatio    = img.width / img.height;
+    const zoneRatio   = W / zoneH;
+    let sx, sy, sw, sh;
+    if (imgRatio > zoneRatio) {
+      sh = img.height;
+      sw = sh * zoneRatio;
+      sx = (img.width - sw) / 2;
+      sy = 0;
+    } else {
+      sw = img.width;
+      sh = sw / zoneRatio;
+      sx = 0;
+      sy = (img.height - sh) / 2;
+    }
     ctx.save();
-    ctx.font = `600 ${brandSize}px Montserrat, sans-serif`;
-    ctx.fillStyle = '#FFD700';
-    ctx.shadowColor = 'rgba(0,0,0,0.9)';
-    ctx.shadowBlur = 10;
-    ctx.textAlign = 'center';
-    ctx.fillText('marianoaliandri.com.ar', w / 2, h - brandSize * 2);
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(img, sx, sy, sw, sh, 0, zoneY, W, zoneH);
     ctx.restore();
   }
 
-  _drawText(ctx, w, h, elapsed, title, subtitle, effect) {
-    const tSize = Math.max(36, w * 0.054);
-    const sSize = Math.max(22, w * 0.036);
-    const cy = h * 0.42;
+  _drawText(ctx, W, H, midY, midH, elapsed, title, subtitle, effect, duration) {
+    const maxW   = W - 80;
+    const base   = Math.max(48, W * 0.07);
+    const subBase= Math.max(28, W * 0.042);
+    const textCY = midY + midH * 0.5;
+    const pad    = W * 0.04;
 
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.85)';
-    ctx.shadowBlur = 14;
-    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,0.9)';
+    ctx.shadowBlur  = 16;
+    ctx.textAlign   = 'center';
+
+    // Tamaño adaptativo
+    const tSize = this.adaptiveFontSize(ctx, title, maxW, base);
+    ctx.font    = `900 ${tSize}px Montserrat, sans-serif`;
+    const lines = this.wrapText(ctx, title, maxW);
+    const lineH = tSize * 1.2;
+    const totalTitleH = lines.length * lineH;
+
+    // Pill de fondo detrás del título
+    const pillPad = pad * 0.6;
+    const pillW   = Math.min(maxW + pillPad * 2, W - 40);
+    const pillH   = totalTitleH + pillPad * 2;
+    const pillX   = (W - pillW) / 2;
+    const pillY   = textCY - totalTitleH / 2 - pillPad;
 
     switch (effect) {
       case 'typewriter': {
-        const tChars = Math.floor(title.length * Math.min(elapsed * 2.5, 1));
-        ctx.font = `900 ${tSize}px Montserrat, sans-serif`;
+        const fullText  = lines.join(' ');
+        const visChars  = Math.floor(fullText.length * Math.min(elapsed * 2, 1));
+        const visText   = fullText.slice(0, visChars);
+        const visLines  = this.wrapText(ctx, visText || ' ', maxW);
+        this._drawPill(ctx, pillX, pillY, pillW, pillH);
         ctx.fillStyle = '#fff';
-        ctx.fillText(title.slice(0, tChars), w / 2, cy);
-        if (subtitle) {
-          const sChars = Math.floor(subtitle.length * Math.min((elapsed - 0.8) * 3, 1));
-          if (sChars > 0) {
-            ctx.font = `700 ${sSize}px Montserrat, sans-serif`;
-            ctx.fillStyle = '#c4b5fd';
-            ctx.fillText(subtitle.slice(0, sChars), w / 2, cy + tSize * 1.5);
-          }
-        }
+        visLines.forEach((l, i) => ctx.fillText(l, W / 2, textCY - totalTitleH / 2 + tSize + i * lineH));
         break;
       }
 
       case 'slideup': {
-        const tA = Math.min(elapsed * 3, 1);
-        const tY = cy + (1 - tA) * 70;
-        ctx.globalAlpha = tA;
-        ctx.font = `900 ${tSize}px Montserrat, sans-serif`;
+        const a  = Math.min(elapsed * 3, 1);
+        const dy = (1 - a) * 80;
+        ctx.globalAlpha = a;
+        this._drawPill(ctx, pillX, pillY + dy, pillW, pillH);
         ctx.fillStyle = '#fff';
-        ctx.fillText(title, w / 2, tY);
-        if (subtitle) {
-          const sA = Math.min(Math.max(elapsed - 0.6, 0) * 3, 1);
-          const sY = cy + tSize * 1.5 + (1 - sA) * 50;
-          ctx.globalAlpha = sA;
-          ctx.font = `700 ${sSize}px Montserrat, sans-serif`;
-          ctx.fillStyle = '#c4b5fd';
-          ctx.fillText(subtitle, w / 2, sY);
-        }
+        lines.forEach((l, i) => ctx.fillText(l, W / 2, textCY - totalTitleH / 2 + tSize + i * lineH + dy));
         ctx.globalAlpha = 1;
         break;
       }
 
       case 'fadezoom': {
-        const a = Math.min(elapsed * 2.5, 1);
+        const a  = Math.min(elapsed * 2.5, 1);
         const sc = 0.75 + a * 0.25;
         ctx.globalAlpha = a;
         ctx.save();
-        ctx.translate(w / 2, cy);
+        ctx.translate(W / 2, textCY);
         ctx.scale(sc, sc);
-        ctx.font = `900 ${tSize}px Montserrat, sans-serif`;
+        this._drawPill(ctx, -(pillW / 2), -totalTitleH / 2 - pillPad, pillW, pillH);
         ctx.fillStyle = '#fff';
-        ctx.fillText(title, 0, 0);
-        if (subtitle) {
-          ctx.font = `700 ${sSize}px Montserrat, sans-serif`;
-          ctx.fillStyle = '#c4b5fd';
-          ctx.fillText(subtitle, 0, tSize * 1.5);
-        }
+        lines.forEach((l, i) => ctx.fillText(l, 0, -totalTitleH / 2 + tSize + i * lineH));
         ctx.restore();
         ctx.globalAlpha = 1;
         break;
       }
 
       case 'highlight': {
-        ctx.font = `900 ${tSize}px Montserrat, sans-serif`;
-        const words = title.split(' ');
-        const wordProgress = elapsed * 1.8;
-        const widths = words.map((wd) => ctx.measureText(wd + ' ').width);
-        const total = widths.reduce((a, b) => a + b, 0);
-        let x = w / 2 - total / 2;
-        ctx.textAlign = 'left';
-        words.forEach((wd, i) => {
-          ctx.fillStyle = i < wordProgress ? '#a855f7' : '#fff';
-          ctx.fillText(wd + ' ', x, cy);
-          x += widths[i];
+        this._drawPill(ctx, pillX, pillY, pillW, pillH);
+        const allWords   = title.split(' ');
+        const wordProg   = elapsed * 2;
+        ctx.font         = `900 ${tSize}px Montserrat, sans-serif`;
+        // Reconstruir líneas con highlight por palabra
+        let wordCount    = 0;
+        lines.forEach((line, li) => {
+          const lWords = line.split(' ');
+          const lWidths = lWords.map((w) => ctx.measureText(w + ' ').width);
+          const lTotal  = lWidths.reduce((a, b) => a + b, 0);
+          let x = W / 2 - lTotal / 2;
+          ctx.textAlign = 'left';
+          lWords.forEach((w, wi) => {
+            ctx.fillStyle = wordCount < wordProg ? '#a855f7' : '#fff';
+            ctx.fillText(w + ' ', x, textCY - totalTitleH / 2 + tSize + li * lineH);
+            x += lWidths[wi];
+            wordCount++;
+          });
         });
-        if (subtitle) {
-          ctx.textAlign = 'center';
-          ctx.font = `700 ${sSize}px Montserrat, sans-serif`;
-          ctx.fillStyle = '#c4b5fd';
-          ctx.fillText(subtitle, w / 2, cy + tSize * 1.5);
-        }
+        ctx.textAlign = 'center';
         break;
       }
 
       case 'glitch': {
-        const g = Math.sin(elapsed * 9) * Math.sin(elapsed * 4) * (w * 0.008);
-        ctx.font = `900 ${tSize}px Montserrat, sans-serif`;
-        ctx.fillStyle = 'rgba(255,0,80,0.55)';
-        ctx.fillText(title, w / 2 + g, cy - 2);
-        ctx.fillStyle = 'rgba(0,200,255,0.55)';
-        ctx.fillText(title, w / 2 - g, cy + 2);
-        ctx.fillStyle = '#fff';
-        ctx.fillText(title, w / 2, cy);
-        if (subtitle) {
-          ctx.font = `700 ${sSize}px Montserrat, sans-serif`;
-          ctx.fillStyle = '#c4b5fd';
-          ctx.fillText(subtitle, w / 2, cy + tSize * 1.5);
-        }
+        const g = Math.sin(elapsed * 9) * Math.sin(elapsed * 4) * (W * 0.008);
+        this._drawPill(ctx, pillX, pillY, pillW, pillH);
+        const drawGlitchLines = (color, ox, oy) => {
+          ctx.fillStyle = color;
+          lines.forEach((l, i) => ctx.fillText(l, W / 2 + ox, textCY - totalTitleH / 2 + tSize + i * lineH + oy));
+        };
+        drawGlitchLines('rgba(255,0,80,0.55)',  g, -2);
+        drawGlitchLines('rgba(0,200,255,0.55)', -g,  2);
+        drawGlitchLines('#fff', 0, 0);
         break;
       }
 
       case 'particles': {
-        ctx.font = `900 ${tSize}px Montserrat, sans-serif`;
-        ctx.fillStyle = '#fff';
-        ctx.fillText(title, w / 2, cy);
-        for (let i = 0; i < 22; i++) {
-          const angle = (i / 22) * Math.PI * 2 + elapsed * 1.8;
-          const r = (60 + Math.sin(elapsed * 3 + i) * 30) * (w / 270);
-          const px = w / 2 + Math.cos(angle) * r;
-          const py = cy + Math.sin(angle) * r * 0.28;
-          const pa = 0.25 + Math.sin(elapsed * 5 + i) * 0.25;
+        // Partículas alrededor del título
+        for (let i = 0; i < 24; i++) {
+          const angle = (i / 24) * Math.PI * 2 + elapsed * 1.8;
+          const r     = (55 + Math.sin(elapsed * 3 + i) * 25) * (W / 270);
+          const px    = W / 2 + Math.cos(angle) * r;
+          const py    = textCY + Math.sin(angle) * r * 0.22;
+          const pa    = 0.2 + Math.sin(elapsed * 5 + i) * 0.2;
           ctx.beginPath();
-          ctx.arc(px, py, (2 + Math.sin(elapsed * 4 + i)) * (w / 270), 0, Math.PI * 2);
+          ctx.arc(px, py, (2 + Math.sin(elapsed * 4 + i)) * (W / 270), 0, Math.PI * 2);
           ctx.fillStyle = `rgba(168,85,247,${pa})`;
           ctx.fill();
         }
-        if (subtitle) {
-          ctx.font = `700 ${sSize}px Montserrat, sans-serif`;
-          ctx.fillStyle = '#c4b5fd';
-          ctx.fillText(subtitle, w / 2, cy + tSize * 1.5);
-        }
+        this._drawPill(ctx, pillX, pillY, pillW, pillH);
+        ctx.fillStyle = '#fff';
+        lines.forEach((l, i) => ctx.fillText(l, W / 2, textCY - totalTitleH / 2 + tSize + i * lineH));
         break;
       }
 
       default: {
-        ctx.font = `900 ${tSize}px Montserrat, sans-serif`;
+        this._drawPill(ctx, pillX, pillY, pillW, pillH);
         ctx.fillStyle = '#fff';
-        ctx.fillText(title, w / 2, cy);
-        if (subtitle) {
-          ctx.font = `700 ${sSize}px Montserrat, sans-serif`;
-          ctx.fillStyle = '#c4b5fd';
-          ctx.fillText(subtitle, w / 2, cy + tSize * 1.5);
-        }
+        lines.forEach((l, i) => ctx.fillText(l, W / 2, textCY - totalTitleH / 2 + tSize + i * lineH));
       }
     }
+
+    // Subtítulo (categoría/descripción)
+    if (subtitle) {
+      const sSize = this.adaptiveFontSize(ctx, subtitle, maxW, subBase, 20);
+      ctx.font      = `600 ${sSize}px Montserrat, sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.82)';
+      ctx.shadowBlur = 8;
+      const subY = textCY + totalTitleH / 2 + sSize * 1.6;
+      ctx.fillText(subtitle, W / 2, subY);
+    }
+
+    ctx.restore();
+  }
+
+  // Pill oscuro semitransparente detrás del texto
+  _drawPill(ctx, x, y, w, h) {
+    const r = Math.min(20, h / 2);
+    ctx.save();
+    ctx.fillStyle   = 'rgba(0,0,0,0.55)';
+    ctx.shadowColor = 'transparent';
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y,     x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fill();
     ctx.restore();
   }
 
@@ -261,8 +395,8 @@ class CanvasReelService {
 
   startPreview(canvas, config, images) {
     this.stopPreview();
-    const ctx = canvas.getContext('2d');
-    this.startTime = performance.now();
+    const ctx        = canvas.getContext('2d');
+    this.startTime   = performance.now();
 
     const loop = (now) => {
       const elapsed = ((now - this.startTime) / 1000) % (config.duration || 15);
@@ -279,25 +413,23 @@ class CanvasReelService {
     }
   }
 
-  // ── Audio setup ────────────────────────────────────────────────────────────
+  // ── Audio ─────────────────────────────────────────────────────────────────
 
   async setupAudio(musicUrl) {
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const AudioCtx  = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return null;
-      const audioCtx = new AudioCtx();
-      const res = await fetch(musicUrl, { mode: 'cors' });
-      const buf = await res.arrayBuffer();
+      const audioCtx  = new AudioCtx();
+      const res       = await fetch(musicUrl, { mode: 'cors' });
+      const buf       = await res.arrayBuffer();
       const audioBuffer = await audioCtx.decodeAudioData(buf);
 
-      const source = audioCtx.createBufferSource();
-      source.buffer = audioBuffer;
-      source.loop = true;
-
-      const gain = audioCtx.createGain();
+      const source    = audioCtx.createBufferSource();
+      source.buffer   = audioBuffer;
+      source.loop     = true;
+      const gain      = audioCtx.createGain();
       gain.gain.value = 0.6;
-
-      const dest = audioCtx.createMediaStreamDestination();
+      const dest      = audioCtx.createMediaStreamDestination();
       source.connect(gain);
       gain.connect(dest);
       source.start(0);
@@ -312,28 +444,26 @@ class CanvasReelService {
   // ── Grabación ─────────────────────────────────────────────────────────────
 
   async record(config, images, onProgress) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1080;
+    const canvas  = document.createElement('canvas');
+    canvas.width  = 1080;
     canvas.height = 1920;
-    const ctx = canvas.getContext('2d');
+    const ctx     = canvas.getContext('2d');
 
     let audioSetup = null;
-    if (config.musicUrl) {
-      audioSetup = await this.setupAudio(config.musicUrl);
-    }
+    if (config.musicUrl) audioSetup = await this.setupAudio(config.musicUrl);
 
     const videoStream = canvas.captureStream(30);
-    const allTracks = [...videoStream.getVideoTracks()];
+    const allTracks   = [...videoStream.getVideoTracks()];
     if (audioSetup?.stream) allTracks.push(...audioSetup.stream.getAudioTracks());
     const stream = new MediaStream(allTracks);
 
     const mimeType =
-      ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find((m) =>
-        MediaRecorder.isTypeSupported(m)
+      ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find(
+        (m) => MediaRecorder.isTypeSupported(m)
       ) || 'video/webm';
 
     const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_000_000 });
-    const chunks = [];
+    const chunks   = [];
     recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
 
     return new Promise((resolve, reject) => {
@@ -346,7 +476,6 @@ class CanvasReelService {
       recorder.start(100);
 
       const t0 = performance.now();
-
       const renderLoop = (now) => {
         const elapsed = (now - t0) / 1000;
         if (elapsed >= config.duration) {

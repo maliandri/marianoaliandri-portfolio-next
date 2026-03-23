@@ -14,8 +14,8 @@ import { useExtendedStats } from '../hooks/useFirebaseStats';
  * Panel simplificado para publicar en redes sociales via webhooks
  * RESPONSIVE: Optimizado para móvil y desktop
  */
-function SocialMediaDashboard() {
-  const [activeTab, setActiveTab] = useState('custom'); // custom, products, services, statistics
+function SocialMediaDashboard({ initialTab = null }) {
+  const [activeTab, setActiveTab] = useState(initialTab || 'custom'); // custom, products, services, statistics
   const [isPublishing, setIsPublishing] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
@@ -561,8 +561,8 @@ Gracias a todos por el apoyo.
         </motion.div>
       )}
 
-      {/* Tabs - RESPONSIVE */}
-      <div className="flex gap-1 sm:gap-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1">
+      {/* Tabs — solo visibles cuando no viene controlado desde AdminPage */}
+      <div className={`flex gap-1 sm:gap-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1 ${initialTab !== null ? 'hidden' : ''}`}>
         {tabs.map(tab => (
           <button
             key={tab.id}
