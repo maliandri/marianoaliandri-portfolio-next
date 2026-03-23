@@ -35,31 +35,60 @@ URL en produccion: https://marianoaliandri.com.ar
 src/
   app/                  # App Router de Next.js
     page.jsx            # Home: HeroBuild + Servicios + Skills + ProyectosGrid + Contact
-    layout.jsx          # Root layout: metadata, preconnects, dark mode script
+    layout.jsx          # Root layout: metadata, preconnects, dark mode script, favicon dinamico
     providers.jsx       # QueryClient, CartProvider, AppChrome (header, footer, tools)
     api/                # API Routes (server-side)
       analyze-cv/       # Gemini ATS — analiza PDF de CV
-      chat/             # AI chatbot
-      create-payment/   # MercadoPago
+      chat/             # AI chatbot (Gemini)
+      create-payment/   # MercadoPago — crea preferencia de pago
       cv-payment/       # Pago por analisis de CV
       lead-finder/      # Google Places + scraping de emails
-      publish-social/   # Make.com webhook para redes sociales
-      search-console/   # GSC stats — dinámico via gscClient (sin SITES hardcodeado)
+      publish-social/   # Proxy a Make.com webhook para publicar en redes sociales
+      search-console/   # GSC stats — dinamico via gscClient (sin SITES hardcodeado)
       proyectos/        # GET: GSC sites.list() + clicks/imp + Firestore desc + Microlink URLs
-      send-email/       # Envio de emails
-      admin-login/      # Login del panel admin
-      ...otros          # Webhooks de pago, LinkedIn, reels, productos
-    admin/              # Panel de administracion
+      send-email/       # Envio de emails via Nodemailer + Zoho
+      admin-login/      # Login del panel admin (ADMIN_USERNAME + ADMIN_PASSWORD_HASH)
+      reset-products/   # Resetea coleccion products en Firestore (requiere password)
+      seed-rental/      # Seedea coleccion productos_alquiler en Firestore (POST, una vez)
+      rental-data/      # GET /api/rental-data → todos los docs activos de productos_alquiler
+                        # GET /api/rental-data/[productId] → doc individual (usa Firebase Admin)
+      generate-reel/    # Genera video con Shotstack sandbox (/stage/render) + Pexels bg
+      check-reel-status/# Consulta estado de render en Shotstack
+      payment-webhook/  # Webhook de MercadoPago (notificaciones de pago)
+    admin/              # Panel de administracion (requiere auth)
     tienda/             # E-commerce de servicios
-    ats/ roi/ kpi/ web/ radarweb/ stats/  # Herramientas interactivas (cada una = ruta propia)
-  components/           # Componentes React reutilizables
-  views/                # Vistas completas (StorePage, AdminPage, ProfilePage, etc.)
+      page.jsx          # Lista de productos (Store.jsx con toggle Compra/Alquiler global)
+      [productId]/      # Detalle de producto con toggle Compra/Alquiler + datos de Firestore
+    ats/ roi/ kpi/ web/ radarweb/ stats/  # Herramientas interactivas (ruta propia + metadata SEO)
+  components/
+    Store.jsx           # Grid de productos con toggle Compra/Alquiler, carrito, filtros
+    ProductCard.jsx     # Card de producto — acepta prop rental={} de productos_alquiler
+    ProductQA.jsx       # Preguntas y respuestas por producto (Firestore)
+    ProyectosGrid.jsx   # Grid dinamico de proyectos con stats de GSC
+    SocialPublisher.jsx # Publicador de servicios en redes (admin) — envia a Make.com
+    ...otros componentes reutilizables
+  views/
+    StorePage.jsx       # Wrapper de /tienda con SEO, pasa asPage={true} a Store
+    ProductDetailPage.jsx # Detalle de producto: toggle Compra/Alquiler con framer-motion,
+                          # fetch desde /api/rental-data/[id], precios en USD+ARS, WA dinámico
+    AdminPage.jsx       # Panel admin completo
+    ...otras vistas
   context/              # CartContext
   hooks/                # useAnalytics, useFirebaseStats, useSearchConsole, useProyectos, etc.
-  utils/                # Servicios: cloudinary, firebase, mercadopago, gemini, etc.
-  lib/                  # firebase-admin.js + gscClient.js (servidor)
+  utils/
+    priceService.js     # Carga productos desde Firestore (coleccion products), con cache 5min
+    exchangeService.js  # Tipo de cambio USD→ARS, formatARS, formatUSD
+    firebaseservice.js  # Firebase client SDK (db, auth, analytics)
+    makeService.js      # Envia payload a Make.com webhook
+    ...otros servicios
+  lib/
+    firebase-admin.js   # Firebase Admin SDK (server-side, usa FIREBASE_SERVICE_ACCOUNT_JSON)
+    gscClient.js        # Google Search Console client + getVerifiedSites()
   schemas/              # firebaseSchemas.js
-  data/                 # linkedinPosts.js, products.js
+  data/
+    products.js         # Catalogo estatico de productos (IDs canonicos, fallback)
+    linkedinPosts.js    # Posts de LinkedIn hardcodeados
+    serviceLogos.js     # Mapa tema→logo Cloudinary para SocialPublisher
 ```
 
 ---
@@ -124,22 +153,32 @@ que rompe headers HTTP. Siempre usar: `printf "VALUE" | vercel env add VAR produ
 ## Funcionalidades activas
 
 - **Home**: Hero animado con editor de codigo en vivo, carrusel de servicios, skills, Proyectos Realizados (grid dinamico con GSC), contacto
-- **Tienda**: E-commerce de servicios con MercadoPago, carrito, detalle de producto, Q&A
-- **Herramientas** (modales / rutas dedicadas):
-  - `/ats` — Analizador de CV con Gemini AI (PDF upload)
-  - `/roi` — Calculadora de ROI
+- **Tienda** (`/tienda`):
+  - Grid de servicios con toggle global **Compra / Alquiler** en el header de la tienda
+  - Carrito + checkout con MercadoPago
+  - Pagina de detalle por producto (`/tienda/[productId]`) con toggle animado (framer-motion), precios en USD y ARS, boton WhatsApp dinamico segun modo
+  - Modelo de alquiler: datos en Firestore coleccion `productos_alquiler` (seña, cuota, duracionMinima, activo). Si `activo: false` el toggle no aparece
+  - Seccion "¿Queres quedarte con el sitio?" en modo alquiler
+  - Q&A por producto (Firestore)
+- **Herramientas** (modales desde home + rutas propias con metadata SEO):
+  - `/ats` — Analizador de CV con Gemini AI (PDF upload, analisis ATS)
+  - `/roi` — Calculadora de ROI digital
   - `/web` — Cotizador de sitios web
-  - `/kpi` — Radar KPI
+  - `/kpi` — Radar KPI interactivo
   - `/radarweb` — Radar Web
   - `/stats` — Dashboard de estadisticas (GSC, Firebase, visitas)
-- **Admin** (`/admin`): Panel interno con stats, gestion de productos, publicacion en redes
+- **Admin** (`/admin`): Panel interno — stats, gestion de productos, publicacion en redes sociales, generacion de reels con Shotstack, gestion de proyectos GSC
+- **Publicador de redes** (admin): envia POST a Make.com → Make llama a Gemini y publica en LinkedIn/Instagram/Facebook. Logos de servicios en Cloudinary (`service-logos/`)
+- **Generador de reels** (admin): Shotstack sandbox (`/stage/render`) + videos de Pexels como fondo + musica en Cloudinary. Callback a Make.com con el video renderizado
 - **Auth**: Firebase Auth (Google login)
 - **Likes + Visitas**: Contadores en Firestore, anonimos con localStorage
-- **AI Chatbot**: Integrado en header
+- **AI Chatbot**: Integrado en header (Gemini)
 - **LinkedIn Sidebar**: Feed de posts de LinkedIn
 - **WhatsApp Button**: Flotante en todas las paginas
+- **Favicon dinamico**: Emoji segun dia de la semana (Dom😴 Lun😊 Mar😄 Mie🥳 Jue😎 Vie🤩 Sab😁) — script inline en `<head>`, sin archivos ni requests
 - **Dark mode**: Persistido en localStorage, aplicado antes del primer render (sin flash)
-- **Service Worker**: Desregistra el SW viejo de Netlify en cada visita
+- **Redirect www → apex**: `next.config.mjs` redirige 301 `www.marianoaliandri.com.ar` → `marianoaliandri.com.ar`
+- **SEO**: sitemap.xml con todas las rutas, robots.txt optimizado para Google e IAs, metadata por pagina con canonical, OG y JSON-LD
 
 ---
 
@@ -183,7 +222,8 @@ viejo** — fue reemplazado por ProyectosGrid.
 ## Que NO tocar o romper
 
 - **`src/app/layout.jsx` — dark mode script**: el script inline en `<head>` es
-  intencional para evitar FOUC (flash of unstyled content). No moverlo ni eliminarlo.
+  intencional para evitar FOUC. No moverlo ni eliminarlo. Tambien contiene el favicon
+  dinamico por dia de semana (script inline, sin archivos).
 
 - **`src/app/providers.jsx` — dynamic imports**: los componentes Firebase como
   `AuthButton`, `LikeSystem`, etc. DEBEN ser `dynamic()`. Si se vuelven a importar
@@ -195,11 +235,14 @@ viejo** — fue reemplazado por ProyectosGrid.
 - **DNS de Zoho Mail en Vercel**: hay 3 registros MX (mx.zoho.com prio 10/20/50) y
   un SPF record. No eliminarlos o los emails del dominio dejan de funcionar.
 
-- **`MERCADOPAGO_ACCESS_TOKEN` y `GOOGLE_PLACES_API_KEY`**: fueron corregidos para
-  no tener `\n` al final. Si se re-setean, usar `printf`, no `echo`.
+- **Variables de entorno con `\n`**: `MERCADOPAGO_ACCESS_TOKEN`, `GOOGLE_PLACES_API_KEY`
+  y `SHOTSTACK_API_KEY` fueron corregidos con `printf`. Si se re-setean, SIEMPRE usar
+  `printf "VALUE" | vercel env add VAR production` — nunca `echo`.
+  Variables que aun pueden tener `\n`: `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`,
+  `PEXELS_API_KEY`.
 
 - **Rutas de herramientas**: `/ats`, `/roi`, `/web`, `/kpi`, `/radarweb`, `/stats`
-  son paginas reales (no solo modales). Los modales se abren desde el home pero
+  son paginas reales con metadata SEO. Los modales se abren desde el home pero
   cada herramienta tiene su propia URL compartible.
 
 - **`src/lib/gscClient.js`**: Unico lugar donde se define auth y `getVerifiedSites()`.
@@ -208,6 +251,19 @@ viejo** — fue reemplazado por ProyectosGrid.
 
 - **`src/components/ProyectosGrid.jsx`**: Reemplaza al Carrousel. No restaurar el
   componente `Carrousel` en `page.jsx`.
+
+- **Coleccion `productos_alquiler`**: NO mezclar con `products`. Son colecciones
+  separadas. `products` tiene precios de compra. `productos_alquiler` tiene seña,
+  cuota y duracionMinima. El fetch se hace server-side via `/api/rental-data/[id]`
+  para evitar problemas de reglas de seguridad de Firestore.
+
+- **Shotstack**: usa endpoint sandbox `/stage/render` (no `/v1/render`). La key
+  es la sandbox key. Los videos tienen watermark, es esperado y gratis.
+
+- **SocialPublisher → Make.com**: el webhook es `https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi`.
+  El payload usa campos `text`, `networks`, `type`, `useAI`, `aiProvider`, `imageUrl`.
+  NO cambiar nombres de campos — el router de Make.com depende de ellos.
+  La ruta `/api/generate-social-caption` NO existe (fue creada y eliminada).
 
 ---
 
