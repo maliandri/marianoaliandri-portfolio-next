@@ -674,10 +674,11 @@ export default function AdminPage() {
             <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 pb-1">
               {[
                 { id: 'publicar',     label: '📢 Publicar' },
+                { id: 'servicios',    label: '🖼️ Servicios' },
                 { id: 'estadisticas', label: '📊 Estadísticas' },
-                { id: 'productos',    label: '🛍️ Productos/Servicios' },
-                { id: 'proyectos',    label: '📁 Mis Proyectos' },
-                { id: 'reel',         label: '🎬 Generar Reel' },
+                { id: 'productos',    label: '🛍️ Productos' },
+                { id: 'proyectos',    label: '📁 Proyectos' },
+                { id: 'reel',         label: '🎬 Reel' },
               ].map(sub => (
                 <button
                   key={sub.id}
@@ -693,6 +694,7 @@ export default function AdminPage() {
               ))}
             </div>
             {socialSubTab === 'publicar'     && <SocialMediaDashboard key="publicar"     initialTab="custom" />}
+            {socialSubTab === 'servicios'    && <SocialPublisher />}
             {socialSubTab === 'estadisticas' && <SocialMediaDashboard key="estadisticas" initialTab="statistics" />}
             {socialSubTab === 'productos'    && <SocialMediaDashboard key="productos"    initialTab="products" />}
             {socialSubTab === 'proyectos'    && <SocialMediaDashboard key="proyectos"    initialTab="proyectos" />}
