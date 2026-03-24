@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dlshym1te';
 const UPLOAD_PRESET = 'portfolio_reels';
-const MAKE_WEBHOOK = 'https://hook.us2.make.com/qcvtjdf5o81w8lu9vwx1v5arhsty3f28';
+const MAKE_WEBHOOK = 'https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi';
 
 export async function POST(request) {
   try {
@@ -34,12 +34,20 @@ export async function POST(request) {
 
     const { secure_url: videoUrl } = await uploadRes.json();
 
-    // Notificar Make.com (no bloquear si falla)
-    fetch(`${MAKE_WEBHOOK}?productId=${productId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ videoUrl, productId, type: 'reel' }),
-    }).catch(() => {});
+    // Notificar Make.com
+    try {
+      const makeRes = await fetch(`${MAKE_WEBHOOK}?productId=${productId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoUrl, productId, type: 'reel' }),
+      });
+      if (!makeRes.ok) {
+        const makeErr = await makeRes.text();
+        console.error('[upload-reel] Make.com error:', makeRes.status, makeErr);
+      }
+    } catch (makeError) {
+      console.error('[upload-reel] Make.com fetch failed:', makeError.message);
+    }
 
     return Response.json({ success: true, videoUrl });
   } catch (error) {
