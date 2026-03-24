@@ -149,7 +149,7 @@ export default function CanvasReelGenerator() {
     if (!canvasRef.current || !selectedContent) return;
     canvasReelService.startPreview(canvasRef.current, buildConfig(), loadedImages);
     return () => canvasReelService.stopPreview();
-  }, [selectedContent, textEffect, duration, loadedImages]);
+  }, [selectedContent, textEffect, duration, loadedImages, bgTheme]);
 
   function buildConfig() {
     const priceText = priceLabel || (
@@ -164,17 +164,16 @@ export default function CanvasReelGenerator() {
 
     const rental = selectedContent?.rental;
     const rentalText = rental
-      ? `Alquiler: seña ARS ${rental.seña} · cuota ARS ${rental.cuota} · mín ${rental.duracionMinima}m`
+      ? `Seña $${rental.seña} · Cuota $${rental.cuota}/mes · ${rental.duracionMinima}m mín`
       : '';
 
-    const contextual = selectedContent?.shortDescription || selectedContent?.description || '';
-    const textLines = [customSubtitle || priceText, rentalText, contextual].filter(Boolean);
+    const textLines = [customSubtitle || priceText, rentalText].filter(Boolean);
 
     const bg = BG_THEMES.find((t) => t.id === bgTheme)?.colors || BG_THEMES[0].colors;
 
     return {
       title:       customMainText || selectedContent?.name || selectedContent?.sitio || 'Sin título',
-      subtitle:    textLines.join(' │ '),
+      subtitle:    textLines.join(' · '),
       textEffect,
       duration,
       musicUrl:    selectedMusic.url,
@@ -377,13 +376,18 @@ export default function CanvasReelGenerator() {
                 <button
                   key={theme.id}
                   onClick={() => setBgTheme(theme.id)}
-                  className={`h-10 rounded-lg border transition-all ${
-                    bgTheme === theme.id ? 'border-white shadow-lg' : 'border-gray-300 dark:border-gray-700'
+                  className={`relative h-10 rounded-lg transition-all ${
+                    bgTheme === theme.id
+                      ? 'ring-4 ring-white ring-offset-2 ring-offset-gray-900 scale-105 shadow-xl'
+                      : 'opacity-70 hover:opacity-100 hover:scale-105'
                   }`}
                   style={{
                     background: `linear-gradient(135deg, ${theme.colors[0]} 0%, ${theme.colors[1]} 100%)`,
                   }}
                 >
+                  {bgTheme === theme.id && (
+                    <span className="absolute inset-0 flex items-center justify-center text-white text-base font-bold drop-shadow">✓</span>
+                  )}
                   <span className="sr-only">{theme.label}</span>
                 </button>
               ))}

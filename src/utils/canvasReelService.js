@@ -371,14 +371,19 @@ class CanvasReelService {
       }
     }
 
-    // Subtítulo (categoría/descripción)
+    // Subtítulo (con wrap)
     if (subtitle) {
-      const sSize = this.adaptiveFontSize(ctx, subtitle, maxW, subBase, 20);
+      const sSize = Math.max(24, subBase * 0.75);
       ctx.font      = `600 ${sSize}px Montserrat, sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.82)';
       ctx.shadowBlur = 8;
-      const subY = textCY + totalTitleH / 2 + sSize * 1.6;
-      ctx.fillText(subtitle, W / 2, subY);
+      const subLines = this.wrapText(ctx, subtitle, maxW);
+      const subLineH = sSize * 1.3;
+      let subY = textCY + totalTitleH / 2 + sSize * 1.8;
+      subLines.forEach((line) => {
+        ctx.fillText(line, W / 2, subY);
+        subY += subLineH;
+      });
     }
 
     ctx.restore();
