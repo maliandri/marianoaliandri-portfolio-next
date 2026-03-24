@@ -1,38 +1,14 @@
 export const dynamic = 'force-dynamic';
 
-const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dlshym1te';
-const UPLOAD_PRESET = 'portfolio_reels';
 const MAKE_WEBHOOK = 'https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi';
 
 export async function POST(request) {
   try {
-    const formData = await request.formData();
-    const videoBlob = formData.get('video');
-    const productId = formData.get('productId') || 'reel';
+    const { videoUrl, productId = 'reel' } = await request.json();
 
-    if (!videoBlob) {
-      return Response.json({ error: 'No video provided' }, { status: 400 });
+    if (!videoUrl) {
+      return Response.json({ error: 'No videoUrl provided' }, { status: 400 });
     }
-
-    // Re-armamos el FormData para Cloudinary
-    const cloudinaryForm = new FormData();
-    cloudinaryForm.append('file', videoBlob);
-    cloudinaryForm.append('upload_preset', UPLOAD_PRESET);
-    cloudinaryForm.append('folder', 'reels');
-    cloudinaryForm.append('resource_type', 'video');
-
-    const uploadRes = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`,
-      { method: 'POST', body: cloudinaryForm }
-    );
-
-    if (!uploadRes.ok) {
-      const err = await uploadRes.text();
-      console.error('[upload-reel] Cloudinary error:', uploadRes.status, err);
-      return Response.json({ error: 'Cloudinary upload failed', details: err, cloudinaryStatus: uploadRes.status }, { status: 502 });
-    }
-
-    const { secure_url: videoUrl } = await uploadRes.json();
 
     // Notificar Make.com
     try {

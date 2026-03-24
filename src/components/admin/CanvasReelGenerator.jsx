@@ -213,13 +213,32 @@ export default function CanvasReelGenerator() {
       setIsRecording(false);
       setIsUploading(true);
 
-      const form = new FormData();
-      form.append('video', blob, 'reel.webm');
-      form.append('productId', selectedContent.id || selectedContent.sitio || 'reel');
+      // Subir directo al browser → Cloudinary (evita límite 4.5MB de Vercel)
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dlshym1te';
+      const cloudForm = new FormData();
+      cloudForm.append('file', blob, 'reel.webm');
+      cloudForm.append('upload_preset', 'portfolio_reels');
+      cloudForm.append('folder', 'reels');
 
-      const res  = await fetch('/api/upload-reel', { method: 'POST', body: form });
+      const cloudRes  = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, {
+        method: 'POST',
+        body: cloudForm,
+      });
+      if (!cloudRes.ok) {
+        const err = await cloudRes.text();
+        throw new Error(`Cloudinary error ${cloudRes.status}: ${err}`);
+      }
+      const { secure_url: uploadedUrl } = await cloudRes.json();
+
+      // Notificar Make.com via API route (solo JSON, sin el blob)
+      const productId = selectedContent.id || selectedContent.sitio || 'reel';
+      const res  = await fetch('/api/upload-reel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoUrl: uploadedUrl, productId }),
+      });
       const data = await res.json();
-      if (!data.videoUrl) throw new Error(data.error || 'Upload fallido');
+      if (!data.videoUrl) throw new Error(data.error || 'Error notificando Make.com');
 
       setVideoUrl(data.videoUrl);
 
