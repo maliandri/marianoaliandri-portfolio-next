@@ -117,11 +117,25 @@ class CanvasReelService {
     const midY      = topH;
     const botY      = topH + midH;
 
-    // ── 1. Fondo negro base ──────────────────────────────────────────────────
-    ctx.fillStyle = '#000';
+    // ── 1. Fondo base con colores configurables ─────────────────────────────
+    if (config.bgColors && config.bgColors.length >= 2) {
+      const grad = ctx.createLinearGradient(0, 0, W, H);
+      grad.addColorStop(0, config.bgColors[0]);
+      grad.addColorStop(1, config.bgColors[1]);
+      ctx.fillStyle = grad;
+    } else {
+      ctx.fillStyle = '#000';
+    }
     ctx.fillRect(0, 0, W, H);
 
-    // ── 2. Imagen de fondo (cover, zona central) ─────────────────────────────
+    // ── 2. Miniatura producto (derecha superior) ───────────────────────────
+    if (config.thumbnailImage) {
+      this._drawThumbnail(ctx, config.thumbnailImage, W, H);
+    } else if (config.images && config.images.length > 0) {
+      this._drawThumbnail(ctx, config.images[0], W, H);
+    }
+
+    // ── 3. Imagen de fondo (cover, zona central) ─────────────────────────────
     if (validImgs.length > 0) {
       const imgDur   = duration / validImgs.length;
       const idx      = Math.floor(elapsed / imgDur) % validImgs.length;
@@ -388,6 +402,62 @@ class CanvasReelService {
     ctx.quadraticCurveTo(x, y, x + r, y);
     ctx.closePath();
     ctx.fill();
+    ctx.restore();
+  }
+
+  _drawThumbnail(ctx, img, W, H) {
+    if (!img) return;
+    const margin = Math.max(16, W * 0.02);
+    const size = Math.min(170, W * 0.18, H * 0.18);
+    const x = W - size - margin;
+    const y = margin;
+
+    // Fondo brillante para destacar la miniatura
+    ctx.save();
+    ctx.shadowColor = 'rgba(255,255,255,0.35)';
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = 'rgba(255,255,255,0.17)';
+    ctx.beginPath();
+    ctx.moveTo(x + 18, y);
+    ctx.lineTo(x + size - 18, y);
+    ctx.quadraticCurveTo(x + size, y, x + size, y + 18);
+    ctx.lineTo(x + size, y + size - 18);
+    ctx.quadraticCurveTo(x + size, y + size, x + size - 18, y + size);
+    ctx.lineTo(x + 18, y + size);
+    ctx.quadraticCurveTo(x, y + size, x, y + size - 18);
+    ctx.lineTo(x, y + 18);
+    ctx.quadraticCurveTo(x, y, x + 18, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Clip para dibujo de imagen en miniatura
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x + 14, y + 0);
+    ctx.lineTo(x + size - 14, y + 0);
+    ctx.quadraticCurveTo(x + size, y + 0, x + size, y + 14);
+    ctx.lineTo(x + size, y + size - 14);
+    ctx.quadraticCurveTo(x + size, y + size, x + size - 14, y + size);
+    ctx.lineTo(x + 14, y + size);
+    ctx.quadraticCurveTo(x + 0, y + size, x + 0, y + size - 14);
+    ctx.lineTo(x + 0, y + 14);
+    ctx.quadraticCurveTo(x + 0, y + 0, x + 14, y + 0);
+    ctx.closePath();
+    ctx.clip();
+
+    const imgRatio = img.width / img.height;
+    const targetRatio = 1;
+    let sx = 0, sy = 0, sw = img.width, sh = img.height;
+    if (imgRatio > targetRatio) {
+      sw = img.height * targetRatio;
+      sx = (img.width - sw) / 2;
+    } else {
+      sh = img.width / targetRatio;
+      sy = (img.height - sh) / 2;
+    }
+
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, size, size);
     ctx.restore();
   }
 

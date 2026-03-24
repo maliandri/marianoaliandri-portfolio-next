@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { canvasReelService, MUSIC_TRACKS, TEXT_EFFECTS } from '../../utils/canvasReelService';
 import { SERVICE_LOGOS } from '../../data/serviceLogos';
 import priceService from '../../utils/priceService';
+import { ExchangeService, formatARS, formatUSD } from '../../utils/exchangeService';
 
 const TECH_ITEMS = [
   { id: 'mercadopago', name: 'MercadoPago Pagos',      category: 'Pagos',          imageUrl: SERVICE_LOGOS.mercadopago },
@@ -24,6 +25,14 @@ const TABS = [
   { id: 'proyecto',   label: '📊 Proyecto' },
 ];
 
+const BG_THEMES = [
+  { id: 'neon',    label: 'Neón',    colors: ['#8b5cf6', '#ec4899'] },
+  { id: 'breeze',  label: 'Breeze',  colors: ['#0ea5e9', '#9333ea'] },
+  { id: 'sunrise', label: 'Sunrise', colors: ['#facc15', '#fb923c'] },
+  { id: 'vivid',   label: 'Vivid',   colors: ['#14b8a6', '#00bfff'] },
+  { id: 'aurora',  label: 'Aurora',  colors: ['#a855f7', '#22d3ee'] },
+];
+
 export default function CanvasReelGenerator() {
   const [activeTab, setActiveTab]           = useState('producto');
   const [products, setProducts]             = useState([]);
@@ -31,9 +40,16 @@ export default function CanvasReelGenerator() {
   const [selectedContent, setSelectedContent] = useState(null);
   const [selectedImages, setSelectedImages] = useState([]);
   const [loadedImages, setLoadedImages]     = useState([]);
+  const [bgTheme, setBgTheme]               = useState('neon');
   const [textEffect, setTextEffect]         = useState('typewriter');
   const [selectedMusic, setSelectedMusic]   = useState(MUSIC_TRACKS[0]);
   const [duration, setDuration]             = useState(15);
+  const [rentalData, setRentalData]         = useState({});
+  const [customMainText, setCustomMainText] = useState('');
+  const [customSubtitle, setCustomSubtitle] = useState('');
+  const [priceLabel, setPriceLabel] = useState('');
+
+  const exchangeService = new ExchangeService();
   const [voiceEnabled, setVoiceEnabled]     = useState(false);
   const [isRecording, setIsRecording]       = useState(false);
   const [recordProgress, setRecordProgress] = useState(0);
@@ -59,6 +75,14 @@ export default function CanvasReelGenerator() {
       .catch(() => {});
   }, [activeTab]);
 
+  // Cargar datos de productos_alquiler de Firestore
+  useEffect(() => {
+    fetch('/api/rental-data')
+      .then((r) => r.json())
+      .then((data) => setRentalData(data || {}))
+      .catch(() => setRentalData({}));
+  }, []);
+
   // Auto-seleccionar primero al cambiar tab
   useEffect(() => {
     if (activeTab === 'producto' && products.length > 0) {
@@ -68,6 +92,60 @@ export default function CanvasReelGenerator() {
     }
     // proyecto: se selecciona al hacer click
   }, [activeTab, products]);
+
+  // Enriquecer contenido seleccionado con información de alquiler (si existe)
+  useEffect(() => {
+    if (!selectedContent || selectedContent.type !== 'producto') return;
+
+    const renta = rentalData[selectedContent.id] || rentalData[selectedContent.productoId];
+    if (renta && (!selectedContent.rental || selectedContent.rental.seña !== renta.seña)) {
+      setSelectedContent((prev) => ({ ...prev, rental: renta }));
+    }
+  }, [rentalData, selectedContent]);
+
+  // Generar precio en ARS preferido para mostrar como "Desde $..."
+  useEffect(() => {
+    const calculatePrice = async () => {
+      if (!selectedContent) {
+        setPriceLabel('');
+        return;
+      }
+
+      if (selectedContent.priceUSD) {
+        try {
+          const ars = await exchangeService.convertUsdToArs(selectedContent.priceUSD);
+          setPriceLabel(`Desde ${formatARS(ars)} (USD ${selectedContent.priceUSD})`);
+          return;
+        } catch {
+          setPriceLabel(`Desde ${formatUSD(selectedContent.priceUSD)}`);
+          return;
+        }
+      }
+
+      if (selectedContent.priceARS) {
+        setPriceLabel(`Desde ${formatARS(selectedContent.priceARS)}`);
+        return;
+      }
+        try {
+          const ars = await exchangeService.convertUsdToArs(selectedContent.priceUSD);
+          setPriceLabel(`Desde ${formatARS(ars)} (USD ${selectedContent.priceUSD})`);
+          return;
+        } catch {
+          setPriceLabel(`Desde ${formatUSD(selectedContent.priceUSD)}`);
+          return;
+        }
+      }
+
+      if (selectedContent.price && typeof selectedContent.price === 'number') {
+        setPriceLabel(`Desde ${formatARS(selectedContent.price)}`);
+        return;
+      }
+
+      setPriceLabel('Precio a consultar');
+    };
+
+    calculatePrice();
+  }, [selectedContent]);
 
   function selectContent(content, images = []) {
     setSelectedContent(content);
@@ -89,13 +167,35 @@ export default function CanvasReelGenerator() {
   }, [selectedContent, textEffect, duration, loadedImages]);
 
   function buildConfig() {
+    const priceText = priceLabel || (
+      selectedContent?.priceUSD
+        ? `Desde USD ${selectedContent.priceUSD}`
+        : selectedContent?.priceARS
+          ? `Desde ARS ${selectedContent.priceARS}`
+          : selectedContent?.price
+            ? `Desde ${selectedContent.price}`
+            : ''
+    );
+
+    const rental = selectedContent?.rental;
+    const rentalText = rental
+      ? `Alquiler: seña ARS ${rental.seña} · cuota ARS ${rental.cuota} · mín ${rental.duracionMinima}m`
+      : '';
+
+    const contextual = selectedContent?.shortDescription || selectedContent?.description || '';
+    const textLines = [customSubtitle || priceText, rentalText, contextual].filter(Boolean);
+
+    const bg = BG_THEMES.find((t) => t.id === bgTheme)?.colors || BG_THEMES[0].colors;
+
     return {
-      title:       selectedContent?.name || selectedContent?.sitio || 'Sin título',
-      subtitle:    selectedContent?.category || selectedContent?.description || '',
+      title:       customMainText || selectedContent?.name || selectedContent?.sitio || 'Sin título',
+      subtitle:    textLines.join(' │ '),
       textEffect,
       duration,
       musicUrl:    selectedMusic.url,
       contentType: selectedContent?.type || 'default',
+      bgColors:    bg,
+      thumbnailIndex: 0,
     };
   }
 
@@ -268,6 +368,42 @@ export default function CanvasReelGenerator() {
               </div>
             </div>
           )}
+
+          {/* Datos visibles para reel (precio componentes + alquiler) */}
+          {selectedContent && (
+            <div className="bg-slate-900 bg-opacity-40 border border-slate-700 rounded-lg p-3">
+              <p className="text-xs text-slate-300 mb-1">
+                Producto: <span className="text-white font-semibold">{selectedContent.name || selectedContent.sitio}</span>
+              </p>
+              <p className="text-sm text-green-300 font-semibold mb-1">{priceLabel || 'Precio a consultar'}</p>
+              {selectedContent.rental && (
+                <p className="text-xs text-slate-200">
+                  Alquiler: seña ARS {selectedContent.rental.seña} · cuota ARS {selectedContent.rental.cuota} · mínimo {selectedContent.rental.duracionMinima} meses
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Fondo brillante (tema) */}
+          <div>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Fondo brillante</p>
+            <div className="grid grid-cols-3 gap-2">
+              {BG_THEMES.map((theme) => (
+                <button
+                  key={theme.id}
+                  onClick={() => setBgTheme(theme.id)}
+                  className={`h-10 rounded-lg border transition-all ${
+                    bgTheme === theme.id ? 'border-white shadow-lg' : 'border-gray-300 dark:border-gray-700'
+                  }`}
+                  style={{
+                    background: `linear-gradient(135deg, ${theme.colors[0]} 0%, ${theme.colors[1]} 100%)`,
+                  }}
+                >
+                  <span className="sr-only">{theme.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Efecto de texto */}
           <div>
