@@ -105,46 +105,31 @@ export default function CanvasReelGenerator() {
 
   // Generar precio en ARS preferido para mostrar como "Desde $..."
   useEffect(() => {
-    const calculatePrice = async () => {
-      if (!selectedContent) {
-        setPriceLabel('');
-        return;
-      }
+    if (!selectedContent) {
+      setPriceLabel('');
+      return;
+    }
 
-      if (selectedContent.priceUSD) {
-        try {
-          const ars = await exchangeService.convertUsdToArs(selectedContent.priceUSD);
-          setPriceLabel(`Desde ${formatARS(ars)} (USD ${selectedContent.priceUSD})`);
-          return;
-        } catch {
-          setPriceLabel(`Desde ${formatUSD(selectedContent.priceUSD)}`);
-          return;
-        }
-      }
+    if (selectedContent.priceUSD) {
+      exchangeService.convertUsdToArs(selectedContent.priceUSD).then((ars) => {
+        setPriceLabel(`Desde ${formatARS(ars)} (USD ${selectedContent.priceUSD})`);
+      }).catch(() => {
+        setPriceLabel(`Desde ${formatUSD(selectedContent.priceUSD)}`);
+      });
+      return;
+    }
 
-      if (selectedContent.priceARS) {
-        setPriceLabel(`Desde ${formatARS(selectedContent.priceARS)}`);
-        return;
-      }
-        try {
-          const ars = await exchangeService.convertUsdToArs(selectedContent.priceUSD);
-          setPriceLabel(`Desde ${formatARS(ars)} (USD ${selectedContent.priceUSD})`);
-          return;
-        } catch {
-          setPriceLabel(`Desde ${formatUSD(selectedContent.priceUSD)}`);
-          return;
-        }
-      }
+    if (selectedContent.priceARS) {
+      setPriceLabel(`Desde ${formatARS(selectedContent.priceARS)}`);
+      return;
+    }
 
-      if (selectedContent.price && typeof selectedContent.price === 'number') {
-        setPriceLabel(`Desde ${formatARS(selectedContent.price)}`);
-        return;
-      }
+    if (selectedContent.price && typeof selectedContent.price === 'number') {
+      setPriceLabel(`Desde ${formatARS(selectedContent.price)}`);
+      return;
+    }
 
-      setPriceLabel('Precio a consultar');
-    };
-
-    calculatePrice();
+    setPriceLabel('Precio a consultar');
   }, [selectedContent]);
 
   function selectContent(content, images = []) {
