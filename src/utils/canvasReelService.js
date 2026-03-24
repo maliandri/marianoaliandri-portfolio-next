@@ -188,8 +188,13 @@ class CanvasReelService {
     ctx.fillText('marianoaliandri.com.ar', W / 2, topH * 0.6);
     ctx.restore();
 
-    // ── 5. Texto principal (zona central) ────────────────────────────────────
+    // ── 5. Texto principal (zona central, clipeado para no pisar CTA) ─────────
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, midY, W, midH);
+    ctx.clip();
     this._drawText(ctx, W, H, midY, midH, elapsed, title, subtitle, textEffect, duration);
+    ctx.restore();
 
     // ── 6. Zona inferior: fondo oscuro + CTA ─────────────────────────────────
     const botGrad = ctx.createLinearGradient(0, botY, 0, H);
