@@ -231,11 +231,21 @@ export default function CanvasReelGenerator() {
       const { secure_url: uploadedUrl } = await cloudRes.json();
 
       // Notificar Make.com via API route (solo JSON, sin el blob)
-      const productId = selectedContent.id || selectedContent.sitio || 'reel';
+      const productId   = selectedContent.id || selectedContent.sitio || 'reel';
+      const productName = selectedContent.name || selectedContent.sitio || productId;
+      const cfg         = buildConfig();
       const res  = await fetch('/api/upload-reel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoUrl: uploadedUrl, productId }),
+        body: JSON.stringify({
+          videoUrl:    uploadedUrl,
+          productId,
+          text:        productName,
+          subtitle:    cfg.subtitle,
+          aiProvider:  'gemini',
+          useAI:       true,
+          type:        'reel',
+        }),
       });
       const data = await res.json();
       if (!data.videoUrl) throw new Error(data.error || 'Error notificando Make.com');

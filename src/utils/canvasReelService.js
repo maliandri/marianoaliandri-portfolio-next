@@ -251,8 +251,8 @@ class CanvasReelService {
 
   _drawText(ctx, W, H, midY, midH, elapsed, title, subtitle, effect, duration) {
     const maxW   = W - 80;
-    const base   = Math.max(48, W * 0.07);
-    const subBase= Math.max(28, W * 0.042);
+    const base   = Math.max(58, W * 0.085);
+    const subBase= Math.max(34, W * 0.052);
     const textCY = midY + midH * 0.5;
     const pad    = W * 0.04;
 

@@ -4,18 +4,18 @@ const MAKE_WEBHOOK = 'https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi
 
 export async function POST(request) {
   try {
-    const { videoUrl, productId = 'reel' } = await request.json();
+    const { videoUrl, productId = 'reel', text, subtitle, aiProvider = 'gemini', useAI = true, type = 'reel' } = await request.json();
 
     if (!videoUrl) {
       return Response.json({ error: 'No videoUrl provided' }, { status: 400 });
     }
 
-    // Notificar Make.com
+    // Notificar Make.com con payload completo para que Gemini escriba el post
     try {
       const makeRes = await fetch(`${MAKE_WEBHOOK}?productId=${productId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoUrl, productId, type: 'reel' }),
+        body: JSON.stringify({ url: videoUrl, videoUrl, productId, text, subtitle, aiProvider, useAI, type }),
       });
       if (!makeRes.ok) {
         const makeErr = await makeRes.text();
