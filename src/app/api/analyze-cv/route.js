@@ -25,7 +25,7 @@ const PROFESIONES = [
 ];
 
 export async function POST(request) {
-  if (!process.env.GEMINI_API_KEY) {
+  if (!process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
     return Response.json({ error: 'Servicio de análisis no configurado.' }, { status: 500 });
   }
 
@@ -50,7 +50,7 @@ export async function POST(request) {
     const bytes = await file.arrayBuffer();
     const base64 = Buffer.from(bytes).toString('base64');
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.0-flash',
       generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },

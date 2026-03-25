@@ -5,7 +5,7 @@ export async function POST(request) {
     const { script } = await request.json();
     if (!script) return Response.json({ error: 'script requerido' }, { status: 400 });
 
-    const apiKey = process.env.GOOGLE_TTS_API_KEY || process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GOOGLE_TTS_API_KEY || process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
     if (!apiKey) return Response.json({ error: 'GOOGLE_TTS_API_KEY no configurada' }, { status: 500 });
 
     const res = await fetch(

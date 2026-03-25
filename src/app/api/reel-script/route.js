@@ -4,7 +4,7 @@ export async function POST(request) {
   try {
     const { contentType = 'producto', contentName = '', contentDescription = '' } = await request.json();
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
     if (!apiKey) return Response.json({ error: 'GEMINI_API_KEY no configurada' }, { status: 500 });
 
     const prompt = `Sos un copywriter experto en redes sociales argentinas.
