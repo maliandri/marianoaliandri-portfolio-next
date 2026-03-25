@@ -25,7 +25,7 @@ const PROFESIONES = [
 ];
 
 export async function POST(request) {
-  if (!process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
+  if (!(process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY)) {
     return Response.json({ error: 'Servicio de análisis no configurado.' }, { status: 500 });
   }
 

@@ -113,7 +113,7 @@ export async function POST(request) {
     if (!message) {
       return Response.json({ error: 'Message is required' }, { status: 400 });
     }
-    if (!process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
+    if (!(process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY)) {
       return Response.json({
         error: 'API key no configurada',
         response: 'El chatbot no está disponible temporalmente. Por favor, contactame por WhatsApp al +54 299 541-4422 o por email a marianoaliandri@gmail.com',
