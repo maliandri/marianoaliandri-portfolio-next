@@ -15,7 +15,7 @@ export async function POST(request) {
       const makeRes = await fetch(`${MAKE_WEBHOOK}?productId=${productId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: videoUrl, videoUrl, productId, text, subtitle, aiProvider, useAI, type }),
+        body: JSON.stringify({ url: videoUrl, videoUrl, video_url: videoUrl, productId, text, subtitle, aiProvider, useAI, type }),
       });
       if (!makeRes.ok) {
         const makeErr = await makeRes.text();
