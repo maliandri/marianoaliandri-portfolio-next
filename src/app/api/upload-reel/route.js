@@ -15,7 +15,22 @@ export async function POST(request) {
       const makeRes = await fetch(`${MAKE_WEBHOOK}?productId=${productId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: videoUrl, videoUrl, video_url: videoUrl, productId, text, subtitle, aiProvider, useAI, type }),
+        body: JSON.stringify({
+          url:         videoUrl,
+          type,
+          aiProvider,
+          useAI,
+          text,
+          // estructura metadata compatible con el payload viejo de Shotstack
+          metadata: {
+            videoUrl,
+            title:       text,
+            productId,
+            productName: text,
+            format:      'reel',
+            currency:    'USD',
+          },
+        }),
       });
       if (!makeRes.ok) {
         const makeErr = await makeRes.text();
