@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import admin, { getDb } from '@/lib/firebase-admin';
 const db = getDb();
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Maliandri$#652542026';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 export async function POST(request) {
   try {
