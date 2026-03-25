@@ -51,6 +51,7 @@ export default function CanvasReelGenerator() {
   const [loadedImages, setLoadedImages]       = useState([]);
   const [rentalData, setRentalData]           = useState({});
   const [priceLabel, setPriceLabel]           = useState('');
+  const [showPrice, setShowPrice]             = useState(false);
 
   // ── Script (paso 2) ──
   const [script, setScript]           = useState('');
@@ -141,7 +142,7 @@ export default function CanvasReelGenerator() {
     if (!canvasRef.current || !selectedContent) return;
     canvasReelService.startPreview(canvasRef.current, buildConfig(), loadedImages);
     return () => canvasReelService.stopPreview();
-  }, [selectedContent, textEffect, duration, loadedImages, bgTheme]);
+  }, [selectedContent, textEffect, duration, loadedImages, bgTheme, showPrice, priceLabel]);
 
   useEffect(() => {
     canvasReelService.loadImages(selectedImages).then(setLoadedImages);
@@ -161,7 +162,9 @@ export default function CanvasReelGenerator() {
     const isProducto = selectedContent?.type === 'producto';
     const rental = selectedContent?.rental;
     const storeText = isProducto
-      ? (rental ? 'Precio · Compra o alquiler en la tienda' : 'Precio y formas de pago en la tienda')
+      ? (showPrice && priceLabel
+          ? priceLabel
+          : (rental ? 'Precio · Compra o alquiler en la tienda' : 'Precio y formas de pago en la tienda'))
       : '';
     const textLines = [customSubtitle || storeText].filter(Boolean);
     const bg = BG_THEMES.find((t) => t.id === bgTheme)?.colors || BG_THEMES[0].colors;
@@ -428,15 +431,31 @@ export default function CanvasReelGenerator() {
 
             {/* Info precio */}
             {selectedContent && (
-              <div className="bg-slate-900/40 border border-slate-700 rounded-lg p-2 text-xs">
-                <span className="text-slate-300">Producto: </span>
-                <span className="text-white font-semibold">{selectedContent.name || selectedContent.sitio}</span>
-                {priceLabel && <div className="text-green-300 font-semibold mt-0.5">{priceLabel}</div>}
-                {selectedContent.rental && (
-                  <div className="text-slate-200 mt-0.5">
-                    Alquiler: seña ${selectedContent.rental.seña} · cuota ${selectedContent.rental.cuota}/mes · mín {selectedContent.rental.duracionMinima}m
+              <div className="bg-slate-900/40 border border-slate-700 rounded-lg p-2 text-xs space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <span className="text-slate-300">Producto: </span>
+                    <span className="text-white font-semibold">{selectedContent.name || selectedContent.sitio}</span>
+                    {priceLabel && <div className="text-green-300 font-semibold mt-0.5">{priceLabel}</div>}
+                    {selectedContent.rental && (
+                      <div className="text-slate-200 mt-0.5">
+                        Alquiler: seña ${selectedContent.rental.seña} · cuota ${selectedContent.rental.cuota}/mes · mín {selectedContent.rental.duracionMinima}m
+                      </div>
+                    )}
                   </div>
-                )}
+                  {selectedContent.type === 'producto' && priceLabel && (
+                    <button
+                      onClick={() => setShowPrice((v) => !v)}
+                      className={`shrink-0 px-2 py-1 rounded text-xs font-semibold transition-colors ${
+                        showPrice
+                          ? 'bg-green-600 text-white'
+                          : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                      }`}
+                    >
+                      💲 {showPrice ? 'Precio: SÍ' : 'Precio: NO'}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </section>
