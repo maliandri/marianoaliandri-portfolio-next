@@ -371,7 +371,7 @@ export default function CanvasReelGenerator() {
                       ? 'bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                   }`}
-                >{p.name}{p.priceUSD ? ` — USD ${p.priceUSD}` : ''}</button>
+                >{p.name}</button>
               ))}
               {activeTab === 'tecnologia' && TECH_ITEMS.map((t) => (
                 <button key={t.id}
