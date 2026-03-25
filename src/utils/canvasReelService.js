@@ -493,28 +493,93 @@ class CanvasReelService {
     }
   }
 
-  // ── Audio ─────────────────────────────────────────────────────────────────
+  // ── Audio helpers ─────────────────────────────────────────────────────────
 
-  async setupAudio(musicUrl) {
+  async _fetchAudioBuffer(audioCtx, url) {
+    const res = await fetch(url, { mode: 'cors' });
+    const buf = await res.arrayBuffer();
+    return audioCtx.decodeAudioData(buf);
+  }
+
+  async _base64ToAudioBuffer(audioCtx, base64) {
+    const binary = atob(base64);
+    const bytes  = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return audioCtx.decodeAudioData(bytes.buffer);
+  }
+
+  // Prepara buffers de voz y música para preview
+  async prepareAudio(ttsBase64, musicUrl) {
     try {
-      const AudioCtx  = window.AudioContext || window.webkitAudioContext;
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return null;
-      const audioCtx  = new AudioCtx();
-      const res       = await fetch(musicUrl, { mode: 'cors' });
-      const buf       = await res.arrayBuffer();
-      const audioBuffer = await audioCtx.decodeAudioData(buf);
+      const audioCtx = new AudioCtx();
+      const [voiceBuffer, musicBuffer] = await Promise.all([
+        ttsBase64 ? this._base64ToAudioBuffer(audioCtx, ttsBase64) : Promise.resolve(null),
+        musicUrl  ? this._fetchAudioBuffer(audioCtx, musicUrl)      : Promise.resolve(null),
+      ]);
+      await audioCtx.close();
+      return { voiceBuffer, musicBuffer };
+    } catch (e) {
+      console.warn('prepareAudio failed:', e.message);
+      return null;
+    }
+  }
 
-      const source    = audioCtx.createBufferSource();
-      source.buffer   = audioBuffer;
-      source.loop     = true;
-      const gain      = audioCtx.createGain();
-      gain.gain.value = 0.6;
-      const dest      = audioCtx.createMediaStreamDestination();
-      source.connect(gain);
-      gain.connect(dest);
+  // Preview de audio (voice o music) en el browser
+  async playAudioPreview(base64OrUrl, isBase64 = false) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const audioCtx = new AudioCtx();
+      const buffer   = isBase64
+        ? await this._base64ToAudioBuffer(audioCtx, base64OrUrl)
+        : await this._fetchAudioBuffer(audioCtx, base64OrUrl);
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtx.destination);
       source.start(0);
+      source.onended = () => audioCtx.close();
+      return { source, audioCtx };
+    } catch (e) {
+      console.warn('playAudioPreview failed:', e.message);
+    }
+  }
 
-      return { stream: dest.stream, source, audioCtx };
+  async setupAudio(musicUrl, ttsBase64 = null) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return null;
+      const audioCtx = new AudioCtx();
+      const dest     = audioCtx.createMediaStreamDestination();
+      const sources  = [];
+
+      if (ttsBase64) {
+        const voiceBuf    = await this._base64ToAudioBuffer(audioCtx, ttsBase64);
+        const voiceSrc    = audioCtx.createBufferSource();
+        voiceSrc.buffer   = voiceBuf;
+        const voiceGain   = audioCtx.createGain();
+        voiceGain.gain.value = 1.0;
+        voiceSrc.connect(voiceGain);
+        voiceGain.connect(dest);
+        voiceSrc.start(0);
+        sources.push(voiceSrc);
+      }
+
+      if (musicUrl) {
+        const musicBuf    = await this._fetchAudioBuffer(audioCtx, musicUrl);
+        const musicSrc    = audioCtx.createBufferSource();
+        musicSrc.buffer   = musicBuf;
+        musicSrc.loop     = true;
+        const musicGain   = audioCtx.createGain();
+        musicGain.gain.value = ttsBase64 ? 0.25 : 0.6;
+        musicSrc.connect(musicGain);
+        musicGain.connect(dest);
+        musicSrc.start(0);
+        sources.push(musicSrc);
+      }
+
+      return { stream: dest.stream, sources, audioCtx };
     } catch (e) {
       console.warn('Audio setup failed:', e.message);
       return null;
@@ -530,7 +595,9 @@ class CanvasReelService {
     const ctx     = canvas.getContext('2d');
 
     let audioSetup = null;
-    if (config.musicUrl) audioSetup = await this.setupAudio(config.musicUrl);
+    if (config.musicUrl || config.ttsBase64) {
+      audioSetup = await this.setupAudio(config.musicUrl, config.ttsBase64);
+    }
 
     const videoStream = canvas.captureStream(30);
     const allTracks   = [...videoStream.getVideoTracks()];
@@ -548,7 +615,7 @@ class CanvasReelService {
 
     return new Promise((resolve, reject) => {
       recorder.onstop = () => {
-        audioSetup?.source?.stop?.();
+        audioSetup?.sources?.forEach((s) => { try { s.stop(); } catch {} });
         audioSetup?.audioCtx?.close?.();
         resolve(new Blob(chunks, { type: mimeType }));
       };
