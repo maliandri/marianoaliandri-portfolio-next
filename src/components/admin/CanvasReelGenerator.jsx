@@ -156,11 +156,12 @@ export default function CanvasReelGenerator() {
   }
 
   function buildConfig() {
+    const isProducto = selectedContent?.type === 'producto';
     const rental = selectedContent?.rental;
-    const rentalText = rental
-      ? `Seña $${rental.seña} · Cuota $${rental.cuota}/mes · ${rental.duracionMinima}m mín`
+    const storeText = isProducto
+      ? (rental ? 'Precio · Compra o alquiler en la tienda' : 'Precio y formas de pago en la tienda')
       : '';
-    const textLines = [customSubtitle || priceLabel, rentalText].filter(Boolean);
+    const textLines = [customSubtitle || storeText].filter(Boolean);
     const bg = BG_THEMES.find((t) => t.id === bgTheme)?.colors || BG_THEMES[0].colors;
     return {
       title:       customMainText || selectedContent?.name || selectedContent?.sitio || 'Sin título',
