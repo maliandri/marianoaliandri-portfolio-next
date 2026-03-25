@@ -546,7 +546,7 @@ class CanvasReelService {
     }
   }
 
-  async setupAudio(musicUrl, ttsBase64 = null) {
+  async setupAudio(musicUrl, ttsBase64 = null, voiceVolume = 1.0, musicVolume = null) {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return null;
@@ -559,7 +559,7 @@ class CanvasReelService {
         const voiceSrc    = audioCtx.createBufferSource();
         voiceSrc.buffer   = voiceBuf;
         const voiceGain   = audioCtx.createGain();
-        voiceGain.gain.value = 1.0;
+        voiceGain.gain.value = voiceVolume;
         voiceSrc.connect(voiceGain);
         voiceGain.connect(dest);
         voiceSrc.start(0);
@@ -572,7 +572,7 @@ class CanvasReelService {
         musicSrc.buffer   = musicBuf;
         musicSrc.loop     = true;
         const musicGain   = audioCtx.createGain();
-        musicGain.gain.value = ttsBase64 ? 0.25 : 0.6;
+        musicGain.gain.value = musicVolume !== null ? musicVolume : (ttsBase64 ? 0.25 : 0.6);
         musicSrc.connect(musicGain);
         musicGain.connect(dest);
         musicSrc.start(0);
@@ -596,7 +596,7 @@ class CanvasReelService {
 
     let audioSetup = null;
     if (config.musicUrl || config.ttsBase64) {
-      audioSetup = await this.setupAudio(config.musicUrl, config.ttsBase64);
+      audioSetup = await this.setupAudio(config.musicUrl, config.ttsBase64, config.voiceVolume ?? 1.0, config.musicVolume ?? null);
     }
 
     const videoStream = canvas.captureStream(30);

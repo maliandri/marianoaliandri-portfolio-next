@@ -64,6 +64,8 @@ export default function CanvasReelGenerator() {
   const [ttsBase64, setTtsBase64]     = useState('');
   const [ttsLoading, setTtsLoading]   = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [voiceVolume, setVoiceVolume] = useState(1.0);
+  const [musicVolume, setMusicVolume] = useState(0.25);
   const [previewRef, setPreviewRef]   = useState(null);
 
   // ── Visual (paso 4) ──
@@ -170,6 +172,8 @@ export default function CanvasReelGenerator() {
       duration,
       musicUrl,
       ttsBase64:   voiceEnabled ? ttsBase64 : '',
+      voiceVolume,
+      musicVolume,
       contentType: selectedContent?.type || 'default',
       bgColors:    bg,
       thumbnailIndex: 0,
@@ -499,6 +503,14 @@ export default function CanvasReelGenerator() {
                 >▶ Preview música</button>
               )}
               {musicLoading && <p className="text-xs text-gray-400 mt-1">Cargando música…</p>}
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-xs text-gray-500 w-20 shrink-0">🎵 Volumen</span>
+                <input type="range" min="0" max="1" step="0.05" value={musicVolume}
+                  onChange={(e) => setMusicVolume(parseFloat(e.target.value))}
+                  className="flex-1 accent-blue-500"
+                />
+                <span className="text-xs text-gray-400 w-8 text-right">{Math.round(musicVolume * 100)}%</span>
+              </div>
             </div>
 
             {/* Voz */}
@@ -513,17 +525,27 @@ export default function CanvasReelGenerator() {
               </div>
 
               {voiceEnabled && (
-                <div className="flex gap-2">
-                  <button onClick={handleGenerateTTS} disabled={!script || ttsLoading}
-                    className="flex-1 py-1.5 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded text-xs font-semibold disabled:opacity-50 hover:from-green-700 hover:to-teal-700 transition-all"
-                  >
-                    {ttsLoading ? 'Generando voz…' : ttsBase64 ? '✅ Voz generada — Regenerar' : '🎙 Generar voz'}
-                  </button>
-                  {ttsBase64 && (
-                    <button onClick={handlePreviewVoice}
-                      className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    >▶ Escuchar</button>
-                  )}
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <button onClick={handleGenerateTTS} disabled={!script || ttsLoading}
+                      className="flex-1 py-1.5 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded text-xs font-semibold disabled:opacity-50 hover:from-green-700 hover:to-teal-700 transition-all"
+                    >
+                      {ttsLoading ? 'Generando voz…' : ttsBase64 ? '✅ Voz generada — Regenerar' : '🎙 Generar voz'}
+                    </button>
+                    {ttsBase64 && (
+                      <button onClick={handlePreviewVoice}
+                        className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      >▶ Escuchar</button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 w-20 shrink-0">🎙 Volumen</span>
+                    <input type="range" min="0" max="1" step="0.05" value={voiceVolume}
+                      onChange={(e) => setVoiceVolume(parseFloat(e.target.value))}
+                      className="flex-1 accent-green-500"
+                    />
+                    <span className="text-xs text-gray-400 w-8 text-right">{Math.round(voiceVolume * 100)}%</span>
+                  </div>
                 </div>
               )}
             </div>

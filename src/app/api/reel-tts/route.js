@@ -15,7 +15,7 @@ export async function POST(request) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           input: { text: script },
-          voice: { languageCode: 'es-AR', name: 'es-AR-Standard-B' },
+          voice: { languageCode: 'es-US', name: 'es-US-Neural2-B' },
           audioConfig: { audioEncoding: 'MP3', speakingRate: 0.95, pitch: 0.0 },
         }),
       }
