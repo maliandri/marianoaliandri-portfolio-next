@@ -21,7 +21,8 @@ URL en produccion: https://marianoaliandri.com.ar
 | Auth + DB | Firebase 12 (Auth + Firestore) |
 | Imagenes | Cloudinary |
 | Pagos | MercadoPago |
-| AI | Google Gemini 2.0 Flash |
+| AI | Google Gemini 2.5 Flash |
+| TTS | Google Cloud Text-to-Speech API |
 | Email | Zoho Mail (dominio propio) + Nodemailer |
 | Automatizacion | Make.com (webhooks) |
 | Deploy | Vercel (CLI: `vercel --prod`) |
@@ -39,7 +40,7 @@ src/
     providers.jsx       # QueryClient, CartProvider, AppChrome (header, footer, tools)
     api/                # API Routes (server-side)
       analyze-cv/       # Gemini ATS — analiza PDF de CV
-      chat/             # AI chatbot (Gemini)
+      chat/             # AI chatbot (Gemini 2.5 Flash)
       create-payment/   # MercadoPago — crea preferencia de pago
       cv-payment/       # Pago por analisis de CV
       lead-finder/      # Google Places + scraping de emails
@@ -52,8 +53,10 @@ src/
       seed-rental/      # Seedea coleccion productos_alquiler en Firestore (POST, una vez)
       rental-data/      # GET /api/rental-data → todos los docs activos de productos_alquiler
                         # GET /api/rental-data/[productId] → doc individual (usa Firebase Admin)
-      generate-reel/    # Genera video con Shotstack sandbox (/stage/render) + Pexels bg
-      check-reel-status/# Consulta estado de render en Shotstack
+      upload-reel/      # Recibe videoUrl (MP4 Cloudinary) + notifica Make.com webhook
+      reel-script/      # Genera script de locutor con Gemini 2.5 Flash
+      reel-tts/         # Genera audio MP3 con Google TTS (voz es-AR-Standard-B)
+      reel-music/       # Retorna URL de musica segun mood (Mubert o fallback Cloudinary)
       payment-webhook/  # Webhook de MercadoPago (notificaciones de pago)
     admin/              # Panel de administracion (requiere auth)
     tienda/             # E-commerce de servicios
@@ -66,11 +69,13 @@ src/
     ProductQA.jsx       # Preguntas y respuestas por producto (Firestore)
     ProyectosGrid.jsx   # Grid dinamico de proyectos con stats de GSC
     SocialPublisher.jsx # Publicador de servicios en redes (admin) — envia a Make.com
+    admin/
+      CanvasReelGenerator.jsx  # Generador de reels canvas — flujo 5 pasos (ver abajo)
     ...otros componentes reutilizables
   views/
     StorePage.jsx       # Wrapper de /tienda con SEO, pasa asPage={true} a Store
     ProductDetailPage.jsx # Detalle de producto: toggle Compra/Alquiler con framer-motion,
-                          # fetch desde /api/rental-data/[id], precios en USD+ARS, WA dinámico
+                          # fetch desde /api/rental-data/[id], precios en USD+ARS, WA dinamico
     AdminPage.jsx       # Panel admin completo
     ...otras vistas
   context/              # CartContext
@@ -80,6 +85,7 @@ src/
     exchangeService.js  # Tipo de cambio USD→ARS, formatARS, formatUSD
     firebaseservice.js  # Firebase client SDK (db, auth, analytics)
     makeService.js      # Envia payload a Make.com webhook
+    canvasReelService.js # Canvas animation + MediaRecorder + mezcla audio Web Audio API
     ...otros servicios
   lib/
     firebase-admin.js   # Firebase Admin SDK (server-side, usa FIREBASE_SERVICE_ACCOUNT_JSON)
@@ -112,7 +118,7 @@ src/
 
 ```
 # Firebase Client
-NEXT_PUBLIC_FIREBASE_API_KEY
+NEXT_PUBLIC_FIREBASE_API_KEY        ← Firebase web API key (NO confundir con GEMINI_API_KEY)
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
 NEXT_PUBLIC_FIREBASE_PROJECT_ID
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
@@ -124,7 +130,9 @@ FIREBASE_SERVICE_ACCOUNT_JSON
 
 # Google APIs
 GOOGLE_PLACES_API_KEY
-GEMINI_API_KEY
+GEMINI_API_KEY                      ← Google Cloud API key sin restricciones (proyecto MarianoAliandri)
+                                       Usada para Gemini + Google TTS + fallback Firebase
+                                       Si se rota: actualizar tambien NEXT_PUBLIC_FIREBASE_API_KEY
 
 # MercadoPago
 MERCADOPAGO_ACCESS_TOKEN
@@ -139,14 +147,22 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 # Terceros
 PEXELS_API_KEY
 SHOTSTACK_API_KEY
+MUBERT_API_KEY                      ← Opcional. Sin esta var usa fallback de Cloudinary
 
 # Admin
 ADMIN_USERNAME
 ADMIN_PASSWORD_HASH
 ```
 
-**ADVERTENCIA**: Nunca usar `echo` para setear vars en Vercel — agrega `\n` al final
-que rompe headers HTTP. Siempre usar: `printf "VALUE" | vercel env add VAR production`
+**ADVERTENCIA en Windows PowerShell**: `printf` no existe en PowerShell. Usar:
+```powershell
+vercel env rm VAR_NAME production
+vercel env add VAR_NAME production
+# (pegar el valor cuando lo pide, marcar como sensitive)
+```
+
+**ADVERTENCIA en bash/Linux**: Nunca usar `echo` para setear vars en Vercel — agrega `\n`.
+Siempre usar: `printf "VALUE" | vercel env add VAR production`
 
 ---
 
@@ -167,12 +183,19 @@ que rompe headers HTTP. Siempre usar: `printf "VALUE" | vercel env add VAR produ
   - `/kpi` — Radar KPI interactivo
   - `/radarweb` — Radar Web
   - `/stats` — Dashboard de estadisticas (GSC, Firebase, visitas)
-- **Admin** (`/admin`): Panel interno — stats, gestion de productos, publicacion en redes sociales, generacion de reels con Shotstack, gestion de proyectos GSC
+- **Admin** (`/admin`): Panel interno — stats, gestion de productos, publicacion en redes sociales, generacion de reels canvas, gestion de proyectos GSC
 - **Publicador de redes** (admin): envia POST a Make.com → Make llama a Gemini y publica en LinkedIn/Instagram/Facebook. Logos de servicios en Cloudinary (`service-logos/`)
-- **Generador de reels** (admin): Shotstack sandbox (`/stage/render`) + videos de Pexels como fondo + musica en Cloudinary. Callback a Make.com con el video renderizado
+- **Generador de reels Canvas** (admin): flujo de 5 pasos:
+  1. Seleccion de contenido (Producto / Tecnologia / Proyecto)
+  2. Script generado por Gemini 2.5 Flash (`/api/reel-script`) — editable, max 60 palabras
+  3. Audio: musica por mood via Mubert o fallback Cloudinary (`/api/reel-music`) + voz Google TTS (`/api/reel-tts`, voz `es-AR-Standard-B`)
+  4. Visual: fondo degradado (5 temas), efecto de texto (6 opciones), duracion 15/30s
+  5. Grabacion: canvas 1080x1920 → WebM → Cloudinary (transformacion f_mp4,vc_h264,ac_aac) → Make.com webhook
+  - Subtitle muestra CTA a la tienda (no precios) para productos
+  - Mezcla de audio: voz volumen 1.0 + musica volumen 0.25 via Web Audio API
 - **Auth**: Firebase Auth (Google login)
 - **Likes + Visitas**: Contadores en Firestore, anonimos con localStorage
-- **AI Chatbot**: Integrado en header (Gemini)
+- **AI Chatbot**: Integrado en header (Gemini 2.5 Flash)
 - **LinkedIn Sidebar**: Feed de posts de LinkedIn
 - **WhatsApp Button**: Flotante en todas las paginas
 - **Favicon dinamico**: Emoji segun dia de la semana (Dom😴 Lun😊 Mar😄 Mie🥳 Jue😎 Vie🤩 Sab😁) — script inline en `<head>`, sin archivos ni requests
@@ -194,7 +217,7 @@ Se preconectan Firebase, googleapis, firestore y Cloudinary para ahorrar ~900ms 
 la negociacion TCP/TLS. **No eliminar.**
 
 ### API Routes en lugar de Netlify Functions
-El proyecto migrO de Netlify a Vercel. Todas las funciones serverless viven en
+El proyecto migro de Netlify a Vercel. Todas las funciones serverless viven en
 `src/app/api/` como Route Handlers de Next.js. **No crear Netlify Functions.**
 
 ### SDKs inicializados dentro de handlers
@@ -217,6 +240,19 @@ como `<img src>` directo (CDN cachea 24h). **No agregar arrays de dominios hardc
 `CloudinaryImage` genera srcset con [400, 800, 1200, 1920]w. **No usar el Carrousel
 viejo** — fue reemplazado por ProyectosGrid.
 
+### GEMINI_API_KEY — API key sin restricciones
+La key de Google Cloud (proyecto MarianoAliandri) no tiene restricciones de aplicacion
+ni de API. Esto es necesario porque las llamadas vienen del servidor de Vercel sin
+HTTP Referer. Se usa para Gemini, Google TTS y como fallback de NEXT_PUBLIC_FIREBASE_API_KEY.
+**Si Google la bloquea por leak**: crear nueva key en Google Cloud → Credenciales →
+actualizar GEMINI_API_KEY y NEXT_PUBLIC_FIREBASE_API_KEY en Vercel → redeploy.
+
+### Upload de reels — browser → Cloudinary directo
+El video se graba en el browser (WebM via MediaRecorder) y se sube directamente a
+Cloudinary desde el cliente (sin pasar por Vercel) para evitar el limite de 4.5MB
+de las serverless functions. Luego se envia solo el videoUrl al servidor via
+`/api/upload-reel`. Cloudinary convierte a MP4/H264 on-the-fly con la URL transformada.
+
 ---
 
 ## Que NO tocar o romper
@@ -236,7 +272,7 @@ viejo** — fue reemplazado por ProyectosGrid.
   un SPF record. No eliminarlos o los emails del dominio dejan de funcionar.
 
 - **Variables de entorno con `\n`**: `MERCADOPAGO_ACCESS_TOKEN`, `GOOGLE_PLACES_API_KEY`
-  y `SHOTSTACK_API_KEY` fueron corregidos con `printf`. Si se re-setean, SIEMPRE usar
+  y `SHOTSTACK_API_KEY` fueron corregidos con `printf`. Si se re-setean en bash, SIEMPRE usar
   `printf "VALUE" | vercel env add VAR production` — nunca `echo`.
   Variables que aun pueden tener `\n`: `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`,
   `PEXELS_API_KEY`.
@@ -257,13 +293,21 @@ viejo** — fue reemplazado por ProyectosGrid.
   cuota y duracionMinima. El fetch se hace server-side via `/api/rental-data/[id]`
   para evitar problemas de reglas de seguridad de Firestore.
 
-- **Shotstack**: usa endpoint sandbox `/stage/render` (no `/v1/render`). La key
-  es la sandbox key. Los videos tienen watermark, es esperado y gratis.
-
 - **SocialPublisher → Make.com**: el webhook es `https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi`.
   El payload usa campos `text`, `networks`, `type`, `useAI`, `aiProvider`, `imageUrl`.
   NO cambiar nombres de campos — el router de Make.com depende de ellos.
   La ruta `/api/generate-social-caption` NO existe (fue creada y eliminada).
+
+- **CanvasReelGenerator → Make.com**: usa el mismo webhook `574hhr7jtxm2rsn52ntkghpxohcdhjvi`.
+  El payload del reel incluye `metadata.videoUrl` (MP4 Cloudinary) para compatibilidad
+  con los modulos de Instagram/LinkedIn en Make.com que mapean ese campo.
+  `type: 'reel'` es lo que routea al modulo de Instagram Reels en el Router de Make.
+
+- **Modelo Gemini**: usar `gemini-2.5-flash` en todas las rutas. `gemini-2.0-flash`
+  ya no esta disponible para nuevos usuarios.
+
+- **No hay contraseñas hardcodeadas**: las API routes que antes tenian
+  `process.env.ADMIN_PASSWORD || 'hardcoded'` fueron corregidas. Solo usar env vars.
 
 ---
 
@@ -287,7 +331,11 @@ vercel logs marianoaliandri.com.ar
 vercel dns ls marianoaliandri.com.ar
 vercel dns add marianoaliandri.com.ar @ TXT "valor"
 
-# Variables de entorno (SIEMPRE con printf, nunca echo)
+# Variables de entorno en bash (SIEMPRE con printf, nunca echo)
 printf "VALUE" | vercel env add VAR_NAME production
 vercel env ls
+
+# Variables de entorno en PowerShell (Windows)
+vercel env rm VAR_NAME production
+vercel env add VAR_NAME production
 ```
