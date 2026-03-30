@@ -149,6 +149,7 @@ function SocialMediaDashboard({ initialTab = null }) {
   };
 
   // Subir blob/file a Cloudinary y devolver URL pública
+  // Las imágenes se transforman a 4:5 (1080×1350) para cumplir con Instagram
   const uploadToCloudinary = async (file, resourceType = 'image') => {
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dlshym1te';
     const formData = new FormData();
@@ -161,7 +162,9 @@ function SocialMediaDashboard({ initialTab = null }) {
     });
     const data = await res.json();
     if (!data.secure_url) throw new Error(data.error?.message || 'Upload failed');
-    return data.secure_url;
+    if (resourceType !== 'image') return data.secure_url;
+    // Insertar transformación 4:5 en la URL para Instagram
+    return data.secure_url.replace('/upload/', '/upload/c_fill,ar_4:5,g_auto,w_1080/');
   };
 
   // Manejar pegado de imagen desde clipboard
