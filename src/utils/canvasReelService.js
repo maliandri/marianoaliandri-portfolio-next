@@ -181,10 +181,13 @@ class CanvasReelService {
     const brandSize = Math.max(22, W * 0.032);
     ctx.save();
     ctx.font        = `700 ${brandSize}px Montserrat, sans-serif`;
-    ctx.fillStyle   = '#FFD700';
+    ctx.fillStyle   = '#000000';
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth   = 0.25;
     ctx.shadowColor = 'rgba(0,0,0,0.9)';
     ctx.shadowBlur  = 10;
     ctx.textAlign   = 'center';
+    ctx.strokeText('marianoaliandri.com.ar', W / 2, topH * 0.6);
     ctx.fillText('marianoaliandri.com.ar', W / 2, topH * 0.6);
     ctx.restore();
 

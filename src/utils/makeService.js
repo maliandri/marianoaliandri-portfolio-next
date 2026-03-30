@@ -283,21 +283,7 @@ class MakeService {
     console.log('🎬 publishCustomReel - Iniciando...');
 
     try {
-      // Subir video a Cloudinary
-      let videoUrl = null;
-      if (data.videoBase64) {
-        console.log('📤 Subiendo video a Cloudinary...');
-        try {
-          videoUrl = await cloudinaryService.uploadBase64Video(data.videoBase64);
-          console.log('✅ Video subido:', videoUrl);
-        } catch (error) {
-          console.error('❌ Error subiendo video:', error);
-          return {
-            success: false,
-            message: 'Error al subir el video: ' + error.message
-          };
-        }
-      }
+      const videoUrl = data.videoUrl || null;
 
       if (!videoUrl) {
         return {

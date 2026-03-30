@@ -148,6 +148,22 @@ function SocialMediaDashboard({ initialTab = null }) {
     setTimeout(() => setMessage({ type: '', text: '' }), 5000);
   };
 
+  // Subir blob/file a Cloudinary y devolver URL pública
+  const uploadToCloudinary = async (file, resourceType = 'image') => {
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dlshym1te';
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'portfolio_reels');
+    formData.append('folder', 'social');
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json();
+    if (!data.secure_url) throw new Error(data.error?.message || 'Upload failed');
+    return data.secure_url;
+  };
+
   // Manejar pegado de imagen desde clipboard
   const handlePaste = async (e, setImageFn) => {
     const items = e.clipboardData?.items;
@@ -156,14 +172,14 @@ function SocialMediaDashboard({ initialTab = null }) {
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.indexOf('image') !== -1) {
         const blob = items[i].getAsFile();
-        const reader = new FileReader();
-
-        reader.onloadend = () => {
-          setImageFn(reader.result); // Base64 data URL
-          showMessage('success', '📋 Imagen pegada correctamente');
-        };
-
-        reader.readAsDataURL(blob);
+        try {
+          showMessage('success', '⏳ Subiendo imagen...');
+          const url = await uploadToCloudinary(blob, 'image');
+          setImageFn(url);
+          showMessage('success', '📋 Imagen subida correctamente');
+        } catch {
+          showMessage('error', 'Error al subir imagen a Cloudinary');
+        }
         break;
       }
     }
@@ -179,13 +195,14 @@ function SocialMediaDashboard({ initialTab = null }) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImageFn(reader.result); // Base64 data URL
-      showMessage('success', '📷 Imagen cargada correctamente');
-    };
-
-    reader.readAsDataURL(file);
+    try {
+      showMessage('success', '⏳ Subiendo imagen...');
+      const url = await uploadToCloudinary(file, 'image');
+      setImageFn(url);
+      showMessage('success', '📷 Imagen subida correctamente');
+    } catch {
+      showMessage('error', 'Error al subir imagen a Cloudinary');
+    }
   };
 
   // Manejar carga de archivo de video para Reels
@@ -353,31 +370,27 @@ function SocialMediaDashboard({ initialTab = null }) {
 
     setIsPublishing(true);
     try {
-      // Convertir video a base64
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const videoBase64 = reader.result;
+      showMessage('success', '⏳ Subiendo video...');
+      const videoUrl = await uploadToCloudinary(videoFile, 'video');
 
-        const result = await makeService.publishCustomReel({
-          caption: postText,
-          videoBase64: videoBase64,
-          networks: selectedNetworks,
-          useAI: useAI,
-          aiProvider: aiProvider
-        });
+      const result = await makeService.publishCustomReel({
+        caption: postText,
+        videoUrl: videoUrl,
+        networks: selectedNetworks,
+        useAI: useAI,
+        aiProvider: aiProvider
+      });
 
-        if (result.success) {
-          showMessage('success', '🎬 ¡Reel enviado correctamente!');
-          setPostText('');
-          clearVideo();
-        } else {
-          showMessage('error', `Error: ${result.message}`);
-        }
-        setIsPublishing(false);
-      };
-      reader.readAsDataURL(videoFile);
+      if (result.success) {
+        showMessage('success', '🎬 ¡Reel enviado correctamente!');
+        setPostText('');
+        clearVideo();
+      } else {
+        showMessage('error', `Error: ${result.message}`);
+      }
     } catch (error) {
-      showMessage('error', 'Error al publicar reel');
+      showMessage('error', 'Error al subir video');
+    } finally {
       setIsPublishing(false);
     }
   };

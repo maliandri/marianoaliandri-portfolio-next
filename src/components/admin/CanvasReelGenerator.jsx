@@ -392,15 +392,15 @@ export default function CanvasReelGenerator() {
               {activeTab === 'proyecto' && projects.map((p, i) => (
                 <button key={i}
                   onClick={() => selectContent(
-                    { ...p, id: p.sitio, name: p.sitio, type: 'proyecto' },
-                    [p.screenshot].filter(Boolean)
+                    { ...p, id: p.domain, name: p.domain, type: 'proyecto' },
+                    [p.screenshotUrl].filter(Boolean)
                   )}
                   className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
                     selectedContent?.id === p.sitio
                       ? 'bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                   }`}
-                >{p.sitio}</button>
+                >{p.domain}</button>
               ))}
             </div>
 
