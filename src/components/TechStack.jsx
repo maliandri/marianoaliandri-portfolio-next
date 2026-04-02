@@ -349,7 +349,7 @@ export default function TechStack() {
         Expandí cada categoría para ver las tecnologías
       </p>
 
-      <div className="space-y-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         {CATEGORIES.map((cat) => {
           const isOpen = openCategories.has(cat.id);
           return (
@@ -368,18 +368,16 @@ export default function TechStack() {
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  {/* Mini icon preview — up to 4 icons */}
+                  {/* Colored dots preview */}
                   {!isOpen && (
-                    <div className="hidden sm:flex items-center gap-1.5">
-                      {cat.techs.slice(0, 4).map((t) => (
-                        <span key={t.name} className={`${t.color} opacity-60`} style={{ width: 18, height: 18 }}>
-                          <span style={{ display: 'block', width: 18, height: 18, overflow: 'hidden' }}>
-                            {t.icon}
-                          </span>
+                    <div className="flex items-center gap-1">
+                      {cat.techs.slice(0, 5).map((t) => (
+                        <span key={t.name} className={t.color} title={t.name}>
+                          <span className="block w-2.5 h-2.5 rounded-full bg-current opacity-70" />
                         </span>
                       ))}
-                      {cat.techs.length > 4 && (
-                        <span className="text-xs text-gray-400">+{cat.techs.length - 4}</span>
+                      {cat.techs.length > 5 && (
+                        <span className="text-xs text-gray-400 ml-0.5">+{cat.techs.length - 5}</span>
                       )}
                     </div>
                   )}
