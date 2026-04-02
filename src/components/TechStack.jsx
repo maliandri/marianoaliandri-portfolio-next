@@ -406,12 +406,12 @@ export default function TechStack() {
                     transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                     style={{ overflow: 'hidden' }}
                   >
-                    <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {cat.techs.map((tech, i) => (
                         <motion.button
                           key={tech.name}
                           onClick={() => setSelectedTech(tech)}
-                          className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md transition-all duration-200 text-left"
+                          className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md transition-all duration-200 text-left min-w-0"
                           initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.2, delay: i * 0.04 }}
@@ -419,7 +419,7 @@ export default function TechStack() {
                           whileTap={{ scale: 0.97 }}
                         >
                           <span className={`shrink-0 ${tech.color}`}>{tech.icon}</span>
-                          <span className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">
+                          <span className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight min-w-0 break-words">
                             {tech.name}
                           </span>
                         </motion.button>
