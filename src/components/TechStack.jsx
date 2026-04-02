@@ -267,6 +267,28 @@ const CATEGORIES = [
         ),
       },
       {
+        name: 'Netlify',
+        color: 'text-[#00C7B7]',
+        description: 'Plataforma de deploy con CDN global, funciones serverless y CI/CD.',
+        usage: 'Deploy de proyectos estáticos y JAMstack. Usado como alternativa a Vercel en proyectos de clientes con hosting incluido.',
+        icon: (
+          <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M16.934 8.519a1.044 1.044 0 01.303.23l2.349-1.045-2.192-2.171-.46 2.986zM14.802 8.29c.172.061.333.142.482.243l3.235-1.438-1.13-1.12-2.587 2.315zM18.443 10.555c.016.116.026.235.026.356 0 .136-.012.27-.032.4l2.453 1.151v-2.94l-2.447 1.033zM3.667 11.36c0 .053.002.104.006.154l2.388-1.172-2.384-.85a4.108 4.108 0 00-.01.868zM5.527 8.29L2.94 10.604l2.387.85a4.116 4.116 0 01.2-3.164zM16.39 12.893c-.253.345-.574.636-.942.857l.766 3.609 1.634-1.617-1.458-2.849zM12.96 13.9c-.174.03-.352.046-.534.046-.234 0-.463-.023-.686-.068l-1.305 2.67 2.525-2.648zM5.898 9.214l-.684 2.928 1.658-2.2a4.148 4.148 0 01-.974-.728zM13.754 8.183a4.103 4.103 0 01.636.404l2.65-2.37-2.033-.516-.253 2.482zM11.026 8.083l-.271-2.546-2.09.53 2.361 2.016zM9.73 14.662l-1.244-2.6-1.664 2.208 1.654 1.637 1.254-1.245zM8.394 11.367a4.103 4.103 0 01-.088-.807c0-.198.016-.391.047-.58L5.9 8.87l.677 2.899 1.817-.402zM11.53 8.035c.154-.013.31-.02.467-.02.315 0 .624.028.924.082l.252-2.466-1.371-.348-.272 2.752zM14.605 13.585c-.398.22-.84.371-1.31.44l1.306 2.67 1.312-1.3-.308-1.81zM10.47 13.978a4.107 4.107 0 01-1.4-.568l-1.259 1.249 4.214 4.168v-2.2l-1.555-2.649zM15.277 9.27c.268.338.476.726.609 1.147l2.438-1.029-2.001-1.982-1.046.864zM14.943 12.99c-.142.12-.295.228-.456.32l.307 1.811.462-.457-.313-1.674zM11.03 13.996a4.063 4.063 0 01-.516-.148l1.549 2.64V19.6l-1.02-1.009-1.25 1.24 3.432 3.398.7-3.298-2.895-5.935zM15.546 8.666l1.044-.861-3.15-.799-.252 2.459c.91.21 1.703.668 2.358 1.201zM10.518 13.718a4.09 4.09 0 01-.931-.857l-1.826.406 4.286 4.243v-2.129l-1.53-1.663zM19.35 9.977l-2.426 1.023c.025.16.038.324.038.49a4.14 4.14 0 01-.616 2.169l1.456 2.845 1.548-1.531V9.977z"/>
+          </svg>
+        ),
+      },
+      {
+        name: 'GitHub',
+        color: 'text-gray-900 dark:text-white',
+        description: 'Plataforma de hosting de código y colaboración con Git.',
+        usage: 'Repositorios privados de todos los proyectos. Integrado con Vercel y Netlify para CI/CD automático en cada push a main.',
+        icon: (
+          <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+          </svg>
+        ),
+      },
+      {
         name: 'Git',
         color: 'text-[#F05032]',
         description: 'Sistema de control de versiones distribuido.',
@@ -300,6 +322,16 @@ const CATEGORIES = [
 
 export default function TechStack() {
   const [selectedTech, setSelectedTech] = useState(null);
+  const [openCategories, setOpenCategories] = useState(new Set());
+
+  const toggleCategory = (id) => {
+    setOpenCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   return (
     <motion.section
@@ -310,34 +342,97 @@ export default function TechStack() {
       viewport={{ once: true }}
       transition={{ duration: 0.8 }}
     >
-      <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 dark:text-gray-50 mb-10">
+      <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 dark:text-gray-50 mb-2">
         Stack Tecnológico
       </h2>
+      <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">
+        Expandí cada categoría para ver las tecnologías
+      </p>
 
-      <div className="space-y-8">
-        {CATEGORIES.map((cat) => (
-          <div key={cat.id}>
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-              {cat.label}
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-              {cat.techs.map((tech) => (
-                <motion.button
-                  key={tech.name}
-                  onClick={() => setSelectedTech(tech)}
-                  className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md transition-all duration-200 text-left"
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  <span className={`shrink-0 ${tech.color}`}>{tech.icon}</span>
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">
-                    {tech.name}
+      <div className="space-y-2">
+        {CATEGORIES.map((cat) => {
+          const isOpen = openCategories.has(cat.id);
+          return (
+            <div key={cat.id} className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {/* Accordion header */}
+              <button
+                onClick={() => toggleCategory(cat.id)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700/60 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-base font-semibold text-gray-800 dark:text-gray-200">
+                    {cat.label}
                   </span>
-                </motion.button>
-              ))}
+                  <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">
+                    {cat.techs.length} tecnología{cat.techs.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  {/* Mini icon preview — up to 4 icons */}
+                  {!isOpen && (
+                    <div className="hidden sm:flex items-center gap-1.5">
+                      {cat.techs.slice(0, 4).map((t) => (
+                        <span key={t.name} className={`${t.color} opacity-60`} style={{ width: 18, height: 18 }}>
+                          <span style={{ display: 'block', width: 18, height: 18, overflow: 'hidden' }}>
+                            {t.icon}
+                          </span>
+                        </span>
+                      ))}
+                      {cat.techs.length > 4 && (
+                        <span className="text-xs text-gray-400">+{cat.techs.length - 4}</span>
+                      )}
+                    </div>
+                  )}
+                  {/* Chevron */}
+                  <motion.svg
+                    className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    animate={{ rotate: isOpen ? 180 : 0 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </motion.svg>
+                </div>
+              </button>
+
+              {/* Accordion content */}
+              <AnimatePresence initial={false}>
+                {isOpen && (
+                  <motion.div
+                    key="content"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                      {cat.techs.map((tech, i) => (
+                        <motion.button
+                          key={tech.name}
+                          onClick={() => setSelectedTech(tech)}
+                          className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md transition-all duration-200 text-left"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2, delay: i * 0.04 }}
+                          whileHover={{ y: -2 }}
+                          whileTap={{ scale: 0.97 }}
+                        >
+                          <span className={`shrink-0 ${tech.color}`}>{tech.icon}</span>
+                          <span className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">
+                            {tech.name}
+                          </span>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Modal */}
