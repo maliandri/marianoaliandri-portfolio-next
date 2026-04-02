@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import StorePage from '@/views/StorePage';
+import { products } from '@/data/products';
 
 export const metadata = {
   title: 'Tienda | Servicios de Desarrollo Web y Data',
@@ -9,5 +11,17 @@ export const metadata = {
 };
 
 export default function TiendaPage() {
-  return <StorePage />;
+  return (
+    <>
+      {/* Links estáticos para crawlers — invisibles para usuarios */}
+      <nav aria-label="Productos" className="sr-only">
+        {products.map((product) => (
+          <Link key={product.id} href={`/tienda/${product.id}`}>
+            {product.name}
+          </Link>
+        ))}
+      </nav>
+      <StorePage />
+    </>
+  );
 }

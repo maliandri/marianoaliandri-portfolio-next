@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { CartProvider } from '@/context/CartContext';
 import { queryClient } from '@/utils/queryClient';
 
@@ -41,7 +42,6 @@ function AppChrome({ children }) {
   const isToolPage = TOOL_PATHS.includes(pathname);
   const showFloatingButtons = pathname === '/' || isToolPage;
 
-  const openTool = (toolId) => router.push(`/${toolId}`);
   const closeTool = () => router.push('/');
 
   return (
@@ -75,30 +75,30 @@ function AppChrome({ children }) {
       {/* Floating tool buttons - visible on home and tool pages */}
       {showFloatingButtons && (
         <div className="floating-buttons-container">
-          <button className="floating-button" onClick={() => openTool('web')} title="Cotizar Web">
+          <Link href="/web" className="floating-button" title="Cotizar Web">
             <span className="button-icon">🌐</span>
             <span className="button-label">Cotizar Web</span>
-          </button>
-          <button className="floating-button" onClick={() => openTool('radarweb')} title="Radar Web">
+          </Link>
+          <Link href="/radarweb" className="floating-button" title="Radar Web">
             <span className="button-icon">🔍</span>
             <span className="button-label">Radar Web</span>
-          </button>
-          <button className="floating-button" onClick={() => openTool('roi')} title="Calcular ROI">
+          </Link>
+          <Link href="/roi" className="floating-button" title="Calcular ROI">
             <span className="button-icon">💰</span>
             <span className="button-label">Calcular ROI</span>
-          </button>
-          <button className="floating-button" onClick={() => openTool('kpi')} title="Radar KPI">
+          </Link>
+          <Link href="/kpi" className="floating-button" title="Radar KPI">
             <span className="button-icon">🎯</span>
             <span className="button-label">Radar KPI</span>
-          </button>
-          <button className="floating-button" onClick={() => openTool('ats')} title="Analizador ATS">
+          </Link>
+          <Link href="/ats" className="floating-button" title="Analizador ATS">
             <span className="button-icon">📄</span>
             <span className="button-label">Analizador ATS</span>
-          </button>
-          <button className="floating-button" onClick={() => openTool('stats')} title="Estadísticas">
+          </Link>
+          <Link href="/stats" className="floating-button" title="Estadísticas">
             <span className="button-icon">📊</span>
             <span className="button-label">Estadísticas</span>
-          </button>
+          </Link>
         </div>
       )}
 

@@ -1,6 +1,6 @@
 import HeroBuild from '@/components/HeroBuild';
 import ServiciosCarousel from '@/components/ServiciosCarousel';
-import Skills from '@/components/Skills';
+import TechStack from '@/components/TechStack';
 import ProyectosGrid from '@/components/ProyectosGrid';
 import Contact from '@/components/Contact';
 
@@ -21,7 +21,7 @@ export default function HomePage() {
           <ServiciosCarousel />
         </section>
         <section id="skills" aria-label="Habilidades técnicas">
-          <Skills />
+          <TechStack />
         </section>
         <section id="proyectos" aria-label="Proyectos realizados">
           <ProyectosGrid />

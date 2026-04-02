@@ -7,5 +7,5 @@ export const metadata = {
 // El modal de esta herramienta se renderiza en providers.jsx según el pathname.
 // Esta página debe quedar vacía para no interferir con el modal.
 export default function ToolPage() {
-  return null;
+  return <h1 className="sr-only">Cotizador de Sitios Web — Mariano Aliandri</h1>;
 }
