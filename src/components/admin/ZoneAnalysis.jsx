@@ -401,7 +401,7 @@ export default function ZoneAnalysis() {
                     <select
                       onChange={e => {
                         const z = zonasGuardadas.find(z => z.id === e.target.value);
-                        if (z) { setTitulo(z.titulo); setLat(z.lat); setLng(z.lng); setRadio(z.radio); setTipos(z.tipos); }
+                        if (z) { setTitulo(z.titulo); if (z.bounds) setBounds(z.bounds); setTipos(z.tipos || ['todos']); }
                       }}
                       className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500"
                     >
@@ -442,7 +442,7 @@ export default function ZoneAnalysis() {
                     </button>
                   </div>
                   {geocodeError && <p className="text-red-400 text-xs mt-1">{geocodeError}</p>}
-                  {lat !== -38.9516 && <p className="text-green-400 text-xs mt-1">📍 {lat.toFixed(5)}, {lng.toFixed(5)}</p>}
+                  {bounds && <p className="text-green-400 text-xs mt-1">📍 Centro: {((bounds.north + bounds.south) / 2).toFixed(5)}, {((bounds.east + bounds.west) / 2).toFixed(5)}</p>}
                 </div>
 
                 {bounds && (
@@ -585,7 +585,7 @@ export default function ZoneAnalysis() {
                 <div className="bg-gray-800 rounded-xl overflow-hidden border border-gray-700">
                   <div className="px-4 py-3 flex items-center justify-between">
                     <h3 className="text-white font-semibold text-sm">{result.zona_titulo}</h3>
-                    <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded-full">{RADIOS.find(r => r.value === radio)?.label}</span>
+                    <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded-full">Zona rectangular</span>
                   </div>
                   <img src={result.map_image_url} alt="Mapa de zona" className="w-full h-52 object-cover" />
                 </div>
