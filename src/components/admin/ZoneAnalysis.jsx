@@ -127,11 +127,14 @@ function PeriodoPicker({ label, value, onChange }) {
   );
 }
 
+// Tamaño por defecto del rectángulo: ~1km × 1km
+const DEFAULT_OFFSET_LAT = 0.004;
+const DEFAULT_OFFSET_LNG = 0.006;
+
 export default function ZoneAnalysis() {
   const mapRef = useRef(null);
   const googleMapRef = useRef(null);
-  const markerRef = useRef(null);
-  const circleRef = useRef(null);
+  const rectangleRef = useRef(null);
   const [addressInput, setAddressInput] = useState('');
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState('');
@@ -140,9 +143,7 @@ export default function ZoneAnalysis() {
 
   // Zona config
   const [titulo, setTitulo] = useState('');
-  const [lat, setLat] = useState(-38.9516);
-  const [lng, setLng] = useState(-68.0591);
-  const [radio, setRadio] = useState(1000);
+  const [bounds, setBounds] = useState(null); // { north, south, east, west }
   const [tipos, setTipos] = useState(['todos']);
   // Períodos
   const [periodo1, setPeriodo1] = useState({ label: 'Mañana pico', dateFrom: today, timeFrom: '07:00', dateTo: today, timeTo: '10:00' });
@@ -166,37 +167,59 @@ export default function ZoneAnalysis() {
   // Zonas guardadas
   const [zonasGuardadas, setZonasGuardadas] = useState([]);
 
-  // Load Google Maps con @googlemaps/js-api-loader v1
+  // Load Google Maps
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || '';
-    const loader = new Loader({
-      apiKey,
-      version: 'weekly',
-      libraries: ['places'],
-    });
+    const loader = new Loader({ apiKey, version: 'weekly', libraries: ['places', 'drawing'] });
     loader.load().then(initMap).catch(e => console.error('Maps load error:', e));
+  }, []);
+
+  const placeRectangle = useCallback((centerLat, centerLng) => {
+    if (!googleMapRef.current || !window.google) return;
+    const newBounds = {
+      north: centerLat + DEFAULT_OFFSET_LAT,
+      south: centerLat - DEFAULT_OFFSET_LAT,
+      east:  centerLng + DEFAULT_OFFSET_LNG,
+      west:  centerLng - DEFAULT_OFFSET_LNG,
+    };
+    if (rectangleRef.current) rectangleRef.current.setMap(null);
+    const rect = new window.google.maps.Rectangle({
+      map: googleMapRef.current,
+      bounds: newBounds,
+      strokeColor: '#7c3aed',
+      strokeOpacity: 0.8,
+      strokeWeight: 2,
+      fillColor: '#7c3aed',
+      fillOpacity: 0.15,
+      editable: true,
+      draggable: true,
+    });
+    rectangleRef.current = rect;
+    setBounds(newBounds);
+    window.google.maps.event.addListener(rect, 'bounds_changed', () => {
+      const b = rect.getBounds();
+      if (!b) return;
+      setBounds({
+        north: b.getNorthEast().lat(),
+        east:  b.getNorthEast().lng(),
+        south: b.getSouthWest().lat(),
+        west:  b.getSouthWest().lng(),
+      });
+    });
+    googleMapRef.current.fitBounds(newBounds, 60);
   }, []);
 
   const initMap = useCallback(() => {
     if (!mapRef.current || !window.google) return;
+    const centerLat = -38.9516, centerLng = -68.0591;
     const map = new window.google.maps.Map(mapRef.current, {
-      center: { lat, lng },
+      center: { lat: centerLat, lng: centerLng },
       zoom: 14,
       styles: [{ featureType: 'poi', stylers: [{ visibility: 'simplified' }] }],
     });
     googleMapRef.current = map;
-    markerRef.current = new window.google.maps.Marker({ position: { lat, lng }, map });
-    circleRef.current = new window.google.maps.Circle({
-      map,
-      center: { lat, lng },
-      radius: radio,
-      strokeColor: '#7c3aed',
-      strokeOpacity: 0.6,
-      strokeWeight: 2,
-      fillColor: '#7c3aed',
-      fillOpacity: 0.1,
-    });
-  }, []);
+    placeRectangle(centerLat, centerLng);
+  }, [placeRectangle]);
 
   const handleGeocode = async () => {
     if (!addressInput.trim()) return;
@@ -206,25 +229,14 @@ export default function ZoneAnalysis() {
       const res = await fetch(`/api/geocode?address=${encodeURIComponent(addressInput)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'No se encontró la dirección');
-      setLat(data.lat);
-      setLng(data.lng);
       setAddressInput(data.formatted_address);
-      if (googleMapRef.current) {
-        googleMapRef.current.setCenter({ lat: data.lat, lng: data.lng });
-        markerRef.current?.setPosition({ lat: data.lat, lng: data.lng });
-        circleRef.current?.setCenter({ lat: data.lat, lng: data.lng });
-      }
+      placeRectangle(data.lat, data.lng);
     } catch (e) {
       setGeocodeError(e.message);
     } finally {
       setIsGeocoding(false);
     }
   };
-
-  // Update circle on radio change
-  useEffect(() => {
-    if (circleRef.current) circleRef.current.setRadius(radio);
-  }, [radio]);
 
   // Load historial
   useEffect(() => {
@@ -257,6 +269,7 @@ export default function ZoneAnalysis() {
 
   const handleAnalizar = async () => {
     if (!titulo.trim()) { setError('Ingresá un título para la zona'); return; }
+    if (!bounds) { setError('Definí la zona en el mapa'); return; }
     setError('');
     setIsAnalyzing(true);
     setResult(null);
@@ -266,7 +279,7 @@ export default function ZoneAnalysis() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          zona: { titulo, lat, lng, radio, tipos },
+          zona: { titulo, bounds, tipos },
           periodo1: { label: periodo1.label, dateFrom: periodo1.dateFrom, timeFrom: periodo1.timeFrom, dateTo: periodo1.dateTo, timeTo: periodo1.timeTo },
           periodo2: { label: periodo2.label, dateFrom: periodo2.dateFrom, timeFrom: periodo2.timeFrom, dateTo: periodo2.dateTo, timeTo: periodo2.timeTo },
         }),
@@ -280,7 +293,7 @@ export default function ZoneAnalysis() {
 
       // Guardar en Firestore
       await addDoc(collection(db, 'analisis_zonas'), {
-        zona_titulo: titulo, lat, lng, radio,
+        zona_titulo: titulo, bounds,
         periodo1, periodo2,
         traffic: data.traffic,
         commercial: data.commercial,
@@ -337,6 +350,7 @@ export default function ZoneAnalysis() {
 
   const loadHistorialItem = (item) => {
     setTitulo(item.zona_titulo || '');
+    if (item.bounds) setBounds(item.bounds);
     setResult(item);
     setStep(4);
   };
@@ -431,20 +445,14 @@ export default function ZoneAnalysis() {
                   {lat !== -38.9516 && <p className="text-green-400 text-xs mt-1">📍 {lat.toFixed(5)}, {lng.toFixed(5)}</p>}
                 </div>
 
-                <div>
-                  <label className="text-gray-400 text-xs mb-2 block">Radio: <span className="text-purple-400 font-semibold">{RADIOS.find(r => r.value === radio)?.label}</span></label>
-                  <div className="flex gap-2">
-                    {RADIOS.map(r => (
-                      <button
-                        key={r.value}
-                        onClick={() => setRadio(r.value)}
-                        className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${radio === r.value ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                      >
-                        {r.label}
-                      </button>
-                    ))}
+                {bounds && (
+                  <div className="bg-purple-900/30 border border-purple-700 rounded-lg px-3 py-2 text-xs text-purple-300">
+                    📐 Zona seleccionada · Arrastrá las esquinas para ajustar
+                    <div className="text-gray-400 mt-0.5 font-mono">
+                      N {bounds.north.toFixed(5)} · S {bounds.south.toFixed(5)} · E {bounds.east.toFixed(5)} · O {bounds.west.toFixed(5)}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div>
                   <label className="text-gray-400 text-xs mb-2 block">Tipos de locales</label>
@@ -525,7 +533,7 @@ export default function ZoneAnalysis() {
                 </h3>
                 <div className="bg-gray-700/50 rounded-lg p-3 text-sm text-gray-300 space-y-1">
                   <p><span className="text-gray-500">Zona:</span> {titulo}</p>
-                  <p><span className="text-gray-500">Radio:</span> {RADIOS.find(r => r.value === radio)?.label}</p>
+                  {bounds && <p><span className="text-gray-500">Rectángulo:</span> N{bounds.north.toFixed(4)} S{bounds.south.toFixed(4)} E{bounds.east.toFixed(4)} O{bounds.west.toFixed(4)}</p>}
                   <p><span className="text-gray-500">Período 1:</span> {periodo1.label} — {periodo1.dateFrom} {periodo1.timeFrom} → {periodo1.dateTo} {periodo1.timeTo}</p>
                   <p><span className="text-gray-500">Período 2:</span> {periodo2.label} — {periodo2.dateFrom} {periodo2.timeFrom} → {periodo2.dateTo} {periodo2.timeTo}</p>
                   <p><span className="text-gray-500">Tipos:</span> {tipos.join(', ')}</p>
