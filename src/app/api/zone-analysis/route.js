@@ -93,7 +93,7 @@ async function fetchPlaces(bounds, tipos) {
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': API_KEY,
-      'X-Goog-FieldMask': 'places.displayName,places.rating,places.userRatingCount,places.regularOpeningHours,places.types,places.location',
+      'X-Goog-FieldMask': 'places.displayName,places.rating,places.userRatingCount,places.regularOpeningHours,places.types,places.location,places.currentOpeningHours',
     },
     body: JSON.stringify(body),
   });
@@ -101,6 +101,21 @@ async function fetchPlaces(bounds, tipos) {
   if (!res.ok) { console.error('Places API error:', await res.text()); return []; }
   const data = await res.json();
   return data.places || [];
+}
+
+// Determina si un lugar está abierto a una hora específica del día
+// dayOfWeek: 0=Dom, 1=Lun, ..., 6=Sab
+function isOpenAtHour(place, dayOfWeek, hour) {
+  const periods = place.regularOpeningHours?.periods || place.currentOpeningHours?.periods || [];
+  if (!periods.length) return null; // sin datos
+  return periods.some(p => {
+    if (p.open?.day !== dayOfWeek) return false;
+    const openH  = p.open.hour  ?? 0;
+    const closeH = p.close?.hour ?? 24;
+    // Manejo de cierre en madrugada (ej: abre 20hs cierra 2hs)
+    if (closeH < openH) return hour >= openH || hour < closeH;
+    return hour >= openH && hour < closeH;
+  });
 }
 
 function buildStaticMapUrl(bounds) {
@@ -151,13 +166,50 @@ export async function POST(req) {
       ? Math.min(...validHours.map(h => h.minutes))
       : 5;
 
-    // Agregar nivel de congestión
-    const hourlyData = trafficByHour.map(h => ({
-      hour:      h.hour,
-      label:     `${String(h.hour).padStart(2,'0')}:00`,
-      minutes:   h.minutes,
-      congestion: h.minutes !== null ? congestionLevel(h.minutes, baseMinutes) : 'UNKNOWN',
-    }));
+    // Places — traer antes del hourly para cruzar datos
+    const places      = await fetchPlaces(bounds, tipos);
+    const totalPlaces = places.length;
+    const ratings     = places.filter(p => p.rating).map(p => p.rating);
+    const avgRating   = ratings.length
+      ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10 : 0;
+    const topPlaces   = [...places]
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      .slice(0, 5)
+      .map(p => ({ name: p.displayName?.text || 'Sin nombre', rating: p.rating || 0, type: p.types?.[0] || 'local' }));
+
+    // Día de semana de la fecha analizada (0=Dom, 1=Lun, ...)
+    const dayOfWeek = new Date(`${dateStr}T12:00:00`).getDay();
+
+    // Hourly data con comercios abiertos + índice de afluencia por hora
+    const hourlyData = trafficByHour.map(h => {
+      const congestion = h.minutes !== null ? congestionLevel(h.minutes, baseMinutes) : 'UNKNOWN';
+
+      // Contar comercios abiertos a esta hora (solo los que tienen horarios)
+      const withSchedule = places.filter(p =>
+        (p.regularOpeningHours?.periods || p.currentOpeningHours?.periods)?.length > 0
+      );
+      const openCount = withSchedule.length > 0
+        ? withSchedule.filter(p => isOpenAtHour(p, dayOfWeek, h.hour)).length
+        : null;
+
+      // Índice de afluencia: comercios abiertos × factor de tráfico
+      // Más tráfico = más gente en la zona
+      const trafficFactor = h.minutes !== null
+        ? Math.min(h.minutes / (baseMinutes || 1), 3)
+        : 1;
+      const footTraffic = openCount !== null
+        ? Math.round(openCount * trafficFactor * 10)
+        : null;
+
+      return {
+        hour:        h.hour,
+        label:       `${String(h.hour).padStart(2,'0')}:00`,
+        minutes:     h.minutes,
+        congestion,
+        open_count:  openCount,
+        foot_traffic: footTraffic,
+      };
+    });
 
     // Top 3 horas pico
     const peakHours = [...validHours]
@@ -166,32 +218,20 @@ export async function POST(req) {
       .map(h => ({ hour: h.hour, label: `${String(h.hour).padStart(2,'0')}:00`, minutes: h.minutes }));
 
     // Hora valle
-    const valleyHour = validHours.reduce((min, h) => h.minutes < min.minutes ? h : min, validHours[0] || { hour: 13, minutes: baseMinutes });
+    const valleyHour = validHours.reduce(
+      (min, h) => h.minutes < min.minutes ? h : min,
+      validHours[0] || { hour: 13, minutes: baseMinutes }
+    );
 
     // Diferencia pico vs valle
-    const peakMinutes   = peakHours[0]?.minutes ?? baseMinutes;
-    const deltaMinutes  = peakMinutes - valleyHour.minutes;
-    const deltaPercent  = valleyHour.minutes > 0 ? Math.round((deltaMinutes / valleyHour.minutes) * 100) : 0;
+    const peakMinutes  = peakHours[0]?.minutes ?? baseMinutes;
+    const deltaMinutes = peakMinutes - valleyHour.minutes;
+    const deltaPercent = valleyHour.minutes > 0 ? Math.round((deltaMinutes / valleyHour.minutes) * 100) : 0;
 
-    // Places
-    const places   = await fetchPlaces(bounds, tipos);
-    const totalPlaces = places.length;
-    const openNow     = places.filter(p => p.regularOpeningHours?.openNow).length;
-    const ratings     = places.filter(p => p.rating).map(p => p.rating);
-    const avgRating   = ratings.length
-      ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10
-      : 0;
-    const byType = {};
-    places.forEach(p => { const t = p.types?.[0] || 'other'; byType[t] = (byType[t] || 0) + 1; });
-    const topPlaces = [...places]
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-      .slice(0, 5)
-      .map(p => ({ name: p.displayName?.text || 'Sin nombre', rating: p.rating || 0, type: p.types?.[0] || 'local' }));
-
-    const commercial = { total_places: totalPlaces, open_now: openNow, avg_rating: avgRating, top_places: topPlaces, by_type: byType };
+    const commercial = { total_places: totalPlaces, avg_rating: avgRating, top_places: topPlaces };
     const mapImageUrl = buildStaticMapUrl(bounds);
 
-    const summary = `Análisis de zona "${titulo}" (${dateStr}): hora pico ${peakHours[0]?.label} con ${peakMinutes} min de viaje, hora valle ${valleyHour.label} con ${valleyHour.minutes} min. Diferencia: ${deltaMinutes} min más (${deltaPercent}% de demora extra en hora pico). Zona comercial: ${totalPlaces} locales, ${openNow} abiertos, rating promedio ${avgRating}.`;
+    const summary = `Análisis de zona "${titulo}" (${dateStr}): hora pico ${peakHours[0]?.label} con ${peakMinutes} min de viaje, hora valle ${valleyHour.label} con ${valleyHour.minutes} min. Diferencia: ${deltaMinutes} min más (${deltaPercent}% de demora extra en hora pico). Zona comercial: ${totalPlaces} locales, rating promedio ${avgRating}.`;
 
     return Response.json({
       zona_titulo: titulo,

@@ -571,7 +571,19 @@ export default function ZoneAnalysis() {
                                 {h.minutes ? `${h.minutes}m` : '–'}
                               </div>
                             </div>
-                            <span className="text-xs w-4 shrink-0">{h.congestion === 'HIGH' ? '🔴' : h.congestion === 'MEDIUM' ? '🟡' : h.congestion === 'LOW' ? '🟢' : ''}</span>
+                            {/* Comercios abiertos + afluencia */}
+                            <div className="flex items-center gap-1 shrink-0 w-24 text-right">
+                              {h.open_count !== null && (
+                                <span className="text-xs text-blue-300" title="Comercios abiertos">
+                                  🏪{h.open_count}
+                                </span>
+                              )}
+                              {h.foot_traffic !== null && (
+                                <span className="text-xs text-orange-300" title="Índice de afluencia">
+                                  👥{h.foot_traffic}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -594,39 +606,34 @@ export default function ZoneAnalysis() {
                   )}
                 </div>
 
-                {/* Zona Comercial */}
-                <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-                  <h3 className="text-white font-semibold text-sm mb-4 flex items-center gap-2">🏪 Zona Comercial</h3>
-                  <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className="bg-gray-700/50 rounded-xl p-3 text-center">
-                      <p className="text-white text-2xl font-bold">{result.commercial.total_places}</p>
-                      <p className="text-gray-400 text-xs">Locales</p>
+                {/* Zona Comercial — resumen compacto */}
+                {result.commercial?.total_places > 0 && (
+                  <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-white font-semibold text-sm">🏪 Zona Comercial</h3>
+                      <div className="flex gap-3 text-xs text-gray-400">
+                        <span><span className="text-white font-bold">{result.commercial.total_places}</span> locales</span>
+                        <span><span className="text-yellow-400 font-bold">⭐{result.commercial.avg_rating}</span> promedio</span>
+                      </div>
                     </div>
-                    <div className="bg-gray-700/50 rounded-xl p-3 text-center">
-                      <p className="text-green-400 text-2xl font-bold">{result.commercial.open_now}</p>
-                      <p className="text-gray-400 text-xs">Abiertos</p>
-                    </div>
-                    <div className="bg-gray-700/50 rounded-xl p-3 text-center">
-                      <p className="text-yellow-400 text-2xl font-bold">⭐{result.commercial.avg_rating}</p>
-                      <p className="text-gray-400 text-xs">Promedio</p>
-                    </div>
-                  </div>
-
-                  {result.commercial.top_places?.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-gray-400 text-xs font-medium">Top lugares</p>
-                      {result.commercial.top_places.map((p, i) => (
-                        <div key={i} className="flex items-center justify-between py-1 border-b border-gray-700/50 last:border-0">
-                          <div>
-                            <p className="text-white text-xs font-medium">{p.name}</p>
-                            <p className="text-gray-500 text-xs">{p.type.replace('_', ' ')}</p>
+                    {result.commercial.top_places?.length > 0 && (
+                      <div className="space-y-1.5">
+                        {result.commercial.top_places.map((p, i) => (
+                          <div key={i} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-gray-500 text-xs w-4">{i + 1}.</span>
+                              <div className="min-w-0">
+                                <p className="text-white text-xs font-medium truncate">{p.name}</p>
+                                <p className="text-gray-500 text-xs">{p.type.replace(/_/g, ' ')}</p>
+                              </div>
+                            </div>
+                            <span className="text-yellow-400 text-xs shrink-0 ml-2">⭐{p.rating}</span>
                           </div>
-                          <span className="text-yellow-400 text-xs">⭐ {p.rating}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Publicar */}
                 <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
