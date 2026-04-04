@@ -110,18 +110,30 @@ function buildStaticMapUrl(bounds) {
   return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
 }
 
-// Genera N datetimes dentro del rango, avanzando al futuro si es necesario
+// Genera N datetimes dentro del rango horario especificado.
+// Si caen en el pasado, avanza de a 1 día (no 7) para que cada período
+// aterrice en fechas futuras distintas y Google devuelva patrones diferentes.
 function sampleDatetimes(dateFrom, timeFrom, dateTo, timeTo, n = 3) {
   const start = new Date(`${dateFrom}T${timeFrom}:00`);
   const end   = new Date(`${dateTo}T${timeTo}:00`);
   if (isNaN(start) || isNaN(end)) return [];
-  const diff = end.getTime() - start.getTime();
-  const minFuture = Date.now() + 5 * 60 * 1000;
-  const samples = [];
+
+  // Construir N samples distribuidos dentro del rango horario (timeFrom→timeTo)
+  // usando la fecha de inicio como base. Ignoramos el rango de fechas completo
+  // porque Google solo modela patrones típicos por hora/día de semana.
+  const [hFrom] = timeFrom.split(':').map(Number);
+  const [hTo]   = timeTo.split(':').map(Number);
+  const hours   = hTo > hFrom ? hTo - hFrom : 1;
+  const step    = hours / Math.max(n - 1, 1);
+
+  const minFuture = Date.now() + 10 * 60 * 1000;
+  const samples   = [];
+
   for (let i = 0; i < n; i++) {
-    const fraction = n === 1 ? 0.5 : i / (n - 1);
-    let dt = new Date(start.getTime() + diff * fraction);
-    while (dt.getTime() < minFuture) dt = new Date(dt.getTime() + 7 * 24 * 3600 * 1000);
+    const offsetHours = Math.round(hFrom + step * i);
+    let dt = new Date(`${dateFrom}T${String(offsetHours).padStart(2, '0')}:00:00`);
+    // Avanzar de a 1 día hasta que sea futuro (preserva hora del día)
+    while (dt.getTime() < minFuture) dt = new Date(dt.getTime() + 24 * 3600 * 1000);
     samples.push(dt.toISOString());
   }
   return samples;
