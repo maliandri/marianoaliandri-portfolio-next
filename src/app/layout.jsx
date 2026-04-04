@@ -18,11 +18,20 @@ export const metadata = {
     siteName: 'Mariano Aliandri Portfolio',
     title: 'Mariano Aliandri | Dev. Full Stack, React, Python & Data',
     description: 'Desarrollador Full Stack y Analista de Datos con experiencia en React y Python.',
+    images: [
+      {
+        url: '/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Mariano Aliandri — Full Stack Developer & Data Analyst',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Mariano Aliandri | Dev. Full Stack',
     description: 'Desarrollador Full Stack y Analista de Datos',
+    images: ['/og-image.jpg'],
   },
   robots: {
     index: true,

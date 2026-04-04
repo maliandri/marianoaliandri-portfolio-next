@@ -7,7 +7,6 @@ import { useCart } from '../context/CartContext';
 import { ExchangeService, formatARS, formatUSD } from '../utils/exchangeService';
 import { FirebaseAnalyticsService } from '../utils/firebaseservice';
 import priceService from '../utils/priceService';
-import SEO from '../components/SEO';
 import ProductQA from '../components/ProductQA';
 
 const WA_ICON = (
@@ -127,36 +126,8 @@ export default function ProductDetailPage({ productId: propProductId }) {
     `Hola! Me interesa alquilar ${product.name} - Seña USD ${sena} + USD ${cuota}/mes durante ${duracion} meses`
   )}`;
 
-  const productJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: product.name,
-    description: product.description,
-    image: product.image ? `https://marianoaliandri.com.ar${product.image}` : 'https://marianoaliandri.com.ar/og-image.jpg',
-    url: `https://marianoaliandri.com.ar/tienda/${product.id}`,
-    brand: { '@type': 'Brand', name: 'Mariano Aliandri' },
-    ...(product.priceUSD && {
-      offers: {
-        '@type': 'Offer',
-        price: product.priceUSD,
-        priceCurrency: 'USD',
-        availability: 'https://schema.org/InStock',
-        seller: { '@type': 'Person', name: 'Mariano Aliandri' },
-      },
-    }),
-  };
-
   return (
     <>
-      <SEO
-        title={`${product.name} | Mariano Aliandri`}
-        description={product.shortDescription || `${product.name} - Servicio de desarrollo profesional por Mariano Aliandri.`}
-        canonical={`/tienda/${product.id}`}
-        ogType="product"
-        ogImage={product.image ? `https://marianoaliandri.com.ar${product.image}` : undefined}
-        jsonLd={productJsonLd}
-      />
-
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 pb-12">
         <div className="max-w-5xl mx-auto px-4">
           {/* Breadcrumb */}
