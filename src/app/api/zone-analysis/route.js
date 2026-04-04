@@ -70,8 +70,8 @@ async function fetchPlaces(bounds, tipos) {
     maxResultCount: 20,
     locationRestriction: {
       rectangle: {
-        low:  { latitude: south, longitude: west },
-        high: { latitude: north, longitude: east },
+        southwest: { latitude: south, longitude: west },
+        northeast: { latitude: north, longitude: east },
       },
     },
   };
