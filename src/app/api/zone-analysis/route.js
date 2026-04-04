@@ -51,8 +51,20 @@ async function fetchTrafficAtHour(bounds, dateStr, hour) {
 }
 
 // Places con bounding box rectangular
-async function fetchPlaces(bounds, tipos) {
+// Distancia en metros entre dos puntos (Haversine simplificado)
+function boundsToCircle(bounds) {
   const { north, south, east, west } = bounds;
+  const centerLat = (north + south) / 2;
+  const centerLng = (east + west)  / 2;
+  const R = 6371000;
+  const dLat = ((north - south) / 2) * (Math.PI / 180);
+  const dLng = ((east  - west)  / 2) * (Math.PI / 180) * Math.cos(centerLat * Math.PI / 180);
+  const radius = Math.round(Math.sqrt(dLat * dLat + dLng * dLng) * R);
+  return { centerLat, centerLng, radius: Math.max(radius, 100) };
+}
+
+async function fetchPlaces(bounds, tipos) {
+  const { centerLat, centerLng, radius } = boundsToCircle(bounds);
   const typeMap = {
     restaurant:  'restaurant',
     combustible: 'gas_station',
@@ -69,9 +81,9 @@ async function fetchPlaces(bounds, tipos) {
     includedTypes: includedTypes.length ? includedTypes : undefined,
     maxResultCount: 20,
     locationRestriction: {
-      rectangle: {
-        southwest: { latitude: south, longitude: west },
-        northeast: { latitude: north, longitude: east },
+      circle: {
+        center: { latitude: centerLat, longitude: centerLng },
+        radius,
       },
     },
   };
