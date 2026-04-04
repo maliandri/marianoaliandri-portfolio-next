@@ -143,11 +143,9 @@ export default function ZoneAnalysis() {
 
   // Zona config
   const [titulo, setTitulo] = useState('');
-  const [bounds, setBounds] = useState(null); // { north, south, east, west }
-  const [tipos, setTipos] = useState(['todos']);
-  // Períodos
-  const [periodo1, setPeriodo1] = useState({ label: 'Mañana pico', dateFrom: today, timeFrom: '07:00', dateTo: today, timeTo: '10:00' });
-  const [periodo2, setPeriodo2] = useState({ label: 'Tarde-noche', dateFrom: today, timeFrom: '17:00', dateTo: today, timeTo: '20:00' });
+  const [bounds, setBounds] = useState(null);
+  const [tipos, setTipos]   = useState(['todos']);
+  const [fecha, setFecha]   = useState(today);
 
   // UI states
   const [step, setStep] = useState(1);
@@ -253,12 +251,6 @@ export default function ZoneAnalysis() {
     loadHistorial();
   }, []);
 
-  const applyQuickPreset = (preset) => {
-    const { p1, p2 } = preset.apply();
-    setPeriodo1(p1);
-    setPeriodo2(p2);
-  };
-
   const toggleTipo = (id) => {
     if (id === 'todos') { setTipos(['todos']); return; }
     setTipos(prev => {
@@ -278,11 +270,7 @@ export default function ZoneAnalysis() {
       const res = await fetch('/api/zone-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          zona: { titulo, bounds, tipos },
-          periodo1: { label: periodo1.label, dateFrom: periodo1.dateFrom, timeFrom: periodo1.timeFrom, dateTo: periodo1.dateTo, timeTo: periodo1.timeTo },
-          periodo2: { label: periodo2.label, dateFrom: periodo2.dateFrom, timeFrom: periodo2.timeFrom, dateTo: periodo2.dateTo, timeTo: periodo2.timeTo },
-        }),
+        body: JSON.stringify({ zona: { titulo, bounds, tipos, fecha } }),
       });
 
       const data = await res.json();
@@ -293,15 +281,15 @@ export default function ZoneAnalysis() {
 
       // Guardar en Firestore
       await addDoc(collection(db, 'analisis_zonas'), {
-        zona_titulo: titulo, bounds,
-        periodo1, periodo2,
-        traffic: data.traffic,
+        zona_titulo: titulo, bounds, fecha,
+        hourly: data.hourly,
+        peak_hours: data.peak_hours,
         commercial: data.commercial,
         map_image_url: data.map_image_url,
         createdAt: serverTimestamp(),
       });
 
-      setHistorial(prev => [{ zona_titulo: titulo, traffic: data.traffic, commercial: data.commercial, map_image_url: data.map_image_url, ...data }, ...prev].slice(0, 5));
+      setHistorial(prev => [{ zona_titulo: titulo, fecha, ...data }, ...prev].slice(0, 5));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -372,11 +360,11 @@ export default function ZoneAnalysis() {
 
       {/* Steps indicator */}
       <div className="flex gap-2">
-        {[{ n: 1, label: 'Zona' }, { n: 2, label: 'Fechas' }, { n: 3, label: 'Analizar' }, { n: 4, label: 'Resultados' }].map(s => (
+        {[{ n: 1, label: 'Zona' }, { n: 2, label: 'Resultados' }].map(s => (
           <div key={s.n} className={`flex items-center gap-1 text-xs ${step >= s.n ? 'text-purple-400' : 'text-gray-600'}`}>
             <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${step >= s.n ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-500'}`}>{s.n}</span>
             <span className="hidden sm:block">{s.label}</span>
-            {s.n < 4 && <span className="text-gray-600 mx-1">→</span>}
+            {s.n < 2 && <span className="text-gray-600 mx-1">→</span>}
           </div>
         ))}
       </div>
@@ -469,88 +457,35 @@ export default function ZoneAnalysis() {
                   </div>
                 </div>
 
+                {/* Fecha */}
+                <div>
+                  <label className="text-gray-400 text-xs mb-1 block">Día a analizar</label>
+                  <input
+                    type="date"
+                    value={fecha}
+                    onChange={e => setFecha(e.target.value)}
+                    className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500"
+                  />
+                  <p className="text-gray-500 text-xs mt-1">Analizará el tráfico hora por hora de 6:00 a 23:00</p>
+                </div>
+
                 {/* Mini mapa */}
                 <div ref={mapRef} className="w-full h-48 rounded-xl overflow-hidden border border-gray-600 bg-gray-700" />
 
-                <button
-                  onClick={() => setStep(2)}
-                  disabled={!titulo.trim()}
-                  className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all text-sm"
-                >
-                  Siguiente: Fechas →
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* PASO 2 — Fechas */}
-          <AnimatePresence>
-            {step >= 2 && step <= 3 && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-gray-800 rounded-xl p-5 border border-gray-700 space-y-4">
-                <h3 className="text-white font-semibold text-sm flex items-center gap-2">
-                  <span className="bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">2</span>
-                  Comparar Períodos
-                </h3>
-
-                {/* Presets rápidos */}
-                <div>
-                  <label className="text-gray-400 text-xs mb-2 block">Presets rápidos</label>
-                  <div className="flex flex-col gap-1">
-                    {QUICK_PRESETS.map(p => (
-                      <button
-                        key={p.label}
-                        onClick={() => applyQuickPreset(p)}
-                        className="text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-lg transition-all"
-                      >
-                        ⚡ {p.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3">
-                  <PeriodoPicker label="Período 1" value={periodo1} onChange={setPeriodo1} />
-                  <PeriodoPicker label="Período 2" value={periodo2} onChange={setPeriodo2} />
-                </div>
-
-                <button
-                  onClick={() => setStep(3)}
-                  className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all text-sm"
-                >
-                  Siguiente: Analizar →
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* PASO 3 — Analizar */}
-          <AnimatePresence>
-            {step === 3 && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-gray-800 rounded-xl p-5 border border-gray-700 space-y-4">
-                <h3 className="text-white font-semibold text-sm flex items-center gap-2">
-                  <span className="bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">3</span>
-                  Resumen del análisis
-                </h3>
-                <div className="bg-gray-700/50 rounded-lg p-3 text-sm text-gray-300 space-y-1">
-                  <p><span className="text-gray-500">Zona:</span> {titulo}</p>
-                  {bounds && <p><span className="text-gray-500">Rectángulo:</span> N{bounds.north.toFixed(4)} S{bounds.south.toFixed(4)} E{bounds.east.toFixed(4)} O{bounds.west.toFixed(4)}</p>}
-                  <p><span className="text-gray-500">Período 1:</span> {periodo1.label} — {periodo1.dateFrom} {periodo1.timeFrom} → {periodo1.dateTo} {periodo1.timeTo}</p>
-                  <p><span className="text-gray-500">Período 2:</span> {periodo2.label} — {periodo2.dateFrom} {periodo2.timeFrom} → {periodo2.dateTo} {periodo2.timeTo}</p>
-                  <p><span className="text-gray-500">Tipos:</span> {tipos.join(', ')}</p>
-                </div>
                 {error && <p className="text-red-400 text-sm">{error}</p>}
+
                 <button
                   onClick={handleAnalizar}
-                  disabled={isAnalyzing}
-                  className="w-full py-4 rounded-xl font-bold text-white text-base transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={isAnalyzing || !titulo.trim() || !bounds}
+                  className="w-full py-3 rounded-xl font-bold text-white text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)' }}
                 >
                   {isAnalyzing ? (
                     <span className="flex items-center justify-center gap-2">
                       <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                      Analizando...
+                      Analizando 6:00–23:00…
                     </span>
-                  ) : '🔍 Generar Análisis'}
+                  ) : '🔍 Analizar tráfico por hora'}
                 </button>
               </motion.div>
             )}
@@ -568,7 +503,7 @@ export default function ZoneAnalysis() {
                     className="w-full text-left px-3 py-2 bg-gray-700/50 hover:bg-gray-700 rounded-lg transition-all"
                   >
                     <p className="text-white text-xs font-medium">{item.zona_titulo}</p>
-                    <p className="text-gray-500 text-xs">{item.commercial?.total_places} locales · {item.traffic?.periodo1?.label} vs {item.traffic?.periodo2?.label}</p>
+                    <p className="text-gray-500 text-xs">{item.fecha} · {item.commercial?.total_places} locales · pico {item.peak_hours?.[0]?.label}</p>
                   </button>
                 ))}
               </div>
@@ -590,23 +525,73 @@ export default function ZoneAnalysis() {
                   <img src={result.map_image_url} alt="Mapa de zona" className="w-full h-52 object-cover" />
                 </div>
 
-                {/* Tráfico */}
+                {/* Tráfico por hora */}
                 <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-                  <h3 className="text-white font-semibold text-sm mb-4 flex items-center gap-2">🚗 Tráfico Vial</h3>
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    {[result.traffic.periodo1, result.traffic.periodo2].map((p, i) => (
-                      <div key={i} className="bg-gray-700/50 rounded-xl p-3 text-center">
-                        <p className="text-gray-400 text-xs mb-1">{p.label}</p>
-                        <p className="text-white text-2xl font-bold">{p.minutes}<span className="text-sm font-normal text-gray-400"> min</span></p>
-                        <p className="text-sm mt-1">{CONGESTION_ICONS[p.congestion]} <span className="text-gray-400 text-xs">{CONGESTION_LABELS[p.congestion]}</span></p>
+                  <h3 className="text-white font-semibold text-sm mb-1 flex items-center gap-2">🚗 Tráfico por hora — {result.fecha}</h3>
+
+                  {/* Resumen pico vs valle */}
+                  {result.peak_hours?.length > 0 && (
+                    <div className="grid grid-cols-2 gap-3 mb-4 mt-3">
+                      <div className="bg-red-900/30 border border-red-800 rounded-xl p-3 text-center">
+                        <p className="text-red-400 text-xs mb-1">🔴 Hora pico</p>
+                        <p className="text-white text-xl font-bold">{result.peak_hours[0].label}</p>
+                        <p className="text-gray-400 text-xs">{result.peak_hours[0].minutes} min de viaje</p>
                       </div>
-                    ))}
-                  </div>
-                  <div className={`rounded-xl p-3 text-center text-sm font-medium ${result.traffic.delta_direction === 'worse' ? 'bg-red-900/30 text-red-400' : result.traffic.delta_direction === 'better' ? 'bg-green-900/30 text-green-400' : 'bg-gray-700/50 text-gray-400'}`}>
-                    {result.traffic.delta_direction === 'worse' && `🔴 ${result.traffic.delta_minutes} min más lento en ${result.traffic.periodo2.label} (+${result.traffic.delta_percent}%)`}
-                    {result.traffic.delta_direction === 'better' && `🟢 ${Math.abs(result.traffic.delta_minutes)} min más rápido en ${result.traffic.periodo2.label} (-${result.traffic.delta_percent}%)`}
-                    {result.traffic.delta_direction === 'equal' && '⚪ Sin diferencia significativa entre períodos'}
-                  </div>
+                      <div className="bg-green-900/30 border border-green-800 rounded-xl p-3 text-center">
+                        <p className="text-green-400 text-xs mb-1">🟢 Hora valle</p>
+                        <p className="text-white text-xl font-bold">{result.valley_hour?.label}</p>
+                        <p className="text-gray-400 text-xs">{result.valley_hour?.minutes} min de viaje</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {result.delta_minutes > 0 && (
+                    <div className="bg-red-900/20 border border-red-800/50 rounded-lg px-3 py-2 text-center text-sm text-red-300 font-medium mb-4">
+                      En hora pico tardás {result.delta_minutes} min más que en hora valle (+{result.delta_percent}%)
+                    </div>
+                  )}
+
+                  {/* Gráfico de barras */}
+                  {result.hourly?.length > 0 && (() => {
+                    const maxMin = Math.max(...result.hourly.filter(h => h.minutes).map(h => h.minutes), 1);
+                    const colors = { LOW: '#22c55e', MEDIUM: '#eab308', HIGH: '#ef4444', UNKNOWN: '#4b5563' };
+                    return (
+                      <div className="space-y-1">
+                        {result.hourly.map(h => (
+                          <div key={h.hour} className="flex items-center gap-2">
+                            <span className="text-gray-400 text-xs w-12 shrink-0 text-right">{h.label}</span>
+                            <div className="flex-1 bg-gray-700 rounded-full h-5 overflow-hidden">
+                              <div
+                                className="h-full rounded-full flex items-center pl-2 text-xs text-white font-medium transition-all"
+                                style={{
+                                  width: h.minutes ? `${Math.max((h.minutes / maxMin) * 100, 8)}%` : '4%',
+                                  backgroundColor: colors[h.congestion] || colors.UNKNOWN,
+                                }}
+                              >
+                                {h.minutes ? `${h.minutes}m` : '–'}
+                              </div>
+                            </div>
+                            <span className="text-xs w-4 shrink-0">{h.congestion === 'HIGH' ? '🔴' : h.congestion === 'MEDIUM' ? '🟡' : h.congestion === 'LOW' ? '🟢' : ''}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Top 3 horas pico */}
+                  {result.peak_hours?.length > 1 && (
+                    <div className="mt-4 pt-3 border-t border-gray-700">
+                      <p className="text-gray-400 text-xs mb-2 font-medium">Top horas de mayor congestión</p>
+                      <div className="flex gap-2">
+                        {result.peak_hours.map((h, i) => (
+                          <div key={i} className="flex-1 bg-red-900/20 border border-red-800/40 rounded-lg p-2 text-center">
+                            <p className="text-white text-sm font-bold">{h.label}</p>
+                            <p className="text-red-400 text-xs">{h.minutes} min</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Zona Comercial */}
