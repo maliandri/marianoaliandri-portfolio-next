@@ -387,7 +387,7 @@ export default function ZoneAnalysis() {
           content: caption,
           networks: pubNetwork === 'Todas' ? ['linkedin', 'facebook', 'instagram'] : [pubNetwork.toLowerCase()],
           type: 'zone_analysis',
-          useAI: false,
+          useAI: true,
           aiProvider: 'gemini',
           // Instagram solo acepta una imagen — usamos el mapa como principal
           imageUrl: result.map_image_url,
