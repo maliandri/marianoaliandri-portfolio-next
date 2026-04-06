@@ -322,7 +322,7 @@ export default function ZoneAnalysis() {
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
       const form = new FormData();
       form.append('file', blob, 'zone-chart.png');
-      form.append('upload_preset', 'portfolio_reels');
+      form.append('upload_preset', 'zone_analysis_images');
       // folder no se puede especificar en uploads unsigned — lo maneja el preset
       const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
         method: 'POST',
