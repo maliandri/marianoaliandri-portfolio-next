@@ -379,7 +379,6 @@ export default function ZoneAnalysis() {
     setPublishStatus('');
     try {
       const caption = previewCaption || result.summary;
-      const images = [result.map_image_url, chartImageUrl].filter(Boolean);
       const res = await fetch('/api/publish-social', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -390,15 +389,16 @@ export default function ZoneAnalysis() {
           type: 'zone_analysis',
           useAI: false,
           aiProvider: 'gemini',
+          // Instagram solo acepta una imagen — usamos el mapa como principal
           imageUrl: result.map_image_url,
+          // chartImageUrl disponible para LinkedIn/Facebook en Make.com si se mapea
           chartImageUrl: chartImageUrl || undefined,
-          images,
           extra_context: extraContext.trim() || undefined,
           metadata: {
             tone: pubTone,
             zona_titulo: result.zona_titulo,
             summary: caption,
-            traffic: result.traffic,
+            peak_hours: result.peak_hours,
             commercial: result.commercial,
           },
         }),
@@ -649,19 +649,6 @@ export default function ZoneAnalysis() {
                               >
                                 {h.minutes ? `${h.minutes}m` : '–'}
                               </div>
-                            </div>
-                            {/* Comercios abiertos + afluencia */}
-                            <div className="flex items-center gap-1 shrink-0 w-24 text-right">
-                              {h.open_count !== null && (
-                                <span className="text-xs text-blue-300" title="Comercios abiertos">
-                                  🏪{h.open_count}
-                                </span>
-                              )}
-                              {h.foot_traffic !== null && (
-                                <span className="text-xs text-orange-300" title="Índice de afluencia">
-                                  👥{h.foot_traffic}
-                                </span>
-                              )}
                             </div>
                           </div>
                         ))}
