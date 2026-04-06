@@ -16,51 +16,6 @@ const TIPOS = [
   { id: 'todos', label: 'Todos', emoji: '📍' },
 ];
 
-const QUICK_PRESETS = [
-  {
-    label: 'Hoy: mañana vs tarde',
-    apply: () => {
-      const today = new Date().toISOString().split('T')[0];
-      return {
-        p1: { label: 'Mañana pico', dateFrom: today, timeFrom: '07:00', dateTo: today, timeTo: '10:00' },
-        p2: { label: 'Tarde-noche', dateFrom: today, timeFrom: '17:00', dateTo: today, timeTo: '20:00' },
-      };
-    },
-  },
-  {
-    label: 'Esta semana vs semana pasada',
-    apply: () => {
-      const now = new Date();
-      const day = now.getDay() || 7;
-      const mon = new Date(now.getTime() - (day - 1) * 86400000);
-      const fmt = d => d.toISOString().split('T')[0];
-      const thisMon = fmt(mon);
-      const thisFri = fmt(new Date(mon.getTime() + 4 * 86400000));
-      const lastMon = fmt(new Date(mon.getTime() - 7 * 86400000));
-      const lastFri = fmt(new Date(mon.getTime() - 3 * 86400000));
-      return {
-        p1: { label: 'Semana pasada', dateFrom: lastMon, timeFrom: '08:00', dateTo: lastFri, timeTo: '18:00' },
-        p2: { label: 'Esta semana', dateFrom: thisMon, timeFrom: '08:00', dateTo: thisFri, timeTo: '18:00' },
-      };
-    },
-  },
-  {
-    label: 'Este mes vs mes pasado',
-    apply: () => {
-      const now = new Date();
-      const fmt = d => d.toISOString().split('T')[0];
-      const thisStart = fmt(new Date(now.getFullYear(), now.getMonth(), 1));
-      const thisEnd = fmt(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-      const lastStart = fmt(new Date(now.getFullYear(), now.getMonth() - 1, 1));
-      const lastEnd = fmt(new Date(now.getFullYear(), now.getMonth(), 0));
-      return {
-        p1: { label: 'Mes pasado', dateFrom: lastStart, timeFrom: '08:00', dateTo: lastEnd, timeTo: '20:00' },
-        p2: { label: 'Este mes', dateFrom: thisStart, timeFrom: '08:00', dateTo: thisEnd, timeTo: '20:00' },
-      };
-    },
-  },
-];
-
 const RADIOS = [
   { value: 500, label: '500m' },
   { value: 1000, label: '1km' },
@@ -141,13 +96,13 @@ export default function ZoneAnalysis() {
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState('');
 
-  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
   // Zona config
   const [titulo, setTitulo] = useState('');
   const [bounds, setBounds] = useState(null);
   const [tipos, setTipos]   = useState(['todos']);
-  const [fecha, setFecha]   = useState(today);
+  const [fecha, setFecha]   = useState(yesterday);
 
   // UI states
   const [step, setStep] = useState(1);
@@ -543,10 +498,11 @@ export default function ZoneAnalysis() {
                   <input
                     type="date"
                     value={fecha}
+                    max={yesterday}
                     onChange={e => setFecha(e.target.value)}
                     className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500"
                   />
-                  <p className="text-gray-500 text-xs mt-1">Analizará el tráfico hora por hora de 6:00 a 23:00</p>
+                  <p className="text-gray-500 text-xs mt-1">Solo fechas pasadas — datos reales de tráfico hora por hora (6:00 a 23:00)</p>
                 </div>
 
                 {/* Mini mapa */}
