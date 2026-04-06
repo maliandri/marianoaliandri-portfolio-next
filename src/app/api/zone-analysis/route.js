@@ -185,30 +185,24 @@ export async function POST(req) {
     const hourlyData = trafficByHour.map(h => {
       const congestion = h.minutes !== null ? congestionLevel(h.minutes, baseMinutes) : 'UNKNOWN';
 
-      // Contar comercios abiertos a esta hora (solo los que tienen horarios)
-      const withSchedule = places.filter(p =>
-        (p.regularOpeningHours?.periods || p.currentOpeningHours?.periods)?.length > 0
-      );
-      const openCount = withSchedule.length > 0
-        ? withSchedule.filter(p => isOpenAtHour(p, dayOfWeek, h.hour)).length
-        : null;
-
-      // Índice de afluencia: comercios abiertos × factor de tráfico
-      // Más tráfico = más gente en la zona
-      const trafficFactor = h.minutes !== null
-        ? Math.min(h.minutes / (baseMinutes || 1), 3)
-        : 1;
-      const footTraffic = openCount !== null
-        ? Math.round(openCount * trafficFactor * 10)
-        : null;
+      // Contar comercios abiertos a esta hora
+      // - Con horarios: usar regularOpeningHours
+      // - Sin horarios cargados en Google: asumir 9-21hs (comercio estándar AR)
+      const openCount = places.reduce((count, p) => {
+        const periods = p.regularOpeningHours?.periods || p.currentOpeningHours?.periods || [];
+        if (periods.length > 0) {
+          return count + (isOpenAtHour(p, dayOfWeek, h.hour) ? 1 : 0);
+        }
+        // Sin datos: asumir abierto en horario comercial estándar
+        return count + (h.hour >= 9 && h.hour < 21 ? 1 : 0);
+      }, 0);
 
       return {
-        hour:        h.hour,
-        label:       `${String(h.hour).padStart(2,'0')}:00`,
-        minutes:     h.minutes,
+        hour:       h.hour,
+        label:      `${String(h.hour).padStart(2,'0')}:00`,
+        minutes:    h.minutes,
         congestion,
-        open_count:  openCount,
-        foot_traffic: footTraffic,
+        open_count: openCount,
       };
     });
 
