@@ -323,12 +323,16 @@ export default function ZoneAnalysis() {
       const form = new FormData();
       form.append('file', blob, 'zone-chart.png');
       form.append('upload_preset', 'portfolio_reels');
-      form.append('folder', 'zone-analysis');
+      // folder no se puede especificar en uploads unsigned — lo maneja el preset
       const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
         method: 'POST',
         body: form,
       });
       const data = await res.json();
+      if (data.error) {
+        console.error('Cloudinary error:', data.error.message);
+        return null;
+      }
       return data.secure_url || null;
     } catch (e) {
       console.error('Chart capture error:', e);
@@ -650,6 +654,11 @@ export default function ZoneAnalysis() {
                                 {h.minutes ? `${h.minutes}m` : '–'}
                               </div>
                             </div>
+                            {h.open_count !== null && (
+                              <span className="text-blue-300 text-xs shrink-0 w-8 text-right" title="Comercios abiertos">
+                                🏪{h.open_count}
+                              </span>
+                            )}
                           </div>
                         ))}
                       </div>
