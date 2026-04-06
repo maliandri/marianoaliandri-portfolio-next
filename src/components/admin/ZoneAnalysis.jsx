@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { collection, addDoc, getDocs, orderBy, query, limit, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../utils/firebaseservice';
 
+const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dlshym1te';
+
 const TIPOS = [
   { id: 'restaurant', label: 'Restaurantes', emoji: '🍽️' },
   { id: 'combustible', label: 'Combustible', emoji: '⛽' },
@@ -156,11 +158,19 @@ export default function ZoneAnalysis() {
 
   // Publicar
   const [showPublish, setShowPublish] = useState(false);
-  const [pubNetwork, setPubNetwork] = useState('LinkedIn');
-  const [pubTone, setPubTone] = useState('informativo');
+  const [pubNetwork, setPubNetwork] = useState('Instagram');
+  const [pubTone, setPubTone] = useState('técnico');
   const [extraContext, setExtraContext] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishStatus, setPublishStatus] = useState('');
+
+  // Preview
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewCaption, setPreviewCaption] = useState('');
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+  const [chartImageUrl, setChartImageUrl] = useState(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const resultsRef = useRef(null);
 
   // Zonas guardadas
   const [zonasGuardadas, setZonasGuardadas] = useState([]);
@@ -297,31 +307,97 @@ export default function ZoneAnalysis() {
     }
   };
 
+  const captureChart = async () => {
+    if (!resultsRef.current) return null;
+    setIsCapturing(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(resultsRef.current, {
+        backgroundColor: '#1f2937',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        imageTimeout: 5000,
+      });
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
+      const form = new FormData();
+      form.append('file', blob, 'zone-chart.png');
+      form.append('upload_preset', 'portfolio_reels');
+      form.append('folder', 'zone-analysis');
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+        method: 'POST',
+        body: form,
+      });
+      const data = await res.json();
+      return data.secure_url || null;
+    } catch (e) {
+      console.error('Chart capture error:', e);
+      return null;
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const handleGeneratePreview = async () => {
+    if (!result) return;
+    setShowPreview(true);
+    setIsGeneratingPreview(true);
+    setPreviewCaption('');
+    setChartImageUrl(null);
+
+    const [chartUrl, captionRes] = await Promise.all([
+      captureChart(),
+      fetch('/api/zone-caption', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tone: pubTone,
+          networks: pubNetwork,
+          extraContext: extraContext.trim(),
+          result: {
+            zona_titulo: result.zona_titulo,
+            fecha: result.fecha,
+            summary: result.summary,
+            peak_hours: result.peak_hours,
+            valley_hour: result.valley_hour,
+            delta_minutes: result.delta_minutes,
+            delta_percent: result.delta_percent,
+            commercial: result.commercial,
+          },
+        }),
+      }).then(r => r.json()).catch(() => ({ caption: result.summary })),
+    ]);
+
+    if (chartUrl) setChartImageUrl(chartUrl);
+    setPreviewCaption(captionRes.caption || result.summary || '');
+    setIsGeneratingPreview(false);
+  };
+
   const handlePublicar = async () => {
     if (!result) return;
     setIsPublishing(true);
     setPublishStatus('');
     try {
+      const caption = previewCaption || result.summary;
+      const images = [result.map_image_url, chartImageUrl].filter(Boolean);
       const res = await fetch('/api/publish-social', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: result.summary,
-          content: result.summary,
-          caption: result.summary,
-          description: result.summary,
-          message: result.summary,
-          networks: pubNetwork === 'Todas' ? ['linkedin', 'facebook'] : [pubNetwork.toLowerCase()],
+          text: caption,
+          content: caption,
+          networks: pubNetwork === 'Todas' ? ['linkedin', 'facebook', 'instagram'] : [pubNetwork.toLowerCase()],
           type: 'zone_analysis',
-          useAI: true,
+          useAI: false,
           aiProvider: 'gemini',
           imageUrl: result.map_image_url,
-          url:      result.map_image_url,
+          chartImageUrl: chartImageUrl || undefined,
+          images,
           extra_context: extraContext.trim() || undefined,
           metadata: {
             tone: pubTone,
             zona_titulo: result.zona_titulo,
-            summary: result.summary,
+            summary: caption,
             traffic: result.traffic,
             commercial: result.commercial,
           },
@@ -525,6 +601,9 @@ export default function ZoneAnalysis() {
                   <img src={result.map_image_url} alt="Mapa de zona" className="w-full h-52 object-cover" />
                 </div>
 
+                {/* Sección capturada para imagen de publicación */}
+                <div ref={resultsRef}>
+
                 {/* Tráfico por hora */}
                 <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
                   <h3 className="text-white font-semibold text-sm mb-1 flex items-center gap-2">🚗 Tráfico por hora — {result.fecha}</h3>
@@ -635,6 +714,8 @@ export default function ZoneAnalysis() {
                   </div>
                 )}
 
+                </div>{/* fin resultsRef */}
+
                 {/* Publicar */}
                 <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
                   <button onClick={() => setShowPublish(!showPublish)} className="w-full flex items-center justify-between text-white font-semibold text-sm">
@@ -644,49 +725,146 @@ export default function ZoneAnalysis() {
 
                   <AnimatePresence>
                     {showPublish && (
-                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-4 space-y-3 overflow-hidden">
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-4 space-y-4 overflow-hidden">
+
+                        {/* Red social */}
                         <div>
                           <label className="text-gray-400 text-xs mb-2 block">Red social</label>
-                          <div className="flex gap-2">
-                            {['LinkedIn', 'Facebook', 'Instagram', 'Todas'].map(n => (
-                              <button key={n} onClick={() => setPubNetwork(n)}
-                                className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${pubNetwork === n ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
-                                {n}
+                          <div className="grid grid-cols-4 gap-2">
+                            {[
+                              { id: 'Instagram', icon: '📸' },
+                              { id: 'Facebook', icon: '👥' },
+                              { id: 'LinkedIn', icon: '💼' },
+                              { id: 'Todas', icon: '🌐' },
+                            ].map(({ id, icon }) => (
+                              <button key={id} onClick={() => setPubNetwork(id)}
+                                className={`py-2 rounded-lg text-xs font-medium transition-all flex flex-col items-center gap-1 ${pubNetwork === id ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
+                                <span>{icon}</span>
+                                <span>{id}</span>
                               </button>
                             ))}
                           </div>
                         </div>
+
+                        {/* Tono */}
                         <div>
-                          <label className="text-gray-400 text-xs mb-2 block">Tono</label>
-                          <div className="flex gap-2">
-                            {['informativo', 'técnico', 'periodístico'].map(t => (
-                              <button key={t} onClick={() => setPubTone(t)}
-                                className={`flex-1 py-2 rounded-lg text-xs font-medium capitalize transition-all ${pubTone === t ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
-                                {t}
+                          <label className="text-gray-400 text-xs mb-2 block">Tono del reporte</label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { id: 'técnico', icon: '📐', desc: 'Datos precisos' },
+                              { id: 'comercial', icon: '💰', desc: 'Oportunidades' },
+                              { id: 'social', icon: '🧑‍🤝‍🧑', desc: 'Vida cotidiana' },
+                            ].map(({ id, icon, desc }) => (
+                              <button key={id} onClick={() => { setPubTone(id); setShowPreview(false); }}
+                                className={`py-2 px-2 rounded-lg text-xs font-medium transition-all flex flex-col items-center gap-1 ${pubTone === id ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
+                                <span className="text-base">{icon}</span>
+                                <span className="capitalize font-semibold">{id}</span>
+                                <span className="opacity-70 text-[10px]">{desc}</span>
                               </button>
                             ))}
                           </div>
                         </div>
+
+                        {/* Contexto */}
                         <div>
-                          <label className="text-gray-400 text-xs mb-1 block">Contexto adicional para Gemini <span className="text-gray-600">(opcional)</span></label>
+                          <label className="text-gray-400 text-xs mb-1 block">
+                            Contexto para Gemini <span className="text-gray-600">(opcional)</span>
+                          </label>
                           <textarea
                             value={extraContext}
-                            onChange={e => setExtraContext(e.target.value)}
-                            rows={3}
-                            placeholder="Ej: Este análisis es para un cliente del rubro inmobiliario. Destacar el crecimiento comercial de la zona."
+                            onChange={e => { setExtraContext(e.target.value); setShowPreview(false); }}
+                            rows={2}
+                            placeholder="Ej: Análisis para cliente inmobiliario. Destacar crecimiento comercial de la zona norte."
                             className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500 resize-none placeholder-gray-500"
                           />
                         </div>
-                        {publishStatus === 'success' && <p className="text-green-400 text-sm text-center">✅ Enviado a Make.com</p>}
-                        {publishStatus === 'error' && <p className="text-red-400 text-sm text-center">❌ Error al publicar</p>}
-                        <button
-                          onClick={handlePublicar}
-                          disabled={isPublishing}
-                          className="w-full py-3 rounded-xl font-bold text-white text-sm transition-all disabled:opacity-60"
-                          style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)' }}
-                        >
-                          {isPublishing ? '⏳ Publicando...' : '🚀 Publicar vía Make'}
-                        </button>
+
+                        {/* Botón generar preview */}
+                        {!showPreview && (
+                          <button
+                            onClick={handleGeneratePreview}
+                            disabled={isGeneratingPreview || isCapturing}
+                            className="w-full py-3 rounded-xl font-bold text-white text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                            style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)' }}
+                          >
+                            {(isGeneratingPreview || isCapturing)
+                              ? <><motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Generando preview...</>
+                              : '👁️ Ver preview antes de publicar'}
+                          </button>
+                        )}
+
+                        {/* PREVIEW PANEL */}
+                        <AnimatePresence>
+                          {showPreview && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 10 }}
+                              className="space-y-4 border-t border-gray-700 pt-4"
+                            >
+                              <div className="flex items-center justify-between">
+                                <p className="text-white font-semibold text-sm">👁️ Vista Previa</p>
+                                <button
+                                  onClick={handleGeneratePreview}
+                                  disabled={isGeneratingPreview}
+                                  className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                                >
+                                  ↺ Regenerar
+                                </button>
+                              </div>
+
+                              {/* Ambas imágenes */}
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <p className="text-gray-500 text-[10px] mb-1 uppercase tracking-wider">Imagen 1 — Mapa</p>
+                                  <img src={result.map_image_url} alt="Mapa zona" className="w-full h-28 object-cover rounded-lg border border-gray-700" />
+                                </div>
+                                <div>
+                                  <p className="text-gray-500 text-[10px] mb-1 uppercase tracking-wider">Imagen 2 — Gráfico</p>
+                                  {chartImageUrl
+                                    ? <img src={chartImageUrl} alt="Gráfico de tráfico" className="w-full h-28 object-cover rounded-lg border border-gray-700" />
+                                    : <div className="w-full h-28 bg-gray-700 rounded-lg flex items-center justify-center">
+                                        <span className="text-gray-500 text-xs">{isCapturing ? '📸 Capturando...' : '—'}</span>
+                                      </div>
+                                  }
+                                </div>
+                              </div>
+
+                              {/* Caption editable */}
+                              <div>
+                                <p className="text-gray-500 text-[10px] mb-1 uppercase tracking-wider">
+                                  Caption generado — <span className="text-purple-400 capitalize">{pubTone}</span> · {pubNetwork}
+                                </p>
+                                {isGeneratingPreview
+                                  ? <div className="bg-gray-700 rounded-lg p-3 text-gray-400 text-xs animate-pulse h-24">Generando con Gemini...</div>
+                                  : <textarea
+                                      value={previewCaption}
+                                      onChange={e => setPreviewCaption(e.target.value)}
+                                      rows={7}
+                                      className="w-full bg-gray-700 border border-purple-600/40 text-white text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500 resize-none"
+                                    />
+                                }
+                                <p className="text-gray-600 text-[10px] mt-1 text-right">{previewCaption.length} / 2000 caracteres</p>
+                              </div>
+
+                              {/* Status + Publicar */}
+                              {publishStatus === 'success' && <p className="text-green-400 text-sm text-center">✅ Enviado a Make.com correctamente</p>}
+                              {publishStatus === 'error' && <p className="text-red-400 text-sm text-center">❌ Error al publicar. Intentá de nuevo.</p>}
+
+                              <button
+                                onClick={handlePublicar}
+                                disabled={isPublishing || isGeneratingPreview || !previewCaption}
+                                className="w-full py-3 rounded-xl font-bold text-white text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                                style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)' }}
+                              >
+                                {isPublishing
+                                  ? <><motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Publicando...</>
+                                  : `🚀 Publicar en ${pubNetwork}`}
+                              </button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
                       </motion.div>
                     )}
                   </AnimatePresence>

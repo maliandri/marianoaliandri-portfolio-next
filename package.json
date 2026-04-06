@@ -24,6 +24,7 @@
     "framer-motion": "^12.34.3",
     "googleapis": "^144.0.0",
     "html-to-image": "^1.11.13",
+    "html2canvas": "^1.4.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.548.0",
     "mercadopago": "^2.12.0",
