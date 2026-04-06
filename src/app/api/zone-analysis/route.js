@@ -15,10 +15,11 @@ function congestionLevel(minutes, baseMinutes) {
 async function fetchTrafficAtHour(bounds, dateStr, hour) {
   const { north, south, east, west } = bounds;
 
-  // Construir fecha futura preservando hora del día
+  // Construir fecha futura preservando DÍA DE SEMANA (avanzar de a 7 días)
+  // Así el tráfico y el open_count usan siempre el mismo día de semana
   let dt = new Date(`${dateStr}T${String(hour).padStart(2, '0')}:00:00`);
   const minFuture = Date.now() + 10 * 60 * 1000;
-  while (dt.getTime() < minFuture) dt = new Date(dt.getTime() + 24 * 3600 * 1000);
+  while (dt.getTime() < minFuture) dt = new Date(dt.getTime() + 7 * 24 * 3600 * 1000);
 
   const body = {
     origin:      { location: { latLng: { latitude: south, longitude: west } } },
