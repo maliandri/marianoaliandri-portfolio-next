@@ -9,7 +9,7 @@ const TONE_INSTRUCTIONS = {
 
 export async function POST(request) {
   try {
-    const { tone, networks, extraContext, result } = await request.json();
+    const { tone, networks, extraContext, medios = [], result } = await request.json();
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
@@ -59,6 +59,10 @@ ${categoryLines ? `- Mix comercial por categoría:\n${categoryLines}` : ''}
 ${mentionsNote}
 
 ${extraContext ? `CONTEXTO ADICIONAL: ${extraContext}` : ''}
+
+${medios.length > 0 ? `MEDIOS LOCALES A MENCIONAR:
+- Incluí estos medios en el texto de forma natural, como si les estuvieras etiquetando para que cubran la noticia: ${medios.join(', ')}
+- Ejemplo: "¿Lo cubrirán ${medios[0]} o ${medios[1] || medios[0]}?"` : ''}
 
 INSTRUCCIONES DE MENCIONES:
 - Incluí 2-3 @menciones de los locales destacados integradas naturalmente en el texto (ej: "zonas como la de @OfeCafeResto demuestran que...")

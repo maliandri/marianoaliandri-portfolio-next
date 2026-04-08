@@ -7,6 +7,17 @@ import { db } from '../../utils/firebaseservice';
 
 const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dlshym1te';
 
+const MEDIOS_LOCALES = [
+  { handle: '@lmneuquen',       label: 'LM Neuquén' },
+  { handle: '@diariorionegro',  label: 'Río Negro' },
+  { handle: '@aninoticias',     label: 'ANI Noticias' },
+  { handle: '@noticiasnet',     label: 'Noticias.net' },
+  { handle: '@neuqueninforma',  label: 'Nqn Informa' },
+  { handle: '@elpatagonico',    label: 'El Patagónico' },
+  { handle: '@cronista',        label: 'El Cronista' },
+  { handle: '@infobae',         label: 'Infobae' },
+];
+
 const TIPOS = [
   { id: 'restaurant', label: 'Restaurantes', emoji: '🍽️' },
   { id: 'combustible', label: 'Combustible', emoji: '⛽' },
@@ -120,6 +131,7 @@ export default function ZoneAnalysis() {
   const [publishStatus, setPublishStatus] = useState('');
 
   // Preview
+  const [selectedMedios, setSelectedMedios] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
   const [previewCaption, setPreviewCaption] = useState('');
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
@@ -313,6 +325,7 @@ export default function ZoneAnalysis() {
           tone: pubTone,
           networks: pubNetwork,
           extraContext: extraContext.trim(),
+          medios: selectedMedios,
           result: {
             zona_titulo:   result.zona_titulo,
             fecha:         result.fecha,
@@ -748,6 +761,32 @@ export default function ZoneAnalysis() {
                             placeholder="Ej: Análisis para cliente inmobiliario. Destacar crecimiento comercial de la zona norte."
                             className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500 resize-none placeholder-gray-500"
                           />
+                        </div>
+
+                        {/* Medios locales */}
+                        <div>
+                          <label className="text-gray-400 text-xs mb-2 block">
+                            📰 Mencionar medios locales <span className="text-gray-600">(opcional)</span>
+                          </label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {MEDIOS_LOCALES.map(({ handle, label }) => {
+                              const active = selectedMedios.includes(handle);
+                              return (
+                                <button
+                                  key={handle}
+                                  onClick={() => {
+                                    setSelectedMedios(prev =>
+                                      active ? prev.filter(h => h !== handle) : [...prev, handle]
+                                    );
+                                    setShowPreview(false);
+                                  }}
+                                  className={`px-2 py-1 rounded-full text-[11px] font-medium transition-all ${active ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
+                                >
+                                  {active ? '✓ ' : ''}{handle}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
 
                         {/* Botón generar preview */}
