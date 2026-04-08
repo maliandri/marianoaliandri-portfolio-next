@@ -744,6 +744,8 @@ function AdminProyectosPanel({ db }) {
   const [saving, setSaving] = useState(null);
   const [edits, setEdits] = useState({});
   const [expanded, setExpanded] = useState({});
+  const [capturing, setCapturing] = useState(false);
+  const [captureResult, setCaptureResult] = useState(null);
 
   useEffect(() => {
     fetch('/api/proyectos')
@@ -797,8 +799,41 @@ function AdminProyectosPanel({ db }) {
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           Proyectos — desde Google Search Console
         </h3>
-        <span className="text-sm text-gray-500">{proyectos.length} sitios detectados</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-500">{proyectos.length} sitios detectados</span>
+          <button
+            onClick={async () => {
+              setCapturing(true);
+              setCaptureResult(null);
+              try {
+                const res = await fetch('/api/capture-projects', { method: 'POST' });
+                const data = await res.json();
+                setCaptureResult(data);
+              } catch (e) {
+                setCaptureResult({ error: e.message });
+              } finally {
+                setCapturing(false);
+              }
+            }}
+            disabled={capturing}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white text-xs font-medium rounded-lg transition-colors"
+          >
+            {capturing ? '📸 Capturando...' : '📸 Capturar screenshots'}
+          </button>
+        </div>
       </div>
+
+      {captureResult && (
+        <div className={`rounded-xl p-3 text-sm mb-2 ${captureResult.error ? 'bg-red-900/30 text-red-400' : 'bg-green-900/30 text-green-400'}`}>
+          {captureResult.error
+            ? `❌ ${captureResult.error}`
+            : <>
+                ✅ {captureResult.uploaded?.length} capturas subidas a Cloudinary / carpeta MarianWeb
+                {captureResult.failed?.length > 0 && <span className="text-yellow-400 ml-2">· {captureResult.failed.length} fallidas</span>}
+              </>
+          }
+        </div>
+      )}
 
       {proyectos.map(p => {
         const e = edits[p.domain] || EMPTY_EDIT;
