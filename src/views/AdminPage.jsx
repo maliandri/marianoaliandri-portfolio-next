@@ -44,86 +44,38 @@ export default function AdminPage() {
     }
   }, []);
 
-  // Load data when authenticated (DEV: client SDK, PROD: Netlify Function)
+  // Load data when authenticated — siempre via API route (Firebase Admin)
   useEffect(() => {
     if (isAuthenticated) {
       let cancelled = false;
 
       const loadData = async () => {
         setLoading(true);
-
         try {
-          const isDev = window.location.hostname === 'localhost';
+          const response = await fetch('/api/admin-get-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: sessionStorage.getItem('adminUsername'),
+              password: sessionStorage.getItem('adminPassword'),
+            }),
+          });
 
-          if (isDev) {
-            // DESARROLLO: Firebase Client SDK
-            console.log('🔄 [DEV] Cargando desde Firebase Client SDK...');
+          if (!response.ok) throw new Error(`Error ${response.status}`);
+          const result = await response.json();
+          if (cancelled) return;
 
-            const usersData = [];
-            const ordersData = [];
-            const productsData = [];
-            let totalRevenue = 0;
-            let cvCount = 0;
-            let storeCount = 0;
-
-            try {
-              const usersSnap = await getDocs(collection(db, 'users'));
-              usersSnap.forEach(d => usersData.push({ id: d.id, ...d.data() }));
-            } catch (e) { console.error('Error usuarios:', e); }
-
-            try {
-              const ordersSnap = await getDocs(collection(db, 'orders'));
-              ordersSnap.forEach(d => {
-                const data = d.data();
-                ordersData.push({ id: d.id, ...data });
-                if (data.status === 'approved' || data.status === 'completed') totalRevenue += data.totalARS || 0;
-                data.type === 'cv_analysis' ? cvCount++ : storeCount++;
-              });
-              ordersData.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-            } catch (e) { console.error('Error órdenes:', e); }
-
-            try {
-              const productsSnap = await getDocs(collection(db, 'products'));
-              productsSnap.forEach(d => productsData.push({ id: d.id, ...d.data() }));
-            } catch (e) { console.error('Error productos:', e); }
-
-            if (!cancelled) {
-              setUsers(usersData);
-              setOrders(ordersData);
-              setProducts(productsData);
-              setStats({ totalUsers: usersData.length, totalOrders: ordersData.length, totalRevenue, cvAnalysis: cvCount, storeOrders: storeCount });
-              console.log('✅ [DEV] Cargado:', { users: usersData.length, orders: ordersData.length, products: productsData.length });
-            }
+          if (result.success) {
+            setUsers(result.data.users || []);
+            setOrders(result.data.orders || []);
+            setProducts(result.data.products || []);
+            setStats(result.data.stats || {});
           } else {
-            // PRODUCCIÓN: Netlify Function
-            console.log('🔄 [PROD] Cargando desde Netlify Function...');
-
-            const response = await fetch('/api/admin-get-data', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                username: sessionStorage.getItem('adminUsername'),
-                password: sessionStorage.getItem('adminPassword')
-              })
-            });
-
-            if (!response.ok) throw new Error(`Error ${response.status}`);
-            const result = await response.json();
-            if (cancelled) return;
-
-            if (result.success) {
-              setUsers(result.data.users);
-              setOrders(result.data.orders);
-              setProducts(result.data.products);
-              setStats(result.data.stats);
-              console.log('✅ [PROD] Cargado');
-            } else {
-              throw new Error(result.error);
-            }
+            throw new Error(result.error);
           }
         } catch (error) {
           if (!cancelled) {
-            console.error('❌ Error cargando datos:', error);
+            console.error('❌ Error cargando datos admin:', error);
             setLoginError('Error cargando datos.');
           }
         } finally {
