@@ -13,9 +13,6 @@ function microlinkScreenshotUrl(siteUrl) {
   return `https://api.microlink.io/?url=${encodeURIComponent(clean)}&screenshot=true&meta=false&embed=screenshot.url`;
 }
 
-function domainFromUrl(url) {
-  return url.replace(/https?:\/\//, '').replace(/\/$/, '').replace(/[^a-z0-9.-]/gi, '_');
-}
 
 function cloudinarySignature(params) {
   const sorted = Object.keys(params)
@@ -66,13 +63,12 @@ export async function POST() {
 
     // 2. Capturar y subir cada sitio en paralelo
     const results = await Promise.allSettled(
-      sites.map(async (siteUrl) => {
-        const screenshotUrl = microlinkScreenshotUrl(siteUrl);
-        const domain        = domainFromUrl(siteUrl);
+      sites.map(async ({ url, domain }) => {
+        const screenshotUrl = microlinkScreenshotUrl(url);
         const publicId      = `MarianWeb/${domain}`;
 
         const cloudinaryUrl = await uploadToCloudinary(screenshotUrl, publicId);
-        return { siteUrl, domain, cloudinaryUrl };
+        return { url, domain, cloudinaryUrl };
       })
     );
 
@@ -82,7 +78,7 @@ export async function POST() {
 
     const failed = results
       .filter(r => r.status === 'rejected')
-      .map((r, i) => ({ siteUrl: sites[i], error: r.reason?.message }));
+      .map((r, i) => ({ url: sites[i]?.url, error: r.reason?.message }));
 
     return Response.json({ uploaded, failed, total: sites.length });
   } catch (err) {
