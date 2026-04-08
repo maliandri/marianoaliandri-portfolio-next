@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 import crypto from 'crypto';
-import { getVerifiedSites } from '../../../lib/gscClient';
+import { getGSCAuth, getVerifiedSites } from '../../../lib/gscClient';
 
 const CLOUD_NAME  = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const API_KEY     = process.env.CLOUDINARY_API_KEY;
@@ -58,7 +58,8 @@ export async function POST() {
     }
 
     // 1. Obtener todos los sitios verificados en GSC
-    const sites = await getVerifiedSites();
+    const auth  = getGSCAuth();
+    const sites = await getVerifiedSites(auth);
     if (!sites.length) {
       return Response.json({ error: 'No se encontraron sitios en GSC' }, { status: 404 });
     }
