@@ -279,19 +279,16 @@ export default function ZoneAnalysis() {
     if (!resultsRef.current) return null;
     setIsCapturing(true);
     try {
-      const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(resultsRef.current, {
+      const { toPng } = await import('html-to-image');
+      const dataUrl = await toPng(resultsRef.current, {
         backgroundColor: '#1f2937',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        imageTimeout: 5000,
+        pixelRatio: 2,
       });
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
+      // Convertir dataUrl a blob
+      const blob = await fetch(dataUrl).then(r => r.blob());
       const form = new FormData();
-      form.append('file', blob, 'zone-chart.png');
+      form.append('file', dataUrl);
       form.append('upload_preset', 'zone_analysis_images');
-      // folder no se puede especificar en uploads unsigned — lo maneja el preset
       const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
         method: 'POST',
         body: form,
@@ -299,10 +296,10 @@ export default function ZoneAnalysis() {
       const data = await res.json();
       if (data.error) {
         setChartCaptureError(`Cloudinary: ${data.error.message}`);
-        // Fallback: devolver data URL local para mostrar en preview igual
-        return canvas.toDataURL('image/png');
+        // Fallback: mostrar en preview igual aunque no suba a Cloudinary
+        return dataUrl;
       }
-      return data.secure_url || null;
+      return data.secure_url || dataUrl;
     } catch (e) {
       setChartCaptureError(e.message);
       return null;
