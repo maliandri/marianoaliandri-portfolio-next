@@ -157,6 +157,29 @@ async function fetchPlaces(bounds, tipos) {
 
 // Determina si un lugar está abierto a una hora específica del día
 // dayOfWeek: 0=Dom, 1=Lun, ..., 6=Sab
+const CATEGORY_TYPES = {
+  'Gastronomía':  ['restaurant','cafe','bakery','bar','fast_food_restaurant','pizza_restaurant','sandwich_shop','hamburger_restaurant','ice_cream_shop','meal_takeaway','night_club','wine_bar','seafood_restaurant','steak_house','brunch_restaurant','food'],
+  'Supermercados':['supermarket','grocery_store','convenience_store','meal_delivery'],
+  'Salud':        ['pharmacy','drugstore','doctor','dentist','hospital','veterinary_care','physiotherapist','optician','mental_health_practitioner'],
+  'Indumentaria': ['clothing_store','shoe_store','jewelry_store','gift_shop','florist'],
+  'Tecnología':   ['electronics_store','computer_store','cell_phone_store'],
+  'Hogar':        ['home_goods_store','furniture_store','hardware_store'],
+  'Servicios':    ['bank','atm','insurance_agency','real_estate_agency','accounting','lawyer','travel_agency','courier_service','moving_company'],
+  'Belleza':      ['beauty_salon','hair_care','barber_shop','nail_salon','spa','gym','fitness_center','yoga_studio','laundry','dry_cleaning'],
+  'Automotor':    ['gas_station','car_repair','car_wash','car_dealer','auto_parts_store','parking'],
+  'Comercios':    ['department_store','shopping_mall','book_store','toy_store','sporting_goods_store','pet_store','bicycle_store'],
+  'Educación':    ['school','university','library','driving_school','language_school'],
+  'Ocio':         ['movie_theater','bowling_alley','casino','stadium','performing_arts_theater'],
+};
+
+function categorizePlace(place) {
+  const types = place.types || [];
+  for (const [cat, catTypes] of Object.entries(CATEGORY_TYPES)) {
+    if (types.some(t => catTypes.includes(t))) return cat;
+  }
+  return 'Otros';
+}
+
 function isOpenAtHour(place, dayOfWeek, hour) {
   const periods = place.regularOpeningHours?.periods || place.currentOpeningHours?.periods || [];
   if (!periods.length) return null; // sin datos
@@ -229,6 +252,13 @@ export async function POST(req) {
       .slice(0, 5)
       .map(p => ({ name: p.displayName?.text || 'Sin nombre', rating: p.rating || 0, type: p.types?.[0] || 'local' }));
 
+    // Conteo por categoría — si hay 20 es probable que haya más (límite API)
+    const byCategory = {};
+    for (const p of places) {
+      const cat = categorizePlace(p);
+      byCategory[cat] = (byCategory[cat] || 0) + 1;
+    }
+
     // Día de semana de la fecha analizada (0=Dom, 1=Lun, ...)
     const dayOfWeek = new Date(`${dateStr}T12:00:00`).getDay();
 
@@ -274,7 +304,7 @@ export async function POST(req) {
     const deltaMinutes = peakMinutes - valleyHour.minutes;
     const deltaPercent = valleyHour.minutes > 0 ? Math.round((deltaMinutes / valleyHour.minutes) * 100) : 0;
 
-    const commercial = { total_places: totalPlaces, avg_rating: avgRating, top_places: topPlaces };
+    const commercial = { total_places: totalPlaces, avg_rating: avgRating, top_places: topPlaces, by_category: byCategory };
     const mapImageUrl = buildStaticMapUrl(bounds);
 
     const summary = `Análisis de zona "${titulo}" (${dateStr}): hora pico ${peakHours[0]?.label} con ${peakMinutes} min de viaje, hora valle ${valleyHour.label} con ${valleyHour.minutes} min. Diferencia: ${deltaMinutes} min más (${deltaPercent}% de demora extra en hora pico). Zona comercial: ${totalPlaces} locales, rating promedio ${avgRating}.`;

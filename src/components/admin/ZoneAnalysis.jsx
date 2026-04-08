@@ -647,8 +647,22 @@ export default function ZoneAnalysis() {
                         <span><span className="text-yellow-400 font-bold">⭐{result.commercial.avg_rating}</span> promedio</span>
                       </div>
                     </div>
+
+                    {/* Breakdown por categoría */}
+                    {result.commercial.by_category && Object.keys(result.commercial.by_category).length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        {Object.entries(result.commercial.by_category)
+                          .sort((a, b) => b[1] - a[1])
+                          .map(([cat, count]) => (
+                            <span key={cat} className="bg-gray-700 text-gray-300 text-[10px] px-2 py-0.5 rounded-full">
+                              {cat} <span className="text-white font-semibold">{count >= 20 ? '+20' : count}</span>
+                            </span>
+                          ))}
+                      </div>
+                    )}
+
                     {result.commercial.top_places?.length > 0 && (
-                      <div className="space-y-1.5">
+                      <div className="space-y-1.5 pt-2 border-t border-gray-700">
                         {result.commercial.top_places.map((p, i) => (
                           <div key={i} className="flex items-center justify-between">
                             <div className="flex items-center gap-2 min-w-0">
