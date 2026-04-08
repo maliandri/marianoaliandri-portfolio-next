@@ -64,31 +64,14 @@ function boundsToCircle(bounds) {
   return { centerLat, centerLng, radius: Math.max(radius, 100) };
 }
 
-async function fetchPlaces(bounds, tipos) {
-  const { centerLat, centerLng, radius } = boundsToCircle(bounds);
-  const typeMap = {
-    restaurant:  'restaurant',
-    combustible: 'gas_station',
-    supermercado:'supermarket',
-    comercio:    'store',
-    shopping:    'shopping_mall',
-  };
-
-  const includedTypes = tipos.includes('todos')
-    ? Object.values(typeMap)
-    : tipos.map(t => typeMap[t]).filter(Boolean);
-
+async function fetchPlacesForType(centerLat, centerLng, radius, types) {
   const body = {
-    includedTypes: includedTypes.length ? includedTypes : undefined,
+    includedTypes: types,
     maxResultCount: 20,
     locationRestriction: {
-      circle: {
-        center: { latitude: centerLat, longitude: centerLng },
-        radius,
-      },
+      circle: { center: { latitude: centerLat, longitude: centerLng }, radius },
     },
   };
-
   const res = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
     method: 'POST',
     headers: {
@@ -98,10 +81,78 @@ async function fetchPlaces(bounds, tipos) {
     },
     body: JSON.stringify(body),
   });
-
-  if (!res.ok) { console.error('Places API error:', await res.text()); return []; }
+  if (!res.ok) return [];
   const data = await res.json();
   return data.places || [];
+}
+
+// Grupos de tipos — una request por grupo (máx 20 resultados c/u)
+const ALL_TYPE_GROUPS = [
+  // Gastronomía
+  ['restaurant', 'cafe', 'bakery', 'bar', 'fast_food_restaurant'],
+  ['pizza_restaurant', 'sandwich_shop', 'hamburger_restaurant', 'ice_cream_shop', 'meal_takeaway'],
+  ['night_club', 'wine_bar', 'seafood_restaurant', 'steak_house', 'brunch_restaurant'],
+  // Almacenes y supermercados
+  ['supermarket', 'grocery_store', 'convenience_store', 'food', 'meal_delivery'],
+  // Salud y farmacia
+  ['pharmacy', 'drugstore', 'doctor', 'dentist', 'hospital'],
+  ['veterinary_care', 'physiotherapist', 'optician', 'mental_health_practitioner'],
+  // Ropa, calzado y accesorios
+  ['clothing_store', 'shoe_store', 'jewelry_store', 'gift_shop', 'florist'],
+  // Electrónica y hogar
+  ['electronics_store', 'computer_store', 'cell_phone_store', 'home_goods_store', 'furniture_store'],
+  // Construcción y servicios del hogar
+  ['hardware_store', 'plumber', 'electrician', 'painter', 'locksmith'],
+  // Comercio general
+  ['department_store', 'shopping_mall', 'book_store', 'toy_store', 'sporting_goods_store'],
+  ['pet_store', 'bicycle_store', 'auto_parts_store', 'laundry', 'dry_cleaning'],
+  // Finanzas y servicios profesionales
+  ['bank', 'atm', 'insurance_agency', 'real_estate_agency', 'accounting'],
+  ['lawyer', 'travel_agency', 'moving_company', 'courier_service'],
+  // Belleza y bienestar
+  ['beauty_salon', 'hair_care', 'barber_shop', 'nail_salon', 'spa'],
+  ['gym', 'fitness_center', 'yoga_studio'],
+  // Automotor
+  ['gas_station', 'car_repair', 'car_wash', 'car_dealer', 'parking'],
+  // Ocio y cultura
+  ['movie_theater', 'bowling_alley', 'casino', 'stadium', 'performing_arts_theater'],
+  // Educación
+  ['school', 'university', 'library', 'driving_school', 'language_school'],
+];
+
+const TIPO_FILTER_MAP = {
+  restaurant:   ['restaurant', 'cafe', 'bakery', 'bar', 'fast_food_restaurant', 'pizza_restaurant', 'sandwich_shop', 'hamburger_restaurant', 'ice_cream_shop', 'meal_takeaway', 'night_club', 'wine_bar', 'seafood_restaurant', 'steak_house'],
+  combustible:  ['gas_station'],
+  supermercado: ['supermarket', 'grocery_store', 'convenience_store'],
+  comercio:     ['clothing_store', 'shoe_store', 'electronics_store', 'department_store', 'shopping_mall', 'book_store', 'toy_store', 'sporting_goods_store', 'pet_store', 'home_goods_store', 'furniture_store'],
+  shopping:     ['shopping_mall', 'department_store'],
+};
+
+async function fetchPlaces(bounds, tipos) {
+  const { centerLat, centerLng, radius } = boundsToCircle(bounds);
+
+  const groups = tipos.includes('todos')
+    ? ALL_TYPE_GROUPS
+    : [tipos.flatMap(t => TIPO_FILTER_MAP[t] || []).filter(Boolean)];
+
+  // Todas las requests en paralelo
+  const results = await Promise.all(
+    groups.map(types => fetchPlacesForType(centerLat, centerLng, radius, types))
+  );
+
+  // Deduplicar por nombre (mismo local puede aparecer en varios grupos)
+  const seen = new Set();
+  const places = [];
+  for (const group of results) {
+    for (const p of group) {
+      const key = p.displayName?.text?.toLowerCase().trim();
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        places.push(p);
+      }
+    }
+  }
+  return places;
 }
 
 // Determina si un lugar está abierto a una hora específica del día
