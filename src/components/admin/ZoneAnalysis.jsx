@@ -132,6 +132,7 @@ export default function ZoneAnalysis() {
 
   // Preview
   const [selectedMedios, setSelectedMedios] = useState([]);
+  const [chartCaptureError, setChartCaptureError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [previewCaption, setPreviewCaption] = useState('');
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
@@ -297,12 +298,13 @@ export default function ZoneAnalysis() {
       });
       const data = await res.json();
       if (data.error) {
-        console.error('Cloudinary error:', data.error.message);
-        return null;
+        setChartCaptureError(`Cloudinary: ${data.error.message}`);
+        // Fallback: devolver data URL local para mostrar en preview igual
+        return canvas.toDataURL('image/png');
       }
       return data.secure_url || null;
     } catch (e) {
-      console.error('Chart capture error:', e);
+      setChartCaptureError(e.message);
       return null;
     } finally {
       setIsCapturing(false);
@@ -315,6 +317,7 @@ export default function ZoneAnalysis() {
     setIsGeneratingPreview(true);
     setPreviewCaption('');
     setChartImageUrl(null);
+    setChartCaptureError('');
 
     const [chartUrl, captionRes] = await Promise.all([
       captureChart(),
@@ -833,8 +836,16 @@ export default function ZoneAnalysis() {
                                   <p className="text-gray-500 text-[10px] mb-1 uppercase tracking-wider">Imagen 2 — Gráfico</p>
                                   {chartImageUrl
                                     ? <img src={chartImageUrl} alt="Gráfico de tráfico" className="w-full h-28 object-cover rounded-lg border border-gray-700" />
-                                    : <div className="w-full h-28 bg-gray-700 rounded-lg flex items-center justify-center">
-                                        <span className="text-gray-500 text-xs">{isCapturing ? '📸 Capturando...' : '—'}</span>
+                                    : <div className="w-full h-28 bg-gray-700 rounded-lg flex flex-col items-center justify-center gap-1 p-2">
+                                        {isCapturing
+                                          ? <span className="text-gray-500 text-xs">📸 Capturando...</span>
+                                          : chartCaptureError
+                                            ? <>
+                                                <span className="text-red-400 text-[10px] text-center leading-tight">⚠️ {chartCaptureError}</span>
+                                                <span className="text-gray-600 text-[10px]">Creá el preset en Cloudinary</span>
+                                              </>
+                                            : <span className="text-gray-500 text-xs">—</span>
+                                        }
                                       </div>
                                   }
                                 </div>
