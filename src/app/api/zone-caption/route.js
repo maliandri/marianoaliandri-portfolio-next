@@ -20,16 +20,29 @@ export async function POST(request) {
       : networks === 'Facebook' ? 'para Facebook'
       : 'para LinkedIn';
 
-    // Build traffic summary from hourly data
-    const peakHour = result.peak_hours?.[0];
+    const peakHour   = result.peak_hours?.[0];
     const valleyHour = result.valley_hour;
     const trafficSummary = peakHour
-      ? `Hora pico: ${peakHour.label} con ${peakHour.minutes} min de tránsito (congestionado). Hora valle: ${valleyHour?.label || 'N/A'} con ${valleyHour?.minutes || '–'} min (fluido).`
+      ? `Hora pico: ${peakHour.label} con ${peakHour.minutes} min de tránsito. Hora valle: ${valleyHour?.label || 'N/A'} con ${valleyHour?.minutes || '–'} min.`
       : result.summary || 'Sin datos de tráfico disponibles.';
 
     const deltaText = result.delta_minutes > 0
       ? `${result.delta_minutes} min más lento en hora pico (+${result.delta_percent}%)`
       : 'Sin variación significativa entre horas';
+
+    // Breakdown por categoría
+    const categoryLines = result.commercial?.by_category
+      ? Object.entries(result.commercial.by_category)
+          .sort((a, b) => b[1] - a[1])
+          .map(([cat, count]) => `  · ${cat}: ${count >= 20 ? 'más de 20' : count} locales`)
+          .join('\n')
+      : '';
+
+    // Top lugares para menciones
+    const topPlaces = result.commercial?.top_places || [];
+    const mentionsNote = topPlaces.length > 0
+      ? `- Referencias destacadas de la zona (mencioná 2-3 usando @NombreLocal — son sugerencias que el usuario va a verificar antes de publicar): ${topPlaces.map(p => p.name).join(', ')}`
+      : '';
 
     const prompt = `Generá un caption ${networkNote} sobre este análisis de zona urbana en Argentina.
 
@@ -37,21 +50,27 @@ TONO: ${tone} — ${TONE_INSTRUCTIONS[tone] || ''}
 
 DATOS DEL ANÁLISIS:
 - Zona analizada: ${result.zona_titulo}
-- Fecha de análisis: ${result.fecha || 'hoy'}
+- Fecha: ${result.fecha || 'fecha reciente'}
 - Tráfico: ${trafficSummary}
 - Variación pico vs valle: ${deltaText}
-- Total de locales comerciales relevados: ${result.commercial?.total_places}
-- Rating promedio de la zona: ${result.commercial?.avg_rating} ⭐
-${result.commercial?.top_places?.length > 0 ? `- Principales referencias: ${result.commercial.top_places.slice(0, 3).map(p => p.name).join(', ')}` : ''}
+- Total de locales relevados: ${result.commercial?.total_places}
+- Rating promedio: ${result.commercial?.avg_rating} ⭐
+${categoryLines ? `- Mix comercial por categoría:\n${categoryLines}` : ''}
+${mentionsNote}
 
 ${extraContext ? `CONTEXTO ADICIONAL: ${extraContext}` : ''}
 
-REGLAS ESTRICTAS:
+INSTRUCCIONES DE MENCIONES:
+- Incluí 2-3 @menciones de los locales destacados integradas naturalmente en el texto (ej: "zonas como la de @OfeCafeResto demuestran que...")
+- Formateá el @handle eliminando espacios y caracteres especiales del nombre (ej: "Ofelia Café & Resto" → @OfeliaCafeResto)
+- Aclaración: estas menciones son aproximadas, el usuario las va a revisar en el preview
+
+REGLAS:
 - Máximo 2000 caracteres
-- Incluí emojis relevantes al contexto urbano y datos
-- Terminá con 4-6 hashtags en español relacionados a datos urbanos, tráfico y ${result.zona_titulo}
-- Tono argentino (vos, che) si el tono es social; formal si es técnico o comercial
-- No menciones precios, servicios ni datos de contacto
+- Emojis relevantes (2-3)
+- Terminá con 4-6 hashtags en español sobre datos urbanos, tráfico y ${result.zona_titulo}
+- Tono argentino (vos, che) si es social; formal si es técnico o comercial
+- No menciones precios ni datos de contacto
 - Devolvé SOLO el texto del caption, sin comillas ni encabezados
 
 Caption:`;
