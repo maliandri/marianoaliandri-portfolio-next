@@ -1,4 +1,4 @@
-import dynamic from 'next/dynamic';
+import LabsPage from '@/views/LabsPage';
 
 export const metadata = {
   title: 'Labs | Mariano Aliandri — Herramientas de escritorio',
@@ -13,8 +13,6 @@ export const metadata = {
     images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
   },
 };
-
-const LabsPage = dynamic(() => import('@/views/LabsPage'), { ssr: false });
 
 export default function LabsRoute() {
   return <LabsPage />;
