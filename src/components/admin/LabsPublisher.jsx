@@ -72,6 +72,7 @@ export default function LabsPublisher() {
   const [imageUrl,        setImageUrl]        = useState('');
   const [capturing,       setCapturing]       = useState(false);
   const [captureMsg,      setCaptureMsg]      = useState('');
+  const [uploading,       setUploading]       = useState(false);
   const [status,          setStatus]          = useState(STATUS.idle);
   const [errorMsg,        setErrorMsg]        = useState('');
 
@@ -118,6 +119,39 @@ export default function LabsPublisher() {
       setCaptureMsg(`❌ ${err.message}`);
     } finally {
       setCapturing(false);
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setCaptureMsg('');
+    try {
+      const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+      const PRESET     = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+      const form = new FormData();
+      form.append('file',          file);
+      form.append('upload_preset', PRESET);
+      form.append('folder',        'labs');
+      form.append('public_id',     tool.cloudinaryId);
+      form.append('overwrite',     'true');
+
+      const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+        method: 'POST',
+        body:   form,
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+
+      setImageUrl(data.secure_url);
+      setCaptureMsg('✅ Imagen subida desde PC');
+    } catch (err) {
+      setCaptureMsg(`❌ ${err.message}`);
+    } finally {
+      setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -345,24 +379,51 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
           )}
         </AnimatePresence>
 
-        {/* Botón capturar → Cloudinary */}
-        <motion.button
-          onClick={handleCapture}
-          disabled={capturing}
-          whileHover={capturing ? {} : { scale: 1.02 }}
-          whileTap={capturing ? {} : { scale: 0.98 }}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 mb-3 bg-teal-700 hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-all"
-        >
-          {capturing ? (
-            <>
-              <motion.span animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-                className="inline-block">◌</motion.span>
-              Capturando screenshot...
-            </>
-          ) : (
-            <>📸 Capturar screenshot → subir a Cloudinary</>
-          )}
-        </motion.button>
+        {/* Acciones de imagen */}
+        <div className="flex gap-2 mb-3">
+          {/* Capturar screenshot */}
+          <motion.button
+            onClick={handleCapture}
+            disabled={capturing || uploading}
+            whileHover={capturing || uploading ? {} : { scale: 1.02 }}
+            whileTap={capturing || uploading ? {} : { scale: 0.98 }}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-teal-700 hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-all"
+          >
+            {capturing ? (
+              <>
+                <motion.span animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                  className="inline-block">◌</motion.span>
+                Capturando...
+              </>
+            ) : (
+              <>📸 Screenshot de /labs</>
+            )}
+          </motion.button>
+
+          {/* Subir desde PC */}
+          <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all
+            ${uploading
+              ? 'bg-gray-700 opacity-50 cursor-not-allowed'
+              : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
+          >
+            {uploading ? (
+              <>
+                <motion.span animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                  className="inline-block">◌</motion.span>
+                Subiendo...
+              </>
+            ) : (
+              <>🖼️ Subir desde PC</>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={uploading || capturing}
+              onChange={handleFileUpload}
+            />
+          </label>
+        </div>
 
         {captureMsg && (
           <p className={`text-xs mb-3 ${captureMsg.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>
