@@ -10,6 +10,7 @@ import SocialPublisher from '../components/admin/SocialPublisher';
 import CanvasReelGenerator from '../components/admin/CanvasReelGenerator';
 import CronScheduler from '../components/admin/CronScheduler';
 import ZoneAnalysis from '../components/admin/ZoneAnalysis';
+import LabsPublisher from '../components/admin/LabsPublisher';
 import LeadFinderPanel from '../components/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 
@@ -633,6 +634,7 @@ export default function AdminPage() {
                 { id: 'productos',    label: '🛍️ Productos' },
                 { id: 'proyectos',    label: '📁 Proyectos' },
                 { id: 'reel',         label: '🎬 Reel' },
+                { id: 'labs',         label: '🧪 Labs' },
               ].map(sub => (
                 <button
                   key={sub.id}
@@ -653,6 +655,7 @@ export default function AdminPage() {
             {socialSubTab === 'productos'    && <SocialMediaDashboard key="productos"    initialTab="products" />}
             {socialSubTab === 'proyectos'    && <SocialMediaDashboard key="proyectos"    initialTab="proyectos" />}
             {socialSubTab === 'reel'         && <CanvasReelGenerator />}
+            {socialSubTab === 'labs'         && <LabsPublisher />}
           </div>
         )}
 
