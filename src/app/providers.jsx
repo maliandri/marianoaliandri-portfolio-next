@@ -30,7 +30,7 @@ const ROICalculator = dynamic(() => import('@/components/Calculadora'), { ssr: f
 const WebCalculator = dynamic(() => import('@/components/CalculadoraWeb'), { ssr: false });
 const RadarWeb = dynamic(() => import('@/components/RadarWeb'), { ssr: false });
 
-const TOOL_PATHS = ['/web', '/roi', '/stats', '/ats', '/kpi', '/radarweb'];
+const TOOL_PATHS = ['/web', '/roi', '/stats', '/ats', '/kpi', '/radarweb', '/labs'];
 
 function AppChrome({ children }) {
   const rawPathname = usePathname();
@@ -98,6 +98,10 @@ function AppChrome({ children }) {
           <Link href="/stats" className="floating-button" title="Estadísticas">
             <span className="button-icon">📊</span>
             <span className="button-label">Estadísticas</span>
+          </Link>
+          <Link href="/labs" className="floating-button" title="Labs — Herramientas de escritorio">
+            <span className="button-icon">🧪</span>
+            <span className="button-label">Labs</span>
           </Link>
         </div>
       )}

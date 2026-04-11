@@ -11,6 +11,7 @@ export default function Footer() {
     { name: 'Calcular ROI', href: '/#roi', type: 'scroll' },
     { name: 'Calcular Web', href: '/#web', type: 'scroll' },
     { name: 'Tienda', href: '/tienda', type: 'route' },
+    { name: 'Labs', href: '/labs', type: 'route' },
     { name: 'Servicios', href: '/#servicios', type: 'scroll' },
     { name: 'Habilidades', href: '/#skills', type: 'scroll' },
     { name: 'Contacto', href: '/#contact', type: 'scroll' },

@@ -56,6 +56,12 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Descargas de herramientas Labs — solo escritura vía Admin SDK (server-side)
+    match /tool_downloads/{docId} {
+      allow read: if false;  // Solo visible desde el panel admin via Admin SDK
+      allow write: if false; // Solo Admin SDK puede escribir
+    }
+
     // Preguntas y respuestas de productos
     match /productQuestions/{questionId} {
       allow read: if true;
