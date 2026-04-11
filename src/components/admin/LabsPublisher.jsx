@@ -1,6 +1,10 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+function microlinkUrl(pageUrl) {
+  return `https://api.microlink.io/?url=${encodeURIComponent(pageUrl)}&screenshot=true&meta=false&embed=screenshot.url`;
+}
 
 // ─── Catálogo de herramientas Labs ────────────────────────────────────────────
 const LABS_TOOLS = [
@@ -30,6 +34,8 @@ const LABS_TOOLS = [
       'Cable USB con soporte de datos',
     ],
     downloadUrl: 'https://marianoaliandri.com.ar/labs',
+    pageUrl:     'https://marianoaliandri.com.ar/labs',
+    cloudinaryId: 'labs/navaja-suiza-screenshot',
     tags: ['Android', 'almacenamiento', 'backup', 'ADB', 'Python', 'desktop', 'gratis'],
   },
 ];
@@ -64,6 +70,8 @@ export default function LabsPublisher() {
   const [selectedTono,    setSelectedTono]    = useState('profesional');
   const [extraContext,    setExtraContext]     = useState('');
   const [imageUrl,        setImageUrl]        = useState('');
+  const [capturing,       setCapturing]       = useState(false);
+  const [captureMsg,      setCaptureMsg]      = useState('');
   const [status,          setStatus]          = useState(STATUS.idle);
   const [errorMsg,        setErrorMsg]        = useState('');
 
@@ -71,6 +79,47 @@ export default function LabsPublisher() {
   const postType = POST_TYPES.find(p => p.id === selectedPost);
   const red      = REDES.find(r => r.id === selectedRed);
   const canSend  = tool && postType && status === STATUS.idle;
+
+  // Al cambiar herramienta, pre-cargar preview Microlink
+  useEffect(() => {
+    if (tool) {
+      setImageUrl(microlinkUrl(tool.pageUrl));
+      setCaptureMsg('');
+    }
+  }, [selectedTool]);
+
+  const handleCapture = async () => {
+    if (!tool) return;
+    setCapturing(true);
+    setCaptureMsg('');
+    try {
+      const screenshotSrc = microlinkUrl(tool.pageUrl);
+      const CLOUD_NAME    = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+      const PRESET        = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+      const form = new FormData();
+      form.append('file',           screenshotSrc);
+      form.append('upload_preset',  PRESET);
+      form.append('folder',         'labs');
+      form.append('public_id',      tool.cloudinaryId);
+      form.append('overwrite',      'true');
+
+      const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+        method: 'POST',
+        body:   form,
+      });
+      const data = await res.json();
+
+      if (data.error) throw new Error(data.error.message);
+
+      setImageUrl(data.secure_url);
+      setCaptureMsg('✅ Subido a Cloudinary');
+    } catch (err) {
+      setCaptureMsg(`❌ ${err.message}`);
+    } finally {
+      setCapturing(false);
+    }
+  };
 
   // Arma el texto completo que Gemini de Make.com va a usar para generar el post
   const buildText = () => {
@@ -269,43 +318,69 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
         </div>
       </div>
 
-      {/* 5. Imagen (opcional) */}
+      {/* 5. Imagen */}
       <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
         <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
           <span className="bg-teal-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">5</span>
-          Imagen
-          <span className="text-xs text-gray-500 font-normal">— opcional</span>
+          Imagen del post
         </h3>
 
+        {/* Preview */}
         <AnimatePresence mode="wait">
           {imageUrl && (
             <motion.div
-              key={imageUrl}
-              initial={{ opacity: 0, scale: 0.95 }}
+              key={imageUrl.slice(-30)}
+              initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="mb-3 flex items-center justify-center bg-gray-900 rounded-xl p-6 border border-gray-700"
+              exit={{ opacity: 0 }}
+              className="mb-3 bg-gray-900 rounded-xl overflow-hidden border border-gray-700"
             >
               <img
                 src={imageUrl}
                 alt="preview"
-                className="max-h-28 max-w-full object-contain"
-                onError={e => e.target.style.display = 'none'}
+                className="w-full max-h-56 object-cover object-top"
+                onError={e => { e.target.style.display = 'none'; }}
               />
             </motion.div>
           )}
         </AnimatePresence>
 
+        {/* Botón capturar → Cloudinary */}
+        <motion.button
+          onClick={handleCapture}
+          disabled={capturing}
+          whileHover={capturing ? {} : { scale: 1.02 }}
+          whileTap={capturing ? {} : { scale: 0.98 }}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 mb-3 bg-teal-700 hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-all"
+        >
+          {capturing ? (
+            <>
+              <motion.span animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                className="inline-block">◌</motion.span>
+              Capturando screenshot...
+            </>
+          ) : (
+            <>📸 Capturar screenshot → subir a Cloudinary</>
+          )}
+        </motion.button>
+
+        {captureMsg && (
+          <p className={`text-xs mb-3 ${captureMsg.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>
+            {captureMsg}
+          </p>
+        )}
+
+        {/* URL manual override */}
         <input
           type="text"
           value={imageUrl}
           onChange={e => setImageUrl(e.target.value)}
-          placeholder="URL de imagen para el post (Cloudinary, etc.)"
+          placeholder="URL de imagen (se actualiza al capturar)"
           className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-teal-500 placeholder-gray-500"
         />
         {imageUrl && (
           <button
-            onClick={() => setImageUrl('')}
+            onClick={() => { setImageUrl(''); setCaptureMsg(''); }}
             className="mt-2 text-xs text-gray-500 hover:text-red-400 transition-colors"
           >
             ✕ Quitar imagen
