@@ -3,7 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function microlinkUrl(pageUrl) {
-  return `https://api.microlink.io/?url=${encodeURIComponent(pageUrl)}&screenshot=true&meta=false&embed=screenshot.url`;
+  const clean = pageUrl.replace(/\/$/, '');
+  const target = `${clean}?screenshot=1`;
+  return `https://api.microlink.io/?url=${encodeURIComponent(target)}&screenshot=true&meta=false&embed=screenshot.url&viewport.width=600&viewport.height=800&force=true`;
 }
 
 // ─── Catálogo de herramientas Labs ────────────────────────────────────────────

@@ -4,7 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CartProvider } from '@/context/CartContext';
 import { queryClient } from '@/utils/queryClient';
@@ -29,20 +29,33 @@ const CVATSUploader = dynamic(() => import('@/components/CVATSUploader'), { ssr:
 const ROICalculator = dynamic(() => import('@/components/Calculadora'), { ssr: false });
 const WebCalculator = dynamic(() => import('@/components/CalculadoraWeb'), { ssr: false });
 const RadarWeb = dynamic(() => import('@/components/RadarWeb'), { ssr: false });
+const LabsTool = dynamic(() => import('@/components/LabsTool'), { ssr: false });
 
 const TOOL_PATHS = ['/web', '/roi', '/stats', '/ats', '/kpi', '/radarweb', '/labs'];
 
-function AppChrome({ children }) {
+function AppChromeInner({ children }) {
   const rawPathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
 
   // Normalize: remove trailing slash for matching (trailingSlash:true adds it)
   const pathname = rawPathname.replace(/\/$/, '') || '/';
 
+  // ?screenshot=1 → renderizar solo el contenido, sin chrome (para Microlink / OG)
+  const isScreenshot = searchParams.get('screenshot') === '1';
+
   const isToolPage = TOOL_PATHS.includes(pathname);
   const showFloatingButtons = pathname === '/' || isToolPage;
 
   const closeTool = () => router.push('/');
+
+  if (isScreenshot) {
+    return (
+      <div className="App font-sans min-h-screen text-gray-800 bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
+        {children}
+      </div>
+    );
+  }
 
   return (
     <div className="App font-sans min-h-screen text-gray-800 bg-gray-50 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-500 relative overflow-x-hidden">
@@ -67,6 +80,8 @@ function AppChrome({ children }) {
         {pathname === '/web' && <WebCalculator isOpen={true} onClose={closeTool} hideFloatingButton={true} />}
         {pathname === '/kpi' && <KpiRadar isOpen={true} onClose={closeTool} hideFloatingButton={true} />}
         {pathname === '/radarweb' && <RadarWeb isOpen={true} onClose={closeTool} hideFloatingButton={true} />}
+        {/* Labs: modal — ?screenshot=1 no llega aquí (early return arriba) */}
+        {pathname === '/labs' && <LabsTool isOpen={true} onClose={closeTool} hideFloatingButton={true} />}
       </Suspense>
 
       {/* Page content */}
@@ -110,6 +125,16 @@ function AppChrome({ children }) {
       <LinkedInSidebar />
       <WhatsAppButton />
     </div>
+  );
+}
+
+function AppChrome({ children }) {
+  return (
+    <Suspense fallback={
+      <div className="App font-sans min-h-screen bg-gray-50 dark:bg-gray-900">{children}</div>
+    }>
+      <AppChromeInner>{children}</AppChromeInner>
+    </Suspense>
   );
 }
 
