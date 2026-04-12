@@ -99,11 +99,8 @@ export default function LabsPublisher() {
       const PRESET        = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
       const form = new FormData();
-      form.append('file',           screenshotSrc);
-      form.append('upload_preset',  PRESET);
-      form.append('folder',         'labs');
-      form.append('public_id',      tool.cloudinaryId);
-      form.append('overwrite',      'true');
+      form.append('file',          screenshotSrc);
+      form.append('upload_preset', PRESET);
 
       const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
         method: 'POST',
@@ -134,9 +131,6 @@ export default function LabsPublisher() {
       const form = new FormData();
       form.append('file',          file);
       form.append('upload_preset', PRESET);
-      form.append('folder',        'labs');
-      form.append('public_id',     tool.cloudinaryId);
-      form.append('overwrite',     'true');
 
       const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
         method: 'POST',
