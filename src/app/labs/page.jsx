@@ -1,4 +1,5 @@
-import LabsPage from '@/views/LabsPage';
+import { Suspense } from 'react';
+import LabsPageContent from './LabsPageContent';
 
 export const metadata = {
   title: 'Labs | Mariano Aliandri — Herramientas de escritorio',
@@ -14,6 +15,11 @@ export const metadata = {
   },
 };
 
+// Suspense requerido por useSearchParams dentro de LabsPageContent
 export default function LabsRoute() {
-  return <LabsPage />;
+  return (
+    <Suspense fallback={null}>
+      <LabsPageContent />
+    </Suspense>
+  );
 }
