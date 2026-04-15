@@ -463,8 +463,14 @@ export default function ZoneAnalysis() {
   };
 
   const uploadToCloudinary = async (dataUrl) => {
-    // Convertir dataUrl a Blob binario — Cloudinary rechaza strings base64 con 400
-    const blob = await fetch(dataUrl).then(r => r.blob());
+    // Convertir dataUrl a Blob con atob (más confiable que fetch para data URIs)
+    const [meta, b64] = dataUrl.split(',');
+    const mime = meta.match(/:(.*?);/)[1];
+    const bytes = atob(b64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    const blob = new Blob([arr], { type: mime });
+
     const form = new FormData();
     form.append('file', blob, 'capture.png');
     form.append('upload_preset', 'Mariano_cargas_web');
@@ -473,7 +479,7 @@ export default function ZoneAnalysis() {
       body: form,
     });
     const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
+    if (data.error) throw new Error(`Cloudinary: ${data.error.message}`);
     return data.secure_url;
   };
 
@@ -482,7 +488,7 @@ export default function ZoneAnalysis() {
     setIsCapturing(true);
     try {
       const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(resultsRef.current, { backgroundColor: '#1f2937', pixelRatio: 2, skipFonts: true });
+      const dataUrl = await toPng(resultsRef.current, { backgroundColor: '#1f2937', pixelRatio: 2, fontEmbedCSS: '' });
       return await uploadToCloudinary(dataUrl);
     } catch (e) {
       setChartCaptureError(e.message);
@@ -496,7 +502,7 @@ export default function ZoneAnalysis() {
     if (!heatmapRef.current) return null;
     try {
       const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(heatmapRef.current, { backgroundColor: '#111827', pixelRatio: 2, skipFonts: true });
+      const dataUrl = await toPng(heatmapRef.current, { backgroundColor: '#111827', pixelRatio: 2, fontEmbedCSS: '' });
       return await uploadToCloudinary(dataUrl);
     } catch (e) {
       setChartCaptureError(e.message);
