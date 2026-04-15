@@ -523,9 +523,11 @@ export default function ZoneAnalysis() {
     setHeatmapImageUrl(null);
     setChartCaptureError('');
 
-    const [heatUrl, chartUrl, captionRes] = await Promise.all([
-      captureHeatmap(),
-      captureChart(),
+    // Capturas en secuencia — en paralelo el re-render de isCapturing rompe la segunda captura
+    const heatUrl  = await captureHeatmap();
+    const chartUrl = await captureChart();
+
+    const [captionRes] = await Promise.all([
       fetch('/api/zone-caption', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
