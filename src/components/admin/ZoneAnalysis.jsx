@@ -463,8 +463,10 @@ export default function ZoneAnalysis() {
   };
 
   const uploadToCloudinary = async (dataUrl) => {
+    // Convertir dataUrl a Blob binario — Cloudinary rechaza strings base64 con 400
+    const blob = await fetch(dataUrl).then(r => r.blob());
     const form = new FormData();
-    form.append('file', dataUrl);
+    form.append('file', blob, 'capture.png');
     form.append('upload_preset', 'Mariano_cargas_web');
     const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
       method: 'POST',
@@ -480,7 +482,7 @@ export default function ZoneAnalysis() {
     setIsCapturing(true);
     try {
       const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(resultsRef.current, { backgroundColor: '#1f2937', pixelRatio: 2 });
+      const dataUrl = await toPng(resultsRef.current, { backgroundColor: '#1f2937', pixelRatio: 2, skipFonts: true });
       return await uploadToCloudinary(dataUrl);
     } catch (e) {
       setChartCaptureError(e.message);
@@ -494,7 +496,7 @@ export default function ZoneAnalysis() {
     if (!heatmapRef.current) return null;
     try {
       const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(heatmapRef.current, { backgroundColor: '#111827', pixelRatio: 2 });
+      const dataUrl = await toPng(heatmapRef.current, { backgroundColor: '#111827', pixelRatio: 2, skipFonts: true });
       return await uploadToCloudinary(dataUrl);
     } catch (e) {
       setChartCaptureError(e.message);
