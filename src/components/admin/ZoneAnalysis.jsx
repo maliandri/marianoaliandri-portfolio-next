@@ -479,7 +479,10 @@ export default function ZoneAnalysis() {
       body: form,
     });
     const data = await res.json();
-    if (data.error) throw new Error(`Cloudinary: ${data.error.message}`);
+    if (data.error) {
+      console.error('[Cloudinary 400]', JSON.stringify(data.error));
+      throw new Error(`Cloudinary: ${data.error.message}`);
+    }
     return data.secure_url;
   };
 
