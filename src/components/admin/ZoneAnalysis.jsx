@@ -36,6 +36,191 @@ const RADIOS = [
 
 const CONGESTION_ICONS = { LOW: '🟢', MEDIUM: '🟡', HIGH: '🔴' };
 const CONGESTION_LABELS = { LOW: 'Fluido', MEDIUM: 'Moderado', HIGH: 'Congestionado' };
+const CONGESTION_COLORS = { LOW: '#22c55e', MEDIUM: '#eab308', HIGH: '#ef4444', UNKNOWN: '#374151' };
+
+// Calcula dimensiones de la zona en cuadras (bloque estándar ~100m)
+function calcCuadras(bounds) {
+  if (!bounds) return null;
+  const R = 111000;
+  const centerLat = (bounds.north + bounds.south) / 2;
+  const heightM = (bounds.north - bounds.south) * R;
+  const widthM = (bounds.east - bounds.west) * R * Math.cos(centerLat * Math.PI / 180);
+  return {
+    cuadrasAlto: Math.round(heightM / 100),
+    cuadrasAncho: Math.round(widthM / 100),
+    metrosAlto: Math.round(heightM),
+    metrosAncho: Math.round(widthM),
+  };
+}
+
+// Panel de heatmap capturado como imagen social
+function HeatmapPanel({ result, bounds, innerRef }) {
+  if (!result) return null;
+  const cuadras = calcCuadras(bounds);
+
+  // Contar horas por nivel de congestión
+  const congCount = (result.hourly || []).reduce(
+    (acc, h) => { acc[h.congestion] = (acc[h.congestion] || 0) + 1; return acc; },
+    { HIGH: 0, MEDIUM: 0, LOW: 0, UNKNOWN: 0 },
+  );
+  const dominantCong = congCount.HIGH >= 4 ? 'HIGH' : congCount.MEDIUM >= congCount.LOW ? 'MEDIUM' : 'LOW';
+
+  // Períodos del día
+  const PERIODS = [
+    { label: 'Mañana', range: [6, 12], icon: '🌅' },
+    { label: 'Mediodía', range: [12, 15], icon: '☀️' },
+    { label: 'Tarde', range: [15, 20], icon: '🌆' },
+    { label: 'Noche', range: [20, 23], icon: '🌙' },
+  ];
+  const periodCong = PERIODS.map(p => {
+    const hours = (result.hourly || []).filter(h => h.hour >= p.range[0] && h.hour < p.range[1]);
+    const avgMin = hours.length ? Math.round(hours.reduce((s, h) => s + (h.minutes || 0), 0) / hours.length) : 0;
+    const maxCong = hours.reduce((best, h) => {
+      const rank = { HIGH: 3, MEDIUM: 2, LOW: 1, UNKNOWN: 0 };
+      return rank[h.congestion] > rank[best] ? h.congestion : best;
+    }, 'UNKNOWN');
+    return { ...p, avgMin, maxCong };
+  });
+
+  const s = {
+    wrap:     { background: '#111827', padding: '24px', borderRadius: '16px', width: '600px', fontFamily: 'system-ui, sans-serif' },
+    header:   { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' },
+    tag:      { color: CONGESTION_COLORS[dominantCong], fontSize: '10px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px' },
+    title:    { color: '#fff', fontSize: '20px', fontWeight: 700, margin: 0 },
+    subtitle: { color: '#6b7280', fontSize: '12px', marginTop: '4px' },
+    cuadBadge:{ background: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.5)', borderRadius: '10px', padding: '10px 14px', textAlign: 'center' },
+    cuadLabel:{ color: '#a78bfa', fontSize: '9px', fontWeight: 700, letterSpacing: '1px', margin: '0 0 2px' },
+    cuadVal:  { color: '#fff', fontSize: '18px', fontWeight: 700, margin: 0 },
+    cuadSub:  { color: '#6b7280', fontSize: '9px', margin: '2px 0 0' },
+    sectionLabel: { color: '#9ca3af', fontSize: '10px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' },
+    heatGrid: { display: 'grid', gridTemplateColumns: `repeat(${(result.hourly || []).length}, 1fr)`, gap: '3px', marginBottom: '6px' },
+    heatCell: (h) => ({
+      background: CONGESTION_COLORS[h.congestion] || CONGESTION_COLORS.UNKNOWN,
+      opacity: h.congestion === 'UNKNOWN' ? 0.25 : 0.9,
+      borderRadius: '4px',
+      height: '36px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      paddingBottom: '3px',
+    }),
+    heatHour: { color: 'rgba(0,0,0,0.6)', fontSize: '7px', fontWeight: 700 },
+    heatBar:  (h) => ({
+      width: '100%',
+      height: h.minutes ? `${Math.max((h.minutes / Math.max(...(result.hourly||[]).filter(x=>x.minutes).map(x=>x.minutes),1)) * 28, 4)}px` : '3px',
+      background: CONGESTION_COLORS[h.congestion] || CONGESTION_COLORS.UNKNOWN,
+      borderRadius: '3px 3px 0 0',
+    }),
+    legend:   { display: 'flex', gap: '12px', marginBottom: '16px' },
+    legendDot:{ width: '10px', height: '10px', borderRadius: '2px' },
+    statsGrid:{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '16px' },
+    statBox:  (color) => ({
+      background: `${color}1a`, border: `1px solid ${color}4d`,
+      borderRadius: '10px', padding: '12px', textAlign: 'center',
+    }),
+    statLabel:{ fontSize: '9px', fontWeight: 700, letterSpacing: '1px', margin: '0 0 4px' },
+    statVal:  { color: '#fff', fontSize: '22px', fontWeight: 700, margin: 0 },
+    statSub:  { color: '#9ca3af', fontSize: '9px', margin: '3px 0 0' },
+    perGrid:  { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '16px' },
+    perBox:   (cong) => ({
+      background: `${CONGESTION_COLORS[cong] || '#374151'}1a`,
+      border: `1px solid ${CONGESTION_COLORS[cong] || '#374151'}4d`,
+      borderRadius: '8px', padding: '10px 6px', textAlign: 'center',
+    }),
+    deltaBox: { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '8px 12px', textAlign: 'center', marginBottom: '12px' },
+    brand:    { textAlign: 'right' },
+    brandText:{ color: '#374151', fontSize: '9px' },
+  };
+
+  return (
+    <div ref={innerRef} style={s.wrap}>
+      {/* Header */}
+      <div style={s.header}>
+        <div>
+          <p style={s.tag}>🗺️ Análisis de Zona · {CONGESTION_LABELS[dominantCong]}</p>
+          <h2 style={s.title}>{result.zona_titulo}</h2>
+          <p style={s.subtitle}>{result.fecha} · tráfico 6:00–22:00</p>
+        </div>
+        {cuadras && (
+          <div style={s.cuadBadge}>
+            <p style={s.cuadLabel}>📐 DIMENSIÓN</p>
+            <p style={s.cuadVal}>{cuadras.cuadrasAncho} × {cuadras.cuadrasAlto}</p>
+            <p style={s.cuadSub}>cuadras ({cuadras.metrosAncho}m × {cuadras.metrosAlto}m)</p>
+          </div>
+        )}
+      </div>
+
+      {/* Heatmap horario */}
+      <p style={s.sectionLabel}>Tráfico horario — intensidad de congestión</p>
+      <div style={{ position: 'relative' }}>
+        <div style={s.heatGrid}>
+          {(result.hourly || []).map(h => (
+            <div key={h.hour} style={s.heatCell(h)}>
+              <div style={s.heatBar(h)} />
+              <span style={s.heatHour}>{h.hour}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={s.legend}>
+        {[['LOW', '#22c55e', 'Fluido'], ['MEDIUM', '#eab308', 'Moderado'], ['HIGH', '#ef4444', 'Congestionado']].map(([k, c, l]) => (
+          <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{ ...s.legendDot, background: c }} />
+            <span style={{ color: '#9ca3af', fontSize: '10px' }}>{l}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Estadísticas principales */}
+      <div style={s.statsGrid}>
+        <div style={s.statBox('#ef4444')}>
+          <p style={{ ...s.statLabel, color: '#f87171' }}>🔴 HORA PICO</p>
+          <p style={s.statVal}>{result.peak_hours?.[0]?.label ?? '—'}</p>
+          <p style={s.statSub}>{result.peak_hours?.[0]?.minutes} min de viaje</p>
+        </div>
+        <div style={s.statBox('#22c55e')}>
+          <p style={{ ...s.statLabel, color: '#4ade80' }}>🟢 HORA VALLE</p>
+          <p style={s.statVal}>{result.valley_hour?.label ?? '—'}</p>
+          <p style={s.statSub}>{result.valley_hour?.minutes} min de viaje</p>
+        </div>
+        <div style={s.statBox('#3b82f6')}>
+          <p style={{ ...s.statLabel, color: '#60a5fa' }}>🏪 LOCALES</p>
+          <p style={s.statVal}>{result.commercial?.total_places ?? '—'}</p>
+          <p style={s.statSub}>⭐ {result.commercial?.avg_rating} promedio</p>
+        </div>
+      </div>
+
+      {/* Concentración por período (Feature 3) */}
+      <p style={s.sectionLabel}>Concentración de tráfico por período</p>
+      <div style={s.perGrid}>
+        {periodCong.map(p => (
+          <div key={p.label} style={s.perBox(p.maxCong)}>
+            <div style={{ fontSize: '18px', marginBottom: '4px' }}>{p.icon}</div>
+            <p style={{ color: '#fff', fontSize: '11px', fontWeight: 700, margin: '0 0 2px' }}>{p.label}</p>
+            <p style={{ color: CONGESTION_COLORS[p.maxCong], fontSize: '9px', fontWeight: 600, margin: '0 0 2px' }}>
+              {CONGESTION_LABELS[p.maxCong] || '—'}
+            </p>
+            {p.avgMin > 0 && <p style={{ color: '#6b7280', fontSize: '9px', margin: 0 }}>~{p.avgMin} min</p>}
+          </div>
+        ))}
+      </div>
+
+      {/* Delta pico vs valle */}
+      {result.delta_minutes > 0 && (
+        <div style={s.deltaBox}>
+          <span style={{ color: '#fca5a5', fontSize: '12px', fontWeight: 600 }}>
+            En hora pico tardás {result.delta_minutes} min más que en hora valle (+{result.delta_percent}%)
+          </span>
+        </div>
+      )}
+
+      <div style={s.brand}>
+        <span style={s.brandText}>marianoaliandri.com.ar · Análisis Urbano</span>
+      </div>
+    </div>
+  );
+}
 
 function PeriodoPicker({ label, value, onChange }) {
   return (
@@ -137,8 +322,10 @@ export default function ZoneAnalysis() {
   const [previewCaption, setPreviewCaption] = useState('');
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
   const [chartImageUrl, setChartImageUrl] = useState(null);
+  const [heatmapImageUrl, setHeatmapImageUrl] = useState(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const resultsRef = useRef(null);
+  const heatmapRef = useRef(null);
 
   // Zonas guardadas
   const [zonasGuardadas, setZonasGuardadas] = useState([]);
@@ -275,36 +462,43 @@ export default function ZoneAnalysis() {
     }
   };
 
+  const uploadToCloudinary = async (dataUrl) => {
+    const form = new FormData();
+    form.append('file', dataUrl);
+    form.append('upload_preset', 'Mariano_cargas_web');
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+      method: 'POST',
+      body: form,
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    return data.secure_url;
+  };
+
   const captureChart = async () => {
     if (!resultsRef.current) return null;
     setIsCapturing(true);
     try {
       const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(resultsRef.current, {
-        backgroundColor: '#1f2937',
-        pixelRatio: 2,
-      });
-      // Convertir dataUrl a blob
-      const blob = await fetch(dataUrl).then(r => r.blob());
-      const form = new FormData();
-      form.append('file', dataUrl);
-      form.append('upload_preset', 'zone_analysis_images');
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-        method: 'POST',
-        body: form,
-      });
-      const data = await res.json();
-      if (data.error) {
-        setChartCaptureError(`Cloudinary: ${data.error.message}`);
-        // Fallback: mostrar en preview igual aunque no suba a Cloudinary
-        return dataUrl;
-      }
-      return data.secure_url || dataUrl;
+      const dataUrl = await toPng(resultsRef.current, { backgroundColor: '#1f2937', pixelRatio: 2 });
+      return await uploadToCloudinary(dataUrl);
     } catch (e) {
       setChartCaptureError(e.message);
       return null;
     } finally {
       setIsCapturing(false);
+    }
+  };
+
+  const captureHeatmap = async () => {
+    if (!heatmapRef.current) return null;
+    try {
+      const { toPng } = await import('html-to-image');
+      const dataUrl = await toPng(heatmapRef.current, { backgroundColor: '#111827', pixelRatio: 2 });
+      return await uploadToCloudinary(dataUrl);
+    } catch (e) {
+      setChartCaptureError(e.message);
+      return null;
     }
   };
 
@@ -314,9 +508,11 @@ export default function ZoneAnalysis() {
     setIsGeneratingPreview(true);
     setPreviewCaption('');
     setChartImageUrl(null);
+    setHeatmapImageUrl(null);
     setChartCaptureError('');
 
-    const [chartUrl, captionRes] = await Promise.all([
+    const [heatUrl, chartUrl, captionRes] = await Promise.all([
+      captureHeatmap(),
       captureChart(),
       fetch('/api/zone-caption', {
         method: 'POST',
@@ -345,6 +541,7 @@ export default function ZoneAnalysis() {
       }).then(r => r.json()).catch(() => ({ caption: result.summary })),
     ]);
 
+    if (heatUrl) setHeatmapImageUrl(heatUrl);
     if (chartUrl) setChartImageUrl(chartUrl);
     setPreviewCaption(captionRes.caption || result.summary || '');
     setIsGeneratingPreview(false);
@@ -366,9 +563,9 @@ export default function ZoneAnalysis() {
           type: 'zone_analysis',
           useAI: true,
           aiProvider: 'gemini',
-          // Instagram solo acepta una imagen — usamos el mapa como principal
-          imageUrl: result.map_image_url,
-          // chartImageUrl disponible para LinkedIn/Facebook en Make.com si se mapea
+          // Heatmap como imagen principal (CDN público — funciona en Instagram)
+          imageUrl: heatmapImageUrl || result.map_image_url,
+          // Gráfico como imagen secundaria para LinkedIn/Facebook
           chartImageUrl: chartImageUrl || undefined,
           extra_context: extraContext.trim() || undefined,
           metadata: {
@@ -486,14 +683,24 @@ export default function ZoneAnalysis() {
                   {bounds && <p className="text-green-400 text-xs mt-1">📍 Centro: {((bounds.north + bounds.south) / 2).toFixed(5)}, {((bounds.east + bounds.west) / 2).toFixed(5)}</p>}
                 </div>
 
-                {bounds && (
-                  <div className="bg-purple-900/30 border border-purple-700 rounded-lg px-3 py-2 text-xs text-purple-300">
-                    📐 Zona seleccionada · Arrastrá las esquinas para ajustar
-                    <div className="text-gray-400 mt-0.5 font-mono">
-                      N {bounds.north.toFixed(5)} · S {bounds.south.toFixed(5)} · E {bounds.east.toFixed(5)} · O {bounds.west.toFixed(5)}
+                {bounds && (() => {
+                  const cq = calcCuadras(bounds);
+                  return (
+                    <div className="bg-purple-900/30 border border-purple-700 rounded-lg px-3 py-2 text-xs text-purple-300 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span>📐 Zona seleccionada · Arrastrá las esquinas para ajustar</span>
+                        {cq && (
+                          <span className="bg-purple-700/50 text-purple-200 rounded-full px-2 py-0.5 font-semibold text-[10px]">
+                            {cq.cuadrasAncho}×{cq.cuadrasAlto} cua · {cq.metrosAncho}×{cq.metrosAlto}m
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-gray-400 font-mono">
+                        N {bounds.north.toFixed(5)} · S {bounds.south.toFixed(5)} · E {bounds.east.toFixed(5)} · O {bounds.west.toFixed(5)}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 <div>
                   <label className="text-gray-400 text-xs mb-2 block">Tipos de locales</label>
@@ -574,12 +781,24 @@ export default function ZoneAnalysis() {
                 <div className="bg-gray-800 rounded-xl overflow-hidden border border-gray-700">
                   <div className="px-4 py-3 flex items-center justify-between">
                     <h3 className="text-white font-semibold text-sm">{result.zona_titulo}</h3>
-                    <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded-full">Zona rectangular</span>
+                    {(() => { const cq = calcCuadras(bounds); return cq ? (
+                      <span className="text-xs text-purple-400 bg-purple-900/30 border border-purple-700/50 px-2 py-1 rounded-full">
+                        📐 {cq.cuadrasAncho}×{cq.cuadrasAlto} cuadras · {cq.metrosAncho}×{cq.metrosAlto}m
+                      </span>
+                    ) : <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded-full">Zona rectangular</span>; })()}
                   </div>
                   <img src={result.map_image_url} alt="Mapa de zona" className="w-full h-52 object-cover" />
                 </div>
 
-                {/* Sección capturada para imagen de publicación */}
+                {/* Heatmap panel — capturado como imagen principal para redes */}
+                <div className="bg-gray-800 rounded-xl p-3 border border-gray-700 overflow-x-auto">
+                  <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-2">Vista heatmap — imagen para publicación</p>
+                  <div className="scale-[0.85] origin-top-left" style={{ width: '706px' }}>
+                    <HeatmapPanel result={result} bounds={bounds} innerRef={heatmapRef} />
+                  </div>
+                </div>
+
+                {/* Sección capturada para imagen de gráfico */}
                 <div ref={resultsRef}>
 
                 {/* Tráfico por hora */}
@@ -608,31 +827,37 @@ export default function ZoneAnalysis() {
                     </div>
                   )}
 
-                  {/* Gráfico de barras */}
+                  {/* Gráfico de barras mejorado con intensidad */}
                   {result.hourly?.length > 0 && (() => {
                     const maxMin = Math.max(...result.hourly.filter(h => h.minutes).map(h => h.minutes), 1);
                     const colors = { LOW: '#22c55e', MEDIUM: '#eab308', HIGH: '#ef4444', UNKNOWN: '#4b5563' };
+                    const bgHighlight = { LOW: '', MEDIUM: 'bg-yellow-900/10', HIGH: 'bg-red-900/20', UNKNOWN: '' };
+                    const isPeak = (h) => result.peak_hours?.some(p => p.hour === h.hour);
                     return (
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         {result.hourly.map(h => (
-                          <div key={h.hour} className="flex items-center gap-2">
-                            <span className="text-gray-400 text-xs w-12 shrink-0 text-right">{h.label}</span>
+                          <div key={h.hour} className={`flex items-center gap-2 rounded-lg px-1 py-0.5 ${bgHighlight[h.congestion] || ''}`}>
+                            <span className={`text-xs w-12 shrink-0 text-right font-mono ${h.congestion === 'HIGH' ? 'text-red-400 font-bold' : 'text-gray-400'}`}>
+                              {h.label}
+                            </span>
                             <div className="flex-1 bg-gray-700 rounded-full h-5 overflow-hidden">
                               <div
-                                className="h-full rounded-full flex items-center pl-2 text-xs text-white font-medium transition-all"
+                                className="h-full rounded-full flex items-center pl-2 text-xs font-medium transition-all"
                                 style={{
                                   width: h.minutes ? `${Math.max((h.minutes / maxMin) * 100, 8)}%` : '4%',
                                   backgroundColor: colors[h.congestion] || colors.UNKNOWN,
+                                  color: h.congestion === 'LOW' ? '#064e3b' : '#fff',
                                 }}
                               >
                                 {h.minutes ? `${h.minutes}m` : '–'}
                               </div>
                             </div>
-                            {h.open_count !== null && (
-                              <span className="text-blue-300 text-xs shrink-0 w-8 text-right" title="Comercios abiertos">
-                                🏪{h.open_count}
-                              </span>
-                            )}
+                            <div className="flex items-center gap-1 shrink-0 w-16 justify-end">
+                              {isPeak(h) && <span className="text-red-400 text-[9px] font-bold">PICO</span>}
+                              {h.open_count !== null && (
+                                <span className="text-blue-300 text-xs" title="Comercios abiertos">🏪{h.open_count}</span>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -823,25 +1048,30 @@ export default function ZoneAnalysis() {
                                 </button>
                               </div>
 
-                              {/* Ambas imágenes */}
+                              {/* Imágenes preview */}
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <p className="text-gray-500 text-[10px] mb-1 uppercase tracking-wider">Imagen 1 — Mapa</p>
-                                  <img src={result.map_image_url} alt="Mapa zona" className="w-full h-28 object-cover rounded-lg border border-gray-700" />
+                                  <p className="text-gray-500 text-[10px] mb-1 uppercase tracking-wider">Imagen 1 — Heatmap (Instagram)</p>
+                                  {heatmapImageUrl
+                                    ? <img src={heatmapImageUrl} alt="Heatmap" className="w-full h-28 object-cover rounded-lg border border-purple-700/50" />
+                                    : <div className="w-full h-28 bg-gray-700 rounded-lg flex items-center justify-center">
+                                        {isGeneratingPreview
+                                          ? <span className="text-gray-500 text-xs">📸 Capturando heatmap...</span>
+                                          : chartCaptureError
+                                            ? <span className="text-red-400 text-[10px] text-center px-2">⚠️ {chartCaptureError}</span>
+                                            : <span className="text-gray-500 text-xs">—</span>
+                                        }
+                                      </div>
+                                  }
                                 </div>
                                 <div>
-                                  <p className="text-gray-500 text-[10px] mb-1 uppercase tracking-wider">Imagen 2 — Gráfico</p>
+                                  <p className="text-gray-500 text-[10px] mb-1 uppercase tracking-wider">Imagen 2 — Gráfico (LinkedIn/FB)</p>
                                   {chartImageUrl
                                     ? <img src={chartImageUrl} alt="Gráfico de tráfico" className="w-full h-28 object-cover rounded-lg border border-gray-700" />
-                                    : <div className="w-full h-28 bg-gray-700 rounded-lg flex flex-col items-center justify-center gap-1 p-2">
-                                        {isCapturing
-                                          ? <span className="text-gray-500 text-xs">📸 Capturando...</span>
-                                          : chartCaptureError
-                                            ? <>
-                                                <span className="text-red-400 text-[10px] text-center leading-tight">⚠️ {chartCaptureError}</span>
-                                                <span className="text-gray-600 text-[10px]">Creá el preset en Cloudinary</span>
-                                              </>
-                                            : <span className="text-gray-500 text-xs">—</span>
+                                    : <div className="w-full h-28 bg-gray-700 rounded-lg flex items-center justify-center">
+                                        {isGeneratingPreview
+                                          ? <span className="text-gray-500 text-xs">📸 Capturando gráfico...</span>
+                                          : <span className="text-gray-500 text-xs">—</span>
                                         }
                                       </div>
                                   }
