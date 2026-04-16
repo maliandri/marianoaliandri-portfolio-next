@@ -577,10 +577,12 @@ export default function ZoneAnalysis() {
           type: 'zone_analysis',
           useAI: true,
           aiProvider: 'gemini',
-          // Heatmap como imagen principal (CDN público — funciona en Instagram)
+          // Imagen principal — Instagram usa solo esta
           imageUrl: heatmapImageUrl || result.map_image_url,
-          // Gráfico como imagen secundaria para LinkedIn/Facebook
+          // Gráfico secundario — LinkedIn/Facebook pueden usar ambas
           chartImageUrl: chartImageUrl || undefined,
+          // Array de todas las imágenes disponibles — Make.com puede iterar
+          images: [heatmapImageUrl, chartImageUrl].filter(Boolean),
           extra_context: extraContext.trim() || undefined,
           metadata: {
             tone: pubTone,

@@ -44,6 +44,10 @@ export async function POST(request) {
       ? `- Referencias destacadas de la zona (mencioná 2-3 usando @NombreLocal — son sugerencias que el usuario va a verificar antes de publicar): ${topPlaces.map(p => p.name).join(', ')}`
       : '';
 
+    const mediosRule = medios.length > 0
+      ? `- OBLIGATORIO: mencioná estos medios/portales en el texto etiquetándolos directamente (${medios.join(', ')}). Integralos de forma natural, ej: "¿Lo cubrirá ${medios[0]}?" o "Datos que ${medios[0]} y ${medios[1] || medios[0]} deberían cubrir". No los omitas.`
+      : '';
+
     const prompt = `Generá un caption ${networkNote} sobre este análisis de zona urbana en Argentina.
 
 TONO: ${tone} — ${TONE_INSTRUCTIONS[tone] || ''}
@@ -60,21 +64,14 @@ ${mentionsNote}
 
 ${extraContext ? `CONTEXTO ADICIONAL: ${extraContext}` : ''}
 
-${medios.length > 0 ? `MEDIOS LOCALES A MENCIONAR:
-- Incluí estos medios en el texto de forma natural, como si les estuvieras etiquetando para que cubran la noticia: ${medios.join(', ')}
-- Ejemplo: "¿Lo cubrirán ${medios[0]} o ${medios[1] || medios[0]}?"` : ''}
-
-INSTRUCCIONES DE MENCIONES:
-- Incluí 2-3 @menciones de los locales destacados integradas naturalmente en el texto (ej: "zonas como la de @OfeCafeResto demuestran que...")
-- Formateá el @handle eliminando espacios y caracteres especiales del nombre (ej: "Ofelia Café & Resto" → @OfeliaCafeResto)
-- Aclaración: estas menciones son aproximadas, el usuario las va a revisar en el preview
-
-REGLAS:
+REGLAS (seguí todas sin excepción):
 - Máximo 2000 caracteres
 - Emojis relevantes (2-3)
 - Terminá con 4-6 hashtags en español sobre datos urbanos, tráfico y ${result.zona_titulo}
 - Tono argentino (vos, che) si es social; formal si es técnico o comercial
 - No menciones precios ni datos de contacto
+${mediosRule}
+${topPlaces.length > 0 ? `- Podés incluir 1-2 @menciones de locales destacados integradas naturalmente (son sugerencias, el usuario las revisa): ${topPlaces.slice(0, 3).map(p => p.name).join(', ')}` : ''}
 - Devolvé SOLO el texto del caption, sin comillas ni encabezados
 
 Caption:`;
