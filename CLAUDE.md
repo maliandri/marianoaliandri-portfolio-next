@@ -311,6 +311,85 @@ de las serverless functions. Luego se envia solo el videoUrl al servidor via
 
 ---
 
+## Oracle Cloud VM — OpenWA (WhatsApp gateway)
+
+### VM Oracle Cloud Always Free
+- **Instancia**: `instance-20260526-1004`
+- **IP pública**: `146.235.244.218` (Efímera — si se pierde, reasignar desde VNIC → Administración de IP)
+- **IP privada**: `10.0.0.9`
+- **Region**: Chile Central (Santiago) — `sa-santiago-1`
+- **Shape**: VM.Standard.E2.1.Micro (1 OCPU, 1 GB RAM) — Always Free
+- **OS**: Oracle Linux 9
+- **SSH key**: `C:\Users\PC-escritorio\Desktop\marian web\oracle keys\ssh-key-2026-05-26.key`
+- **Usuario SSH**: `opc`
+
+**Comando SSH**:
+```powershell
+ssh -i "C:\Users\PC-escritorio\Desktop\marian web\oracle keys\ssh-key-2026-05-26.key" opc@146.235.244.218
+```
+
+### Plan de instalación OpenWA
+OpenWA es un gateway HTTP self-hosted de WhatsApp Web (NestJS + PostgreSQL + Docker).
+Permite enviar mensajes de WhatsApp desde el portfolio/admin via HTTP, sin riesgo de ban
+porque usa la sesión real del browser (no API oficial).
+
+**Stack decidido**:
+- Oracle Cloud VM (arriba) → corre OpenWA via Docker Compose
+- Supabase PostgreSQL → base de datos de OpenWA (free tier, sin sleep)
+- Next.js `/api/whatsapp-notify` → ruta para enviar mensajes desde el admin
+- Vercel cron job → ping keep-alive cada 14 minutos para evitar sleep de Supabase
+
+**Estado actual**: VM creada y con IP pública. Instalando Docker.
+
+**Pasos pendientes**:
+1. Instalar Docker en Oracle VM: `sudo dnf install -y docker`
+2. Habilitar Docker: `sudo systemctl enable --now docker`
+3. Instalar Docker Compose
+4. Crear proyecto `openwa` en Supabase, obtener PostgreSQL connection string
+5. Clonar OpenWA, configurar `.env` con DATABASE_URL de Supabase
+6. `docker-compose up -d`
+7. Escanear QR con WhatsApp
+8. Crear `/api/whatsapp-notify` en Next.js
+9. Agregar cron keep-alive en Vercel
+
+### Firewall Oracle Cloud
+**IMPORTANTE**: Oracle Cloud bloquea puertos por defecto. Para exponer OpenWA (puerto 3000):
+1. Oracle Console → VCN → Security Lists → Ingress Rules → Add rule TCP port 3000
+2. También en Oracle Linux: `sudo firewall-cmd --add-port=3000/tcp --permanent && sudo firewall-cmd --reload`
+
+---
+
+## ZoneAnalysis — Funcionalidades implementadas
+
+Componente: `src/components/admin/ZoneAnalysis.jsx`
+API Caption: `src/app/api/zone-caption/route.js`
+
+### HeatmapPanel
+- Componente inline de 600px capturado como imagen social (reemplaza Google Maps URL que Meta bloquea)
+- Muestra grilla horaria con colores por congestion (LOW=verde, MEDIUM=amarillo, HIGH=rojo)
+- Incluye concentración de tráfico por períodos (Mañana/Mediodía/Tarde/Noche)
+- Muestra dimensiones de la zona en cuadras (formula Haversine, 100m/cuadra estándar argentino)
+
+### Cloudinary upload
+- Upload preset: `zone_analysis_images` (Unsigned, confirmado que existe)
+- Conversión: `atob()` → `Uint8Array` → `Blob` (más confiable que fetch de dataUrl)
+- Las capturas se hacen SECUENCIALMENTE (no en paralelo) para evitar race condition de re-render
+
+### Payload Make.com para zone_analysis
+```js
+imageUrl: heatmapImageUrl || result.map_image_url,  // imagen principal
+chartImageUrl: chartImageUrl,                         // grafico de barras
+images: [heatmapImageUrl, chartImageUrl].filter(Boolean),  // array para Router 2
+```
+
+### Make.com Router 2 (PENDIENTE — el usuario debe configurar manualmente)
+Para publicar 2 imágenes en Facebook/LinkedIn para posts de zone_analysis:
+- Agregar Router 2 con filtro `type` = `zone_analysis`
+- Branch 1: Facebook → módulo "Upload a Photo" con `images[0]` y `images[1]`
+- Branch 2: LinkedIn → módulo con ambas imágenes
+
+---
+
 ## Comandos utiles
 
 ```bash
