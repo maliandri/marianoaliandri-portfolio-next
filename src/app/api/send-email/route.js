@@ -154,6 +154,57 @@ const templates = {
     `, `Bienvenido/a ${data.recipientName || ''} a marianoaliandri.com.ar`),
   }),
 
+  'budget-received': (data) => {
+    const servicesList = (data.services || []).map(s => `<li style="color:#374151;font-size:13px;padding:3px 0;">${s}</li>`).join('');
+    return {
+      subject: `💰 Nueva solicitud de presupuesto de ${data.name}`,
+      html: baseTemplate(`
+        <div style="margin-bottom:20px;">${badge('Presupuesto', '#4f46e5')}</div>
+        <h2 style="margin:0 0 8px;color:#111827;font-size:20px;">Nueva solicitud de presupuesto</h2>
+        <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">ID: <code>${data.budgetId}</code></p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9fafb;border-radius:8px;padding:16px;">
+          ${infoRow('Nombre', data.name)}
+          ${infoRow('Email', `<a href="mailto:${data.email}" style="color:#2563eb;text-decoration:none;">${data.email}</a>`)}
+          ${infoRow('Teléfono', data.phone ? `<a href="https://wa.me/${data.phone.replace(/[^0-9]/g,'')}" style="color:#22c55e;text-decoration:none;">${data.phone}</a>` : '')}
+          ${infoRow('Empresa', data.company)}
+          ${infoRow('Fecha límite', data.deadline)}
+        </table>
+        ${data.message ? `<div style="margin-top:16px;padding:14px;background:#f0f4ff;border-left:4px solid #4f46e5;border-radius:0 8px 8px 0;"><p style="margin:0;color:#111827;font-size:13px;line-height:1.6;">${data.message}</p></div>` : ''}
+        <div style="margin-top:20px;"><p style="margin:0 0 8px;color:#6b7280;font-size:12px;font-weight:600;text-transform:uppercase;">Servicios seleccionados (${(data.services || []).length})</p><ul style="margin:0;padding-left:16px;">${servicesList}</ul></div>
+        <div style="margin-top:24px;text-align:center;">
+          <a href="https://marianoaliandri.com.ar/admin" style="display:inline-block;background:linear-gradient(135deg,#4f46e5,#2563eb);color:#ffffff;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ver en Admin</a>
+        </div>
+      `, `Nueva solicitud de ${data.name} — ${(data.services || []).length} servicios`),
+    };
+  },
+
+  'budget-sent': (data) => {
+    const servicesList = (data.services || []).map(s => `<li style="color:#374151;font-size:13px;padding:3px 0;">${s}</li>`).join('');
+    const amountBlock = (data.budgetUSD || data.budgetARS) ? `
+      <div style="margin-top:20px;background:#f0fdf4;border-radius:8px;padding:16px;text-align:center;">
+        <p style="margin:0 0 4px;color:#166534;font-size:12px;font-weight:600;text-transform:uppercase;">Monto cotizado</p>
+        ${data.budgetUSD ? `<p style="margin:4px 0;color:#111827;font-size:24px;font-weight:700;">USD ${Number(data.budgetUSD).toLocaleString('es-AR')}</p>` : ''}
+        ${data.budgetARS ? `<p style="margin:4px 0;color:#6b7280;font-size:16px;">ARS ${Number(data.budgetARS).toLocaleString('es-AR')}</p>` : ''}
+      </div>` : '';
+    const payBtn = data.paymentLink ? `<div style="margin-top:20px;text-align:center;"><a href="${data.paymentLink}" style="display:inline-block;background:#009ee3;color:#ffffff;padding:14px 40px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;">Pagar con MercadoPago</a></div>` : '';
+    const notesBlock = data.adminNotes ? `<div style="margin-top:16px;padding:14px;background:#fffbeb;border-left:4px solid #f59e0b;border-radius:0 8px 8px 0;"><p style="margin:0;color:#92400e;font-size:13px;">${data.adminNotes}</p></div>` : '';
+    return {
+      subject: `Tu presupuesto de Mariano Aliandri`,
+      to: data.email,
+      html: baseTemplate(`
+        <h2 style="margin:0 0 8px;color:#111827;font-size:22px;">Hola ${data.name}!</h2>
+        <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Acá está tu presupuesto para los servicios solicitados.</p>
+        <div style="margin-top:16px;"><p style="margin:0 0 8px;color:#6b7280;font-size:12px;font-weight:600;text-transform:uppercase;">Servicios incluidos</p><ul style="margin:0;padding-left:16px;">${servicesList}</ul></div>
+        ${amountBlock}
+        ${notesBlock}
+        ${payBtn}
+        <div style="margin-top:24px;padding:16px;background:#f9fafb;border-radius:8px;text-align:center;">
+          <p style="margin:0;color:#6b7280;font-size:13px;">Consultas: <a href="mailto:yo@marianoaliandri.com.ar" style="color:#4f46e5;text-decoration:none;">yo@marianoaliandri.com.ar</a> · <a href="https://wa.me/5492995414422" style="color:#22c55e;text-decoration:none;">WhatsApp</a></p>
+        </div>
+      `, `Tu presupuesto de Mariano Aliandri — ${(data.services || []).length} servicios`),
+    };
+  },
+
   'chatbot-lead': (data) => ({
     subject: `Lead del Chatbot: ${data.name}`,
     html: baseTemplate(`

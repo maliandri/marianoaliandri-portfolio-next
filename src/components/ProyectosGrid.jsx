@@ -4,17 +4,32 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useProyectos } from '@/hooks/useProyectos';
 
+function formatNum(n) {
+  if (!n && n !== 0) return '–';
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+}
+
+function getTag(proyecto) {
+  const stack = proyecto.stack?.toLowerCase() || '';
+  if (stack.includes('seo') && stack.includes('next')) return 'SEO + Web';
+  if (stack.includes('seo')) return 'SEO';
+  if (stack.includes('next') || stack.includes('react')) return 'Web + Diseño';
+  if (proyecto.clicks > 500) return 'Web + Posicionamiento';
+  return 'Diseño + Web';
+}
+
 function SkeletonCard() {
   return (
-    <div className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden animate-pulse">
-      <div className="h-48 bg-gray-200 dark:bg-gray-700" />
+    <div className="rounded-2xl bg-[#111] border border-white/10 overflow-hidden animate-pulse">
+      <div className="h-44 bg-white/5" />
       <div className="p-5 space-y-3">
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3" />
-        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-full" />
-        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-4/5" />
-        <div className="flex gap-4 pt-2">
-          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16" />
-          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16" />
+        <div className="h-4 bg-white/10 rounded w-2/3" />
+        <div className="h-3 bg-white/5 rounded w-1/2" />
+        <div className="flex gap-4 pt-3">
+          <div className="h-3 bg-white/10 rounded w-16" />
+          <div className="h-3 bg-white/10 rounded w-16" />
+          <div className="h-3 bg-white/10 rounded w-16" />
         </div>
       </div>
     </div>
@@ -25,16 +40,16 @@ function ScreenshotImage({ src, domain }) {
   const [failed, setFailed] = useState(false);
   const initial = domain.charAt(0).toUpperCase();
 
-  if (failed) {
+  if (failed || !src) {
     return (
-      <div className="h-48 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 flex items-center justify-center">
-        <span className="text-5xl font-bold text-indigo-400 dark:text-indigo-500">{initial}</span>
+      <div className="h-44 bg-[#1a1a2e] flex items-center justify-center">
+        <span className="text-5xl font-black text-indigo-500/40">{initial}</span>
       </div>
     );
   }
 
   return (
-    <div className="h-48 overflow-hidden bg-gray-100 dark:bg-gray-700">
+    <div className="h-44 overflow-hidden bg-[#111]">
       <img
         src={src}
         alt={`Screenshot de ${domain}`}
@@ -46,91 +61,68 @@ function ScreenshotImage({ src, domain }) {
   );
 }
 
-function formatNum(n) {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-  return String(n);
-}
-
-const SECCIONES = [
-  { key: 'descripcionCorta', label: 'DESCRIPCIÓN CORTA' },
-  { key: 'stack',            label: 'STACK TÉCNICO' },
-  { key: 'funcionalidades',  label: 'FUNCIONALIDADES DESTACADAS' },
-  { key: 'impacto',          label: 'DATO DE IMPACTO' },
-];
-
 function ProyectoCard({ proyecto, index }) {
-  const [expanded, setExpanded] = useState(false);
-  const tieneDetalle = SECCIONES.some(s => proyecto[s.key]);
+  const tag = getTag(proyecto);
+  const domainClean = proyecto.domain.replace(/^sc-domain:/, '');
 
   return (
     <motion.div
-      className="group rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300"
+      className="group rounded-2xl bg-[#111] border border-white/10 overflow-hidden hover:border-indigo-500/40 transition-colors duration-300"
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
+      transition={{ duration: 0.5, delay: index * 0.08 }}
     >
-      <ScreenshotImage src={proyecto.screenshotUrl} domain={proyecto.domain} />
+      {/* Screenshot with tag */}
+      <div className="relative">
+        <ScreenshotImage src={proyecto.screenshotUrl} domain={domainClean} />
+        <span className="absolute top-3 right-3 bg-black/70 border border-white/10 text-white text-xs font-medium px-2.5 py-1 rounded-full backdrop-blur-sm">
+          {tag}
+        </span>
+      </div>
 
       <div className="p-5">
-        <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-          {proyecto.domain}
+        {/* Name + description */}
+        <h3 className="font-bold text-white text-base truncate">
+          {proyecto.descripcionCorta?.split('·')[0]?.trim() || domainClean}
         </h3>
+        <p className="text-gray-500 text-sm mt-0.5 truncate">
+          {proyecto.descripcionCorta || domainClean}
+        </p>
 
-        {/* Secciones colapsables */}
-        {tieneDetalle ? (
-          <div className="mt-3 space-y-1">
-            {SECCIONES.map(({ key, label }) => {
-              if (!proyecto[key]) return null;
-              return (
-                <div key={key} className="border border-gray-100 dark:border-gray-700 rounded-lg overflow-hidden">
-                  <button
-                    onClick={() => setExpanded(prev => prev === key ? null : key)}
-                    className="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                  >
-                    <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 tracking-wide">{label}</span>
-                    <svg className={`w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform ${expanded === key ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {expanded === key ? (
-                    <div className="px-3 pb-3 text-xs text-gray-600 dark:text-gray-300 whitespace-pre-line leading-relaxed">
-                      {proyecto[key]}
-                    </div>
-                  ) : (
-                    <p className="px-3 pb-1.5 text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {proyecto[key]}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
+        {/* GSC Metrics */}
+        <div className="flex items-center gap-5 mt-4">
+          <div className="flex flex-col items-start">
+            <span className="text-white font-bold text-sm">{formatNum(proyecto.clicks)}</span>
+            <span className="text-gray-600 text-xs">Clicks</span>
           </div>
-        ) : (
-          <p className="mt-2 text-sm text-gray-400 dark:text-gray-600 italic">Sin descripción</p>
-        )}
-
-        {/* Stats */}
-        <div className="flex items-center gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400">
-          <span title="Clicks últimos 28 días">
-            <span className="font-medium text-indigo-600 dark:text-indigo-400">{formatNum(proyecto.clicks)}</span> clicks
-          </span>
-          <span title="Impresiones últimos 28 días">
-            <span className="font-medium text-purple-600 dark:text-purple-400">{formatNum(proyecto.impressions)}</span> imp.
-          </span>
+          <div className="flex flex-col items-start">
+            <span className="text-white font-bold text-sm">{formatNum(proyecto.impressions)}</span>
+            <span className="text-gray-600 text-xs">Impresiones</span>
+          </div>
+          {proyecto.position && (
+            <div className="flex flex-col items-start">
+              <span className="text-white font-bold text-sm">{Number(proyecto.position).toFixed(1)}</span>
+              <span className="text-gray-600 text-xs">Posición</span>
+            </div>
+          )}
         </div>
 
-        <a
-          href={proyecto.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 transition-colors"
-        >
-          Ver sitio
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-        </a>
+        {/* Domain + link */}
+        <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
+          <span className="text-gray-600 text-xs truncate">{domainClean}</span>
+          <a
+            href={proyecto.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-500 hover:text-white transition-colors ml-2 flex-shrink-0"
+            aria-label={`Ver ${domainClean}`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+        </div>
       </div>
     </motion.div>
   );
@@ -140,35 +132,57 @@ export default function ProyectosGrid() {
   const { data: proyectos, isLoading, isError } = useProyectos();
 
   return (
-    <motion.section
-      id="proyectos"
-      className="p-8 md:p-12 rounded-3xl bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700"
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.8 }}
-    >
-      <div className="text-center mb-10">
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-50">
-          Proyectos Realizados
-        </h2>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Sitios web desarrollados y optimizados para clientes reales
-        </p>
-      </div>
+    <section id="proyectos" className="bg-[#0a0a0a] px-6 py-20 md:py-28">
+      <div className="max-w-6xl mx-auto">
 
-      {isError && (
-        <p className="text-center text-sm text-red-500 dark:text-red-400">
-          No se pudieron cargar los proyectos.
-        </p>
-      )}
+        {/* Header */}
+        <div className="mb-12">
+          <p className="text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-3">
+            Trabajos recientes
+          </p>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <h2 className="text-4xl md:text-5xl font-black text-white leading-tight">
+              Resultados reales,<br />clientes reales
+            </h2>
+            <p className="text-gray-500 text-sm max-w-xs leading-relaxed">
+              Datos extraídos de Google Search Console. Cada sitio posicionado orgánicamente sin publicidad paga.
+            </p>
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {isLoading
-          ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-          : proyectos?.map((p, i) => <ProyectoCard key={p.domain} proyecto={p} index={i} />)
-        }
+        {isError && (
+          <p className="text-center text-sm text-red-400 mb-8">
+            No se pudieron cargar los proyectos.
+          </p>
+        )}
+
+        {/* Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {isLoading
+            ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
+            : proyectos?.map((p, i) => <ProyectoCard key={p.domain} proyecto={p} index={i} />)
+          }
+        </div>
+
+        {/* Bottom CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-16 flex flex-col md:flex-row items-center justify-between gap-6 bg-[#111] border border-white/10 rounded-2xl px-8 py-6"
+        >
+          <div>
+            <p className="text-white font-bold text-lg">¿Tu negocio no aparece en Google?</p>
+            <p className="text-gray-500 text-sm mt-1">Hablemos. Primera consulta sin cargo.</p>
+          </div>
+          <a
+            href="#contact"
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
+          >
+            Pedir presupuesto <span aria-hidden>→</span>
+          </a>
+        </motion.div>
       </div>
-    </motion.section>
+    </section>
   );
 }

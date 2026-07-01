@@ -1,12 +1,10 @@
-import HeroBuild from '@/components/HeroBuild';
-import ServiciosCarousel from '@/components/ServiciosCarousel';
-import TechStack from '@/components/TechStack';
+import HeroNew from '@/components/HeroNew';
 import ProyectosGrid from '@/components/ProyectosGrid';
 import Contact from '@/components/Contact';
 
 export const metadata = {
-  title: 'Mariano Aliandri | Dev. Full Stack, React, Python & Data',
-  description: 'Desarrollador Full Stack y Analista de Datos con experiencia en React y Python. Explora mi portfolio de proyectos y habilidades en Power BI.',
+  title: 'Mariano Aliandri | Sitios web que aparecen en Google',
+  description: 'Diseño, desarrollo y posicionamiento web para negocios argentinos. Sitios que generan clientes y aparecen en Google sin publicidad paga.',
   alternates: {
     canonical: 'https://marianoaliandri.com.ar/',
   },
@@ -46,22 +44,12 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
       />
-      <main className="animation-section">
-        <div className="animation-content-wrapper">
-          <HeroBuild />
-          <section id="servicios" aria-label="Servicios profesionales">
-            <ServiciosCarousel />
-          </section>
-          <section id="skills" aria-label="Habilidades técnicas">
-            <TechStack />
-          </section>
-          <section id="proyectos" aria-label="Proyectos realizados">
-            <ProyectosGrid />
-          </section>
-          <section id="contact" aria-label="Información de contacto">
-            <Contact />
-          </section>
-        </div>
+      <main className="bg-[#0a0a0a]">
+        <HeroNew />
+        <ProyectosGrid />
+        <section id="contact" aria-label="Información de contacto">
+          <Contact />
+        </section>
       </main>
     </>
   );

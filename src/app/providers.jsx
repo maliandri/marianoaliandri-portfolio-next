@@ -2,25 +2,19 @@
 
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { CartProvider } from '@/context/CartContext';
 import { queryClient } from '@/utils/queryClient';
 
 // UI Components (critical - load immediately)
 import ThemeToggle from '@/components/ThemeToggle';
-import ShopButton from '@/components/ShopButton';
 import Footer from '@/components/Footer';
 import WhatsAppButton from '@/components/WhatsAppButton';
 
 // Firebase-dependent components — deferred to keep Firebase out of the critical render path
-const AuthButton = dynamic(() => import('@/components/AuthButton'), { ssr: false, loading: () => <div className="w-24 h-8 bg-gray-100 dark:bg-gray-800 rounded-full" /> });
-const LikeSystem = dynamic(() => import('@/components/LikeSystem'), { ssr: false, loading: () => null });
-const VisitorCounter = dynamic(() => import('@/components/VisitorCounter'), { ssr: false, loading: () => null });
 const AIChatBot = dynamic(() => import('@/components/AIChatBot'), { ssr: false, loading: () => null });
-const LinkedInSidebar = dynamic(() => import('@/components/LinkedInSidebar'), { ssr: false, loading: () => null });
 
 // Tools: ssr:false evita que se pre-rendericen en servidor (usan window/browser APIs)
 const KpiRadar = dynamic(() => import('@/components/KpiRadar'), { ssr: false });
@@ -32,6 +26,83 @@ const RadarWeb = dynamic(() => import('@/components/RadarWeb'), { ssr: false });
 const LabsTool = dynamic(() => import('@/components/LabsTool'), { ssr: false });
 
 const TOOL_PATHS = ['/web', '/roi', '/stats', '/ats', '/kpi', '/radarweb', '/labs'];
+const NAV_LINKS = [
+  { label: 'Proyectos', href: '/#proyectos' },
+  { label: 'Contacto',  href: '/#contact' },
+  { label: 'Presupuesto', href: '/presupuesto' },
+];
+
+function Navbar({ pathname }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-[1000] bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/8">
+      <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+
+        {/* Logo */}
+        <Link href="/" className="text-white font-bold text-lg tracking-tight shrink-0" onClick={() => setOpen(false)}>
+          Mariano<span className="text-indigo-400">.</span>
+        </Link>
+
+        {/* Nav links — desktop */}
+        <div className="hidden md:flex items-center gap-1">
+          {NAV_LINKS.map(({ label, href }) => (
+            <Link
+              key={href}
+              href={href}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                pathname === '/presupuesto' && href === '/presupuesto'
+                  ? 'text-indigo-400 bg-indigo-600/10'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+
+        {/* Right side */}
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <AIChatBot />
+          <Link
+            href="/presupuesto"
+            className="hidden sm:inline-flex items-center bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors"
+          >
+            Pedir presupuesto
+          </Link>
+
+          {/* Hamburger — mobile */}
+          <button
+            onClick={() => setOpen(p => !p)}
+            className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-white/5 transition-colors"
+            aria-label="Menú"
+          >
+            <span className={`block w-5 h-0.5 bg-white transition-transform duration-200 ${open ? 'rotate-45 translate-y-2' : ''}`} />
+            <span className={`block w-5 h-0.5 bg-white transition-opacity duration-200 ${open ? 'opacity-0' : ''}`} />
+            <span className={`block w-5 h-0.5 bg-white transition-transform duration-200 ${open ? '-rotate-45 -translate-y-2' : ''}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile menu */}
+      {open && (
+        <div className="md:hidden border-t border-white/8 bg-[#0a0a0a] px-5 py-4 flex flex-col gap-1">
+          {NAV_LINKS.map(({ label, href }) => (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setOpen(false)}
+              className="px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </nav>
+  );
+}
 
 function AppChromeInner({ children }) {
   const rawPathname = usePathname();
@@ -43,9 +114,6 @@ function AppChromeInner({ children }) {
 
   // ?screenshot=1 → renderizar solo el contenido, sin chrome (para Microlink / OG)
   const isScreenshot = searchParams.get('screenshot') === '1';
-
-  const isToolPage = TOOL_PATHS.includes(pathname);
-  const showFloatingButtons = pathname === '/' || isToolPage;
 
   const closeTool = () => router.push('/');
 
@@ -60,17 +128,7 @@ function AppChromeInner({ children }) {
   return (
     <div className="App font-sans min-h-screen text-gray-800 bg-gray-50 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-500 relative overflow-x-hidden">
 
-      {/* Fixed top bar */}
-      <div className="fixed top-0 left-0 right-0 z-[1000] flex items-center justify-center py-3 px-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2 md:gap-3 flex-wrap justify-center max-w-full">
-          <ShopButton />
-          <AuthButton />
-          <AIChatBot />
-          <LikeSystem />
-          <VisitorCounter />
-          <ThemeToggle />
-        </div>
-      </div>
+      <Navbar pathname={pathname} />
 
       {/* Tool modals - lazy loaded */}
       <Suspense fallback={null}>
@@ -87,42 +145,7 @@ function AppChromeInner({ children }) {
       {/* Page content */}
       {children}
 
-      {/* Floating tool buttons - visible on home and tool pages */}
-      {showFloatingButtons && (
-        <div className="floating-buttons-container">
-          <Link href="/web" className="floating-button" title="Cotizar Web">
-            <span className="button-icon">🌐</span>
-            <span className="button-label">Cotizar Web</span>
-          </Link>
-          <Link href="/radarweb" className="floating-button" title="Radar Web">
-            <span className="button-icon">🔍</span>
-            <span className="button-label">Radar Web</span>
-          </Link>
-          <Link href="/roi" className="floating-button" title="Calcular ROI">
-            <span className="button-icon">💰</span>
-            <span className="button-label">Calcular ROI</span>
-          </Link>
-          <Link href="/kpi" className="floating-button" title="Radar KPI">
-            <span className="button-icon">🎯</span>
-            <span className="button-label">Radar KPI</span>
-          </Link>
-          <Link href="/ats" className="floating-button" title="Analizador ATS">
-            <span className="button-icon">📄</span>
-            <span className="button-label">Analizador ATS</span>
-          </Link>
-          <Link href="/stats" className="floating-button" title="Estadísticas">
-            <span className="button-icon">📊</span>
-            <span className="button-label">Estadísticas</span>
-          </Link>
-          <Link href="/labs" className="floating-button" title="Labs — Herramientas de escritorio">
-            <span className="button-icon">🧪</span>
-            <span className="button-label">Labs</span>
-          </Link>
-        </div>
-      )}
-
       <Footer />
-      <LinkedInSidebar />
       <WhatsAppButton />
     </div>
   );
@@ -141,9 +164,7 @@ function AppChrome({ children }) {
 export function Providers({ children }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <CartProvider>
-        <AppChrome>{children}</AppChrome>
-      </CartProvider>
+      <AppChrome>{children}</AppChrome>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

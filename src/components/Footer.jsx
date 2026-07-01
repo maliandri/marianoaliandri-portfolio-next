@@ -8,12 +8,9 @@ export default function Footer() {
   const pathname = usePathname();
 
   const quickLinks = [
-    { name: 'Calcular ROI', href: '/#roi', type: 'scroll' },
-    { name: 'Calcular Web', href: '/#web', type: 'scroll' },
-    { name: 'Tienda', href: '/tienda', type: 'route' },
-    { name: 'Labs', href: '/labs', type: 'route' },
+    { name: 'Portfolio', href: '/#proyectos', type: 'scroll' },
     { name: 'Servicios', href: '/#servicios', type: 'scroll' },
-    { name: 'Habilidades', href: '/#skills', type: 'scroll' },
+    { name: 'Presupuesto', href: '/presupuesto', type: 'route' },
     { name: 'Contacto', href: '/#contact', type: 'scroll' },
   ];
 

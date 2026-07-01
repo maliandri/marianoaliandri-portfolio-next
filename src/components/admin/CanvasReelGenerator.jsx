@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { canvasReelService, TEXT_EFFECTS } from '../../utils/canvasReelService';
 import { SERVICE_LOGOS } from '../../data/serviceLogos';
-import priceService from '../../utils/priceService';
 import { ExchangeService, formatARS, formatUSD } from '../../utils/exchangeService';
 
 const TECH_ITEMS = [
@@ -88,13 +87,7 @@ export default function CanvasReelGenerator() {
 
   // ── Carga inicial ──────────────────────────────────────────────────────────
   useEffect(() => {
-    priceService.getAllPrices().then((all) =>
-      setProducts(Object.values(all).filter((p) => p.priceUSD))
-    );
-    fetch('/api/rental-data')
-      .then((r) => r.json())
-      .then((d) => setRentalData(d || {}))
-      .catch(() => {});
+    setProducts([]);
   }, []);
 
   useEffect(() => {

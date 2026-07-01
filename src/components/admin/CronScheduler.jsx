@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../utils/firebaseservice';
-import priceService from '../../utils/priceService';
 
 const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 const DIAS_LABEL = {
@@ -47,11 +46,8 @@ export default function CronScheduler() {
   const [savedOk, setSavedOk]       = useState(false);
   const [loadError, setLoadError]   = useState(null);
 
-  // Cargar productos
   useEffect(() => {
-    priceService.getAllPrices().then((all) => {
-      setProducts(Object.values(all).filter((p) => p.name));
-    });
+    setProducts([]);
   }, []);
 
   // Cargar proyectos

@@ -4,13 +4,13 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { db, firebaseQA } from '../utils/firebaseservice';
-import priceService from '../utils/priceService';
 import SocialMediaDashboard from '../components/SocialMediaDashboard';
 import SocialPublisher from '../components/admin/SocialPublisher';
 import CanvasReelGenerator from '../components/admin/CanvasReelGenerator';
 import CronScheduler from '../components/admin/CronScheduler';
 import ZoneAnalysis from '../components/admin/ZoneAnalysis';
 import LabsPublisher from '../components/admin/LabsPublisher';
+import BudgetManager from '../components/admin/BudgetManager';
 import LeadFinderPanel from '../components/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 
@@ -182,8 +182,6 @@ export default function AdminPage() {
               '📝 Productos actualizados: ' + result.products.length + '\n\n' +
               'Recargando...');
 
-        // Limpiar caché para que la tienda vea los cambios
-        priceService.clearCache();
         window.location.reload();
       } else {
         const errorData = await response.json();
@@ -252,9 +250,6 @@ export default function AdminPage() {
           throw new Error(errorData.error || 'Error actualizando producto');
         }
       }
-
-      // Limpiar caché del priceService para que la tienda vea el cambio
-      priceService.clearCache();
 
       alert('✅ Producto actualizado exitosamente');
 
@@ -399,7 +394,7 @@ export default function AdminPage() {
                 onClick={() => router.push('/')}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
               >
-                🛍️ Ver Tienda
+                🌐 Ver sitio
               </button>
               <button
                 onClick={handleLogout}
@@ -427,7 +422,8 @@ export default function AdminPage() {
               { id: 'questions', label: 'Preguntas', icon: '💬' },
               { id: 'proyectos', label: 'Proyectos', icon: '🌐' },
               { id: 'zonas', label: 'Zonas', icon: '🗺️' },
-              { id: 'cron', label: 'Cron Social', icon: '⏰' }
+              { id: 'cron', label: 'Cron Social', icon: '⏰' },
+              { id: 'presupuestos', label: 'Presupuestos', icon: '💰' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -683,6 +679,11 @@ export default function AdminPage() {
         {activeTab === 'cron' && (
           <div className="p-6">
             <CronScheduler />
+          </div>
+        )}
+        {activeTab === 'presupuestos' && (
+          <div className="p-6">
+            <BudgetManager />
           </div>
         )}
       </div>
