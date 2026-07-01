@@ -60,7 +60,7 @@ export default function HeroNew() {
           Ver portfolio <span aria-hidden>→</span>
         </Link>
         <Link
-          href="#contact"
+          href="/presupuesto"
           className="flex items-center gap-2 border border-white/20 hover:border-white/50 text-white font-semibold px-8 py-3.5 rounded-xl transition-colors duration-200"
         >
           Pedir presupuesto

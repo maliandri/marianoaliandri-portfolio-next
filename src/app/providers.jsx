@@ -65,13 +65,6 @@ function Navbar({ pathname }) {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <AIChatBot />
-          <Link
-            href="/presupuesto"
-            className="hidden sm:inline-flex items-center bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors"
-          >
-            Pedir presupuesto
-          </Link>
-
           {/* Hamburger — mobile */}
           <button
             onClick={() => setOpen(p => !p)}
