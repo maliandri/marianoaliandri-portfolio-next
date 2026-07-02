@@ -27,8 +27,9 @@ const LabsTool = dynamic(() => import('@/components/LabsTool'), { ssr: false });
 
 const TOOL_PATHS = ['/web', '/roi', '/stats', '/ats', '/kpi', '/radarweb', '/labs'];
 const NAV_LINKS = [
-  { label: 'Proyectos', href: '/#proyectos' },
-  { label: 'Contacto',  href: '/#contact' },
+  { label: 'Proyectos',   href: '/#proyectos' },
+  { label: 'Contacto',    href: '/#contact' },
+  { label: 'Auditorías',  href: '/auditorias' },
   { label: 'Presupuesto', href: '/presupuesto' },
 ];
 
@@ -51,7 +52,7 @@ function Navbar({ pathname }) {
               key={href}
               href={href}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                pathname === '/presupuesto' && href === '/presupuesto'
+                (pathname === href || (href !== '/' && pathname.startsWith(href) && href !== '/#proyectos' && href !== '/#contact'))
                   ? 'text-indigo-400 bg-indigo-600/10'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}

@@ -5,7 +5,8 @@ export default function sitemap() {
 
   return [
     { url: `${BASE_URL}/`,            lastModified: now, changeFrequency: 'weekly',  priority: 1.0 },
-    { url: `${BASE_URL}/presupuesto/`,lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${BASE_URL}/presupuesto/`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${BASE_URL}/auditorias/`,  lastModified: now, changeFrequency: 'weekly',  priority: 0.8 },
     { url: `${BASE_URL}/ats/`,        lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/roi/`,        lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/kpi/`,        lastModified: now, changeFrequency: 'monthly', priority: 0.7 },

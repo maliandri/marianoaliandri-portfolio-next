@@ -44,8 +44,9 @@ function loadConfig() {
     const s = localStorage.getItem('admin_lf_config');
     if (s) {
       const p = JSON.parse(s);
+      const ciudades = p.ciudades || (p.ciudad ? [p.ciudad] : ['Neuquén']);
       return {
-        ciudad:         p.ciudad         || 'Neuquén',
+        ciudades,
         pais:           p.pais           || 'Argentina',
         radioKm:        p.radioKm        || 10,
         maxAudit:       p.maxAudit       || p.maxEmails || 60,
@@ -57,7 +58,7 @@ function loadConfig() {
     }
   } catch { /* ignore */ }
   return {
-    ciudad: 'Neuquén', pais: 'Argentina', radioKm: 10, maxAudit: 60,
+    ciudades: ['Neuquén'], pais: 'Argentina', radioKm: 10, maxAudit: 60,
     buscarContacto: true, checkSites: true, apiKey: '', tipos: DEFAULT_TIPOS,
   };
 }
@@ -103,12 +104,15 @@ function ScoreBadge({ score }) {
 }
 
 export default function LeadFinderPanel() {
-  const [config, setConfig]       = useState(loadConfig);
-  const [showConfig, setShowConfig] = useState(true);
-  const [phase, setPhase]         = useState('idle');
-  const [progress, setProgress]   = useState({ tiposDone: 0, tiposTotal: 0, currentTipo: '', negocios: 0 });
-  const [results, setResults]     = useState([]);
-  const [logs, setLogs]           = useState([]);
+  const [config, setConfig]         = useState(loadConfig);
+  const [showConfig, setShowConfig]  = useState(true);
+  const [ciudadInput, setCiudadInput] = useState('');
+  const [phase, setPhase]            = useState('idle');
+  const [progress, setProgress]      = useState({ ciudadActual: '', tiposDone: 0, tiposTotal: 0, currentTipo: '', negocios: 0 });
+  const [results, setResults]        = useState([]);
+  const [logs, setLogs]              = useState([]);
+  const [publishing, setPublishing]  = useState(false);
+  const [publishedUrl, setPublishedUrl] = useState(null);
 
   const [filterTipo, setFilterTipo]       = useState('');
   const [filterEmail, setFilterEmail]     = useState(false);
@@ -165,18 +169,30 @@ export default function LeadFinderPanel() {
     cancelRef.current = false;
 
     try {
-      // 1. Geocode
-      setPhase('geocoding');
-      addLog(`Geocodificando ${cfg.ciudad}, ${cfg.pais}...`);
-      const geo = await callFn('geocode', { city: cfg.ciudad, country: cfg.pais });
-      const { lat, lon } = geo;
-      addLog(`Coordenadas: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
-
-      // 2. Buscar negocios CON web + auditar SEO inline
       setPhase('searching');
-      const radiusM  = cfg.radioKm * 1000;
+      const radiusM    = cfg.radioKm * 1000;
       const allResults = [];
-      const seenIds  = new Set();
+      const seenIds    = new Set();
+      const ciudades   = cfg.ciudades?.length ? cfg.ciudades : ['Neuquén'];
+
+      for (const ciudad of ciudades) {
+        if (cancelRef.current) break;
+
+        // Geocode cada ciudad
+        setPhase('geocoding');
+        addLog(`Geocodificando ${ciudad}, ${cfg.pais}...`);
+        let lat, lon;
+        try {
+          const geo = await callFn('geocode', { city: ciudad, country: cfg.pais });
+          lat = geo.lat; lon = geo.lon;
+          addLog(`  ${ciudad}: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+        } catch (e) {
+          addLog(`  Error geocodificando ${ciudad}: ${e.message}`, 'error');
+          continue;
+        }
+
+        setPhase('searching');
+        setProgress(prev => ({ ...prev, ciudadActual: ciudad, tiposDone: 0, tiposTotal: cfg.tipos.length, currentTipo: '' }));
 
       for (let i = 0; i < cfg.tipos.length; i++) {
         if (cancelRef.current) break;
@@ -221,6 +237,7 @@ export default function LeadFinderPanel() {
               id:          place.id,
               nombre:      place.displayName?.text || 'Sin nombre',
               tipo,
+              ciudad,
               direccion:   det.formattedAddress        || '',
               telefono:    det.internationalPhoneNumber || '',
               rating:      place.rating ? Number(place.rating).toFixed(1) : '',
@@ -266,10 +283,13 @@ export default function LeadFinderPanel() {
           addLog(`  Error en ${tipo}: ${e.message}`, 'error');
         }
       }
+      // fin de tipos para esta ciudad
+    }
+    // fin de ciudades
 
-      setProgress(prev => ({ ...prev, tiposDone: cfg.tipos.length, currentTipo: '' }));
-      setPhase('done');
-      addLog(`¡Completado! ${allResults.length} negocios auditados.`, 'success');
+    setProgress(prev => ({ ...prev, tiposDone: cfg.tipos.length, currentTipo: '', ciudadActual: '' }));
+    setPhase('done');
+    addLog(`¡Completado! ${allResults.length} negocios auditados.`, 'success');
 
     } catch (e) {
       setPhase('error');
@@ -281,20 +301,62 @@ export default function LeadFinderPanel() {
     try { localStorage.setItem('admin_lf_config', JSON.stringify(configRef.current)); } catch { /* ignore */ }
     setResults([]);
     setLogs([]);
+    setPublishedUrl(null);
     setFilterTipo(''); setFilterEmail(false); setFilterSeoLow(false); setFilterText('');
-    setProgress({ tiposDone: 0, tiposTotal: 0, currentTipo: '', negocios: 0 });
+    setProgress({ ciudadActual: '', tiposDone: 0, tiposTotal: 0, currentTipo: '', negocios: 0 });
     setShowConfig(false);
     runSearch();
   };
 
   const stopSearch = () => { cancelRef.current = true; addLog('Deteniendo...', 'warn'); };
 
+  const handlePublish = async () => {
+    if (!results.length) return;
+    setPublishing(true);
+    try {
+      const cfg  = configRef.current;
+      const ciudadesStr = (cfg.ciudades || []).join(', ') || 'Varias ciudades';
+      const tiposLabels = (cfg.tipos || [])
+        .map(id => TIPOS.find(t => t.id === id)?.label || id);
+      const dateStr = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+      const title = `Auditoría SEO — ${ciudadesStr} (${dateStr})`;
+
+      const stats = {
+        total:       results.length,
+        withEmail,
+        lowSeoCount,
+        avgSeoScore: avgSeoScore ?? null,
+      };
+
+      const config_ = {
+        ciudades:    cfg.ciudades || [],
+        pais:        cfg.pais,
+        radioKm:     cfg.radioKm,
+        tiposLabels,
+      };
+
+      const resp = await fetch('/api/auditorias', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, config: config_, results, stats }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.id) throw new Error(data.error || 'Error al publicar');
+      setPublishedUrl(`/auditorias/${data.id}`);
+      addLog(`Reporte publicado: /auditorias/${data.id}`, 'success');
+    } catch (e) {
+      addLog(`Error publicando: ${e.message}`, 'error');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   const exportCSV = () => {
-    const headers = ['Nombre','Tipo','Dirección','Teléfono','Email','Sitio Web','SEO Score','Meta Desc','Open Graph','Sitemap','Robots.txt','Última Actualización','Rating','Place ID'];
+    const headers = ['Nombre','Ciudad','Tipo','Dirección','Teléfono','Email','Sitio Web','SEO Score','Meta Desc','Open Graph','Sitemap','Robots.txt','Última Actualización','Rating','Place ID'];
     const sorted  = [...results].sort((a, b) => (a.seoScore ?? 999) - (b.seoScore ?? 999));
     const esc     = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const rows    = sorted.map(r => [
-      r.nombre, r.tipo, r.direccion, r.telefono, r.email || '', r.siteUrl || '',
+      r.nombre, r.ciudad || '', r.tipo, r.direccion, r.telefono, r.email || '', r.siteUrl || '',
       r.seoScore ?? '',
       r.metaDesc  ? 'Sí' : r.seoScore !== null ? 'No' : '',
       r.hasOG     === true ? 'Sí' : r.hasOG === false ? 'No' : '',
@@ -308,8 +370,9 @@ export default function LeadFinderPanel() {
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    const city = (configRef.current.ciudad || 'leads').toLowerCase().replace(/\s/g,'_').replace(/[éè]/g,'e').replace(/[áà]/g,'a').replace(/ú/g,'u').replace(/ñ/g,'n');
-    a.download = `seo_audit_${city}_${Date.now()}.csv`;
+    const normalize = s => s.toLowerCase().replace(/\s+/g,'_').replace(/[éè]/g,'e').replace(/[áà]/g,'a').replace(/[ú]/g,'u').replace(/[ó]/g,'o').replace(/[í]/g,'i').replace(/ñ/g,'n');
+    const citySlug = (configRef.current.ciudades || []).map(normalize).join('-') || 'leads';
+    a.download = `seo_audit_${citySlug}_${Date.now()}.csv`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
@@ -362,13 +425,58 @@ export default function LeadFinderPanel() {
               </p>
             </div>
 
-            {/* Ciudad, País, Radio, Max auditorías */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Ciudades */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Ciudades <span className="text-gray-400 font-normal">({config.ciudades.length} seleccionada{config.ciudades.length !== 1 ? 's' : ''})</span>
+              </label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {config.ciudades.map(c => (
+                  <span key={c} className="flex items-center gap-1 px-2.5 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-xs">
+                    📍 {c}
+                    {!isRunning && (
+                      <button onClick={() => setConfig(p => ({ ...p, ciudades: p.ciudades.filter(x => x !== c) }))}
+                        className="ml-0.5 text-purple-500 hover:text-red-500 transition-colors leading-none">×</button>
+                    )}
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={ciudadInput}
+                  onChange={e => setCiudadInput(e.target.value)}
+                  onKeyDown={e => {
+                    if ((e.key === 'Enter' || e.key === ',') && ciudadInput.trim()) {
+                      e.preventDefault();
+                      const v = ciudadInput.trim();
+                      if (!config.ciudades.includes(v)) setConfig(p => ({ ...p, ciudades: [...p.ciudades, v] }));
+                      setCiudadInput('');
+                    }
+                  }}
+                  disabled={isRunning}
+                  placeholder="Agregar ciudad… (Enter para confirmar)"
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 text-sm"
+                />
+                <button
+                  onClick={() => {
+                    const v = ciudadInput.trim();
+                    if (v && !config.ciudades.includes(v)) setConfig(p => ({ ...p, ciudades: [...p.ciudades, v] }));
+                    setCiudadInput('');
+                  }}
+                  disabled={isRunning || !ciudadInput.trim()}
+                  className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-40 text-sm font-medium transition-colors">
+                  + Agregar
+                </button>
+              </div>
+            </div>
+
+            {/* País, Radio, Max auditorías */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { label: 'Ciudad',          key: 'ciudad',    type: 'text',   placeholder: 'Neuquén' },
-                { label: 'País',            key: 'pais',      type: 'text',   placeholder: 'Argentina' },
-                { label: 'Radio (km)',       key: 'radioKm',   type: 'number', min: 1, max: 50 },
-                { label: 'Máx. auditorías', key: 'maxAudit',  type: 'number', min: 1, max: 500 },
+                { label: 'País',            key: 'pais',     type: 'text',   placeholder: 'Argentina' },
+                { label: 'Radio (km)',       key: 'radioKm',  type: 'number', min: 1, max: 50 },
+                { label: 'Máx. auditorías', key: 'maxAudit', type: 'number', min: 1, max: 500 },
               ].map(f => (
                 <div key={f.key}>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{f.label}</label>
@@ -458,6 +566,18 @@ export default function LeadFinderPanel() {
               ⬇ Exportar CSV ({results.length})
             </button>
           )}
+          {results.length > 0 && !isRunning && !publishedUrl && (
+            <button onClick={handlePublish} disabled={publishing}
+              className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-sm disabled:opacity-50">
+              {publishing ? '⏳ Publicando...' : '🌐 Publicar Reporte'}
+            </button>
+          )}
+          {publishedUrl && (
+            <a href={publishedUrl} target="_blank" rel="noopener noreferrer"
+              className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm">
+              ✓ Ver Reporte →
+            </a>
+          )}
           {results.length > 0 && (
             <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
               CSV ordenado por SEO Score ascendente (peores primero)
@@ -471,6 +591,7 @@ export default function LeadFinderPanel() {
         <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-lg">
           <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300 mb-1">
             <span>
+              {progress.ciudadActual && <span className="font-medium">📍 {progress.ciudadActual} · </span>}
               Tipos: {progress.tiposDone}/{progress.tiposTotal}
               {progress.currentTipo ? ` — ${progress.currentTipo}` : ''}
               {' '}· {progress.negocios} con web auditados
@@ -535,7 +656,7 @@ export default function LeadFinderPanel() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
               <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
                 <tr>
-                  {['Nombre','Tipo','Dirección','Teléfono','Email','Sitio web','SEO','Sitemap','Robots','Meta','OG','Actualizado','★',''].map(h => (
+                  {['Nombre','Ciudad','Tipo','Dirección','Teléfono','Email','Sitio web','SEO','Sitemap','Robots','Meta','OG','Actualizado','★',''].map(h => (
                     <th key={h} className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -546,6 +667,7 @@ export default function LeadFinderPanel() {
                     <td className="px-3 py-2.5 max-w-[150px]">
                       <div className="font-medium text-gray-900 dark:text-white truncate" title={neg.nombre}>{neg.nombre}</div>
                     </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">{neg.ciudad || '—'}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs">{neg.tipo}</span>
                     </td>
