@@ -11,6 +11,7 @@ import CronScheduler from '../components/admin/CronScheduler';
 import ZoneAnalysis from '../components/admin/ZoneAnalysis';
 import LabsPublisher from '../components/admin/LabsPublisher';
 import BudgetManager from '../components/admin/BudgetManager';
+import AuditoriasManager from '../components/admin/AuditoriasManager';
 import LeadFinderPanel from '../components/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 
@@ -423,7 +424,8 @@ export default function AdminPage() {
               { id: 'proyectos', label: 'Proyectos', icon: '🌐' },
               { id: 'zonas', label: 'Zonas', icon: '🗺️' },
               { id: 'cron', label: 'Cron Social', icon: '⏰' },
-              { id: 'presupuestos', label: 'Presupuestos', icon: '💰' }
+              { id: 'presupuestos', label: 'Presupuestos', icon: '💰' },
+              { id: 'auditorias',   label: 'Auditorías',   icon: '📊' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -684,6 +686,11 @@ export default function AdminPage() {
         {activeTab === 'presupuestos' && (
           <div className="p-6">
             <BudgetManager />
+          </div>
+        )}
+        {activeTab === 'auditorias' && (
+          <div className="p-6">
+            <AuditoriasManager />
           </div>
         )}
       </div>
