@@ -31,6 +31,17 @@ const ADMIN_TABS = [
   { id: 'auditorias', label: 'Auditorías', icon: '📋' },
 ];
 
+// Secciones agrupadas por tipo (para la barra de navegación de escritorio)
+const ADMIN_GROUPS = [
+  { id: 'panel',     label: 'Panel',          icon: '📊', tabs: ['dashboard'] },
+  { id: 'tienda',    label: 'Tienda',         icon: '🛍️', tabs: ['products', 'orders', 'presupuestos', 'users'] },
+  { id: 'redes',     label: 'Redes Sociales', icon: '📱', tabs: ['social', 'linkedin', 'cron'] },
+  { id: 'marketing', label: 'Marketing',      icon: '🎯', tabs: ['leads', 'zonas', 'auditorias'] },
+  { id: 'sitio',     label: 'Sitio',          icon: '🌐', tabs: ['proyectos', 'questions'] },
+];
+
+const TAB_MAP = Object.fromEntries(ADMIN_TABS.map(t => [t.id, t]));
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
@@ -395,100 +406,85 @@ export default function AdminPage() {
 
   // Admin Dashboard
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
-      {/* Header */}
-      <div className="bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col gap-4">
-            {/* Título y botones en línea separada */}
-            <div className="flex items-center justify-between">
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Panel de Administración</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Bienvenido, {username}</p>
-            </div>
-
-            {/* Botones en su propia fila */}
-            <div className="flex gap-3 flex-wrap">
-<button
-                onClick={() => router.push('/')}
-                className="px-4 py-2 border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors text-sm font-medium"
-              >
-                🌐 Ver sitio
-              </button>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-sm font-medium"
-              >
-                🚪 Cerrar Sesión
-              </button>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950 md:flex">
+      {/* Sidebar vertical agrupado por tipo */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-64 shrink-0 overflow-y-auto bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-800 p-4 transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0 ${navOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
+        <div className="px-2 pb-4 mb-2 border-b border-gray-100 dark:border-neutral-800">
+          <p className="text-base font-semibold text-gray-900 dark:text-white">Admin</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{username}</p>
         </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Desktop: tabs horizontales */}
-          <nav className="hidden md:flex space-x-8 overflow-x-auto">
-            {ADMIN_TABS.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-              >
-                <span className="mr-2">{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-
-          {/* Mobile: menú sándwich */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setNavOpen(v => !v)}
-              aria-expanded={navOpen}
-              aria-label="Menú de secciones"
-              className="w-full flex items-center justify-between py-3 text-gray-700 dark:text-gray-200"
-            >
-              <span className="flex items-center gap-2 font-medium text-sm">
-                <span>{(ADMIN_TABS.find(t => t.id === activeTab) || ADMIN_TABS[0]).icon}</span>
-                {(ADMIN_TABS.find(t => t.id === activeTab) || ADMIN_TABS[0]).label}
-              </span>
-              <span className="flex flex-col gap-[3px] items-end">
-                <span className={`block h-0.5 w-5 bg-current transition-transform ${navOpen ? 'translate-y-[5px] rotate-45' : ''}`} />
-                <span className={`block h-0.5 w-5 bg-current transition-opacity ${navOpen ? 'opacity-0' : ''}`} />
-                <span className={`block h-0.5 w-5 bg-current transition-transform ${navOpen ? '-translate-y-[5px] -rotate-45' : ''}`} />
-              </span>
-            </button>
-
-            {navOpen && (
-              <nav className="pb-2 grid grid-cols-2 gap-1">
-                {ADMIN_TABS.map(tab => (
+        <nav className="space-y-5">
+          {ADMIN_GROUPS.map(group => (
+            <div key={group.id}>
+              <p className="px-3 mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                <span>{group.icon}</span>{group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.tabs.map(id => TAB_MAP[id]).filter(Boolean).map(tab => (
                   <button
                     key={tab.id}
                     onClick={() => { setActiveTab(tab.id); setNavOpen(false); }}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-colors ${
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium text-left transition-colors ${
                       activeTab === tab.id
                         ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800'
                     }`}
                   >
-                    <span>{tab.icon}</span>
+                    <span className="text-base">{tab.icon}</span>
                     {tab.label}
                   </button>
                 ))}
-              </nav>
-            )}
-          </div>
-        </div>
-      </div>
+              </div>
+            </div>
+          ))}
+        </nav>
+      </aside>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Backdrop en mobile cuando el menú está abierto */}
+      {navOpen && (
+        <div className="fixed inset-0 z-30 bg-black/30 md:hidden" onClick={() => setNavOpen(false)} />
+      )}
+
+      {/* Columna principal */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Header */}
+        <header className="sticky top-0 z-20 bg-white/90 dark:bg-neutral-900/90 backdrop-blur border-b border-gray-200 dark:border-neutral-800">
+          <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setNavOpen(v => !v)}
+                aria-label="Menú"
+                className="md:hidden flex flex-col gap-[3px] p-2 -ml-2 text-gray-700 dark:text-gray-200"
+              >
+                <span className={`block h-0.5 w-5 bg-current transition-transform ${navOpen ? 'translate-y-[5px] rotate-45' : ''}`} />
+                <span className={`block h-0.5 w-5 bg-current transition-opacity ${navOpen ? 'opacity-0' : ''}`} />
+                <span className={`block h-0.5 w-5 bg-current transition-transform ${navOpen ? '-translate-y-[5px] -rotate-45' : ''}`} />
+              </button>
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {(TAB_MAP[activeTab] || ADMIN_TABS[0]).label}
+              </h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => router.push('/')}
+                className="px-3 py-2 border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors text-sm font-medium"
+              >
+                🌐 <span className="hidden sm:inline">Ver sitio</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-3 py-2 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-sm font-medium"
+              >
+                🚪 <span className="hidden sm:inline">Salir</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
         {loading && (
           <div className="flex justify-center py-12">
             <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
@@ -736,6 +732,7 @@ export default function AdminPage() {
             <AuditoriasManager />
           </div>
         )}
+        </main>
       </div>
     </div>
   );
