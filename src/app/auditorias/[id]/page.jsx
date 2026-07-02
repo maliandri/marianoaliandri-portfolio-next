@@ -22,12 +22,13 @@ async function getAuditoria(id) {
 }
 
 export async function generateMetadata({ params }) {
-  const a = await getAuditoria(params.id);
+  const { id } = await params;
+  const a = await getAuditoria(id);
   if (!a) return { title: 'Auditoría no encontrada' };
   return {
     title: `${a.title} | Auditorías Web`,
     description: `Reporte SEO de ${a.stats?.total} sitios web en ${(a.config?.ciudades || []).join(', ')}.`,
-    alternates: { canonical: `https://marianoaliandri.com.ar/auditorias/${params.id}` },
+    alternates: { canonical: `https://marianoaliandri.com.ar/auditorias/${id}` },
   };
 }
 
@@ -37,7 +38,8 @@ function formatDate(iso) {
 }
 
 export default async function AuditoriaDetailPage({ params }) {
-  const a = await getAuditoria(params.id);
+  const { id } = await params;
+  const a = await getAuditoria(id);
   if (!a) notFound();
 
   const results  = a.results || [];
