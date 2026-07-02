@@ -14,7 +14,7 @@ URL en produccion: https://marianoaliandri.com.ar
 
 | Capa | Tecnologia |
 |------|-----------|
-| Framework | Next.js 16.1.6 (App Router) |
+| Framework | Next.js 15 (App Router) |
 | UI | React 19, Tailwind CSS 4 |
 | Animaciones | Framer Motion 12 |
 | Estado servidor | TanStack Query 5 |
@@ -23,7 +23,8 @@ URL en produccion: https://marianoaliandri.com.ar
 | Pagos | MercadoPago |
 | AI | Google Gemini 2.5 Flash |
 | TTS | Google Cloud Text-to-Speech API |
-| Email | Zoho Mail (dominio propio) + Nodemailer |
+| Email transaccional | Zoho Mail (dominio propio) + Nodemailer |
+| Email outreach | Resend (`notificaciones@marianoaliandri.com.ar`) |
 | Automatizacion | Make.com (webhooks) |
 | Deploy | Vercel (CLI: `vercel --prod`) |
 | DNS | Vercel DNS (gestionado via Vercel CLI) |
@@ -43,7 +44,7 @@ src/
       chat/             # AI chatbot (Gemini 2.5 Flash)
       create-payment/   # MercadoPago — crea preferencia de pago
       cv-payment/       # Pago por analisis de CV
-      lead-finder/      # Google Places + scraping de emails
+      lead-finder/      # Google Places + scraping de emails (multi-ciudad)
       publish-social/   # Proxy a Make.com webhook para publicar en redes sociales
       search-console/   # GSC stats — dinamico via gscClient (sin SITES hardcodeado)
       proyectos/        # GET: GSC sites.list() + clicks/imp + Firestore desc + Microlink URLs
@@ -58,6 +59,17 @@ src/
       reel-tts/         # Genera audio MP3 con Google TTS (voz es-AR-Standard-B)
       reel-music/       # Retorna URL de musica segun mood (Mubert o fallback Cloudinary)
       payment-webhook/  # Webhook de MercadoPago (notificaciones de pago)
+      auditorias/       # GET (lista o por ?id=) / POST (crea) / DELETE — Firestore col "auditorias"
+        send-biz-email/ # POST: Gemini genera email personalizado + Resend lo envia al negocio
+      presupuesto/      # POST: guarda solicitud en Firestore col "presupuestos" + notifica admin
+      zone-caption/     # Genera caption de zona con Gemini
+    auditorias/         # Paginas publicas de auditorias SEO (server components, force-dynamic)
+      page.jsx          # Lista de auditorias — lee Firestore via getDb() directamente
+      [id]/
+        page.jsx        # Detalle de auditoria — lee Firestore via getDb() directamente
+        AuditTable.jsx  # Tabla ordenable (client component — sin email/datos privados)
+    presupuesto/        # Formulario publico de solicitud de presupuesto (3 pasos)
+      page.jsx
     admin/              # Panel de administracion (requiere auth)
     tienda/             # E-commerce de servicios
       page.jsx          # Lista de productos (Store.jsx con toggle Compra/Alquiler global)
@@ -69,8 +81,13 @@ src/
     ProductQA.jsx       # Preguntas y respuestas por producto (Firestore)
     ProyectosGrid.jsx   # Grid dinamico de proyectos con stats de GSC
     SocialPublisher.jsx # Publicador de servicios en redes (admin) — envia a Make.com
+    BudgetForm.jsx      # Formulario de presupuesto (3 pasos: datos, servicios, resumen)
+    LeadFinderPanel.jsx # Lead finder multi-ciudad con progreso, log, CSV, publicar a Firestore
     admin/
       CanvasReelGenerator.jsx  # Generador de reels canvas — flujo 5 pasos (ver abajo)
+      AuditoriasManager.jsx    # Lista/elimina auditorias, expande detalle con tabla+email
+      BudgetManager.jsx        # Lista solicitudes de presupuesto, asigna monto, genera link MP
+      ZoneAnalysis.jsx         # Analisis de zonas urbanas con heatmap
     ...otros componentes reutilizables
   views/
     StorePage.jsx       # Wrapper de /tienda con SEO, pasa asPage={true} a Store
@@ -88,11 +105,13 @@ src/
     canvasReelService.js # Canvas animation + MediaRecorder + mezcla audio Web Audio API
     ...otros servicios
   lib/
-    firebase-admin.js   # Firebase Admin SDK (server-side, usa FIREBASE_SERVICE_ACCOUNT_JSON)
+    firebase-admin.js   # Firebase Admin SDK — usa FIREBASE_PROJECT_ID/CLIENT_EMAIL/PRIVATE_KEY
+                        # getDb() reintenta init si falló en cold start (ver seccion abajo)
     gscClient.js        # Google Search Console client + getVerifiedSites()
   schemas/              # firebaseSchemas.js
   data/
     products.js         # Catalogo estatico de productos (IDs canonicos, fallback)
+    localidadesAR.js    # PROVINCIAS_AR: 24 provincias con localidades para el Lead Finder
     linkedinPosts.js    # Posts de LinkedIn hardcodeados
     serviceLogos.js     # Mapa tema→logo Cloudinary para SocialPublisher
 ```
@@ -125,8 +144,10 @@ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
 NEXT_PUBLIC_FIREBASE_APP_ID
 
-# Firebase Admin (Search Console)
-FIREBASE_SERVICE_ACCOUNT_JSON
+# Firebase Admin — usa vars INDIVIDUALES (no FIREBASE_SERVICE_ACCOUNT_JSON)
+FIREBASE_PROJECT_ID
+FIREBASE_CLIENT_EMAIL
+FIREBASE_PRIVATE_KEY                ← Con \n literales; firebase-admin.js hace .replace(/\\n/g,'\n')
 
 # Google APIs
 GOOGLE_PLACES_API_KEY
@@ -143,6 +164,11 @@ LINKEDIN_CLIENT_SECRET
 
 # Cloudinary
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+
+# Email outreach
+RESEND_API_KEY                      ← Para /api/auditorias/send-biz-email
+                                       From: notificaciones@marianoaliandri.com.ar (DKIM verificado)
+                                       Reply-To: marianoaliandri@gmail.com
 
 # Terceros
 PEXELS_API_KEY
@@ -176,6 +202,26 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   - Modelo de alquiler: datos en Firestore coleccion `productos_alquiler` (seña, cuota, duracionMinima, activo). Si `activo: false` el toggle no aparece
   - Seccion "¿Queres quedarte con el sitio?" en modo alquiler
   - Q&A por producto (Firestore)
+- **Presupuesto** (`/presupuesto`):
+  - Formulario publico de 3 pasos: datos del cliente → grilla de servicios (checkboxes) → resumen + envio
+  - Guarda en Firestore coleccion `presupuestos` con estado `pending`
+  - Admin tab "Presupuestos": asigna monto USD/ARS, genera link MercadoPago, envia por email o WhatsApp
+- **Lead Finder** (admin — multi-ciudad):
+  - Selector provincia → localidad con tags (agregar/quitar ciudades)
+  - Itera cada ciudad secuencialmente via Google Places API + scraping de emails
+  - Cada negocio tiene campo `ciudad`; `seenIds` evita duplicados entre ciudades
+  - Barra de progreso muestra ciudad actual
+  - Exporta CSV con columna Ciudad
+  - Boton "Publicar Reporte": guarda en Firestore coleccion `auditorias` + llama a Gemini para resumen
+- **Auditorias** (`/auditorias`):
+  - Listado publico de reportes SEO (`/auditorias`) — server component, lee Firestore directo
+  - Detalle de reporte (`/auditorias/[id]`) — full width, tabla ordenable por columna
+  - Tabla publica NO muestra email/telefono/direccion (privacidad)
+  - Admin tab "Auditorias": lista/elimina, expande detalle con email visible
+  - Boton "✉ Enviar" por negocio: Gemini genera email personalizado → Resend lo envia
+    - From: `Mariano Aliandri <notificaciones@marianoaliandri.com.ar>`
+    - Incluye screenshot del sitio via Microlink + score SEO badge
+    - Texto generado es editable (se muestra en <details> tras envio)
 - **Herramientas** (modales desde home + rutas propias con metadata SEO):
   - `/ats` — Analizador de CV con Gemini AI (PDF upload, analisis ATS)
   - `/roi` — Calculadora de ROI digital
@@ -183,7 +229,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   - `/kpi` — Radar KPI interactivo
   - `/radarweb` — Radar Web
   - `/stats` — Dashboard de estadisticas (GSC, Firebase, visitas)
-- **Admin** (`/admin`): Panel interno — stats, gestion de productos, publicacion en redes sociales, generacion de reels canvas, gestion de proyectos GSC
+- **Admin** (`/admin`): Panel interno con tabs: Stats, Productos, Publicar Redes, Reels, Proyectos GSC, Auditorias, Presupuestos
 - **Publicador de redes** (admin): envia POST a Make.com → Make llama a Gemini y publica en LinkedIn/Instagram/Facebook. Logos de servicios en Cloudinary (`service-logos/`)
 - **Generador de reels Canvas** (admin): flujo de 5 pasos:
   1. Seleccion de contenido (Producto / Tecnologia / Proyecto)
@@ -201,7 +247,20 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 - **Favicon dinamico**: Emoji segun dia de la semana (Dom😴 Lun😊 Mar😄 Mie🥳 Jue😎 Vie🤩 Sab😁) — script inline en `<head>`, sin archivos ni requests
 - **Dark mode**: Persistido en localStorage, aplicado antes del primer render (sin flash)
 - **Redirect www → apex**: `next.config.mjs` redirige 301 `www.marianoaliandri.com.ar` → `marianoaliandri.com.ar`
-- **SEO**: sitemap.xml con todas las rutas, robots.txt optimizado para Google e IAs, metadata por pagina con canonical, OG y JSON-LD
+- **SEO**: sitemap.xml con todas las rutas (incluye /auditorias, /presupuesto), robots.txt optimizado para Google e IAs, metadata por pagina con canonical, OG y JSON-LD
+
+---
+
+## Colecciones Firestore
+
+| Coleccion | Uso | Quien escribe |
+|-----------|-----|---------------|
+| `products` | Precios de compra de servicios | Admin |
+| `productos_alquiler` | Seña, cuota, duracionMinima por producto | Admin (seed) |
+| `auditorias` | Reportes SEO publicos (con email para admin, sin dir/tel) | `/api/auditorias` POST |
+| `presupuestos` | Solicitudes de presupuesto con servicios seleccionados | `/api/presupuesto` POST |
+| `proyectos` | Descripcion y orden de proyectos GSC | Admin tab Proyectos |
+| `likes` / `visitas` | Contadores anonimos | Client-side |
 
 ---
 
@@ -220,9 +279,17 @@ la negociacion TCP/TLS. **No eliminar.**
 El proyecto migro de Netlify a Vercel. Todas las funciones serverless viven en
 `src/app/api/` como Route Handlers de Next.js. **No crear Netlify Functions.**
 
-### SDKs inicializados dentro de handlers
-Firebase Admin, MercadoPago SDK y otros se inicializan dentro de cada handler,
-no al nivel del modulo. Esto evita errores en pre-render del servidor.
+### firebase-admin.js — init lazy con reintento
+`src/lib/firebase-admin.js` usa `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL` y
+`FIREBASE_PRIVATE_KEY` (vars individuales). La inicializacion corre a nivel de modulo
+pero `getDb()` reintenta si `admin.apps.length === 0` (puede ocurrir en cold start
+de server components durante build). Este patron evita los 404 con "no outgoing requests".
+**NO usar self-fetch HTTP desde server components para leer Firestore** — usar `getDb()` directo.
+
+### Server components leen Firestore directo
+Las paginas `/auditorias/page.jsx` y `/auditorias/[id]/page.jsx` usan `getDb()` directamente.
+Antes usaban `fetch(url_propia)` lo que causaba 404 intermitentes (el fetch HTTP fallaba
+antes de que el deploy estuviera listo). Regla: server components → Firebase Admin directo.
 
 ### Dark mode sin flash
 Script sincrono en `<head>` aplica la clase `dark` antes de que React hidrate.
@@ -253,6 +320,12 @@ Cloudinary desde el cliente (sin pasar por Vercel) para evitar el limite de 4.5M
 de las serverless functions. Luego se envia solo el videoUrl al servidor via
 `/api/upload-reel`. Cloudinary convierte a MP4/H264 on-the-fly con la URL transformada.
 
+### Resend — email outreach desde admin
+Resend (`RESEND_API_KEY`) envia emails de prospeccion a negocios auditados.
+Dominio `marianoaliandri.com.ar` verificado con DKIM + SPF en Resend.
+**NO activar "Enable Receiving"** en Resend (agrega MX record que rompe Zoho Mail).
+Reply-to siempre apunta a `marianoaliandri@gmail.com`.
+
 ---
 
 ## Que NO tocar o romper
@@ -265,11 +338,17 @@ de las serverless functions. Luego se envia solo el videoUrl al servidor via
   `AuthButton`, `LikeSystem`, etc. DEBEN ser `dynamic()`. Si se vuelven a importar
   estaticamente, Firebase vuelve al critical path y el LCP empeora ~2 segundos.
 
-- **Firebase inicializado en handlers**: no mover la inicializacion de Firebase Admin
-  al nivel del modulo en las API routes.
+- **firebase-admin.js — NO mover init al modulo sin reintento**: el `getDb()` actual
+  reintenta la inicializacion si falla en cold start. Si se simplifica sin ese reintento,
+  vuelven los 404 intermitentes en las paginas de auditorias.
+
+- **Auditorias — NO usar self-fetch**: `/auditorias/page.jsx` y `/auditorias/[id]/page.jsx`
+  deben leer Firestore con `getDb()`, no con `fetch('/api/auditorias')`. El self-fetch
+  causaba 404 intermitentes confirmados en Vercel logs.
 
 - **DNS de Zoho Mail en Vercel**: hay 3 registros MX (mx.zoho.com prio 10/20/50) y
   un SPF record. No eliminarlos o los emails del dominio dejan de funcionar.
+  **Tampoco agregar MX de Resend Inbound** — rompe los MX de Zoho.
 
 - **Variables de entorno con `\n`**: `MERCADOPAGO_ACCESS_TOKEN`, `GOOGLE_PLACES_API_KEY`
   y `SHOTSTACK_API_KEY` fueron corregidos con `printf`. Si se re-setean en bash, SIEMPRE usar
@@ -309,29 +388,33 @@ de las serverless functions. Luego se envia solo el videoUrl al servidor via
 - **No hay contraseñas hardcodeadas**: las API routes que antes tenian
   `process.env.ADMIN_PASSWORD || 'hardcoded'` fueron corregidas. Solo usar env vars.
 
+- **Lead Finder — campo `ciudad`**: cada resultado del scraping tiene `neg.ciudad`.
+  El CSV exportado tiene columna Ciudad. El `seenIds` Set persiste entre ciudades para
+  evitar duplicados. No quitar el campo `ciudad` del objeto `neg`.
+
 ---
 
 ## Oracle Cloud VM — OpenWA (WhatsApp gateway)
 
 ### VM Oracle Cloud Always Free
 - **Instancia**: `instance-20260526-1004`
-- **IP pública**: `146.235.244.218` (Efímera — si se pierde, reasignar desde VNIC → Administración de IP)
+- **IP publica**: `146.235.244.218` (Efimera — si se pierde, reasignar desde VNIC → Administracion de IP)
 - **IP privada**: `10.0.0.9`
 - **Region**: Chile Central (Santiago) — `sa-santiago-1`
 - **Shape**: VM.Standard.E2.1.Micro (1 OCPU, 1 GB RAM) — Always Free
 - **OS**: Oracle Linux 9
-- **SSH key**: `C:\Users\PC-escritorio\Desktop\marian web\oracle keys\ssh-key-2026-05-26.key`
+- **SSH key**: ⚠️ ACTUALIZAR RUTA — cambio de PC. Nombre del archivo: `ssh-key-2026-05-26.key`
 - **Usuario SSH**: `opc`
 
-**Comando SSH**:
+**Comando SSH** (actualizar ruta de la key segun nueva PC):
 ```powershell
-ssh -i "C:\Users\PC-escritorio\Desktop\marian web\oracle keys\ssh-key-2026-05-26.key" opc@146.235.244.218
+ssh -i "RUTA_A_LA_KEY\ssh-key-2026-05-26.key" opc@146.235.244.218
 ```
 
-### Plan de instalación OpenWA
+### Plan de instalacion OpenWA
 OpenWA es un gateway HTTP self-hosted de WhatsApp Web (NestJS + PostgreSQL + Docker).
 Permite enviar mensajes de WhatsApp desde el portfolio/admin via HTTP, sin riesgo de ban
-porque usa la sesión real del browser (no API oficial).
+porque usa la sesion real del browser (no API oficial).
 
 **Stack decidido**:
 - Oracle Cloud VM (arriba) → corre OpenWA via Docker Compose
@@ -339,7 +422,7 @@ porque usa la sesión real del browser (no API oficial).
 - Next.js `/api/whatsapp-notify` → ruta para enviar mensajes desde el admin
 - Vercel cron job → ping keep-alive cada 14 minutos para evitar sleep de Supabase
 
-**Estado actual**: VM creada y con IP pública. Instalando Docker.
+**Estado actual**: VM creada y con IP publica. Instalando Docker.
 
 **Pasos pendientes**:
 1. Instalar Docker en Oracle VM: `sudo dnf install -y docker`
@@ -355,7 +438,7 @@ porque usa la sesión real del browser (no API oficial).
 ### Firewall Oracle Cloud
 **IMPORTANTE**: Oracle Cloud bloquea puertos por defecto. Para exponer OpenWA (puerto 3000):
 1. Oracle Console → VCN → Security Lists → Ingress Rules → Add rule TCP port 3000
-2. También en Oracle Linux: `sudo firewall-cmd --add-port=3000/tcp --permanent && sudo firewall-cmd --reload`
+2. Tambien en Oracle Linux: `sudo firewall-cmd --add-port=3000/tcp --permanent && sudo firewall-cmd --reload`
 
 ---
 
@@ -367,12 +450,12 @@ API Caption: `src/app/api/zone-caption/route.js`
 ### HeatmapPanel
 - Componente inline de 600px capturado como imagen social (reemplaza Google Maps URL que Meta bloquea)
 - Muestra grilla horaria con colores por congestion (LOW=verde, MEDIUM=amarillo, HIGH=rojo)
-- Incluye concentración de tráfico por períodos (Mañana/Mediodía/Tarde/Noche)
-- Muestra dimensiones de la zona en cuadras (formula Haversine, 100m/cuadra estándar argentino)
+- Incluye concentracion de trafico por periodos (Manana/Mediodia/Tarde/Noche)
+- Muestra dimensiones de la zona en cuadras (formula Haversine, 100m/cuadra estandar argentino)
 
 ### Cloudinary upload
 - Upload preset: `zone_analysis_images` (Unsigned, confirmado que existe)
-- Conversión: `atob()` → `Uint8Array` → `Blob` (más confiable que fetch de dataUrl)
+- Conversion: `atob()` → `Uint8Array` → `Blob` (mas confiable que fetch de dataUrl)
 - Las capturas se hacen SECUENCIALMENTE (no en paralelo) para evitar race condition de re-render
 
 ### Payload Make.com para zone_analysis
@@ -383,10 +466,10 @@ images: [heatmapImageUrl, chartImageUrl].filter(Boolean),  // array para Router 
 ```
 
 ### Make.com Router 2 (PENDIENTE — el usuario debe configurar manualmente)
-Para publicar 2 imágenes en Facebook/LinkedIn para posts de zone_analysis:
+Para publicar 2 imagenes en Facebook/LinkedIn para posts de zone_analysis:
 - Agregar Router 2 con filtro `type` = `zone_analysis`
-- Branch 1: Facebook → módulo "Upload a Photo" con `images[0]` y `images[1]`
-- Branch 2: LinkedIn → módulo con ambas imágenes
+- Branch 1: Facebook → modulo "Upload a Photo" con `images[0]` y `images[1]`
+- Branch 2: LinkedIn → modulo con ambas imagenes
 
 ---
 
