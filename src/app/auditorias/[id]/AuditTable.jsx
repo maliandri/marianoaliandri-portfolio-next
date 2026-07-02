@@ -106,7 +106,6 @@ export default function AuditTable({ results }) {
                 <td className="px-4 py-3 text-gray-600 text-xs">{i + 1}</td>
                 <td className="px-4 py-3 max-w-[200px]">
                   <div className="font-medium text-white truncate" title={neg.nombre}>{neg.nombre}</div>
-                  <div className="text-xs text-gray-600 truncate mt-0.5" title={neg.direccion}>{neg.direccion}</div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-xs">{neg.ciudad || '—'}</td>
                 <td className="px-4 py-3 max-w-[200px]">

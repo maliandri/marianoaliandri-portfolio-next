@@ -83,7 +83,15 @@ export default async function AuditoriaDetailPage({ params }) {
         ))}
       </div>
 
-      {/* Explicación */}
+      {/* Resumen Gemini */}
+      {a.summary && (
+        <div className="bg-[#111] border border-white/10 rounded-xl p-6 mb-6 max-w-4xl">
+          <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-3">Análisis</p>
+          <p className="text-gray-300 leading-relaxed text-sm">{a.summary}</p>
+        </div>
+      )}
+
+      {/* Explicación score */}
       <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-xl p-4 mb-6 text-sm text-gray-400 max-w-4xl">
         <span className="text-indigo-400 font-semibold">¿Qué mide el Score SEO?</span>{' '}
         Evalúa sitemap (-25 si falta), robots.txt (-20), meta description (-25), Open Graph (-15) y antigüedad del sitio (-15 si más de 18 meses sin actualizar). Score 0–100: rojo = débil, amarillo = mejorable, verde = aceptable. Hacé click en los encabezados para ordenar.
