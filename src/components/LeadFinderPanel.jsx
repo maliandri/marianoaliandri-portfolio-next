@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { PROVINCIAS_AR } from '@/data/localidadesAR';
 
 const TIPOS = [
   { id: 'restaurant', label: 'Restaurante' },
@@ -427,27 +428,75 @@ export default function LeadFinderPanel() {
 
             {/* Ciudades */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Ciudades <span className="text-gray-400 font-normal">({config.ciudades.length} seleccionada{config.ciudades.length !== 1 ? 's' : ''})</span>
               </label>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {config.ciudades.map(c => (
-                  <span key={c} className="flex items-center gap-1 px-2.5 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-xs">
-                    📍 {c}
-                    {!isRunning && (
-                      <button onClick={() => setConfig(p => ({ ...p, ciudades: p.ciudades.filter(x => x !== c) }))}
-                        className="ml-0.5 text-purple-500 hover:text-red-500 transition-colors leading-none">×</button>
-                    )}
-                  </span>
-                ))}
-              </div>
+
+              {/* Tags de ciudades seleccionadas */}
+              {config.ciudades.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {config.ciudades.map(c => (
+                    <span key={c} className="flex items-center gap-1 px-2.5 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-xs">
+                      📍 {c}
+                      {!isRunning && (
+                        <button onClick={() => setConfig(p => ({ ...p, ciudades: p.ciudades.filter(x => x !== c) }))}
+                          className="ml-0.5 text-purple-400 hover:text-red-500 transition-colors leading-none font-bold">×</button>
+                      )}
+                    </span>
+                  ))}
+                  {!isRunning && config.ciudades.length > 0 && (
+                    <button onClick={() => setConfig(p => ({ ...p, ciudades: [] }))}
+                      className="text-xs text-gray-400 hover:text-red-400 px-2 py-1 transition-colors">
+                      Limpiar todo
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Selector provincia → localidad */}
               <div className="flex gap-2">
+                <select
+                  value={ciudadInput.split('||')[0] || ''}
+                  onChange={e => setCiudadInput(e.target.value + '||')}
+                  disabled={isRunning}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 text-sm">
+                  <option value="">— Provincia —</option>
+                  {PROVINCIAS_AR.map(p => (
+                    <option key={p.provincia} value={p.provincia}>{p.provincia}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={ciudadInput.split('||')[1] || ''}
+                  onChange={e => setCiudadInput((ciudadInput.split('||')[0] || '') + '||' + e.target.value)}
+                  disabled={isRunning || !ciudadInput.split('||')[0]}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 text-sm disabled:opacity-40">
+                  <option value="">— Localidad —</option>
+                  {(PROVINCIAS_AR.find(p => p.provincia === ciudadInput.split('||')[0])?.localidades || []).map(l => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+
+                <button
+                  onClick={() => {
+                    const loc = ciudadInput.split('||')[1]?.trim();
+                    if (loc && !config.ciudades.includes(loc)) setConfig(p => ({ ...p, ciudades: [...p.ciudades, loc] }));
+                    setCiudadInput('');
+                  }}
+                  disabled={isRunning || !ciudadInput.split('||')[1]?.trim()}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-40 text-sm font-medium transition-colors whitespace-nowrap">
+                  + Agregar
+                </button>
+              </div>
+
+              {/* Fallback: texto libre */}
+              <div className="flex gap-2 mt-2">
                 <input
                   type="text"
-                  value={ciudadInput}
+                  value={ciudadInput.includes('||') ? '' : ciudadInput}
                   onChange={e => setCiudadInput(e.target.value)}
                   onKeyDown={e => {
-                    if ((e.key === 'Enter' || e.key === ',') && ciudadInput.trim()) {
+                    if (e.key === 'Enter' && ciudadInput.trim() && !ciudadInput.includes('||')) {
                       e.preventDefault();
                       const v = ciudadInput.trim();
                       if (!config.ciudades.includes(v)) setConfig(p => ({ ...p, ciudades: [...p.ciudades, v] }));
@@ -455,19 +504,9 @@ export default function LeadFinderPanel() {
                     }
                   }}
                   disabled={isRunning}
-                  placeholder="Agregar ciudad… (Enter para confirmar)"
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 text-sm"
+                  placeholder="O escribí una ciudad manualmente (Enter)…"
+                  className="flex-1 px-3 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-transparent text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-purple-500 text-xs placeholder-gray-400"
                 />
-                <button
-                  onClick={() => {
-                    const v = ciudadInput.trim();
-                    if (v && !config.ciudades.includes(v)) setConfig(p => ({ ...p, ciudades: [...p.ciudades, v] }));
-                    setCiudadInput('');
-                  }}
-                  disabled={isRunning || !ciudadInput.trim()}
-                  className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-40 text-sm font-medium transition-colors">
-                  + Agregar
-                </button>
               </div>
             </div>
 
