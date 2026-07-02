@@ -5,6 +5,18 @@ const EMAIL_RE = /\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b/g;
 const IGNORE_EMAIL = ['example','test','noreply','no-reply','spam','sentry','wix','google','apple','microsoft','adobe','.png','.jpg','.gif','.svg'];
 const PLACES_NEARBY = 'https://places.googleapis.com/v1/places:searchNearby';
 const PLACES_DETAIL = 'https://places.googleapis.com/v1/places/';
+const SOCIAL_DOMAINS = [
+  'facebook.com','fb.com','instagram.com','twitter.com','x.com',
+  'linkedin.com','youtube.com','tiktok.com','pinterest.com','snapchat.com',
+  'whatsapp.com','telegram.org','linktr.ee','beacons.ai','bio.link',
+];
+
+function isSocialUrl(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '');
+    return SOCIAL_DOMAINS.some(d => host === d || host.endsWith('.' + d));
+  } catch { return false; }
+}
 
 function extractEmails(text) {
   const found = [...new Set(text.match(EMAIL_RE) || [])];

@@ -62,6 +62,19 @@ function loadConfig() {
   };
 }
 
+const SOCIAL_DOMAINS = [
+  'facebook.com','fb.com','instagram.com','twitter.com','x.com',
+  'linkedin.com','youtube.com','tiktok.com','pinterest.com','snapchat.com',
+  'whatsapp.com','telegram.org','linktr.ee','beacons.ai','bio.link',
+];
+
+function isSocialUrl(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '');
+    return SOCIAL_DOMAINS.some(d => host === d || host.endsWith('.' + d));
+  } catch { return false; }
+}
+
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function formatDate(str) {
@@ -191,8 +204,9 @@ export default function LeadFinderPanel() {
             if (seenIds.has(place.id)) continue;
             seenIds.add(place.id);
 
-            // Solo negocios CON sitio web
+            // Solo negocios CON sitio web propio (no redes sociales)
             if (!place.websiteUri) continue;
+            if (isSocialUrl(place.websiteUri)) continue;
 
             // Confirmar con detalles
             let det = {};
@@ -201,6 +215,7 @@ export default function LeadFinderPanel() {
             } catch { /* usar datos del place */ }
 
             const siteUrl = det.websiteUri || place.websiteUri;
+            if (isSocialUrl(siteUrl)) continue;
 
             const neg = {
               id:          place.id,
