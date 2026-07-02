@@ -37,7 +37,7 @@ export default async function AuditoriaDetailPage({ params }) {
   const ciudades = a.config?.ciudades || [];
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20 px-4 md:px-8">
+    <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20 px-2 md:px-4">
 
       {/* Breadcrumb */}
       <Link href="/auditorias" className="text-xs text-gray-600 hover:text-gray-400 transition-colors mb-6 inline-block">
@@ -69,7 +69,7 @@ export default async function AuditoriaDetailPage({ params }) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10 max-w-4xl">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         {[
           { value: a.stats?.total ?? '—',        label: 'Sitios analizados',  color: 'text-white' },
           { value: a.stats?.withEmail ?? '—',    label: 'Con email público',  color: 'text-green-400' },
@@ -85,14 +85,14 @@ export default async function AuditoriaDetailPage({ params }) {
 
       {/* Resumen Gemini */}
       {a.summary && (
-        <div className="bg-[#111] border border-white/10 rounded-xl p-6 mb-6 max-w-4xl">
+        <div className="bg-[#111] border border-white/10 rounded-xl p-6 mb-6">
           <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-3">Análisis</p>
           <p className="text-gray-300 leading-relaxed text-sm">{a.summary}</p>
         </div>
       )}
 
       {/* Explicación score */}
-      <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-xl p-4 mb-6 text-sm text-gray-400 max-w-4xl">
+      <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-xl p-4 mb-6 text-sm text-gray-400">
         <span className="text-indigo-400 font-semibold">¿Qué mide el Score SEO?</span>{' '}
         Evalúa sitemap (-25 si falta), robots.txt (-20), meta description (-25), Open Graph (-15) y antigüedad del sitio (-15 si más de 18 meses sin actualizar). Score 0–100: rojo = débil, amarillo = mejorable, verde = aceptable. Hacé click en los encabezados para ordenar.
       </div>
