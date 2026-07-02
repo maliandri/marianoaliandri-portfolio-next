@@ -3,42 +3,93 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { PROVINCIAS_AR } from '@/data/localidadesAR';
 
+// Tipos de negocio → se pasan como `includedTypes` a la Places API (New).
+// Todos son valores válidos de la Table A. Agrupados por rubro (`cat`) solo para el UI.
 const TIPOS = [
-  { id: 'restaurant', label: 'Restaurante' },
-  { id: 'cafe', label: 'Café' },
-  { id: 'bar', label: 'Bar' },
-  { id: 'store', label: 'Tienda' },
-  { id: 'clothing_store', label: 'Ropa' },
-  { id: 'hair_care', label: 'Peluquería' },
-  { id: 'beauty_salon', label: 'Salón de Belleza' },
-  { id: 'gym', label: 'Gimnasio' },
-  { id: 'dentist', label: 'Dentista' },
-  { id: 'doctor', label: 'Médico' },
-  { id: 'real_estate_agency', label: 'Inmobiliaria' },
-  { id: 'lawyer', label: 'Abogado' },
-  { id: 'accounting', label: 'Contabilidad' },
-  { id: 'school', label: 'Escuela' },
-  { id: 'lodging', label: 'Alojamiento' },
-  { id: 'car_repair', label: 'Mecánico' },
-  { id: 'electrician', label: 'Electricista' },
-  { id: 'plumber', label: 'Plomero' },
-  { id: 'supermarket', label: 'Supermercado' },
-  { id: 'pharmacy', label: 'Farmacia' },
-  { id: 'bakery', label: 'Panadería' },
-  { id: 'florist', label: 'Floristería' },
-  { id: 'pet_store', label: 'Mascotas' },
-  { id: 'shoe_store', label: 'Zapatería' },
-  { id: 'jewelry_store', label: 'Joyería' },
-  { id: 'hardware_store', label: 'Ferretería' },
-  { id: 'car_dealer', label: 'Concesionaria' },
-  { id: 'laundry', label: 'Lavandería' },
-  { id: 'photographer', label: 'Fotógrafo' },
-  { id: 'travel_agency', label: 'Ag. de Viajes' },
-  { id: 'insurance_agency', label: 'Seguros' },
-  { id: 'veterinary_care', label: 'Veterinaria' },
+  // Gastronomía
+  { id: 'restaurant',           label: 'Restaurante',       cat: 'Gastronomía' },
+  { id: 'cafe',                 label: 'Café',              cat: 'Gastronomía' },
+  { id: 'bar',                  label: 'Bar',               cat: 'Gastronomía' },
+  { id: 'bakery',               label: 'Panadería',         cat: 'Gastronomía' },
+  { id: 'pizza_restaurant',     label: 'Pizzería',          cat: 'Gastronomía' },
+  { id: 'ice_cream_shop',       label: 'Heladería',         cat: 'Gastronomía' },
+  { id: 'meal_takeaway',        label: 'Comida p/llevar',   cat: 'Gastronomía' },
+  { id: 'meal_delivery',        label: 'Delivery',          cat: 'Gastronomía' },
+  // Comercios
+  { id: 'store',                label: 'Tienda',            cat: 'Comercios' },
+  { id: 'clothing_store',       label: 'Ropa',              cat: 'Comercios' },
+  { id: 'shoe_store',           label: 'Zapatería',         cat: 'Comercios' },
+  { id: 'jewelry_store',        label: 'Joyería',           cat: 'Comercios' },
+  { id: 'hardware_store',       label: 'Ferretería',        cat: 'Comercios' },
+  { id: 'florist',              label: 'Floristería',       cat: 'Comercios' },
+  { id: 'pet_store',            label: 'Mascotas',          cat: 'Comercios' },
+  { id: 'supermarket',          label: 'Supermercado',      cat: 'Comercios' },
+  { id: 'convenience_store',    label: 'Autoservicio',      cat: 'Comercios' },
+  { id: 'furniture_store',      label: 'Muebles',           cat: 'Comercios' },
+  { id: 'electronics_store',    label: 'Electrónica',       cat: 'Comercios' },
+  { id: 'home_goods_store',     label: 'Bazar / Hogar',     cat: 'Comercios' },
+  { id: 'book_store',           label: 'Librería',          cat: 'Comercios' },
+  { id: 'gift_shop',            label: 'Regalería',         cat: 'Comercios' },
+  { id: 'sporting_goods_store', label: 'Deportes',          cat: 'Comercios' },
+  { id: 'bicycle_store',        label: 'Bicicletería',      cat: 'Comercios' },
+  { id: 'cell_phone_store',     label: 'Celulares',         cat: 'Comercios' },
+  { id: 'liquor_store',         label: 'Vinoteca',          cat: 'Comercios' },
+  { id: 'shopping_mall',        label: 'Shopping',          cat: 'Comercios' },
+  // Salud & Belleza
+  { id: 'hair_care',            label: 'Peluquería',        cat: 'Salud & Belleza' },
+  { id: 'beauty_salon',         label: 'Salón de Belleza',  cat: 'Salud & Belleza' },
+  { id: 'barber_shop',          label: 'Barbería',          cat: 'Salud & Belleza' },
+  { id: 'nail_salon',           label: 'Manicura',          cat: 'Salud & Belleza' },
+  { id: 'spa',                  label: 'Spa',               cat: 'Salud & Belleza' },
+  { id: 'gym',                  label: 'Gimnasio',          cat: 'Salud & Belleza' },
+  { id: 'dentist',              label: 'Dentista',          cat: 'Salud & Belleza' },
+  { id: 'doctor',               label: 'Médico',            cat: 'Salud & Belleza' },
+  { id: 'physiotherapist',      label: 'Kinesiología',      cat: 'Salud & Belleza' },
+  { id: 'pharmacy',             label: 'Farmacia',          cat: 'Salud & Belleza' },
+  { id: 'veterinary_care',      label: 'Veterinaria',       cat: 'Salud & Belleza' },
+  // Servicios profesionales
+  { id: 'real_estate_agency',   label: 'Inmobiliaria',      cat: 'Serv. Profesionales' },
+  { id: 'lawyer',               label: 'Abogado',           cat: 'Serv. Profesionales' },
+  { id: 'accounting',           label: 'Contabilidad',      cat: 'Serv. Profesionales' },
+  { id: 'insurance_agency',     label: 'Seguros',           cat: 'Serv. Profesionales' },
+  { id: 'travel_agency',        label: 'Ag. de Viajes',     cat: 'Serv. Profesionales' },
+  { id: 'photographer',         label: 'Fotógrafo',         cat: 'Serv. Profesionales' },
+  // Automotor
+  { id: 'car_repair',           label: 'Mecánico',          cat: 'Automotor' },
+  { id: 'car_dealer',           label: 'Concesionaria',     cat: 'Automotor' },
+  { id: 'car_wash',             label: 'Lavadero',          cat: 'Automotor' },
+  { id: 'car_rental',           label: 'Alquiler de autos', cat: 'Automotor' },
+  { id: 'gas_station',          label: 'Estación de servicio', cat: 'Automotor' },
+  // Hogar & Oficios
+  { id: 'electrician',          label: 'Electricista',      cat: 'Hogar & Oficios' },
+  { id: 'plumber',              label: 'Plomero',           cat: 'Hogar & Oficios' },
+  { id: 'painter',              label: 'Pintor',            cat: 'Hogar & Oficios' },
+  { id: 'general_contractor',   label: 'Constructor',       cat: 'Hogar & Oficios' },
+  { id: 'locksmith',            label: 'Cerrajero',         cat: 'Hogar & Oficios' },
+  { id: 'laundry',              label: 'Lavandería',        cat: 'Hogar & Oficios' },
+  { id: 'moving_company',       label: 'Mudanzas',          cat: 'Hogar & Oficios' },
+  // Educación
+  { id: 'school',               label: 'Escuela',           cat: 'Educación' },
+  { id: 'primary_school',       label: 'Primaria',          cat: 'Educación' },
+  { id: 'secondary_school',     label: 'Secundaria',        cat: 'Educación' },
+  { id: 'preschool',            label: 'Jardín',            cat: 'Educación' },
+  { id: 'university',           label: 'Universidad',       cat: 'Educación' },
+  // Alojamiento & Turismo
+  { id: 'lodging',              label: 'Alojamiento',       cat: 'Alojamiento' },
+  { id: 'hotel',                label: 'Hotel',             cat: 'Alojamiento' },
+  { id: 'motel',                label: 'Motel',             cat: 'Alojamiento' },
+  { id: 'campground',           label: 'Camping',           cat: 'Alojamiento' },
 ];
 
-const DEFAULT_TIPOS = TIPOS.slice(0, 18).map(t => t.id);
+// Orden de rubros para el UI (agrupa TIPOS por `cat` preservando este orden)
+const CATEGORIAS = [...new Set(TIPOS.map(t => t.cat))];
+
+// Selección por defecto: los rubros de negocio local más comunes
+const DEFAULT_TIPOS = [
+  'restaurant', 'cafe', 'bar', 'bakery', 'store', 'clothing_store', 'hair_care',
+  'beauty_salon', 'gym', 'dentist', 'real_estate_agency', 'lawyer', 'accounting',
+  'car_repair', 'pharmacy', 'pet_store', 'veterinary_care', 'lodging',
+];
 
 function loadConfig() {
   try {
@@ -569,19 +620,42 @@ export default function LeadFinderPanel() {
                   ))}
                 </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
-                {TIPOS.map(tipo => {
-                  const checked = config.tipos.includes(tipo.id);
+              <div className="space-y-3">
+                {CATEGORIAS.map(cat => {
+                  const tiposCat = TIPOS.filter(t => t.cat === cat);
+                  const allOn = tiposCat.every(t => config.tipos.includes(t.id));
                   return (
-                    <label key={tipo.id} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs cursor-pointer select-none transition-colors
-                      ${checked ? 'border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300'
-                                : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'}
-                      ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                      <input type="checkbox" checked={checked} disabled={isRunning}
-                        onChange={e => { if (isRunning) return; setConfig(p => ({ ...p, tipos: e.target.checked ? [...p.tipos, tipo.id] : p.tipos.filter(t => t !== tipo.id) })); }}
-                        className="accent-purple-600 w-3 h-3" />
-                      {tipo.label}
-                    </label>
+                    <div key={cat}>
+                      <button
+                        type="button"
+                        disabled={isRunning}
+                        onClick={() => setConfig(p => {
+                          const ids = tiposCat.map(t => t.id);
+                          const tipos = allOn
+                            ? p.tipos.filter(t => !ids.includes(t))
+                            : [...new Set([...p.tipos, ...ids])];
+                          return { ...p, tipos };
+                        })}
+                        className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1.5 hover:text-purple-500 disabled:hover:text-gray-400">
+                        {cat} <span className="font-normal">({allOn ? 'quitar' : 'todos'})</span>
+                      </button>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
+                        {tiposCat.map(tipo => {
+                          const checked = config.tipos.includes(tipo.id);
+                          return (
+                            <label key={tipo.id} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs cursor-pointer select-none transition-colors
+                              ${checked ? 'border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300'
+                                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'}
+                              ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                              <input type="checkbox" checked={checked} disabled={isRunning}
+                                onChange={e => { if (isRunning) return; setConfig(p => ({ ...p, tipos: e.target.checked ? [...p.tipos, tipo.id] : p.tipos.filter(t => t !== tipo.id) })); }}
+                                className="accent-purple-600 w-3 h-3" />
+                              {tipo.label}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
                 })}
               </div>

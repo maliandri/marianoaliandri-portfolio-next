@@ -15,6 +15,22 @@ import AuditoriasManager from '../components/admin/AuditoriasManager';
 import LeadFinderPanel from '../components/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 
+const ADMIN_TABS = [
+  { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+  { id: 'users', label: 'Usuarios', icon: '👥' },
+  { id: 'orders', label: 'Órdenes', icon: '📦' },
+  { id: 'products', label: 'Productos', icon: '🛍️' },
+  { id: 'social', label: 'Redes Sociales', icon: '📱' },
+  { id: 'linkedin', label: 'LinkedIn', icon: '💼' },
+  { id: 'leads', label: 'Lead Finder', icon: '🎯' },
+  { id: 'questions', label: 'Preguntas', icon: '💬' },
+  { id: 'proyectos', label: 'Proyectos', icon: '🌐' },
+  { id: 'zonas', label: 'Zonas', icon: '🗺️' },
+  { id: 'cron', label: 'Cron Social', icon: '⏰' },
+  { id: 'presupuestos', label: 'Presupuestos', icon: '💰' },
+  { id: 'auditorias', label: 'Auditorías', icon: '📋' },
+];
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
@@ -23,6 +39,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [socialSubTab, setSocialSubTab] = useState('publicar');
+  const [navOpen, setNavOpen] = useState(false);
 
   // Data states
   const [users, setUsers] = useState([]);
@@ -315,51 +332,51 @@ export default function AdminPage() {
   // Login Screen
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-950 px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md"
+          className="bg-white dark:bg-neutral-900 p-8 rounded-2xl border border-gray-200 dark:border-neutral-800 w-full max-w-md"
         >
-          <h1 className="text-3xl font-bold text-white mb-2 text-center">Panel de Administración</h1>
-          <p className="text-gray-400 text-center mb-8">Acceso restringido</p>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1.5 text-center">Panel de Administración</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-center mb-8 text-sm">Acceso restringido</p>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Usuario</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Usuario</label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoComplete="username"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-3 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400"
                 placeholder="Usuario"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Contraseña</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contraseña</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-3 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400"
                 placeholder="••••••••"
                 required
               />
             </div>
 
             {loginError && (
-              <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg text-sm">
+              <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm">
                 {loginError}
               </div>
             )}
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
+              className="w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 transition-colors"
             >
               Iniciar Sesión
             </button>
@@ -367,7 +384,7 @@ export default function AdminPage() {
 
           <button
             onClick={() => router.push('/')}
-            className="mt-6 w-full text-gray-400 hover:text-white transition-colors text-sm"
+            className="mt-6 w-full text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors text-sm"
           >
             ← Volver al sitio
           </button>
@@ -378,14 +395,14 @@ export default function AdminPage() {
 
   // Admin Dashboard
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow">
+      <div className="bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col gap-4">
             {/* Título y botones en línea separada */}
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Panel de Administración</h1>
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Panel de Administración</h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">Bienvenido, {username}</p>
             </div>
 
@@ -393,13 +410,13 @@ export default function AdminPage() {
             <div className="flex gap-3 flex-wrap">
 <button
                 onClick={() => router.push('/')}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                className="px-4 py-2 border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors text-sm font-medium"
               >
                 🌐 Ver sitio
               </button>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                className="px-4 py-2 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-sm font-medium"
               >
                 🚪 Cerrar Sesión
               </button>
@@ -409,30 +426,17 @@ export default function AdminPage() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8">
-            {[
-              { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-              { id: 'users', label: 'Usuarios', icon: '👥' },
-              { id: 'orders', label: 'Órdenes', icon: '📦' },
-              { id: 'products', label: 'Productos', icon: '🛍️' },
-              { id: 'social', label: 'Redes Sociales', icon: '📱' },
-              { id: 'linkedin', label: 'LinkedIn', icon: '💼' },
-              { id: 'leads', label: 'Lead Finder', icon: '🎯' },
-              { id: 'questions', label: 'Preguntas', icon: '💬' },
-              { id: 'proyectos', label: 'Proyectos', icon: '🌐' },
-              { id: 'zonas', label: 'Zonas', icon: '🗺️' },
-              { id: 'cron', label: 'Cron Social', icon: '⏰' },
-              { id: 'presupuestos', label: 'Presupuestos', icon: '💰' },
-              { id: 'auditorias',   label: 'Auditorías',   icon: '📊' }
-            ].map(tab => (
+          {/* Desktop: tabs horizontales */}
+          <nav className="hidden md:flex space-x-8 overflow-x-auto">
+            {ADMIN_TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'border-purple-500 text-purple-600 dark:text-purple-400'
+                    ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
                 }`}
               >
@@ -441,6 +445,45 @@ export default function AdminPage() {
               </button>
             ))}
           </nav>
+
+          {/* Mobile: menú sándwich */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setNavOpen(v => !v)}
+              aria-expanded={navOpen}
+              aria-label="Menú de secciones"
+              className="w-full flex items-center justify-between py-3 text-gray-700 dark:text-gray-200"
+            >
+              <span className="flex items-center gap-2 font-medium text-sm">
+                <span>{(ADMIN_TABS.find(t => t.id === activeTab) || ADMIN_TABS[0]).icon}</span>
+                {(ADMIN_TABS.find(t => t.id === activeTab) || ADMIN_TABS[0]).label}
+              </span>
+              <span className="flex flex-col gap-[3px] items-end">
+                <span className={`block h-0.5 w-5 bg-current transition-transform ${navOpen ? 'translate-y-[5px] rotate-45' : ''}`} />
+                <span className={`block h-0.5 w-5 bg-current transition-opacity ${navOpen ? 'opacity-0' : ''}`} />
+                <span className={`block h-0.5 w-5 bg-current transition-transform ${navOpen ? '-translate-y-[5px] -rotate-45' : ''}`} />
+              </span>
+            </button>
+
+            {navOpen && (
+              <nav className="pb-2 grid grid-cols-2 gap-1">
+                {ADMIN_TABS.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => { setActiveTab(tab.id); setNavOpen(false); }}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-colors ${
+                      activeTab === tab.id
+                        ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800'
+                    }`}
+                  >
+                    <span>{tab.icon}</span>
+                    {tab.label}
+                  </button>
+                ))}
+              </nav>
+            )}
+          </div>
         </div>
       </div>
 
@@ -448,7 +491,7 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {loading && (
           <div className="flex justify-center py-12">
-            <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
 
@@ -456,7 +499,7 @@ export default function AdminPage() {
           <div className="space-y-6">
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Total Órdenes</p>
@@ -466,7 +509,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Análisis CV</p>
@@ -476,7 +519,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Tienda</p>
@@ -486,7 +529,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Revenue Total</p>
@@ -498,7 +541,7 @@ export default function AdminPage() {
             </div>
 
             {/* Recent Orders */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Órdenes Recientes</h2>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -541,11 +584,11 @@ export default function AdminPage() {
         )}
 
         {!loading && activeTab === 'orders' && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Todas las Órdenes ({orders.length})</h2>
             <div className="space-y-4">
               {orders.map(order => (
-                <div key={order.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div key={order.id} className="border border-gray-200 dark:border-neutral-800 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <span className="font-mono text-sm text-gray-500 dark:text-gray-400">#{order.id.slice(-12)}</span>
@@ -586,7 +629,7 @@ export default function AdminPage() {
         )}
 
         {!loading && activeTab === 'products' && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Productos de la Tienda ({products.length})</h2>
               <div className="flex gap-3">
@@ -624,7 +667,7 @@ export default function AdminPage() {
         {!loading && activeTab === 'social' && (
           <div className="space-y-4">
             {/* Sub-tabs */}
-            <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 pb-1">
+            <div className="flex gap-2 border-b border-gray-200 dark:border-neutral-800 pb-1">
               {[
                 { id: 'publicar',     label: '📢 Publicar' },
                 { id: 'servicios',    label: '🖼️ Servicios' },
@@ -639,7 +682,7 @@ export default function AdminPage() {
                   onClick={() => setSocialSubTab(sub.id)}
                   className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
                     socialSubTab === sub.id
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-indigo-600 text-white'
                       : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                   }`}
                 >
@@ -754,7 +797,7 @@ function AdminProyectosPanel({ db }) {
     }
   };
 
-  if (loading) return <div className="flex justify-center py-12"><div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading) return <div className="flex justify-center py-12"><div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
     <div className="space-y-4">
@@ -779,7 +822,7 @@ function AdminProyectosPanel({ db }) {
               }
             }}
             disabled={capturing}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white text-xs font-medium rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-medium rounded-lg transition-colors"
           >
             {capturing ? '📸 Capturando...' : '📸 Capturar screenshots'}
           </button>
@@ -803,7 +846,7 @@ function AdminProyectosPanel({ db }) {
         const isSaving = saving === p.domain;
         const isOpen = !!expanded[p.domain];
         return (
-          <div key={p.domain} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div key={p.domain} className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 overflow-hidden">
             {/* Header colapsable */}
             <button
               className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
@@ -833,7 +876,7 @@ function AdminProyectosPanel({ db }) {
 
             {/* Contenido expandido */}
             {isOpen && (
-              <div className="px-5 pb-5 space-y-4 border-t border-gray-100 dark:border-gray-700 pt-4">
+              <div className="px-5 pb-5 space-y-4 border-t border-gray-100 dark:border-neutral-800 pt-4">
 
                 <div>
                   <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Descripción corta</label>
@@ -842,7 +885,7 @@ function AdminProyectosPanel({ db }) {
                     value={e.descripcionCorta}
                     onChange={ev => setField(p.domain, 'descripcionCorta', ev.target.value)}
                     placeholder="→ Sitio de ventas de viviendas modulares que convierte visitas en leads calificados..."
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
@@ -853,7 +896,7 @@ function AdminProyectosPanel({ db }) {
                     value={e.stack}
                     onChange={ev => setField(p.domain, 'stack', ev.target.value)}
                     placeholder="→ React 19 + Vite · Tailwind CSS · Framer Motion · Google Gemini · Supabase..."
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
@@ -864,7 +907,7 @@ function AdminProyectosPanel({ db }) {
                     value={e.funcionalidades}
                     onChange={ev => setField(p.domain, 'funcionalidades', ev.target.value)}
                     placeholder={"→ Chatbot de ventas con IA — asesora al cliente y captura leads\n→ Catálogo interactivo con filtros en tiempo real\n→ SEO híbrido SPA + HTML estático"}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
@@ -875,7 +918,7 @@ function AdminProyectosPanel({ db }) {
                     value={e.impacto}
                     onChange={ev => setField(p.domain, 'impacto', ev.target.value)}
                     placeholder="→ 97/100 de salud SEO en Ahrefs, indexado en GSC con presencia en búsquedas de..."
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
@@ -887,7 +930,7 @@ function AdminProyectosPanel({ db }) {
                       value={e.orden}
                       min={0}
                       onChange={ev => setField(p.domain, 'orden', ev.target.value)}
-                      className="w-20 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-20 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                   <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-4">
@@ -937,7 +980,7 @@ function LinkedInPanel() {
   return (
     <div className="space-y-6">
       {/* Estado de conexión */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+      <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
@@ -977,7 +1020,7 @@ function LinkedInPanel() {
 
       {/* Perfil */}
       {isConnected && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+        <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Perfil</h3>
           {profileLoading ? (
             <p className="text-sm text-gray-500 animate-pulse">Cargando perfil...</p>
@@ -1004,7 +1047,7 @@ function LinkedInPanel() {
 
       {/* Posts */}
       {isConnected && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+        <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
             Posts Recientes {postsData?.total ? `(${postsData.total})` : ''}
           </h3>
@@ -1013,7 +1056,7 @@ function LinkedInPanel() {
           ) : postsData?.posts?.length > 0 ? (
             <div className="space-y-3">
               {postsData.posts.map((post, i) => (
-                <div key={post.id || i} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div key={post.id || i} className="border border-gray-200 dark:border-neutral-800 rounded-lg p-4">
                   <p className="text-sm text-gray-700 dark:text-gray-300">{post.text || '(Sin texto)'}</p>
                   <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
                     {post.created && (
@@ -1042,14 +1085,14 @@ function LinkedInPanel() {
 
       {/* Analytics */}
       {isConnected && analyticsData && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+        <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Analytics</h3>
           {analyticsData.available ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {/* Se llenará cuando Marketing Developer Platform esté aprobada */}
             </div>
           ) : (
-            <div className="text-center py-6 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+            <div className="text-center py-6 bg-gray-50 dark:bg-neutral-950/50 rounded-lg">
               <p className="text-sm text-gray-500 dark:text-gray-400">{analyticsData.message}</p>
               <a
                 href="https://www.linkedin.com/developers/apps"
@@ -1125,7 +1168,7 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
   };
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+    <div className="border border-gray-200 dark:border-neutral-800 rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
       {editing ? (
         <div className="space-y-4">
           {/* Título */}
@@ -1137,7 +1180,7 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
               type="text"
               value={formData.name}
               onChange={(e) => handleChange('name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Ej: Desarrollo Web Premium"
             />
           </div>
@@ -1151,7 +1194,7 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               placeholder="Descripción del producto..."
             />
           </div>
@@ -1165,7 +1208,7 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
               type="number"
               value={formData.priceUSD}
               onChange={(e) => handleChange('priceUSD', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="0"
               min="0"
               step="0.01"
@@ -1184,7 +1227,7 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
               type="number"
               value={formData.priceARS}
               onChange={(e) => handleChange('priceARS', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Se calcula automáticamente"
               min="0"
             />
@@ -1202,7 +1245,7 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
               type="number"
               value={formData.rentalMonthly}
               onChange={(e) => handleChange('rentalMonthly', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="0 = sin opción de alquiler"
               min="0"
             />
@@ -1253,7 +1296,7 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
                 </span>
               )}
               {product.rentalMonthly > 0 && (
-                <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
                   🏠 Alquiler: USD {product.rentalMonthly}/mes · Seña USD {Math.round(product.priceUSD * 0.35)}
                 </span>
               )}
@@ -1339,7 +1382,7 @@ function AdminUsersPanel({ users, formatDate }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+      <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Usuarios Registrados ({localUsers.length})</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Al registrarse por primera vez, se les envia automaticamente un email de bienvenida.</p>
 
@@ -1355,12 +1398,12 @@ function AdminUsersPanel({ users, formatDate }) {
 
         <div className="space-y-3">
           {localUsers.map(user => (
-            <div key={user.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+            <div key={user.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-neutral-800 rounded-lg hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 {user.photoURL ? (
                   <img src={user.photoURL} alt="" className="w-10 h-10 rounded-full flex-shrink-0" referrerPolicy="no-referrer" />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-purple-200 dark:bg-purple-800 flex items-center justify-center text-sm font-bold text-purple-700 dark:text-purple-300 flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-indigo-200 dark:bg-indigo-800 flex items-center justify-center text-sm font-bold text-indigo-700 dark:text-indigo-300 flex-shrink-0">
                     {(user.displayName || user.email || '?')[0].toUpperCase()}
                   </div>
                 )}
@@ -1374,7 +1417,7 @@ function AdminUsersPanel({ users, formatDate }) {
                 <button
                   onClick={() => resendWelcome(user)}
                   disabled={sendingId === user.id}
-                  className="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium disabled:opacity-50 flex items-center gap-1"
+                  className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs font-medium disabled:opacity-50 flex items-center gap-1"
                 >
                   {sendingId === user.id ? (
                     <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -1465,7 +1508,7 @@ function AdminQuestionsPanel() {
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -1478,7 +1521,7 @@ function AdminQuestionsPanel() {
         </h2>
         <button
           onClick={loadQuestions}
-          className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+          className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-neutral-800 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
         >
           Actualizar
         </button>
@@ -1497,8 +1540,8 @@ function AdminQuestionsPanel() {
             onClick={() => setFilter(f.id)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === f.id
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 dark:bg-neutral-900 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
             {f.label}
@@ -1514,14 +1557,14 @@ function AdminQuestionsPanel() {
       ) : (
         <div className="space-y-4">
           {filtered.map(q => (
-            <div key={q.id} className={`bg-white dark:bg-gray-800 rounded-lg border p-4 ${!q.isVisible ? 'opacity-50 border-red-300 dark:border-red-800' : 'border-gray-200 dark:border-gray-700'}`}>
+            <div key={q.id} className={`bg-white dark:bg-neutral-900 rounded-lg border p-4 ${!q.isVisible ? 'opacity-50 border-red-300 dark:border-red-800' : 'border-gray-200 dark:border-neutral-800'}`}>
               {/* Header */}
               <div className="flex items-start justify-between gap-4 mb-2">
                 <div className="flex items-center gap-2">
                   {q.questionAuthorPhoto ? (
                     <img src={q.questionAuthorPhoto} alt="" className="w-8 h-8 rounded-full" referrerPolicy="no-referrer" />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-purple-200 dark:bg-purple-800 flex items-center justify-center text-sm font-bold text-purple-700 dark:text-purple-300">
+                    <div className="w-8 h-8 rounded-full bg-indigo-200 dark:bg-indigo-800 flex items-center justify-center text-sm font-bold text-indigo-700 dark:text-indigo-300">
                       {(q.questionAuthorName || '?')[0]}
                     </div>
                   )}
@@ -1547,9 +1590,9 @@ function AdminQuestionsPanel() {
 
               {/* Respuesta existente */}
               {q.answerText && (
-                <div className="border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/20 rounded-r-lg p-3 mb-3">
+                <div className="border-l-4 border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 rounded-r-lg p-3 mb-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">{q.answeredBy || 'Mariano Aliandri'}</span>
+                    <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">{q.answeredBy || 'Mariano Aliandri'}</span>
                     <span className="text-xs text-gray-400">{formatDate(q.answeredAt)}</span>
                   </div>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{q.answerText}</p>
@@ -1564,13 +1607,13 @@ function AdminQuestionsPanel() {
                     onChange={(e) => setAnswerText(e.target.value)}
                     placeholder="Escribi tu respuesta..."
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
                   />
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleAnswer(q.id)}
                       disabled={submitting || !answerText.trim()}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:opacity-50 flex items-center gap-1"
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium disabled:opacity-50 flex items-center gap-1"
                     >
                       {submitting && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                       Publicar Respuesta
@@ -1588,7 +1631,7 @@ function AdminQuestionsPanel() {
                   {!q.answerText && q.isVisible && (
                     <button
                       onClick={() => { setAnsweringId(q.id); setAnswerText(''); }}
-                      className="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                      className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
                     >
                       Responder
                     </button>
