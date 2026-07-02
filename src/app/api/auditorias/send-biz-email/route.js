@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { Resend } from 'resend';
+import { getDb } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 const SITE_URL   = 'https://marianoaliandri.com.ar';
@@ -178,16 +180,37 @@ Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre pár
 </html>`;
 
     // Enviar con Resend
+    const subject = `Análisis SEO de ${nombre} — oportunidades de mejora`;
     const resend = new Resend(process.env.RESEND_API_KEY);
     const result = await resend.emails.send({
       from:     'Mariano Aliandri <notificaciones@marianoaliandri.com.ar>',
       to:       email,
       reply_to: 'marianoaliandri@gmail.com',
-      subject:  `Análisis SEO de ${nombre} — oportunidades de mejora`,
+      subject,
       html,
     });
 
-    return Response.json({ success: true, emailId: result.data?.id, emailText, source });
+    if (result.error) throw new Error(result.error.message || 'Error de Resend');
+    const resendId = result.data?.id || null;
+
+    // Guardar registro del envío en Firestore (no romper el envío si falla)
+    try {
+      const db = getDb();
+      if (db) {
+        await db.collection('sent_emails').add({
+          nombre, email, siteUrl, ciudad: ciudad || null, tipo: tipo || null,
+          seoScore: seoScore ?? null, auditoriaId: auditoriaId || null,
+          subject, body: emailText, screenshotUrl: screenshotUrl || null,
+          source: source || null, resendId,
+          status: 'sent',
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (logErr) {
+      console.error('[send-biz-email] no se pudo guardar el registro:', logErr.message);
+    }
+
+    return Response.json({ success: true, emailId: resendId, emailText, source });
   } catch (e) {
     console.error('[send-biz-email] ERROR:', e.message, e.stack);
     return Response.json({ error: e.message }, { status: 500 });

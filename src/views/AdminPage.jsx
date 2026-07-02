@@ -12,6 +12,7 @@ import ZoneAnalysis from '../components/admin/ZoneAnalysis';
 import LabsPublisher from '../components/admin/LabsPublisher';
 import BudgetManager from '../components/admin/BudgetManager';
 import AuditoriasManager from '../components/admin/AuditoriasManager';
+import SentEmailsManager from '../components/admin/SentEmailsManager';
 import LeadFinderPanel from '../components/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 
@@ -29,6 +30,7 @@ const ADMIN_TABS = [
   { id: 'cron', label: 'Cron Social', icon: '⏰' },
   { id: 'presupuestos', label: 'Presupuestos', icon: '💰' },
   { id: 'auditorias', label: 'Auditorías', icon: '📋' },
+  { id: 'emails', label: 'Emails', icon: '📧' },
 ];
 
 // Secciones agrupadas por tipo (para la barra de navegación de escritorio)
@@ -36,7 +38,7 @@ const ADMIN_GROUPS = [
   { id: 'panel',     label: 'Panel',          icon: '📊', tabs: ['dashboard'] },
   { id: 'tienda',    label: 'Tienda',         icon: '🛍️', tabs: ['products', 'orders', 'presupuestos', 'users'] },
   { id: 'redes',     label: 'Redes Sociales', icon: '📱', tabs: ['social', 'linkedin', 'cron'] },
-  { id: 'marketing', label: 'Marketing',      icon: '🎯', tabs: ['leads', 'zonas', 'auditorias'] },
+  { id: 'marketing', label: 'Marketing',      icon: '🎯', tabs: ['leads', 'zonas', 'auditorias', 'emails'] },
   { id: 'sitio',     label: 'Sitio',          icon: '🌐', tabs: ['proyectos', 'questions'] },
 ];
 
@@ -730,6 +732,11 @@ export default function AdminPage() {
         {activeTab === 'auditorias' && (
           <div className="p-6">
             <AuditoriasManager />
+          </div>
+        )}
+        {activeTab === 'emails' && (
+          <div className="p-6">
+            <SentEmailsManager />
           </div>
         )}
         </main>
