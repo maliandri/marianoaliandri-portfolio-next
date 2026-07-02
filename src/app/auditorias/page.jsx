@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getDb } from '@/lib/firebase-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,24 +11,20 @@ export const metadata = {
 
 async function getAuditorias() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://marianoaliandri.com.ar'}/api/auditorias`, {
-      cache: 'no-store',
+    const db = getDb();
+    if (!db) return [];
+    const snap = await db.collection('auditorias').orderBy('publishedAt', 'desc').limit(50).get();
+    return snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        title:       data.title,
+        config:      data.config,
+        stats:       data.stats,
+        publishedAt: data.publishedAt?.toDate?.()?.toISOString() || null,
+      };
     });
-    if (!res.ok) return [];
-    return await res.json();
   } catch { return []; }
-}
-
-function ScoreBadge({ score }) {
-  if (score == null) return null;
-  const cls = score >= 70 ? 'bg-green-500/15 text-green-400 border-green-500/30'
-            : score >= 40 ? 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'
-                          : 'bg-red-500/15 text-red-400 border-red-500/30';
-  return (
-    <span className={`inline-block text-xs font-bold px-2 py-0.5 rounded-full border ${cls}`}>
-      {score >= 70 ? 'SEO OK' : score >= 40 ? 'SEO Regular' : 'SEO Débil'}
-    </span>
-  );
 }
 
 function formatDate(iso) {
@@ -74,7 +71,6 @@ export default async function AuditoriasPage() {
                       {a.title}
                     </h2>
 
-                    {/* Config badges */}
                     <div className="flex flex-wrap gap-2 mt-3">
                       {(a.config?.ciudades || []).map(c => (
                         <span key={c} className="text-xs bg-white/5 border border-white/10 text-gray-400 px-2.5 py-1 rounded-full">
@@ -99,7 +95,6 @@ export default async function AuditoriasPage() {
                     </div>
                   </div>
 
-                  {/* Stats */}
                   <div className="flex gap-6 shrink-0">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-white">{a.stats?.total ?? '—'}</div>

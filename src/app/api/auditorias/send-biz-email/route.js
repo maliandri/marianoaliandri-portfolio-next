@@ -30,6 +30,11 @@ async function getScreenshot(url) {
 
 export async function POST(request) {
   try {
+    if (!process.env.RESEND_API_KEY) {
+      console.error('[send-biz-email] RESEND_API_KEY no configurada');
+      return Response.json({ error: 'RESEND_API_KEY no configurada' }, { status: 500 });
+    }
+
     const { nombre, siteUrl, email, seoScore, hasSitemap, hasRobots, metaDesc, hasOG, ciudad, tipo, auditoriaId } = await request.json();
 
     if (!email) return Response.json({ error: 'Email requerido' }, { status: 400 });
@@ -128,6 +133,7 @@ Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre pár
 
     return Response.json({ success: true, emailId: result.data?.id, emailText });
   } catch (e) {
+    console.error('[send-biz-email] ERROR:', e.message, e.stack);
     return Response.json({ error: e.message }, { status: 500 });
   }
 }

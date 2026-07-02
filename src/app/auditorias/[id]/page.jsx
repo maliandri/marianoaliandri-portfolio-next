@@ -1,17 +1,23 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { getDb } from '@/lib/firebase-admin';
 import AuditTable from './AuditTable';
 
 export const dynamic = 'force-dynamic';
 
 async function getAuditoria(id) {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_SITE_URL || 'https://marianoaliandri.com.ar'}/api/auditorias?id=${id}`,
-      { cache: 'no-store' }
-    );
-    if (!res.ok) return null;
-    return await res.json();
+    const db = getDb();
+    if (!db) return null;
+    const doc = await db.collection('auditorias').doc(id).get();
+    if (!doc.exists) return null;
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      publishedAt: data.publishedAt?.toDate?.()?.toISOString() || null,
+      createdAt:   data.createdAt?.toDate?.()?.toISOString()   || null,
+    };
   } catch { return null; }
 }
 
@@ -21,6 +27,7 @@ export async function generateMetadata({ params }) {
   return {
     title: `${a.title} | Auditorías Web`,
     description: `Reporte SEO de ${a.stats?.total} sitios web en ${(a.config?.ciudades || []).join(', ')}.`,
+    alternates: { canonical: `https://marianoaliandri.com.ar/auditorias/${params.id}` },
   };
 }
 
@@ -31,15 +38,14 @@ function formatDate(iso) {
 
 export default async function AuditoriaDetailPage({ params }) {
   const a = await getAuditoria(params.id);
-  if (!a || a.error) notFound();
+  if (!a) notFound();
 
-  const results = a.results || [];
+  const results  = a.results || [];
   const ciudades = a.config?.ciudades || [];
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20 px-2 md:px-4">
 
-      {/* Breadcrumb */}
       <Link href="/auditorias" className="text-xs text-gray-600 hover:text-gray-400 transition-colors mb-6 inline-block">
         ← Todas las auditorías
       </Link>
@@ -48,22 +54,15 @@ export default async function AuditoriaDetailPage({ params }) {
       <div className="mb-8">
         <p className="text-xs text-gray-500 mb-2">{formatDate(a.publishedAt)}</p>
         <h1 className="text-3xl md:text-4xl font-black text-white mb-4">{a.title}</h1>
-
         <div className="flex flex-wrap gap-2">
           {ciudades.map(c => (
-            <span key={c} className="text-sm bg-white/5 border border-white/10 text-gray-300 px-3 py-1.5 rounded-full">
-              📍 {c}
-            </span>
+            <span key={c} className="text-sm bg-white/5 border border-white/10 text-gray-300 px-3 py-1.5 rounded-full">📍 {c}</span>
           ))}
           {a.config?.radioKm && (
-            <span className="text-sm bg-white/5 border border-white/10 text-gray-300 px-3 py-1.5 rounded-full">
-              📡 Radio {a.config.radioKm} km
-            </span>
+            <span className="text-sm bg-white/5 border border-white/10 text-gray-300 px-3 py-1.5 rounded-full">📡 Radio {a.config.radioKm} km</span>
           )}
           {(a.config?.tiposLabels || []).map(t => (
-            <span key={t} className="text-sm bg-white/5 border border-white/10 text-gray-400 px-3 py-1.5 rounded-full">
-              {t}
-            </span>
+            <span key={t} className="text-sm bg-white/5 border border-white/10 text-gray-400 px-3 py-1.5 rounded-full">{t}</span>
           ))}
         </div>
       </div>
@@ -97,16 +96,13 @@ export default async function AuditoriaDetailPage({ params }) {
         Evalúa sitemap (-25 si falta), robots.txt (-20), meta description (-25), Open Graph (-15) y antigüedad del sitio (-15 si más de 18 meses sin actualizar). Score 0–100: rojo = débil, amarillo = mejorable, verde = aceptable. Hacé click en los encabezados para ordenar.
       </div>
 
-      {/* Tabla sorteable — client component */}
       <AuditTable results={results} />
 
-      {/* Footer */}
       <p className="text-center text-xs text-gray-700 mt-8">
         Auditoría realizada por{' '}
         <Link href="/" className="text-gray-500 hover:text-gray-300 transition-colors">Mariano Aliandri</Link>
         {' '}· {formatDate(a.publishedAt)}
       </p>
-
     </main>
   );
 }
