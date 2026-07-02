@@ -189,9 +189,10 @@ async function sendAuditEmail({ title, config, stats, summary, reportUrl, screen
 </html>`;
 
   await resend.emails.send({
-    from: 'Mariano Aliandri <onboarding@resend.dev>',
-    to:   ADMIN_EMAIL,
-    subject: `📊 Reporte publicado: ${title}`,
+    from:     'Mariano Aliandri <notificaciones@marianoaliandri.com.ar>',
+    to:       ADMIN_EMAIL,
+    reply_to: ADMIN_EMAIL,
+    subject:  `📊 Reporte publicado: ${title}`,
     html,
   });
 }
