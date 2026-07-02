@@ -14,8 +14,12 @@ async function callGemini(prompt) {
     signal: AbortSignal.timeout(25000),
   });
   const data = await resp.json();
+  // Surface el error real de Google en vez de un mensaje genérico
+  if (!resp.ok || data?.error) {
+    throw new Error(`Gemini ${resp.status}: ${data?.error?.message || 'error desconocido'}`);
+  }
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-  if (!text) throw new Error('Gemini no generó respuesta');
+  if (!text) throw new Error('Gemini no generó texto (posible bloqueo de contenido)');
   return text;
 }
 
@@ -28,17 +32,50 @@ async function getScreenshot(url) {
   } catch { return null; }
 }
 
+// Plantilla escrita a mano — se usa como fallback cuando Gemini no está disponible.
+// Personaliza el cuerpo con los datos reales de cada negocio.
+function buildTemplateEmail({ nombre, siteUrl, seoScore, ciudad, problemas, nivelSeo }) {
+  const cleanUrl = (siteUrl || '').replace(/^https?:\/\/(www\.)?/, '').split(/[?#]/)[0].replace(/\/$/, '');
+  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
+  const saludo = `Hola equipo de ${nombre},`;
+
+  const intro = `Soy Mariano Aliandri, desarrollador web y analista de datos. Ayudo a negocios${ciudad ? ` de ${ciudad}` : ''} a mejorar su presencia en internet para que aparezcan mejor en Google y les lleguen más clientes.`;
+
+  const analisis = `Estuve revisando su sitio web (${cleanUrl}) y encontré algunas oportunidades concretas para mejorarlo. Hoy tiene un puntaje SEO de ${seoScore ?? '—'}/100, un nivel ${nivelSeo}.`;
+
+  const detalle = problemas.length
+    ? `Puntualmente, detecté que el sitio:\n${problemas.map(p => `• ${cap(p)}`).join('\n')}`
+    : `La base está bien armada, pero hay algunos detalles finos que se pueden pulir para ganar posiciones en Google.`;
+
+  const impacto = `¿Por qué importa esto? Cuando un sitio tiene estos puntos flojos, Google lo muestra más abajo en los resultados y muchos clientes potenciales terminan eligiendo a un competidor que aparece antes. Corregirlo suele traducirse en más visitas y más consultas, sin necesidad de gastar en publicidad.`;
+
+  const cierre = `Si te interesa, respondé este mail y coordinamos una charla sin compromiso para revisarlo juntos y ver qué conviene priorizar.\n\nSaludos,\nMariano Aliandri`;
+
+  return [saludo, intro, analisis, detalle, impacto, cierre].join('\n\n');
+}
+
 export async function POST(request) {
   try {
-    if (!process.env.RESEND_API_KEY) {
-      console.error('[send-biz-email] RESEND_API_KEY no configurada');
-      return Response.json({ error: 'RESEND_API_KEY no configurada' }, { status: 500 });
-    }
+    const body = await request.json();
+    const {
+      nombre, siteUrl, email, seoScore, hasSitemap, hasRobots, metaDesc, hasOG,
+      ciudad, tipo, auditoriaId,
+      preview,                       // true = solo generar el texto, no enviar
+      emailText: providedText,       // texto ya generado/editado por el admin (opcional)
+      screenshotUrl: providedShot,   // screenshot ya obtenido en el preview (opcional)
+    } = body;
 
-    const { nombre, siteUrl, email, seoScore, hasSitemap, hasRobots, metaDesc, hasOG, ciudad, tipo, auditoriaId } = await request.json();
-
-    if (!email) return Response.json({ error: 'Email requerido' }, { status: 400 });
     if (!nombre || !siteUrl) return Response.json({ error: 'nombre y siteUrl requeridos' }, { status: 400 });
+
+    // Para enviar (no preview) hacen falta email y Resend configurado
+    if (!preview) {
+      if (!email) return Response.json({ error: 'Email requerido' }, { status: 400 });
+      if (!process.env.RESEND_API_KEY) {
+        console.error('[send-biz-email] RESEND_API_KEY no configurada');
+        return Response.json({ error: 'RESEND_API_KEY no configurada' }, { status: 500 });
+      }
+    }
 
     // Construir lista de problemas SEO
     const problemas = [];
@@ -49,9 +86,14 @@ export async function POST(request) {
 
     const nivelSeo = seoScore >= 70 ? 'aceptable' : seoScore >= 40 ? 'mejorable' : 'débil';
 
-    // Generar email personalizado con Gemini
-    const emailText = await callGemini(
-      `Sos Mariano Aliandri, desarrollador Full Stack y analista de datos de ${SITE_URL}.
+    // Origen del cuerpo del email: editado por el admin > Gemini > plantilla propia
+    let emailText;
+    let source;
+    if (providedText?.trim()) {
+      emailText = providedText.trim();
+      source = 'edited';
+    } else {
+      const prompt = `Sos Mariano Aliandri, desarrollador Full Stack y analista de datos de ${SITE_URL}.
 Escribí el cuerpo de un email comercial personalizado para el negocio "${nombre}"${ciudad ? ` de ${ciudad}` : ''}, rubro ${tipo || 'comercio'}.
 
 Su sitio web es ${siteUrl}.
@@ -68,11 +110,25 @@ El email debe:
 - Cerrar con tu nombre: Mariano Aliandri
 
 Tono: cercano, profesional, nunca agresivo ni spam. En español rioplatense (vos, no tú).
-Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre párrafos.`
-    );
+Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre párrafos.`;
+      try {
+        emailText = await callGemini(prompt);
+        source = 'gemini';
+      } catch (e) {
+        // Gemini caído (ej. API key inválida) → usar la plantilla propia
+        console.warn('[send-biz-email] Gemini no disponible, usando plantilla:', e.message);
+        emailText = buildTemplateEmail({ nombre, siteUrl, seoScore, ciudad, problemas, nivelSeo });
+        source = 'template';
+      }
+    }
 
-    // Screenshot del sitio web de la empresa
-    const screenshotUrl = await getScreenshot(siteUrl);
+    // Screenshot del sitio web de la empresa (reusar el del preview si vino)
+    const screenshotUrl = providedShot !== undefined ? providedShot : await getScreenshot(siteUrl);
+
+    // Modo preview: devolver el texto + screenshot sin enviar nada
+    if (preview) {
+      return Response.json({ success: true, preview: true, emailText, screenshotUrl, source });
+    }
 
     // Construir HTML del email
     const bodyLines = emailText
@@ -131,7 +187,7 @@ Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre pár
       html,
     });
 
-    return Response.json({ success: true, emailId: result.data?.id, emailText });
+    return Response.json({ success: true, emailId: result.data?.id, emailText, source });
   } catch (e) {
     console.error('[send-biz-email] ERROR:', e.message, e.stack);
     return Response.json({ error: e.message }, { status: 500 });
