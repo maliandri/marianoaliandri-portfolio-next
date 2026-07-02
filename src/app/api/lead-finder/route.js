@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const EMAIL_RE = /\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b/g;
 const IGNORE_EMAIL = ['example','test','noreply','no-reply','spam','sentry','wix','google','apple','microsoft','adobe','.png','.jpg','.gif','.svg'];
@@ -8,6 +9,41 @@ const PLACES_DETAIL = 'https://places.googleapis.com/v1/places/';
 function extractEmails(text) {
   const found = [...new Set(text.match(EMAIL_RE) || [])];
   return found.filter(e => !IGNORE_EMAIL.some(x => e.toLowerCase().includes(x)));
+}
+
+function extractMetaDesc(html) {
+  const m = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']{10,})["']/i)
+           || html.match(/<meta[^>]+content=["']([^"']{10,})["'][^>]+name=["']description["']/i);
+  return m ? m[1].trim().substring(0, 200) : null;
+}
+
+function detectOG(html) {
+  return /<meta[^>]+property=["']og:/i.test(html);
+}
+
+async function fetchFirstContact(origin) {
+  const paths = ['/contacto', '/contact', '/about'];
+  try {
+    return await Promise.any(
+      paths.map(p =>
+        fetch(origin + p, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(4000) })
+          .then(r => r.ok ? r : Promise.reject())
+      )
+    );
+  } catch { return null; }
+}
+
+function calcSeoScore({ hasSitemap, hasRobots, metaDesc, hasOG, lastModified }) {
+  let score = 100;
+  if (!hasSitemap) score -= 25;
+  if (!hasRobots)  score -= 20;
+  if (!metaDesc)   score -= 25;
+  if (!hasOG)      score -= 15;
+  if (lastModified) {
+    const ageMonths = (Date.now() - new Date(lastModified).getTime()) / (1000 * 60 * 60 * 24 * 30);
+    if (ageMonths > 18) score -= 15;
+  }
+  return Math.max(0, score);
 }
 
 function ok(data) { return Response.json({ ok: true, ...data }); }
@@ -64,54 +100,51 @@ export async function POST(request) {
         return ok(data);
       }
 
-      case 'searchEmail': {
-        const { name, city } = params;
-        const query = `"${name}" "${city}" correo OR email OR contacto`;
-        const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-        try {
-          const resp = await fetch(ddgUrl, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) });
-          const html = await resp.text();
-          const ddgEmails = extractEmails(html);
-          if (ddgEmails.length) return ok({ email: ddgEmails[0], siteUrl: null });
-          const linkMatch = html.match(/<a[^>]+class="result__a"[^>]+href="([^"]+)"/);
-          const siteUrl = linkMatch?.[1] || null;
-          if (siteUrl && siteUrl.startsWith('http')) {
-            try {
-              const pageResp = await fetch(siteUrl, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(5000) });
-              if (pageResp.ok) {
-                const pageText = await pageResp.text();
-                const pageEmails = extractEmails(pageText);
-                if (pageEmails.length) return ok({ email: pageEmails[0], siteUrl });
-              }
-            } catch { /* ignore */ }
-          }
-          return ok({ email: null, siteUrl });
-        } catch { return ok({ email: null, siteUrl: null }); }
-      }
-
       case 'checkSite': {
         let { url } = params;
         if (!url) return fail('URL requerida');
         if (!url.startsWith('http')) url = 'https://' + url;
+
+        let origin;
+        try { origin = new URL(url).origin; } catch { return fail('URL inválida'); }
+
         try {
-          const { origin } = new URL(url);
-          const [sitemapRes, robotsRes, mainRes] = await Promise.allSettled([
+          const [sitemapRes, robotsRes, mainRes, contactRes] = await Promise.allSettled([
             fetch(origin + '/sitemap.xml', { method: 'HEAD', headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(4000) }),
-            fetch(origin + '/robots.txt', { method: 'HEAD', headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(4000) }),
-            fetch(origin, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(5000) }),
+            fetch(origin + '/robots.txt',  { method: 'HEAD', headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(4000) }),
+            fetch(origin,                  { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(6000) }),
+            fetchFirstContact(origin),
           ]);
+
           const hasSitemap = sitemapRes.status === 'fulfilled' && sitemapRes.value.status === 200;
-          const hasRobots = robotsRes.status === 'fulfilled' && robotsRes.value.status === 200;
-          let lastModified = null, pageEmail = null;
+          const hasRobots  = robotsRes.status  === 'fulfilled' && robotsRes.value.status  === 200;
+
+          let lastModified = null, metaDesc = null, hasOG = false, emailFromHome = null;
           if (mainRes.status === 'fulfilled' && mainRes.value.ok) {
             lastModified = mainRes.value.headers.get('last-modified') || null;
             try {
-              const text = await mainRes.value.text();
-              pageEmail = extractEmails(text)[0] || null;
+              const html = await mainRes.value.text();
+              emailFromHome = extractEmails(html)[0] || null;
+              metaDesc      = extractMetaDesc(html);
+              hasOG         = detectOG(html);
+            } catch { /* ignore parse errors */ }
+          }
+
+          let emailFromContact = null;
+          if (contactRes.status === 'fulfilled' && contactRes.value?.ok) {
+            try {
+              const contactHtml = await contactRes.value.text();
+              emailFromContact = extractEmails(contactHtml)[0] || null;
             } catch { /* ignore */ }
           }
-          return ok({ hasSitemap, hasRobots, lastModified, email: pageEmail });
-        } catch { return ok({ hasSitemap: false, hasRobots: false, lastModified: null, email: null }); }
+
+          const email    = emailFromHome || emailFromContact || null;
+          const seoScore = calcSeoScore({ hasSitemap, hasRobots, metaDesc, hasOG, lastModified });
+
+          return ok({ hasSitemap, hasRobots, lastModified, email, metaDesc, hasOG, seoScore });
+        } catch {
+          return ok({ hasSitemap: false, hasRobots: false, lastModified: null, email: null, metaDesc: null, hasOG: false, seoScore: null });
+        }
       }
 
       default:
