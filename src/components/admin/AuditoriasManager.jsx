@@ -168,8 +168,73 @@ export default function AuditoriasManager() {
   );
 }
 
+function SendEmailButton({ neg, auditoriaId }) {
+  const [state, setState] = useState('idle'); // idle | loading | sent | error
+  const [preview, setPreview] = useState(null);
+
+  const handleSend = async () => {
+    if (state === 'sent') return;
+    setState('loading');
+    try {
+      const resp = await fetch('/api/auditorias/send-biz-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          auditoriaId,
+          nombre:     neg.nombre,
+          siteUrl:    neg.siteUrl,
+          email:      neg.email,
+          seoScore:   neg.seoScore,
+          hasSitemap: neg.hasSitemap,
+          hasRobots:  neg.hasRobots,
+          metaDesc:   neg.metaDesc,
+          hasOG:      neg.hasOG,
+          ciudad:     neg.ciudad,
+          tipo:       neg.tipo,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || 'Error al enviar');
+      setState('sent');
+      setPreview(data.emailText);
+    } catch (e) {
+      setState('error');
+      setTimeout(() => setState('idle'), 3000);
+    }
+  };
+
+  if (!neg.email) return <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>;
+
+  return (
+    <div className="flex flex-col gap-1 min-w-[180px]">
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs text-green-600 dark:text-green-400 truncate max-w-[120px]" title={neg.email}>
+          {neg.email}
+        </span>
+        <button
+          onClick={handleSend}
+          disabled={state === 'loading' || state === 'sent'}
+          title={state === 'sent' ? 'Enviado' : `Enviar email a ${neg.email}`}
+          className={`shrink-0 px-2 py-0.5 rounded text-xs font-medium transition-colors
+            ${state === 'sent'    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 cursor-default'
+            : state === 'error'   ? 'bg-red-100 dark:bg-red-900/30 text-red-500'
+            : state === 'loading' ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-wait'
+            : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50'}`}>
+          {state === 'loading' ? '⏳' : state === 'sent' ? '✓ Enviado' : state === 'error' ? '✗ Error' : '✉ Enviar'}
+        </button>
+      </div>
+      {preview && (
+        <details className="text-xs text-gray-400">
+          <summary className="cursor-pointer hover:text-gray-600 select-none">Ver texto generado</summary>
+          <pre className="mt-1 whitespace-pre-wrap text-gray-500 dark:text-gray-400 text-xs leading-relaxed max-w-xs bg-gray-50 dark:bg-gray-800 p-2 rounded">{preview}</pre>
+        </details>
+      )}
+    </div>
+  );
+}
+
 function AuditoriaDetail({ id }) {
-  const [data, setData]   = useState(null);
+  const [data, setData]     = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -186,7 +251,8 @@ function AuditoriaDetail({ id }) {
   );
   if (!data) return null;
 
-  const results = data.results || [];
+  const results = [...(data.results || [])].sort((a, b) => (a.seoScore ?? 999) - (b.seoScore ?? 999));
+  const withEmail = results.filter(r => r.email).length;
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700">
@@ -198,43 +264,36 @@ function AuditoriaDetail({ id }) {
         </div>
       )}
 
-      {/* Stats móvil */}
-      <div className="md:hidden grid grid-cols-3 gap-3 px-5 py-3 border-b border-gray-200 dark:border-gray-700 text-center">
-        <div>
-          <div className="font-bold text-gray-900 dark:text-white">{data.stats?.total ?? '—'}</div>
-          <div className="text-xs text-gray-400">sitios</div>
+      {/* Info emails */}
+      {withEmail > 0 && (
+        <div className="px-5 py-2.5 bg-green-50/50 dark:bg-green-900/10 border-b border-gray-200 dark:border-gray-700">
+          <p className="text-xs text-green-700 dark:text-green-400">
+            ✉ <strong>{withEmail}</strong> empresa{withEmail !== 1 ? 's' : ''} con email — hacé click en <strong>Enviar</strong> para mandarles un análisis personalizado generado por Gemini
+          </p>
         </div>
-        <div>
-          <div className="font-bold text-red-500">{data.stats?.lowSeoCount ?? '—'}</div>
-          <div className="text-xs text-gray-400">SEO débil</div>
-        </div>
-        <div>
-          <div className="font-bold text-gray-900 dark:text-white">{data.stats?.avgSeoScore ?? '—'}</div>
-          <div className="text-xs text-gray-400">score prom.</div>
-        </div>
-      </div>
+      )}
 
-      {/* Tabla compacta */}
-      <div className="overflow-x-auto max-h-80">
+      {/* Tabla */}
+      <div className="overflow-x-auto" style={{ maxHeight: '420px' }}>
         <table className="min-w-full text-xs">
-          <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0">
+          <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
             <tr className="border-b border-gray-200 dark:border-gray-700">
-              {['Negocio', 'Ciudad', 'Sitio web', 'Score', 'Sitemap', 'Robots', 'Meta', 'OG', '★'].map(h => (
+              {['Negocio', 'Ciudad', 'Sitio web', 'Score', 'Sitemap', 'Robots', 'Meta', 'OG', '★', 'Email'].map(h => (
                 <th key={h} className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-            {[...results].sort((a, b) => (a.seoScore ?? 999) - (b.seoScore ?? 999)).map((neg, i) => (
-              <tr key={neg.id || i} className="hover:bg-gray-50 dark:hover:bg-gray-700/20">
-                <td className="px-3 py-2 font-medium text-gray-900 dark:text-white max-w-[160px] truncate" title={neg.nombre}>
+            {results.map((neg, i) => (
+              <tr key={neg.id || i} className={`hover:bg-gray-50 dark:hover:bg-gray-700/20 ${neg.email ? 'bg-green-50/30 dark:bg-green-900/5' : ''}`}>
+                <td className="px-3 py-2 font-medium text-gray-900 dark:text-white max-w-[150px] truncate" title={neg.nombre}>
                   {neg.nombre}
                 </td>
                 <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{neg.ciudad || '—'}</td>
-                <td className="px-3 py-2 max-w-[160px]">
+                <td className="px-3 py-2 max-w-[150px]">
                   <a href={neg.siteUrl} target="_blank" rel="noopener noreferrer"
                     className="text-indigo-500 hover:underline truncate block" title={neg.siteUrl}>
-                    {(neg.siteUrl || '').replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '').substring(0, 35)}
+                    {(neg.siteUrl || '').replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '').substring(0, 30)}
                   </a>
                 </td>
                 <td className="px-3 py-2 text-center whitespace-nowrap">
@@ -244,15 +303,16 @@ function AuditoriaDetail({ id }) {
                 </td>
                 {['hasSitemap','hasRobots','metaDesc','hasOG'].map(k => (
                   <td key={k} className="px-3 py-2 text-center">
-                    {neg[k] === null || neg[k] === undefined
-                      ? <span className="text-gray-400">—</span>
-                      : neg[k]
-                      ? <span className="text-green-500">✓</span>
+                    {neg[k] == null ? <span className="text-gray-300">—</span>
+                      : neg[k] ? <span className="text-green-500">✓</span>
                       : <span className="text-red-400">✗</span>}
                   </td>
                 ))}
                 <td className="px-3 py-2 text-center text-yellow-500 whitespace-nowrap">
                   {neg.rating ? `★ ${neg.rating}` : '—'}
+                </td>
+                <td className="px-3 py-2">
+                  <SendEmailButton neg={neg} auditoriaId={id} />
                 </td>
               </tr>
             ))}
@@ -261,7 +321,7 @@ function AuditoriaDetail({ id }) {
       </div>
 
       <div className="px-5 py-3 text-xs text-gray-400 border-t border-gray-200 dark:border-gray-700">
-        {results.length} sitios auditados · ordenados por Score SEO ascendente
+        {results.length} sitios · {withEmail} con email · ordenados por Score SEO ascendente
       </div>
     </div>
   );
