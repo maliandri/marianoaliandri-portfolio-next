@@ -120,12 +120,15 @@ export default function LeadFinderPanel() {
   const [filterSeoLow, setFilterSeoLow]   = useState(false);
   const [filterText, setFilterText]       = useState('');
 
-  const cancelRef = useRef(false);
-  const configRef = useRef(config);
-  const logEndRef = useRef(null);
+  const cancelRef  = useRef(false);
+  const configRef  = useRef(config);
+  const logBodyRef = useRef(null);
 
   useEffect(() => { configRef.current = config; }, [config]);
-  useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
+  useEffect(() => {
+    const el = logBodyRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [logs]);
 
   const isRunning = ['geocoding', 'searching'].includes(phase);
 
@@ -789,7 +792,7 @@ export default function LeadFinderPanel() {
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Log</span>
             <button onClick={() => setLogs([])} className="text-xs text-gray-600 hover:text-gray-400 transition-colors">Limpiar</button>
           </div>
-          <div className="h-44 overflow-y-auto px-4 py-2 space-y-0.5 font-mono text-xs">
+          <div ref={logBodyRef} className="h-44 overflow-y-auto px-4 py-2 space-y-0.5 font-mono text-xs">
             {logs.map((log, i) => (
               <div key={i} className={
                 log.level === 'error'   ? 'text-red-400' :
@@ -800,7 +803,6 @@ export default function LeadFinderPanel() {
                 {log.msg}
               </div>
             ))}
-            <div ref={logEndRef} />
           </div>
         </div>
       )}
