@@ -185,7 +185,7 @@ Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre pár
     const result = await resend.emails.send({
       from:     'Mariano Aliandri <notificaciones@marianoaliandri.com.ar>',
       to:       email,
-      reply_to: 'marianoaliandri@gmail.com',
+      reply_to: 'yo@marianoaliandri.com.ar',
       subject,
       html,
     });
