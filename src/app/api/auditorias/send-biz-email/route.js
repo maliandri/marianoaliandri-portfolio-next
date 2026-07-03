@@ -5,6 +5,8 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 const SITE_URL   = 'https://marianoaliandri.com.ar';
+const WHATSAPP         = '5492995414422';       // número para wa.me
+const WHATSAPP_DISPLAY = '+54 299 541-4422';    // formato legible
 
 async function callGemini(prompt) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -150,6 +152,10 @@ Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre pár
          </div>`
       : '';
 
+    // Link de WhatsApp con mensaje pre-cargado
+    const waMessage = 'Hola Mariano, me llegó tu mail y me interesaría mejorar mi página';
+    const waLink    = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(waMessage)}`;
+
     const html = `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -166,13 +172,18 @@ Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre pár
     <div style="padding:32px 36px">
       ${bodyLines}
       ${screenshotHtml}
+      <div style="margin:28px 0 4px;text-align:center">
+        <a href="${waLink}" target="_blank" style="display:inline-block;background:#22c55e;color:#ffffff;padding:14px 34px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">💬 Escribime por WhatsApp</a>
+        <p style="margin:10px 0 0;font-size:12px;color:#9ca3af">o directamente al ${WHATSAPP_DISPLAY}</p>
+      </div>
     </div>
 
     <!-- Footer -->
     <div style="padding:20px 36px;border-top:1px solid #f3f4f6;background:#fafafa">
       <p style="margin:0;font-size:12px;color:#9ca3af">
         <strong style="color:#4f46e5">Mariano Aliandri</strong> · Desarrollador Full Stack &amp; Analista de Datos<br>
-        <a href="${SITE_URL}" style="color:#6366f1;text-decoration:none">${SITE_URL}</a>
+        <a href="${SITE_URL}" style="color:#6366f1;text-decoration:none">${SITE_URL}</a> ·
+        <a href="${waLink}" style="color:#22c55e;text-decoration:none">WhatsApp ${WHATSAPP_DISPLAY}</a>
       </p>
     </div>
   </div>
