@@ -1,5 +1,6 @@
 import HeroNew from '@/components/HeroNew';
 import ProyectosGrid from '@/components/ProyectosGrid';
+import CapabilitiesCarousel from '@/components/CapabilitiesCarousel';
 import Contact from '@/components/Contact';
 
 export const metadata = {
@@ -47,6 +48,7 @@ export default function HomePage() {
       <main className="bg-[#0a0a0a]">
         <HeroNew />
         <ProyectosGrid />
+        <CapabilitiesCarousel />
         <section id="contact" aria-label="Información de contacto">
           <Contact />
         </section>

@@ -1,0 +1,16 @@
+// Soluciones que Mariano puede construir, cada una con las tecnologías que usa.
+// Une "secciones de una página que se pueden crear" + el stack. Datos para el carrousel del home.
+export const CAPABILITIES = [
+  { id: 'ecommerce', emoji: '🛒', title: 'Tienda online',          desc: 'Catálogo, carrito y checkout con MercadoPago, gestión de stock.',        benefit: 'Vendés 24/7 sin comisiones de plataformas.',        techs: ['Next.js', 'React', 'MercadoPago', 'Firebase'] },
+  { id: 'chatbot',   emoji: '🤖', title: 'Chatbot con IA',         desc: 'Responde consultas con la info real de tu negocio, día y noche.',        benefit: 'Atención automática y menos mensajes sin responder.', techs: ['React', 'IA', 'Firebase'] },
+  { id: 'seo',       emoji: '🔍', title: 'Aparecer en Google',     desc: 'SEO técnico, metadata y velocidad para posicionar sin publicidad paga.',  benefit: 'Te encuentran cuando te buscan.',                   techs: ['Next.js', 'Search Console'] },
+  { id: 'turnos',    emoji: '📅', title: 'Reservas y turnos',      desc: 'Calendario con disponibilidad en tiempo real y confirmación por email.',  benefit: 'Agenda llena sin ir y venir por WhatsApp.',         techs: ['Next.js', 'Firebase'] },
+  { id: 'social',    emoji: '📣', title: 'Redes en automático',    desc: 'Publicá en Instagram, Facebook y LinkedIn de forma programada.',          benefit: 'Presencia constante sin estar encima.',             techs: ['Make.com', 'Instagram', 'LinkedIn'] },
+  { id: 'reels',     emoji: '🎬', title: 'Generador de reels',     desc: 'Videos verticales con voz y música, listos para Instagram.',              benefit: 'Contenido para redes sin editar a mano.',           techs: ['Canvas', 'Cloudinary', 'TTS'] },
+  { id: 'dashboard', emoji: '📊', title: 'Dashboards de datos',    desc: 'KPIs y reportes interactivos que se actualizan solos.',                   benefit: 'Decisiones con datos, no con intuición.',           techs: ['Power BI', 'Recharts', 'Python'] },
+  { id: 'webapp',    emoji: '🔐', title: 'Web app con login',      desc: 'Portal con usuarios, roles y dashboard a medida.',                        benefit: 'Tu sistema propio, no una planilla.',               techs: ['Next.js', 'Firebase Auth'] },
+  { id: 'landing',   emoji: '⚡', title: 'Landing de conversión',  desc: 'Página rápida y mobile-first pensada para captar clientes.',              benefit: 'Más consultas desde el primer clic.',               techs: ['Next.js', 'Tailwind'] },
+  { id: 'leads',     emoji: '🎯', title: 'Buscador de clientes',   desc: 'Encontrá negocios y contactos por zona y rubro.',                         benefit: 'Prospectás sin perder horas buscando.',             techs: ['Google Places', 'Node.js'] },
+  { id: 'pagos',     emoji: '💳', title: 'Cobros online',          desc: 'Pagos con MercadoPago, confirmación y avisos automáticos.',               benefit: 'Cobrás al instante, sin seguimiento manual.',       techs: ['MercadoPago', 'Webhooks'] },
+  { id: 'mobile',    emoji: '📱', title: 'App mobile / PWA',       desc: 'App instalable para Android e iOS con notificaciones.',                   benefit: 'Tu negocio en el bolsillo de tus clientes.',        techs: ['React Native', 'Expo'] },
+];
