@@ -4,6 +4,7 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 const EMAIL_RE = /\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b/g;
 const IGNORE_EMAIL = ['example','test','noreply','no-reply','spam','sentry','wix','google','apple','microsoft','adobe','.png','.jpg','.gif','.svg'];
 const PLACES_NEARBY = 'https://places.googleapis.com/v1/places:searchNearby';
+const PLACES_TEXT   = 'https://places.googleapis.com/v1/places:searchText';
 const PLACES_DETAIL = 'https://places.googleapis.com/v1/places/';
 const SOCIAL_DOMAINS = [
   'facebook.com','fb.com','instagram.com','twitter.com','x.com',
@@ -93,6 +94,27 @@ export async function POST(request) {
         const resp = await fetch(PLACES_NEARBY, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': gApiKey, 'X-Goog-FieldMask': 'places.id,places.displayName,places.websiteUri,places.rating' },
+          body: JSON.stringify(reqBody),
+          signal: AbortSignal.timeout(9000),
+        });
+        const data = await resp.json();
+        if (data.error) return fail(data.error.message || 'Error de Google Places');
+        return ok({ places: data.places || [], nextPageToken: data.nextPageToken || null });
+      }
+
+      case 'searchText': {
+        if (!gApiKey) return fail('API Key de Google requerida');
+        const { lat, lon, query, radiusM, pageToken } = params;
+        if (!query) return fail('Término de búsqueda requerido');
+        const reqBody = {
+          textQuery: query,
+          maxResultCount: 20,
+          locationBias: { circle: { center: { latitude: lat, longitude: lon }, radius: parseFloat(radiusM) } },
+        };
+        if (pageToken) reqBody.pageToken = pageToken;
+        const resp = await fetch(PLACES_TEXT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': gApiKey, 'X-Goog-FieldMask': 'places.id,places.displayName,places.websiteUri,places.rating,nextPageToken' },
           body: JSON.stringify(reqBody),
           signal: AbortSignal.timeout(9000),
         });

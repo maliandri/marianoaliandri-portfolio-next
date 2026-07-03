@@ -106,12 +106,14 @@ function loadConfig() {
         checkSites:     p.checkSites     !== false,
         apiKey:         p.apiKey         || '',
         tipos:          p.tipos          || DEFAULT_TIPOS,
+        terminos:       p.terminos       || [],
       };
     }
   } catch { /* ignore */ }
   return {
     ciudades: ['Neuquén'], pais: 'Argentina', radioKm: 10, maxAudit: 60,
     buscarContacto: true, checkSites: true, apiKey: '', tipos: DEFAULT_TIPOS,
+    terminos: [],
   };
 }
 
@@ -159,6 +161,7 @@ export default function LeadFinderPanel() {
   const [config, setConfig]         = useState(loadConfig);
   const [showConfig, setShowConfig]  = useState(true);
   const [ciudadInput, setCiudadInput] = useState('');
+  const [terminoInput, setTerminoInput] = useState('');
   const [phase, setPhase]            = useState('idle');
   const [progress, setProgress]      = useState({ ciudadActual: '', tiposDone: 0, tiposTotal: 0, currentTipo: '', negocios: 0 });
   const [results, setResults]        = useState([]);
@@ -249,26 +252,8 @@ export default function LeadFinderPanel() {
         setPhase('searching');
         setProgress(prev => ({ ...prev, ciudadActual: ciudad, tiposDone: 0, tiposTotal: cfg.tipos.length, currentTipo: '' }));
 
-      for (let i = 0; i < cfg.tipos.length; i++) {
-        if (cancelRef.current) break;
-        const tipo = cfg.tipos[i];
-        setProgress(prev => ({ ...prev, tiposDone: i, tiposTotal: cfg.tipos.length, currentTipo: tipo }));
-        addLog(`[${i + 1}/${cfg.tipos.length}] ${tipo}...`);
-
-        try {
-          let places = [];
-          let pageToken = null;
-          let page = 0;
-
-          do {
-            if (cancelRef.current) break;
-            const res = await callFn('searchNearby', { lat, lon, type: tipo, radiusM, pageToken });
-            places.push(...(res.places || []));
-            pageToken = res.nextPageToken || null;
-            page++;
-            if (pageToken && page < 3) await sleep(2000);
-          } while (pageToken && page < 3 && !cancelRef.current);
-
+        // Procesa una lista de places: dedup, filtra por web propia, audita SEO y agrega al resultado
+        const processPlaces = async (places, etiqueta) => {
           let conWeb = 0;
           for (const place of places) {
             if (cancelRef.current) break;
@@ -291,7 +276,7 @@ export default function LeadFinderPanel() {
             const neg = {
               id:          place.id,
               nombre:      place.displayName?.text || 'Sin nombre',
-              tipo,
+              tipo:        etiqueta,
               ciudad,
               direccion:   det.formattedAddress        || '',
               telefono:    det.internationalPhoneNumber || '',
@@ -331,14 +316,64 @@ export default function LeadFinderPanel() {
             conWeb++;
             await sleep(300);
           }
+          return conWeb;
+        };
 
-          addLog(`  ${tipo}: ${conWeb} con web`);
+        // 1) Búsqueda por categorías (searchNearby)
+        for (let i = 0; i < cfg.tipos.length; i++) {
+          if (cancelRef.current) break;
+          const tipo = cfg.tipos[i];
+          setProgress(prev => ({ ...prev, tiposDone: i, tiposTotal: cfg.tipos.length, currentTipo: tipo }));
+          addLog(`[${i + 1}/${cfg.tipos.length}] ${tipo}...`);
 
-        } catch (e) {
-          addLog(`  Error en ${tipo}: ${e.message}`, 'error');
+          try {
+            let places = [];
+            let pageToken = null;
+            let page = 0;
+            do {
+              if (cancelRef.current) break;
+              const res = await callFn('searchNearby', { lat, lon, type: tipo, radiusM, pageToken });
+              places.push(...(res.places || []));
+              pageToken = res.nextPageToken || null;
+              page++;
+              if (pageToken && page < 3) await sleep(2000);
+            } while (pageToken && page < 3 && !cancelRef.current);
+
+            const conWeb = await processPlaces(places, tipo);
+            addLog(`  ${tipo}: ${conWeb} con web`);
+          } catch (e) {
+            addLog(`  Error en ${tipo}: ${e.message}`, 'error');
+          }
         }
-      }
-      // fin de tipos para esta ciudad
+
+        // 2) Búsqueda por términos de texto libre (searchText)
+        const terminos = cfg.terminos || [];
+        for (let i = 0; i < terminos.length; i++) {
+          if (cancelRef.current) break;
+          const term = terminos[i];
+          setProgress(prev => ({ ...prev, currentTipo: `"${term}"` }));
+          addLog(`[texto ${i + 1}/${terminos.length}] "${term}"...`);
+
+          try {
+            let places = [];
+            let pageToken = null;
+            let page = 0;
+            do {
+              if (cancelRef.current) break;
+              const res = await callFn('searchText', { lat, lon, query: `${term}, ${ciudad}`, radiusM, pageToken });
+              places.push(...(res.places || []));
+              pageToken = res.nextPageToken || null;
+              page++;
+              if (pageToken && page < 3) await sleep(2000);
+            } while (pageToken && page < 3 && !cancelRef.current);
+
+            const conWeb = await processPlaces(places, term);
+            addLog(`  "${term}": ${conWeb} con web`);
+          } catch (e) {
+            addLog(`  Error en "${term}": ${e.message}`, 'error');
+          }
+        }
+        // fin de búsquedas para esta ciudad
     }
     // fin de ciudades
 
@@ -564,6 +599,61 @@ export default function LeadFinderPanel() {
               </div>
             </div>
 
+            {/* Términos de búsqueda (texto libre en Google Maps) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Términos de búsqueda <span className="text-gray-400 font-normal">(opcional — busca por texto en Maps)</span>
+              </label>
+
+              {config.terminos.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {config.terminos.map(t => (
+                    <span key={t} className="flex items-center gap-1 px-2.5 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-xs">
+                      🔎 {t}
+                      {!isRunning && (
+                        <button onClick={() => setConfig(p => ({ ...p, terminos: p.terminos.filter(x => x !== t) }))}
+                          className="ml-0.5 text-blue-400 hover:text-red-500 transition-colors leading-none font-bold">×</button>
+                      )}
+                    </span>
+                  ))}
+                  {!isRunning && (
+                    <button onClick={() => setConfig(p => ({ ...p, terminos: [] }))}
+                      className="text-xs text-gray-400 hover:text-red-400 px-2 py-1 transition-colors">Limpiar</button>
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={terminoInput}
+                  onChange={e => setTerminoInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && terminoInput.trim()) {
+                      e.preventDefault();
+                      const v = terminoInput.trim();
+                      if (!config.terminos.includes(v)) setConfig(p => ({ ...p, terminos: [...p.terminos, v] }));
+                      setTerminoInput('');
+                    }
+                  }}
+                  disabled={isRunning}
+                  placeholder='Ej: "gomería", "estudio contable", "café de especialidad"…'
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 text-sm placeholder-gray-400"
+                />
+                <button
+                  onClick={() => {
+                    const v = terminoInput.trim();
+                    if (v && !config.terminos.includes(v)) setConfig(p => ({ ...p, terminos: [...p.terminos, v] }));
+                    setTerminoInput('');
+                  }}
+                  disabled={isRunning || !terminoInput.trim()}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-40 text-sm font-medium transition-colors whitespace-nowrap">
+                  + Agregar
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-1.5">Cada término se busca por texto en cada ciudad, además de las categorías de abajo.</p>
+            </div>
+
             {/* País, Radio, Max auditorías */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
@@ -666,7 +756,7 @@ export default function LeadFinderPanel() {
         {/* Action bar */}
         <div className="flex flex-wrap items-center gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/30 border-t border-gray-200 dark:border-gray-700">
           {!isRunning ? (
-            <button onClick={startSearch} disabled={config.tipos.length === 0}
+            <button onClick={startSearch} disabled={config.tipos.length === 0 && (config.terminos?.length || 0) === 0}
               className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm disabled:opacity-50">
               ▶ Iniciar Auditoría
             </button>
