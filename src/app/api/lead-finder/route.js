@@ -93,7 +93,7 @@ export async function POST(request) {
         if (pageToken) reqBody.pageToken = pageToken;
         const resp = await fetch(PLACES_NEARBY, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': gApiKey, 'X-Goog-FieldMask': 'places.id,places.displayName,places.websiteUri,places.rating' },
+          headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': gApiKey, 'X-Goog-FieldMask': 'places.id,places.displayName,places.websiteUri,places.rating,places.location' },
           body: JSON.stringify(reqBody),
           signal: AbortSignal.timeout(9000),
         });
@@ -114,7 +114,7 @@ export async function POST(request) {
         if (pageToken) reqBody.pageToken = pageToken;
         const resp = await fetch(PLACES_TEXT, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': gApiKey, 'X-Goog-FieldMask': 'places.id,places.displayName,places.websiteUri,places.rating,nextPageToken' },
+          headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': gApiKey, 'X-Goog-FieldMask': 'places.id,places.displayName,places.websiteUri,places.rating,places.location,nextPageToken' },
           body: JSON.stringify(reqBody),
           signal: AbortSignal.timeout(9000),
         });

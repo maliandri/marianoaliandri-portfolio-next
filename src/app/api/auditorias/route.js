@@ -73,6 +73,8 @@ export async function POST(request) {
       nombre:       r.nombre,
       ciudad:       r.ciudad   || null,
       tipo:         r.tipo,
+      lat:          r.lat ?? null,
+      lon:          r.lon ?? null,
       siteUrl:      r.siteUrl,
       email:        r.email    || null,   // se guarda para envío admin, no se muestra en página pública
       seoScore:     r.seoScore,

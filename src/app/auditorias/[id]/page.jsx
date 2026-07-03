@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getDb } from '@/lib/firebase-admin';
 import AuditTable from './AuditTable';
+import AuditMapLoader from './AuditMapLoader';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,6 +98,18 @@ export default async function AuditoriaDetailPage({ params }) {
         <span className="text-indigo-400 font-semibold">¿Qué mide el Score SEO?</span>{' '}
         Evalúa sitemap (-25 si falta), robots.txt (-20), meta description (-25), Open Graph (-15) y antigüedad del sitio (-15 si más de 18 meses sin actualizar). Score 0–100: rojo = débil, amarillo = mejorable, verde = aceptable. Hacé click en los encabezados para ordenar.
       </div>
+
+      {results.some(r => typeof r.lat === 'number' && typeof r.lon === 'number') && (
+        <div className="mb-8">
+          <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-3">Mapa de los negocios</p>
+          <AuditMapLoader results={results} />
+          <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-500">
+            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#ef4444' }} /> SEO débil (&lt; 40)</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#f59e0b' }} /> Mejorable (40–69)</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#22c55e' }} /> Aceptable (70+)</span>
+          </div>
+        </div>
+      )}
 
       <AuditTable results={results} />
 

@@ -278,6 +278,8 @@ export default function LeadFinderPanel() {
               nombre:      place.displayName?.text || 'Sin nombre',
               tipo:        etiqueta,
               ciudad,
+              lat:         place.location?.latitude  ?? null,
+              lon:         place.location?.longitude ?? null,
               direccion:   det.formattedAddress        || '',
               telefono:    det.internationalPhoneNumber || '',
               rating:      place.rating ? Number(place.rating).toFixed(1) : '',
