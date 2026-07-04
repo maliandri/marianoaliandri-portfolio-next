@@ -514,3 +514,25 @@ Notas de este entorno (Windows):
 - La skill para Claude Code está en `.claude/skills/agent-browser`.
 - Flujo típico: `agent-browser open <url>` → `agent-browser snapshot -i` → `agent-browser close`.
   Usar URLs con `https://` (sin esquema puede fallar el DNS).
+
+---
+
+## Agent Skills activas
+
+Instaladas en `.claude/skills/` (ver con `npx skills list`):
+
+- **frontend-design** (Anthropic): usar al crear/rediseñar UI — evita el look AI-generated.
+- **vercel-react-best-practices** (Vercel): convenciones de routing, data fetching y performance en Next.js/React.
+- **web-design-guidelines** (Vercel): revisar UI contra Web Interface Guidelines (accesibilidad, UX).
+- **vercel-optimize** (Vercel): costos/perf en Vercel — Core Web Vitals, rutas lentas, caching, Function Invocations.
+- **core-web-vitals** (addyosmani): técnicas para LCP / INP / CLS.
+- **seo** (addyosmani): SEO técnico — metadata, structured data, sitemap.
+- **firebase-security-rules-auditor** (Firebase oficial): auditar reglas de Firestore/Storage.
+- **agent-browser**: automatización de navegador (ver sección Browser Automation).
+
+Reglas:
+- Para UI nueva o rediseño → aplicar **frontend-design** (no que parezca templated).
+- Para código React/Next → seguir **vercel-react-best-practices** (routing, data fetching, Server/Client Components).
+- El stack de datos es **Firebase** (Auth + Firestore), NO Supabase. Las reglas de seguridad se auditan con **firebase-security-rules-auditor**.
+- Supabase solo aparece en el plan futuro de OpenWA (Oracle VM). Si se implementa, recién ahí agregar `supabase/agent-skills@supabase`.
+- Antes de agregar skills nuevas: `npx skills find <tema>` y verificar install count (preferir 1K+ installs y fuentes reputadas).
