@@ -46,6 +46,23 @@ async function fetchFirstContact(origin) {
   } catch { return null; }
 }
 
+// Verifica que un recurso exista: HEAD y, si falla o lo rechazan, GET.
+// Tolera cold starts (timeout largo) y servers que no soportan HEAD.
+async function resourceOk(u) {
+  try {
+    const r = await fetch(u, { method: 'HEAD', headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(7000) });
+    if (r.ok) return true;
+    // 405/501/403 o error → reintentar con GET (muchos servers rechazan HEAD)
+    const r2 = await fetch(u, { method: 'GET', headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(7000) });
+    return r2.ok;
+  } catch {
+    try {
+      const r2 = await fetch(u, { method: 'GET', headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(7000) });
+      return r2.ok;
+    } catch { return false; }
+  }
+}
+
 function calcSeoScore({ hasSitemap, hasRobots, metaDesc, hasOG, lastModified }) {
   let score = 100;
   if (!hasSitemap) score -= 25;
@@ -143,15 +160,35 @@ export async function POST(request) {
         try { origin = new URL(url).origin; } catch { return fail('URL inválida'); }
 
         try {
-          const [sitemapRes, robotsRes, mainRes, contactRes] = await Promise.allSettled([
-            fetch(origin + '/sitemap.xml', { method: 'HEAD', headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(4000) }),
-            fetch(origin + '/robots.txt',  { method: 'HEAD', headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(4000) }),
-            fetch(origin,                  { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(6000) }),
+          // robots.txt con GET (archivo chico): sirve para detectar existencia
+          // y para leer si declara un Sitemap:.
+          const [robotsRes, mainRes, contactRes] = await Promise.allSettled([
+            fetch(origin + '/robots.txt', { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(7000) }),
+            fetch(origin,                 { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) }),
             fetchFirstContact(origin),
           ]);
 
-          const hasSitemap = sitemapRes.status === 'fulfilled' && sitemapRes.value.status === 200;
-          const hasRobots  = robotsRes.status  === 'fulfilled' && robotsRes.value.status  === 200;
+          let hasRobots = false, declaredSitemap = null;
+          if (robotsRes.status === 'fulfilled' && robotsRes.value.ok) {
+            hasRobots = true;
+            try {
+              const txt = await robotsRes.value.text();
+              const m = txt.match(/^\s*sitemap:\s*(\S+)/im);
+              if (m) declaredSitemap = m[1].trim();
+            } catch { /* ignore */ }
+          }
+
+          // Sitemap: probar /sitemap.xml, el declarado en robots, y /sitemap_index.xml.
+          // Con HEAD→GET y timeout largo para no penalizar cold starts (Vercel/serverless).
+          const candidates = [...new Set([
+            origin + '/sitemap.xml',
+            declaredSitemap,
+            origin + '/sitemap_index.xml',
+          ].filter(Boolean))];
+          let hasSitemap = false;
+          for (const cand of candidates) {
+            if (await resourceOk(cand)) { hasSitemap = true; break; }
+          }
 
           let lastModified = null, metaDesc = null, hasOG = false, emailFromHome = null;
           if (mainRes.status === 'fulfilled' && mainRes.value.ok) {
