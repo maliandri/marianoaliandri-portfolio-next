@@ -501,3 +501,16 @@ vercel env ls
 vercel env rm VAR_NAME production
 vercel env add VAR_NAME production
 ```
+
+---
+
+## Browser Automation
+Use `agent-browser` for web automation. Run `agent-browser --help` for all commands.
+
+Notas de este entorno (Windows):
+- El binario global está en `C:\Users\maria\AppData\Roaming\npm` (no está en el PATH de Git Bash).
+  En Bash: `export PATH="/c/Users/maria/AppData/Roaming/npm:$PATH"` antes de usarlo.
+- Chromium instalado en `C:\Users\maria\.agent-browser\browsers`.
+- La skill para Claude Code está en `.claude/skills/agent-browser`.
+- Flujo típico: `agent-browser open <url>` → `agent-browser snapshot -i` → `agent-browser close`.
+  Usar URLs con `https://` (sin esquema puede fallar el DNS).
