@@ -62,7 +62,7 @@ export async function POST(request) {
     if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });
 
     const body = await request.json();
-    const { title, config, results, stats } = body;
+    const { title, config, results, stats, summary: providedSummary } = body;
     if (!title || !results?.length) {
       return Response.json({ error: 'title y results son requeridos' }, { status: 400 });
     }
@@ -86,7 +86,8 @@ export async function POST(request) {
       rating:       r.rating   || null,
     }));
 
-    // Generar resumen Gemini para el reporte público
+    // Resumen del reporte: usar el texto editado por el admin si vino;
+    // si no, generarlo con Gemini y, si falla, con una plantilla.
     const ciudades  = (config?.ciudades || []).join(', ') || 'la zona analizada';
     const tipos     = (config?.tiposLabels || []).slice(0, 8).join(', ');
     const total     = stats?.total ?? storedResults.length;
@@ -95,8 +96,11 @@ export async function POST(request) {
     const withEmail = stats?.withEmail ?? 0;
     const pctLow    = total > 0 ? Math.round(lowSeo / total * 100) : 0;
 
-    const summary = await callGemini(
-      `Sos un analista de presencia digital argentina. Escribí un texto de 4 a 5 oraciones en español rioplatense (vos, no tú) que resuma los resultados de esta auditoría SEO de negocios locales con sitio web propio.
+    let summary = (providedSummary && providedSummary.trim()) ? providedSummary.trim() : null;
+    if (!summary) {
+      try {
+        summary = await callGemini(
+          `Sos un analista de presencia digital argentina. Escribí un texto de 4 a 5 oraciones en español rioplatense (vos, no tú) que resuma los resultados de esta auditoría SEO de negocios locales con sitio web propio.
 
 Datos:
 - Ciudades: ${ciudades}
@@ -107,7 +111,11 @@ Datos:
 - Con email público: ${withEmail}
 
 El texto debe explicar qué significa un SEO débil para un negocio local, destacar la oportunidad de mejora en la zona, sonar profesional y accesible. Sin listas ni bullets, solo prosa corrida. Sin precios ni publicidad directa.`
-    );
+        );
+      } catch {
+        summary = `Auditoría SEO de ${total} negocios con sitio web propio en ${ciudades}. El ${pctLow}% (${lowSeo}) tiene un posicionamiento web débil (score menor a 50) y el promedio general es ${avg}/100. ${withEmail} cuentan con un email público de contacto. El relevamiento evidencia oportunidades concretas de mejora en la presencia digital de los comercios de la zona: sitios sin sitemap, sin metadatos o desactualizados, que hoy pierden posiciones en Google frente a la competencia.`;
+      }
+    }
 
     const docRef = await db.collection('auditorias').add({
       title,

@@ -8,10 +8,16 @@ function ScoreBadge({ score }) {
             : score >= 40 ? 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'
                           : 'bg-red-500/15 text-red-400 border-red-500/30';
   return (
-    <span className={`inline-block text-xs font-bold px-2 py-0.5 rounded-full border ${cls}`}>
+    <span className={`inline-flex items-center justify-center min-w-[2.25rem] text-xs font-bold px-2 py-1 rounded-full border ${cls}`}>
       {score}
     </span>
   );
+}
+
+// Color de acento por severidad del score (barra izquierda de cada fila)
+function bandColor(s) {
+  if (s == null) return 'transparent';
+  return s >= 70 ? '#22c55e' : s >= 40 ? '#f59e0b' : '#ef4444';
 }
 
 function Check({ val }) {
@@ -102,8 +108,8 @@ export default function AuditTable({ results }) {
           </thead>
           <tbody className="divide-y divide-white/5">
             {sorted.map((neg, i) => (
-              <tr key={neg.id || i} className="hover:bg-white/3 transition-colors">
-                <td className="px-4 py-3 text-gray-600 text-xs">{i + 1}</td>
+              <tr key={neg.id || i} className={`transition-colors hover:bg-white/[0.05] ${i % 2 ? 'bg-white/[0.015]' : ''}`}>
+                <td className="px-4 py-3.5 text-gray-600 text-xs" style={{ boxShadow: `inset 3px 0 0 ${bandColor(neg.seoScore)}` }}>{i + 1}</td>
                 <td className="px-4 py-3 max-w-[200px]">
                   <div className="font-medium text-white truncate" title={neg.nombre}>{neg.nombre}</div>
                 </td>

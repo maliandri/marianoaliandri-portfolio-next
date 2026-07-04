@@ -168,6 +168,9 @@ export default function LeadFinderPanel() {
   const [logs, setLogs]              = useState([]);
   const [publishing, setPublishing]  = useState(false);
   const [publishedUrl, setPublishedUrl] = useState(null);
+  const [pubModal, setPubModal]      = useState(false);
+  const [pubTitle, setPubTitle]      = useState('');
+  const [pubDesc, setPubDesc]        = useState('');
 
   const [filterTipo, setFilterTipo]       = useState('');
   const [filterEmail, setFilterEmail]     = useState(false);
@@ -402,24 +405,36 @@ export default function LeadFinderPanel() {
 
   const stopSearch = () => { cancelRef.current = true; addLog('Deteniendo...', 'warn'); };
 
-  const handlePublish = async () => {
+  // Abre el modal de pre-publicación con título y descripción autogenerados (editables)
+  const openPublishModal = () => {
     if (!results.length) return;
+    const cfg = configRef.current;
+    const ciudadesStr = (cfg.ciudades || []).join(', ') || 'Varias ciudades';
+    const dateStr = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const total = results.length;
+    const pctLow = total ? Math.round((lowSeoCount / total) * 100) : 0;
+    setPubTitle(`Auditoría SEO — ${ciudadesStr} (${dateStr})`);
+    setPubDesc(
+      `Auditoría SEO de ${total} negocios con sitio web propio en ${ciudadesStr}. ` +
+      `El ${pctLow}% (${lowSeoCount}) tiene un posicionamiento web débil y el promedio general es ${avgSeoScore ?? '—'}/100. ` +
+      `${withEmail} cuentan con un email público de contacto. ` +
+      `El relevamiento evidencia oportunidades concretas de mejora en la presencia digital de los comercios de la zona.`
+    );
+    setPubModal(true);
+  };
+
+  const confirmPublish = async () => {
+    if (!results.length || !pubTitle.trim()) return;
     setPublishing(true);
     try {
       const cfg  = configRef.current;
-      const ciudadesStr = (cfg.ciudades || []).join(', ') || 'Varias ciudades';
-      const tiposLabels = (cfg.tipos || [])
-        .map(id => TIPOS.find(t => t.id === id)?.label || id);
-      const dateStr = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
-      const title = `Auditoría SEO — ${ciudadesStr} (${dateStr})`;
-
+      const tiposLabels = (cfg.tipos || []).map(id => TIPOS.find(t => t.id === id)?.label || id);
       const stats = {
         total:       results.length,
         withEmail,
         lowSeoCount,
         avgSeoScore: avgSeoScore ?? null,
       };
-
       const config_ = {
         ciudades:    cfg.ciudades || [],
         pais:        cfg.pais,
@@ -430,12 +445,13 @@ export default function LeadFinderPanel() {
       const resp = await fetch('/api/auditorias', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, config: config_, results, stats }),
+        body: JSON.stringify({ title: pubTitle.trim(), summary: pubDesc.trim(), config: config_, results, stats }),
       });
       const data = await resp.json();
       if (!resp.ok || !data.id) throw new Error(data.error || 'Error al publicar');
       setPublishedUrl(`/auditorias/${data.id}`);
       addLog(`Reporte publicado: /auditorias/${data.id}`, 'success');
+      setPubModal(false);
     } catch (e) {
       addLog(`Error publicando: ${e.message}`, 'error');
     } finally {
@@ -775,9 +791,9 @@ export default function LeadFinderPanel() {
             </button>
           )}
           {results.length > 0 && !isRunning && !publishedUrl && (
-            <button onClick={handlePublish} disabled={publishing}
+            <button onClick={openPublishModal} disabled={publishing}
               className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-sm disabled:opacity-50">
-              {publishing ? '⏳ Publicando...' : '🌐 Publicar Reporte'}
+              🌐 Publicar Reporte
             </button>
           )}
           {publishedUrl && (
@@ -969,6 +985,45 @@ export default function LeadFinderPanel() {
                 {log.msg}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de pre-publicación: título + descripción editables */}
+      {pubModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !publishing && setPubModal(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Publicar auditoría</h3>
+            <p className="text-xs text-gray-500 mb-4">Revisá el título y la descripción antes de publicar. Los podés editar.</p>
+
+            <label className="block text-xs font-medium text-gray-500 mb-1">Título</label>
+            <input
+              value={pubTitle}
+              onChange={e => setPubTitle(e.target.value)}
+              disabled={publishing}
+              className="w-full mb-4 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+
+            <label className="block text-xs font-medium text-gray-500 mb-1">Descripción del reporte</label>
+            <textarea
+              value={pubDesc}
+              onChange={e => setPubDesc(e.target.value)}
+              rows={6}
+              disabled={publishing}
+              className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+            <p className="text-[11px] text-gray-400 mt-1">Se muestra como “Análisis” en la página pública del reporte.</p>
+
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setPubModal(false)} disabled={publishing}
+                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-40">
+                Cancelar
+              </button>
+              <button onClick={confirmPublish} disabled={publishing || !pubTitle.trim()}
+                className="px-5 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50">
+                {publishing ? '⏳ Publicando…' : '🌐 Publicar'}
+              </button>
+            </div>
           </div>
         </div>
       )}
