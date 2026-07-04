@@ -14,6 +14,17 @@ export default function Footer() {
     { name: 'Contacto', href: '/#contact', type: 'scroll' },
   ];
 
+  // Enlaces crawleables a las herramientas (evita páginas huérfanas para SEO)
+  const tools = [
+    { name: 'Analizador de CV (ATS)', href: '/ats' },
+    { name: 'Calculadora de ROI', href: '/roi' },
+    { name: 'Cotizador Web', href: '/web' },
+    { name: 'Radar KPI', href: '/kpi' },
+    { name: 'Radar Web', href: '/radarweb' },
+    { name: 'Estadísticas', href: '/stats' },
+    { name: 'Auditorías Web', href: '/auditorias' },
+  ];
+
 
   const certifications = [
     {
@@ -73,7 +84,7 @@ export default function Footer() {
     <footer className="bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 transition-colors duration-500 mt-20">
       <div className="max-w-[1100px] mx-auto px-4 py-12">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           {/* Sección Acerca de */}
           <div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
@@ -82,6 +93,25 @@ export default function Footer() {
             <p className="text-gray-600 dark:text-gray-400 text-sm">
               Desarrollador Full Stack y Analista de Datos especializado en React, Python y soluciones empresariales.
             </p>
+          </div>
+
+          {/* Herramientas (links crawleables para SEO) */}
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+              Herramientas
+            </h3>
+            <ul className="space-y-2">
+              {tools.map((tool) => (
+                <li key={tool.href}>
+                  <Link
+                    href={tool.href}
+                    className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm"
+                  >
+                    {tool.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
 
           {/* Accesos Rápidos */}

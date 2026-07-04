@@ -7,6 +7,13 @@ export const metadata = {
   title: 'Auditorías Web | Mariano Aliandri',
   description: 'Reportes de auditoría SEO de sitios web de negocios locales. Analizamos presencia web, sitemap, meta tags y posicionamiento Google.',
   alternates: { canonical: 'https://marianoaliandri.com.ar/auditorias' },
+  openGraph: {
+    type: 'website',
+    url: 'https://marianoaliandri.com.ar/auditorias',
+    title: 'Auditorías Web SEO — Negocios Locales | Mariano Aliandri',
+    description: 'Reportes públicos de auditoría SEO de sitios web de negocios locales: sitemap, meta tags, Open Graph y posicionamiento en Google.',
+    images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'Auditorías Web SEO — Mariano Aliandri' }],
+  },
 };
 
 async function getAuditorias() {

@@ -26,10 +26,19 @@ export async function generateMetadata({ params }) {
   const { id } = await params;
   const a = await getAuditoria(id);
   if (!a) return { title: 'Auditoría no encontrada' };
+  const url = `https://marianoaliandri.com.ar/auditorias/${id}`;
+  const desc = `Reporte SEO de ${a.stats?.total} sitios web en ${(a.config?.ciudades || []).join(', ')}.`;
   return {
     title: `${a.title} | Auditorías Web`,
-    description: `Reporte SEO de ${a.stats?.total} sitios web en ${(a.config?.ciudades || []).join(', ')}.`,
-    alternates: { canonical: `https://marianoaliandri.com.ar/auditorias/${id}` },
+    description: desc,
+    alternates: { canonical: url },
+    openGraph: {
+      type: 'article',
+      url,
+      title: `${a.title} | Auditorías Web`,
+      description: desc,
+      images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: a.title }],
+    },
   };
 }
 
