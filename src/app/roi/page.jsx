@@ -52,6 +52,46 @@ export default function ToolPage() {
           <li>✓ Visualización gráfica interactiva</li>
           <li>✓ 100% gratuito, sin registro</li>
         </ul>
+
+        <div className="text-left mt-12 space-y-8">
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Qué es el ROI y por qué importa?</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              El ROI (retorno de inversión) mide cuánto ganás en relación a lo que invertís. En un
+              proyecto digital —una web, una campaña, una automatización— saber el ROI te permite
+              decidir con números en vez de intuición: si conviene avanzar, en cuánto tiempo recuperás
+              la inversión y cuál es la rentabilidad real. Esta calculadora lo estima en segundos, sin
+              planillas ni fórmulas.
+            </p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Cómo se calcula?</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              Ingresás tu inversión inicial, los costos, los ingresos esperados y el plazo del proyecto.
+              La herramienta calcula el ROI porcentual, el punto de equilibrio (cuándo dejás de perder
+              plata) y una proyección mes a mes, todo visualizado en un gráfico interactivo para que
+              entiendas de un vistazo si el proyecto rinde.
+            </p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Preguntas frecuentes</h2>
+            <div className="space-y-4 text-sm">
+              <div>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200">¿Sirve para cualquier tipo de proyecto?</h3>
+                <p className="text-gray-600 dark:text-gray-400">Sí: un sitio web, una tienda online, una campaña de marketing o cualquier inversión con costos e ingresos definidos.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200">¿Qué es el punto de equilibrio?</h3>
+                <p className="text-gray-600 dark:text-gray-400">Es el momento en el que los ingresos igualan a los costos: a partir de ahí, el proyecto empieza a generar ganancia.</p>
+              </div>
+            </div>
+          </section>
+          <p className="text-sm text-gray-500 dark:text-gray-500">
+            ¿Querés estimar el costo de tu proyecto?{' '}
+            <a href="/web" className="text-indigo-500 hover:underline">Cotizador de sitios web</a> ·{' '}
+            <a href="/kpi" className="text-indigo-500 hover:underline">Radar de KPIs</a>.
+          </p>
+        </div>
       </main>
     </>
   );

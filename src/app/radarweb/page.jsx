@@ -52,6 +52,45 @@ export default function ToolPage() {
           <li>✓ Visualización radar interactiva</li>
           <li>✓ 100% gratuito, sin registro</li>
         </ul>
+
+        <div className="text-left mt-12 space-y-8">
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Por qué auditar tu sitio web?</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              Un sitio puede verse lindo y aun así estar perdiendo clientes: si carga lento, no está
+              optimizado para Google o tiene problemas de seguridad, la gente se va y las búsquedas no
+              lo muestran. Radar Web analiza esos puntos críticos y te los presenta en un gráfico claro,
+              para que sepas qué mejorar antes de que te cueste ventas.
+            </p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Qué analiza?</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              Con solo tu URL, la herramienta evalúa velocidad de carga, buenas prácticas de SEO,
+              seguridad (HTTPS, cabeceras) y rendimiento general. Cada dimensión se dibuja en el radar:
+              cuanto más se acerca al borde, mejor está esa área. Es un diagnóstico rápido para saber
+              por dónde empezar.
+            </p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Preguntas frecuentes</h2>
+            <div className="space-y-4 text-sm">
+              <div>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200">¿Funciona con cualquier sitio?</h3>
+                <p className="text-gray-600 dark:text-gray-400">Sí, con cualquier URL pública: tu web, la de tu negocio o la de un competidor.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200">¿En qué se diferencia de las auditorías?</h3>
+                <p className="text-gray-600 dark:text-gray-400">Radar Web es un chequeo instantáneo y visual; las <a href="/auditorias" className="text-indigo-500 hover:underline">auditorías SEO</a> son informes más completos de negocios locales.</p>
+              </div>
+            </div>
+          </section>
+          <p className="text-sm text-gray-500 dark:text-gray-500">
+            ¿Necesitás un sitio nuevo?{' '}
+            <a href="/web" className="text-indigo-500 hover:underline">Cotizá tu sitio web</a> o revisá las{' '}
+            <a href="/auditorias" className="text-indigo-500 hover:underline">auditorías publicadas</a>.
+          </p>
+        </div>
       </main>
     </>
   );

@@ -52,6 +52,46 @@ export default function ToolPage() {
           <li>✓ Identificación visual de brechas</li>
           <li>✓ 100% gratuito, sin registro</li>
         </ul>
+
+        <div className="text-left mt-12 space-y-8">
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Qué es un KPI?</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              Un KPI (indicador clave de desempeño) es una métrica que muestra si tu negocio va bien o
+              mal en un área concreta: ventas, marketing, operaciones, finanzas o atención al cliente.
+              El problema no suele ser la falta de datos, sino verlos todos juntos. El radar de KPIs los
+              reúne en un solo gráfico para que detectes de un vistazo dónde estás fuerte y dónde perdés
+              oportunidades.
+            </p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Cómo se usa?</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              Cargás tus valores en cada dimensión del negocio y el gráfico de radar dibuja tu perfil.
+              Las áreas que se "hunden" hacia el centro son las que necesitan atención; las que se
+              expanden son tus fortalezas. Es una forma rápida y visual de priorizar en qué enfocar
+              tiempo y recursos.
+            </p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Preguntas frecuentes</h2>
+            <div className="space-y-4 text-sm">
+              <div>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200">¿Necesito conocimientos técnicos?</h3>
+                <p className="text-gray-600 dark:text-gray-400">No. Solo ingresás tus números y la herramienta arma el gráfico automáticamente.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200">¿Sirve para cualquier rubro?</h3>
+                <p className="text-gray-600 dark:text-gray-400">Sí, las dimensiones son adaptables a comercios, servicios, e-commerce o profesionales independientes.</p>
+              </div>
+            </div>
+          </section>
+          <p className="text-sm text-gray-500 dark:text-gray-500">
+            ¿Querés medir tu presencia online?{' '}
+            <a href="/stats" className="text-indigo-500 hover:underline">Estadísticas del portfolio</a> ·{' '}
+            <a href="/radarweb" className="text-indigo-500 hover:underline">Radar Web</a>.
+          </p>
+        </div>
       </main>
     </>
   );

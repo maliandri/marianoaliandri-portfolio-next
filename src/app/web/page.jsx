@@ -52,6 +52,46 @@ export default function ToolPage() {
           <li>✓ Tiempo de entrega estimado</li>
           <li>✓ 100% gratuito, sin registro</li>
         </ul>
+
+        <div className="text-left mt-12 space-y-8">
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Cuánto cuesta un sitio web?</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              El precio de un sitio web depende de lo que necesite: no es lo mismo una landing page de
+              una sola pantalla que una tienda online con pagos, un panel de administración o un chatbot
+              con inteligencia artificial. En vez de darte un número al azar, este cotizador arma el
+              presupuesto según las funcionalidades reales que elijas, para que sepas qué estás pagando
+              y por qué.
+            </p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Cómo funciona el cotizador?</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              Elegís el tipo de proyecto (landing, institucional, e-commerce, web app) y vas sumando las
+              funcionalidades que te sirven: SEO, blog, reservas, integración con MercadoPago, chatbot,
+              automatización de redes y más. El precio estimado se actualiza al instante en USD y ARS,
+              con un tiempo de entrega aproximado. Es una guía transparente para arrancar la conversación.
+            </p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Preguntas frecuentes</h2>
+            <div className="space-y-4 text-sm">
+              <div>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200">¿El precio es definitivo?</h3>
+                <p className="text-gray-600 dark:text-gray-400">Es una estimación orientativa. Para un presupuesto cerrado, revisamos juntos los detalles del proyecto.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200">¿Incluye posicionamiento en Google?</h3>
+                <p className="text-gray-600 dark:text-gray-400">Sí, podés sumar SEO técnico para que el sitio aparezca en las búsquedas sin depender de publicidad paga.</p>
+              </div>
+            </div>
+          </section>
+          <p className="text-sm text-gray-500 dark:text-gray-500">
+            ¿Listo para avanzar?{' '}
+            <a href="/presupuesto" className="text-indigo-500 hover:underline">Pedí tu presupuesto</a> o calculá el{' '}
+            <a href="/roi" className="text-indigo-500 hover:underline">retorno de inversión</a>.
+          </p>
+        </div>
       </main>
     </>
   );

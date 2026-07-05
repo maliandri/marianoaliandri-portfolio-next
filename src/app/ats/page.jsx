@@ -52,6 +52,50 @@ export default function ToolPage() {
           <li>✓ Sugerencias de mejora personalizadas</li>
           <li>✓ 100% gratuito, sin registro</li>
         </ul>
+
+        <div className="text-left mt-12 space-y-8">
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Qué es un sistema ATS?</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              Un ATS (Applicant Tracking System) es el software que usan la mayoría de las empresas y
+              consultoras para filtrar CVs antes de que los vea una persona. Si tu curriculum no está
+              bien estructurado —con las palabras clave del puesto, un formato legible y las secciones
+              correctas— el sistema puede descartarlo automáticamente, aunque tu perfil sea ideal para
+              el trabajo. Este analizador simula ese filtro y te muestra exactamente qué está fallando.
+            </p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Cómo funciona?</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              Subís tu CV en PDF y la inteligencia artificial (Google Gemini) lo analiza en segundos:
+              revisa la estructura, la presencia de palabras clave, la claridad de la experiencia y la
+              compatibilidad general con los filtros automáticos. Recibís una puntuación y una lista de
+              mejoras concretas para aumentar tus chances de llegar a la entrevista.
+            </p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Preguntas frecuentes</h2>
+            <div className="space-y-4 text-sm">
+              <div>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200">¿Es realmente gratis?</h3>
+                <p className="text-gray-600 dark:text-gray-400">Sí, el análisis es 100% gratuito y no necesitás registrarte ni dejar tu email.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200">¿Guardan mi CV?</h3>
+                <p className="text-gray-600 dark:text-gray-400">No. El archivo se procesa solo para el análisis y no se almacena.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200">¿En qué formato tiene que estar?</h3>
+                <p className="text-gray-600 dark:text-gray-400">En PDF, que es el formato que mejor leen los sistemas ATS.</p>
+              </div>
+            </div>
+          </section>
+          <p className="text-sm text-gray-500 dark:text-gray-500">
+            ¿Buscás mejorar la presencia digital de tu negocio?{' '}
+            <a href="/web" className="text-indigo-500 hover:underline">Cotizá tu sitio web</a> o mirá las{' '}
+            <a href="/auditorias" className="text-indigo-500 hover:underline">auditorías SEO</a>.
+          </p>
+        </div>
       </main>
     </>
   );
