@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Calculadora de ROI Digital | Mariano Aliandri',
+  title: 'Calculadora de ROI Digital',
   description: 'Calculá el retorno de inversión de tu proyecto digital en segundos. Ingresá tus datos y obtené métricas claras de rentabilidad.',
   alternates: { canonical: 'https://marianoaliandri.com.ar/roi/' },
   openGraph: {

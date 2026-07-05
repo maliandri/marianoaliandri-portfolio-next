@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Cotizador de Sitios Web | Mariano Aliandri',
+  title: 'Cotizador de Sitios Web',
   description: 'Obtené un presupuesto instantáneo para tu sitio web. Elegí las funcionalidades que necesitás y conocé el precio al instante.',
   alternates: { canonical: 'https://marianoaliandri.com.ar/web/' },
   openGraph: {

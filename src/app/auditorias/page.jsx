@@ -4,7 +4,7 @@ import { getDb } from '@/lib/firebase-admin';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Auditorías Web | Mariano Aliandri',
+  title: 'Auditorías Web',
   description: 'Reportes de auditoría SEO de sitios web de negocios locales. Analizamos presencia web, sitemap, meta tags y posicionamiento Google.',
   alternates: { canonical: 'https://marianoaliandri.com.ar/auditorias' },
   openGraph: {

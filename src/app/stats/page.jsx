@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Estadísticas del Portfolio | Mariano Aliandri',
+  title: 'Estadísticas del Portfolio',
   description: 'Dashboard en tiempo real con visitas, clics en Google, likes y datos de Google Search Console del portfolio de Mariano Aliandri.',
   alternates: { canonical: 'https://marianoaliandri.com.ar/stats/' },
   openGraph: {

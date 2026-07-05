@@ -98,31 +98,29 @@ function Navbar({ pathname }) {
   );
 }
 
+// Oculta el chrome cuando ?screenshot=1 (Microlink/OG). Aislado en su propio
+// Suspense para que useSearchParams NO haga suspender a toda la página en SSR.
+function ScreenshotHider() {
+  const searchParams = useSearchParams();
+  if (searchParams.get('screenshot') !== '1') return null;
+  return <style dangerouslySetInnerHTML={{ __html: '.app-chrome{display:none!important}' }} />;
+}
+
 function AppChromeInner({ children }) {
   const rawPathname = usePathname();
-  const searchParams = useSearchParams();
   const router = useRouter();
 
   // Normalize: remove trailing slash for matching (trailingSlash:true adds it)
   const pathname = rawPathname.replace(/\/$/, '') || '/';
 
-  // ?screenshot=1 → renderizar solo el contenido, sin chrome (para Microlink / OG)
-  const isScreenshot = searchParams.get('screenshot') === '1';
-
   const closeTool = () => router.push('/');
-
-  if (isScreenshot) {
-    return (
-      <div className="App font-sans min-h-screen text-gray-800 bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
-        {children}
-      </div>
-    );
-  }
 
   return (
     <div className="App font-sans min-h-screen text-gray-800 bg-gray-50 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-500 relative overflow-x-hidden">
 
-      <Navbar pathname={pathname} />
+      <Suspense fallback={null}><ScreenshotHider /></Suspense>
+
+      <div className="app-chrome"><Navbar pathname={pathname} /></div>
 
       {/* Tool modals - lazy loaded */}
       <Suspense fallback={null}>
@@ -132,27 +130,22 @@ function AppChromeInner({ children }) {
         {pathname === '/web' && <WebCalculator isOpen={true} onClose={closeTool} hideFloatingButton={true} />}
         {pathname === '/kpi' && <KpiRadar isOpen={true} onClose={closeTool} hideFloatingButton={true} />}
         {pathname === '/radarweb' && <RadarWeb isOpen={true} onClose={closeTool} hideFloatingButton={true} />}
-        {/* Labs: modal — ?screenshot=1 no llega aquí (early return arriba) */}
         {pathname === '/labs' && <LabsTool isOpen={true} onClose={closeTool} hideFloatingButton={true} />}
       </Suspense>
 
       {/* Page content */}
       {children}
 
-      <Footer />
-      <WhatsAppButton />
+      <div className="app-chrome"><Footer /></div>
+      <div className="app-chrome"><WhatsAppButton /></div>
     </div>
   );
 }
 
+// Sin Suspense que renderice {children} como fallback: eso duplicaba el
+// contenido (2 H1) y dejaba el chrome fuera del HTML en SSR (páginas huérfanas).
 function AppChrome({ children }) {
-  return (
-    <Suspense fallback={
-      <div className="App font-sans min-h-screen bg-gray-50 dark:bg-gray-900">{children}</div>
-    }>
-      <AppChromeInner>{children}</AppChromeInner>
-    </Suspense>
-  );
+  return <AppChromeInner>{children}</AppChromeInner>;
 }
 
 export function Providers({ children }) {

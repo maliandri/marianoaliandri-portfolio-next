@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Radar KPI — Analizá tu Negocio | Mariano Aliandri',
+  title: 'Radar KPI — Analizá tu Negocio',
   description: 'Visualizá los KPIs clave de tu negocio en un radar interactivo. Identificá fortalezas y áreas de mejora con un vistazo.',
   alternates: { canonical: 'https://marianoaliandri.com.ar/kpi/' },
   openGraph: {

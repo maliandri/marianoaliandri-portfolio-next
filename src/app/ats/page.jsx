@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Analizador de CV con IA | Mariano Aliandri',
+  title: 'Analizador de CV con IA',
   description: 'Subí tu CV en PDF y recibí un análisis ATS gratuito con inteligencia artificial. Sabé si tu curriculum pasa los filtros automáticos de selección.',
   alternates: { canonical: 'https://marianoaliandri.com.ar/ats/' },
   openGraph: {

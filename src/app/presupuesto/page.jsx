@@ -1,7 +1,7 @@
 import BudgetForm from '@/components/BudgetForm';
 
 export const metadata = {
-  title: 'Pedir presupuesto | Mariano Aliandri',
+  title: 'Pedir presupuesto',
   description: 'Solicitá un presupuesto personalizado. Elegí los servicios que necesitás y te respondo en menos de 24 horas.',
   alternates: { canonical: 'https://marianoaliandri.com.ar/presupuesto' },
   openGraph: {

@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Radar Web — Auditá tu Sitio | Mariano Aliandri',
+  title: 'Radar Web — Auditá tu Sitio',
   description: 'Analizá el estado de tu sitio web: velocidad, SEO, seguridad y rendimiento visualizados en un radar interactivo. Gratis y en segundos.',
   alternates: { canonical: 'https://marianoaliandri.com.ar/radarweb/' },
   openGraph: {
