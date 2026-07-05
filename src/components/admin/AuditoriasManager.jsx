@@ -83,13 +83,13 @@ export default function AuditoriasManager() {
 
   // Abre el modal de publicación en redes con un caption autogenerado
   const openPublish = (a) => {
-    const url      = `https://marianoaliandri.com.ar/auditorias/${a.id}`;
     const ciudades = (a.config?.ciudades || []).join(', ') || 'la zona';
     const total    = a.stats?.total ?? 0;
     const low      = a.stats?.lowSeoCount ?? 0;
     const avg      = a.stats?.avgSeoScore ?? '—';
     const pctLow   = total ? Math.round((low / total) * 100) : 0;
     setPub({ id: a.id, title: a.title });
+    // El link al reporte NO va en el texto: Make lo agrega al final (campo `link`).
     setPubCaption(
 `🔍 Auditoría SEO en ${ciudades}
 
@@ -98,7 +98,6 @@ Analizamos ${total} sitios web de negocios locales:
 📊 Score SEO promedio: ${avg}/100
 
 ¿Tu negocio aparece en Google cuando te buscan? Mirá el reporte completo 👇
-${url}
 
 #SEO #DesarrolloWeb #PresenciaDigital #Google`
     );
@@ -126,11 +125,14 @@ ${url}
           message:     pubCaption,
           networks,
           type:        'service',
-          useAI:       false,
+          useAI:       true,
           aiProvider:  'gemini',
           imageUrl,
           url:         imageUrl,
-          metadata: { topic: 'auditoria', reportUrl },
+          // Link del reporte en campo aparte: Make lo agrega al final del caption
+          link:        reportUrl,
+          reportUrl,
+          metadata: { topic: 'auditoria', reportUrl, link: reportUrl },
         }),
       });
       const data = await res.json();
@@ -360,7 +362,10 @@ ${url}
             <label className="block text-xs font-medium text-gray-500 mb-1">Texto de la publicación</label>
             <textarea value={pubCaption} onChange={e => setPubCaption(e.target.value)} rows={9} disabled={pubSending}
               className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            <p className="text-[11px] text-gray-400 mt-1">La imagen del post es una captura automática del reporte (mapa + tabla) vía Microlink.</p>
+            <p className="text-[11px] text-gray-400 mt-1">
+              Gemini (en Make) pule este texto. El <b>link al reporte</b> se agrega automáticamente al final (campo <code>link</code>).
+              La imagen es una captura del reporte (mapa + tabla) vía Microlink.
+            </p>
 
             {pubMsg && <p className={`mt-3 text-xs ${pubMsg.startsWith('✓') ? 'text-green-500' : 'text-red-500'}`}>{pubMsg}</p>}
 
