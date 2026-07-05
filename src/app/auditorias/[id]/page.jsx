@@ -1,10 +1,21 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getDb } from '@/lib/firebase-admin';
+import { getGSCAuth, getVerifiedSites } from '@/lib/gscClient';
 import AuditTable from './AuditTable';
 import AuditMapLoader from './AuditMapLoader';
 
 export const dynamic = 'force-dynamic';
+
+// Dominios verificados en GSC = sitios del portfolio de Mariano (para destacarlos)
+async function getOwnDomains() {
+  try {
+    const sites = await getVerifiedSites(getGSCAuth());
+    return sites.map(s => s.domain.toLowerCase());
+  } catch {
+    return [];
+  }
+}
 
 async function getAuditoria(id) {
   try {
@@ -52,8 +63,15 @@ export default async function AuditoriaDetailPage({ params }) {
   const a = await getAuditoria(id);
   if (!a) notFound();
 
-  const results  = a.results || [];
-  const ciudades = a.config?.ciudades || [];
+  const results     = a.results || [];
+  const ciudades    = a.config?.ciudades || [];
+  const ownDomains  = await getOwnDomains();
+  const hasOwnSite  = ownDomains.length > 0 && results.some(r => {
+    try {
+      const h = new URL(r.siteUrl).hostname.replace(/^www\./, '').toLowerCase();
+      return ownDomains.some(d => h === d || h.endsWith('.' + d));
+    } catch { return false; }
+  });
 
   // Distribución de Score SEO (mismas bandas que el mapa)
   const scored = results.filter(r => typeof r.seoScore === 'number');
@@ -149,16 +167,19 @@ export default async function AuditoriaDetailPage({ params }) {
       {results.some(r => typeof r.lat === 'number' && typeof r.lon === 'number') && (
         <div className="mb-8">
           <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-3">Mapa de los negocios</p>
-          <AuditMapLoader results={results} radioKm={a.config?.radioKm} />
+          <AuditMapLoader results={results} radioKm={a.config?.radioKm} ownDomains={ownDomains} />
           <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-500">
             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#ef4444' }} /> SEO débil (&lt; 40)</span>
             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#f59e0b' }} /> Mejorable (40–69)</span>
             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#22c55e' }} /> Aceptable (70+)</span>
+            {hasOwnSite && (
+              <span className="flex items-center gap-1.5 text-indigo-300"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#6366f1' }} /> ★ Hecho por mí</span>
+            )}
           </div>
         </div>
       )}
 
-      <AuditTable results={results} />
+      <AuditTable results={results} ownDomains={ownDomains} />
 
       <p className="text-center text-xs text-gray-700 mt-8">
         Auditoría realizada por{' '}

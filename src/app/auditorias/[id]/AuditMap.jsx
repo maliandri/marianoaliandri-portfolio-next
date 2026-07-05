@@ -11,6 +11,16 @@ function scoreColor(s) {
   return '#22c55e';
 }
 
+function hostOf(url) {
+  try { return new URL(url).hostname.replace(/^www\./, '').toLowerCase(); }
+  catch { return ''; }
+}
+function isOwnSite(url, ownDomains) {
+  if (!ownDomains?.length) return false;
+  const h = hostOf(url);
+  return h && ownDomains.some(d => h === d || h.endsWith('.' + d));
+}
+
 // Distancia aproximada en km entre dos [lat, lon] (Haversine)
 function distKm(a, b) {
   const R = 6371;
@@ -49,7 +59,7 @@ function FitBounds({ points }) {
   return null;
 }
 
-export default function AuditMap({ results = [], radioKm = 20 }) {
+export default function AuditMap({ results = [], radioKm = 20, ownDomains = [] }) {
   const all = results.filter(r => typeof r.lat === 'number' && typeof r.lon === 'number');
   if (!all.length) return null;
 
@@ -66,19 +76,20 @@ export default function AuditMap({ results = [], radioKm = 20 }) {
           />
           <FitBounds points={points} />
           {points.map((r, i) => {
-            const color = scoreColor(r.seoScore);
+            const own = isOwnSite(r.siteUrl, ownDomains);
+            const color = own ? '#6366f1' : scoreColor(r.seoScore);
             return (
               <CircleMarker
                 key={r.id || i}
                 center={[r.lat, r.lon]}
-                radius={8}
-                pathOptions={{ color, fillColor: color, fillOpacity: 0.85, weight: 2 }}
+                radius={own ? 11 : 8}
+                pathOptions={{ color: own ? '#a5b4fc' : color, fillColor: color, fillOpacity: 0.85, weight: own ? 3 : 2 }}
               >
                 <Popup>
                   <div style={{ minWidth: 160 }}>
-                    <strong>{r.nombre}</strong><br />
+                    <strong>{r.nombre}</strong>{own ? <span style={{ color: '#6366f1', fontWeight: 700 }}> ★ Hecho por mí</span> : null}<br />
                     {r.ciudad ? <>{r.ciudad}<br /></> : null}
-                    Score SEO: <b style={{ color }}>{r.seoScore ?? '—'}/100</b>
+                    Score SEO: <b style={{ color: scoreColor(r.seoScore) }}>{r.seoScore ?? '—'}/100</b>
                     {r.siteUrl ? <><br /><a href={r.siteUrl} target="_blank" rel="noopener noreferrer">Ver sitio ↗</a></> : null}
                   </div>
                 </Popup>

@@ -61,7 +61,18 @@ function sortValue(neg, sortKey) {
   }
 }
 
-export default function AuditTable({ results }) {
+function hostOf(url) {
+  try { return new URL(url).hostname.replace(/^www\./, '').toLowerCase(); }
+  catch { return ''; }
+}
+// ¿El sitio es uno del portfolio de Mariano (verificado en GSC)?
+function isOwnSite(url, ownDomains) {
+  if (!ownDomains?.length) return false;
+  const h = hostOf(url);
+  return h && ownDomains.some(d => h === d || h.endsWith('.' + d));
+}
+
+export default function AuditTable({ results, ownDomains = [] }) {
   const [sortCol, setSortCol] = useState('seoScore');
   const [sortDir, setSortDir] = useState('asc');
 
@@ -107,11 +118,18 @@ export default function AuditTable({ results }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            {sorted.map((neg, i) => (
-              <tr key={neg.id || i} className={`transition-colors hover:bg-white/[0.05] ${i % 2 ? 'bg-white/[0.015]' : ''}`}>
-                <td className="px-4 py-3.5 text-gray-600 text-xs" style={{ boxShadow: `inset 3px 0 0 ${bandColor(neg.seoScore)}` }}>{i + 1}</td>
-                <td className="px-4 py-3 max-w-[200px]">
+            {sorted.map((neg, i) => {
+              const own = isOwnSite(neg.siteUrl, ownDomains);
+              return (
+              <tr key={neg.id || i} className={`transition-colors ${own ? 'bg-indigo-500/[0.08] hover:bg-indigo-500/[0.14]' : `hover:bg-white/[0.05] ${i % 2 ? 'bg-white/[0.015]' : ''}`}`}>
+                <td className="px-4 py-3.5 text-gray-600 text-xs" style={{ boxShadow: `inset 3px 0 0 ${own ? '#6366f1' : bandColor(neg.seoScore)}` }}>{i + 1}</td>
+                <td className="px-4 py-3 max-w-[220px]">
                   <div className="font-medium text-white truncate" title={neg.nombre}>{neg.nombre}</div>
+                  {own && (
+                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      ★ Hecho por mí
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-xs">{neg.ciudad || '—'}</td>
                 <td className="px-4 py-3 max-w-[200px]">
@@ -137,7 +155,8 @@ export default function AuditTable({ results }) {
                   {neg.rating ? `★ ${neg.rating}` : '—'}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
