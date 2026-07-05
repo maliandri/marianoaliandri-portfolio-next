@@ -24,6 +24,9 @@ export default function AuditoriasManager() {
   const [loading, setLoading]       = useState(true);
   const [deleting, setDeleting]     = useState(null);
   const [expanded, setExpanded]     = useState(null);
+  const [editing, setEditing]       = useState(null);   // { id, title, summary }
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError]   = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -36,6 +39,42 @@ export default function AuditoriasManager() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Abre el modal de edición: trae el doc completo (incluye summary) y precarga
+  const openEdit = async (id) => {
+    setEditError('');
+    setEditing({ id, title: '', summary: '', loading: true });
+    try {
+      const res  = await fetch(`/api/auditorias?id=${id}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo cargar');
+      setEditing({ id, title: data.title || '', summary: data.summary || '', loading: false });
+    } catch (e) {
+      setEditError(e.message);
+      setEditing({ id, title: '', summary: '', loading: false });
+    }
+  };
+
+  const saveEdit = async () => {
+    if (!editing || !editing.title.trim()) return;
+    setSavingEdit(true); setEditError('');
+    try {
+      const res = await fetch('/api/auditorias', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editing.id, title: editing.title.trim(), summary: editing.summary }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al guardar');
+      // Reflejar el nuevo título en la lista sin recargar todo
+      setAuditorias(prev => prev.map(a => a.id === editing.id ? { ...a, title: editing.title.trim() } : a));
+      setEditing(null);
+    } catch (e) {
+      setEditError(e.message);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const handleDelete = async (id, title) => {
     if (!confirm(`¿Eliminar "${title}"?\nEsta acción no se puede deshacer.`)) return;
@@ -148,6 +187,11 @@ export default function AuditoriasManager() {
                     Ver →
                   </a>
                   <button
+                    onClick={() => openEdit(a.id)}
+                    className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                    ✏️ Editar
+                  </button>
+                  <button
                     onClick={() => handleDelete(a.id, a.title)}
                     disabled={deleting === a.id}
                     className="px-3 py-1.5 text-xs bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors disabled:opacity-40">
@@ -162,6 +206,56 @@ export default function AuditoriasManager() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Modal de edición */}
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !savingEdit && setEditing(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-3">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Editar auditoría</h3>
+              <button onClick={() => setEditing(null)} disabled={savingEdit}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none disabled:opacity-40">✕</button>
+            </div>
+
+            {editing.loading ? (
+              <p className="text-sm text-gray-500 animate-pulse py-8 text-center">Cargando…</p>
+            ) : (
+              <>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Título</label>
+                <input
+                  value={editing.title}
+                  onChange={e => setEditing(ed => ({ ...ed, title: e.target.value }))}
+                  disabled={savingEdit}
+                  className="w-full mb-4 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+
+                <label className="block text-xs font-medium text-gray-500 mb-1">Descripción del reporte</label>
+                <textarea
+                  value={editing.summary}
+                  onChange={e => setEditing(ed => ({ ...ed, summary: e.target.value }))}
+                  rows={7}
+                  disabled={savingEdit}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">Se muestra como “Análisis” en la página pública del reporte.</p>
+
+                {editError && <p className="mt-3 text-xs text-red-500">{editError}</p>}
+
+                <div className="flex justify-end gap-2 mt-4">
+                  <button onClick={() => setEditing(null)} disabled={savingEdit}
+                    className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-40">
+                    Cancelar
+                  </button>
+                  <button onClick={saveEdit} disabled={savingEdit || !editing.title.trim()}
+                    className="px-5 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50">
+                    {savingEdit ? 'Guardando…' : 'Guardar cambios'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

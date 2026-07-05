@@ -133,6 +133,29 @@ El texto debe explicar qué significa un SEO débil para un negocio local, desta
   }
 }
 
+export async function PATCH(request) {
+  try {
+    const db = getDb();
+    if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });
+
+    const { id, title, summary } = await request.json();
+    if (!id) return Response.json({ error: 'id requerido' }, { status: 400 });
+
+    const update = {};
+    if (typeof title === 'string')   update.title   = title.trim();
+    if (typeof summary === 'string') update.summary = summary.trim();
+    if (!Object.keys(update).length) {
+      return Response.json({ error: 'Nada para actualizar (title o summary)' }, { status: 400 });
+    }
+    update.updatedAt = FieldValue.serverTimestamp();
+
+    await db.collection('auditorias').doc(id).update(update);
+    return Response.json({ success: true });
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 500 });
+  }
+}
+
 export async function DELETE(request) {
   try {
     const db = getDb();
