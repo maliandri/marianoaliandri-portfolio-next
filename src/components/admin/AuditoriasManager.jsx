@@ -27,6 +27,11 @@ export default function AuditoriasManager() {
   const [editing, setEditing]       = useState(null);   // { id, title, summary }
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError]   = useState('');
+  const [pub, setPub]               = useState(null);   // { id, title }
+  const [pubCaption, setPubCaption] = useState('');
+  const [pubNets, setPubNets]       = useState({ instagram: true, facebook: true, linkedin: true });
+  const [pubSending, setPubSending] = useState(false);
+  const [pubMsg, setPubMsg]         = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -73,6 +78,69 @@ export default function AuditoriasManager() {
       setEditError(e.message);
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  // Abre el modal de publicación en redes con un caption autogenerado
+  const openPublish = (a) => {
+    const url      = `https://marianoaliandri.com.ar/auditorias/${a.id}`;
+    const ciudades = (a.config?.ciudades || []).join(', ') || 'la zona';
+    const total    = a.stats?.total ?? 0;
+    const low      = a.stats?.lowSeoCount ?? 0;
+    const avg      = a.stats?.avgSeoScore ?? '—';
+    const pctLow   = total ? Math.round((low / total) * 100) : 0;
+    setPub({ id: a.id, title: a.title });
+    setPubCaption(
+`🔍 Auditoría SEO en ${ciudades}
+
+Analizamos ${total} sitios web de negocios locales:
+📉 ${low} con posicionamiento débil (${pctLow}%)
+📊 Score SEO promedio: ${avg}/100
+
+¿Tu negocio aparece en Google cuando te buscan? Mirá el reporte completo 👇
+${url}
+
+#SEO #DesarrolloWeb #PresenciaDigital #Google`
+    );
+    setPubNets({ instagram: true, facebook: true, linkedin: true });
+    setPubMsg('');
+  };
+
+  const sendPublish = async () => {
+    const networks = Object.keys(pubNets).filter(k => pubNets[k]);
+    if (!pub || !networks.length || !pubCaption.trim()) return;
+    setPubSending(true); setPubMsg('');
+    const reportUrl = `https://marianoaliandri.com.ar/auditorias/${pub.id}`;
+    // Screenshot del reporte via Microlink (muestra mapa + tabla) como imagen del post
+    const imageUrl = `https://api.microlink.io/?url=${encodeURIComponent(reportUrl)}&screenshot=true&meta=false&embed=screenshot.url`;
+    try {
+      const res = await fetch('/api/publish-social', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          // mismo contrato que SocialPublisher (no cambiar nombres de campos)
+          text:        pubCaption,
+          content:     pubCaption,
+          caption:     pubCaption,
+          description: pubCaption,
+          message:     pubCaption,
+          networks,
+          type:        'service',
+          useAI:       false,
+          aiProvider:  'gemini',
+          imageUrl,
+          url:         imageUrl,
+          metadata: { topic: 'auditoria', reportUrl },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.success === false) throw new Error(data.error || 'Error al publicar');
+      setPubMsg('✓ Enviado a Make');
+      setTimeout(() => setPub(null), 1500);
+    } catch (e) {
+      setPubMsg('✗ ' + e.message);
+    } finally {
+      setPubSending(false);
     }
   };
 
@@ -192,6 +260,11 @@ export default function AuditoriasManager() {
                     ✏️ Editar
                   </button>
                   <button
+                    onClick={() => openPublish(a)}
+                    className="px-3 py-1.5 text-xs bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 border border-pink-200 dark:border-pink-800 rounded-lg hover:bg-pink-100 dark:hover:bg-pink-900/40 transition-colors">
+                    📣 Publicar
+                  </button>
+                  <button
                     onClick={() => handleDelete(a.id, a.title)}
                     disabled={deleting === a.id}
                     className="px-3 py-1.5 text-xs bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors disabled:opacity-40">
@@ -255,6 +328,52 @@ export default function AuditoriasManager() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de publicación en redes (Make.com) */}
+      {pub && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !pubSending && setPub(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">Publicar en redes</h3>
+                <p className="text-xs text-gray-500 mt-0.5 truncate max-w-[380px]">{pub.title}</p>
+              </div>
+              <button onClick={() => setPub(null)} disabled={pubSending}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none disabled:opacity-40">✕</button>
+            </div>
+
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Redes</label>
+            <div className="flex gap-2 mb-4">
+              {[['instagram', '📷 Instagram'], ['facebook', '📘 Facebook'], ['linkedin', '💼 LinkedIn']].map(([k, label]) => (
+                <button key={k} onClick={() => setPubNets(n => ({ ...n, [k]: !n[k] }))} disabled={pubSending}
+                  className={`px-3 py-2 text-xs rounded-lg border transition-colors ${pubNets[k]
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <label className="block text-xs font-medium text-gray-500 mb-1">Texto de la publicación</label>
+            <textarea value={pubCaption} onChange={e => setPubCaption(e.target.value)} rows={9} disabled={pubSending}
+              className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <p className="text-[11px] text-gray-400 mt-1">La imagen del post es una captura automática del reporte (mapa + tabla) vía Microlink.</p>
+
+            {pubMsg && <p className={`mt-3 text-xs ${pubMsg.startsWith('✓') ? 'text-green-500' : 'text-red-500'}`}>{pubMsg}</p>}
+
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setPub(null)} disabled={pubSending}
+                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-40">
+                Cancelar
+              </button>
+              <button onClick={sendPublish} disabled={pubSending || !pubCaption.trim() || !Object.values(pubNets).some(Boolean)}
+                className="px-5 py-2 text-sm bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50">
+                {pubSending ? 'Enviando…' : '📣 Publicar'}
+              </button>
+            </div>
           </div>
         </div>
       )}
