@@ -11,6 +11,7 @@ import CronScheduler from '../components/admin/CronScheduler';
 import ZoneAnalysis from '../components/admin/ZoneAnalysis';
 import LabsPublisher from '../components/admin/LabsPublisher';
 import BudgetManager from '../components/admin/BudgetManager';
+import QuoteBuilder from '../components/admin/QuoteBuilder';
 import AuditoriasManager from '../components/admin/AuditoriasManager';
 import SentEmailsManager from '../components/admin/SentEmailsManager';
 import LeadFinderPanel from '../components/LeadFinderPanel';
@@ -43,6 +44,31 @@ const ADMIN_GROUPS = [
 ];
 
 const TAB_MAP = Object.fromEntries(ADMIN_TABS.map(t => [t.id, t]));
+
+function PresupuestosTab() {
+  const [sub, setSub] = useState('solicitudes');
+  return (
+    <div className="p-6 space-y-5">
+      <div className="flex gap-2">
+        {[['solicitudes', '📥 Solicitudes'], ['nuevo', '✏️ Crear presupuesto']].map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setSub(id)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+              sub === id
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {sub === 'solicitudes' && <BudgetManager />}
+      {sub === 'nuevo'       && <QuoteBuilder />}
+    </div>
+  );
+}
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -725,9 +751,7 @@ export default function AdminPage() {
           </div>
         )}
         {activeTab === 'presupuestos' && (
-          <div className="p-6">
-            <BudgetManager />
-          </div>
+          <PresupuestosTab />
         )}
         {activeTab === 'auditorias' && (
           <div className="p-6">
