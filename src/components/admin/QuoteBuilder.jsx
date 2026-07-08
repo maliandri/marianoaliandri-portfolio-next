@@ -1,161 +1,243 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 
+/* ── Service catalogue ─────────────────────────────────────────────── */
 const SERVICES = [
   { category: '🌐 Desarrollo Web', items: [
-    { id: 'landing',      label: 'Landing Page',          desc: 'Página de conversión de 1 sección, diseño custom, mobile-first' },
-    { id: 'web_business', label: 'Sitio Multi-página',    desc: 'Hasta 8 páginas, menú, formulario de contacto, SEO incluido' },
-    { id: 'ecommerce',    label: 'E-commerce',            desc: 'Catálogo, carrito, checkout MercadoPago, gestión de stock' },
-    { id: 'webapp',       label: 'Web App / Portal',      desc: 'Autenticación, dashboard, roles de usuario, CRUD completo' },
-    { id: 'blog',         label: 'Blog / Noticias',       desc: 'CMS liviano, categorías, RSS, SEO automático por artículo' },
-    { id: 'memberships',  label: 'Membresías / Acceso',   desc: 'Registro, login, contenido protegido, suscripciones' },
+    { id: 'landing',      label: 'Landing Page',          desc: 'Página de conversión, diseño custom, mobile-first' },
+    { id: 'web_business', label: 'Sitio Multi-página',    desc: 'Hasta 8 páginas, menú, formulario, SEO' },
+    { id: 'ecommerce',    label: 'E-commerce',            desc: 'Catálogo, carrito, MercadoPago, stock' },
+    { id: 'webapp',       label: 'Web App / Portal',      desc: 'Auth, dashboard, roles, CRUD completo' },
+    { id: 'blog',         label: 'Blog / Noticias',       desc: 'CMS, categorías, RSS, SEO automático' },
+    { id: 'memberships',  label: 'Membresías / Acceso',   desc: 'Login, contenido protegido, suscripciones' },
   ]},
   { category: '⚙️ Funcionalidades', items: [
-    { id: 'contact_form', label: 'Formulario de contacto', desc: 'Con validación, anti-spam, notificación por email automática' },
-    { id: 'booking',      label: 'Reservas / Turnos',      desc: 'Calendario, disponibilidad en tiempo real, confirmación por email' },
-    { id: 'payments_mp',  label: 'Pagos MercadoPago',      desc: 'Preferencias, webhooks, confirmación automática, historial' },
-    { id: 'user_auth',    label: 'Registro de usuarios',   desc: 'Firebase Auth, Google login, perfil de usuario editable' },
-    { id: 'ai_chatbot',   label: 'Chatbot con IA',         desc: 'Gemini 2.5 Flash, entrenado con información de tu negocio' },
-    { id: 'search',       label: 'Búsqueda interna',       desc: 'Full-text search sobre contenido del sitio en tiempo real' },
-    { id: 'analytics_ga', label: 'Analytics integrado',    desc: 'Google Analytics 4, Search Console, eventos y conversiones' },
-    { id: 'inventory',    label: 'Inventario / Stock',     desc: 'Alta/baja de productos, alertas de stock mínimo, reportes' },
-    { id: 'crm_basic',    label: 'CRM básico',             desc: 'Registro de leads, estados, notas e historial de contacto' },
-    { id: 'multilang',    label: 'Multi-idioma',           desc: 'ES/EN, i18n con Next.js, URLs localizadas por idioma' },
+    { id: 'contact_form', label: 'Formulario de contacto', desc: 'Validación, anti-spam, email automático' },
+    { id: 'booking',      label: 'Reservas / Turnos',      desc: 'Calendario, disponibilidad, confirmación email' },
+    { id: 'payments_mp',  label: 'Pagos MercadoPago',      desc: 'Preferencias, webhooks, historial' },
+    { id: 'user_auth',    label: 'Registro de usuarios',   desc: 'Firebase Auth, Google login, perfil editable' },
+    { id: 'ai_chatbot',   label: 'Chatbot con IA',         desc: 'Gemini 2.5 Flash, entrenado con tu negocio' },
+    { id: 'analytics_ga', label: 'Analytics integrado',    desc: 'GA4, Search Console, eventos custom' },
+    { id: 'inventory',    label: 'Inventario / Stock',     desc: 'Alta/baja de productos, alertas, reportes' },
+    { id: 'crm_basic',    label: 'CRM básico',             desc: 'Leads, estados, notas, historial' },
+    { id: 'multilang',    label: 'Multi-idioma',           desc: 'ES/EN, i18n con Next.js' },
   ]},
   { category: '🔍 SEO & Posicionamiento', items: [
-    { id: 'seo_technical', label: 'SEO técnico completo',      desc: 'Sitemap, robots.txt, canonical, Core Web Vitals optimizado' },
-    { id: 'seo_meta',      label: 'Metadata & Open Graph',     desc: 'Titles, descriptions, OG tags para redes sociales' },
-    { id: 'seo_schema',    label: 'Schema markup JSON-LD',     desc: 'Rich snippets para Google: negocio local, servicios, FAQ' },
-    { id: 'seo_gsc',       label: 'Google Search Console',     desc: 'Alta, verificación, monitoreo de posiciones y clics' },
-    { id: 'seo_speed',     label: 'Optimización de velocidad', desc: 'Imágenes, lazy load, CDN Cloudinary, PageSpeed 90+' },
+    { id: 'seo_technical', label: 'SEO técnico completo',      desc: 'Sitemap, robots.txt, Core Web Vitals' },
+    { id: 'seo_meta',      label: 'Metadata & Open Graph',     desc: 'Titles, descriptions, OG tags' },
+    { id: 'seo_schema',    label: 'Schema markup JSON-LD',     desc: 'Rich snippets para Google' },
+    { id: 'seo_gsc',       label: 'Google Search Console',     desc: 'Alta, verificación, monitoreo' },
+    { id: 'seo_speed',     label: 'Optimización de velocidad', desc: 'Imágenes, lazy load, CDN, PageSpeed 90+' },
   ]},
   { category: '📱 Redes & Automatización', items: [
-    { id: 'social_instagram', label: 'Auto-publicación Instagram', desc: 'Webhook → Make.com → Instagram Graph API' },
-    { id: 'social_facebook',  label: 'Auto-publicación Facebook',  desc: 'Integración Graph API, posts de foto y texto' },
-    { id: 'social_linkedin',  label: 'Auto-publicación LinkedIn',  desc: 'OAuth, posts de artículos y actualizaciones' },
-    { id: 'reel_generator',   label: 'Generador de reels',         desc: 'Canvas 1080x1920, voz TTS, música, upload a IG' },
-    { id: 'post_generator',   label: 'Publicaciones con IA',       desc: 'Gemini genera captions con datos de tu negocio' },
-    { id: 'make_automations', label: 'Automatizaciones Make.com',  desc: 'Flujos multi-paso, routers, módulos conectados' },
+    { id: 'social_instagram', label: 'Auto-publicación Instagram', desc: 'Webhook → Make.com → IG Graph API' },
+    { id: 'social_facebook',  label: 'Auto-publicación Facebook',  desc: 'Graph API, posts de foto y texto' },
+    { id: 'social_linkedin',  label: 'Auto-publicación LinkedIn',  desc: 'OAuth, posts y actualizaciones' },
+    { id: 'reel_generator',   label: 'Generador de reels',         desc: 'Canvas 1080x1920, TTS, música, upload IG' },
+    { id: 'make_automations', label: 'Automatizaciones Make.com',  desc: 'Flujos multi-paso, routers' },
   ]},
   { category: '🏗️ Infraestructura & Deploy', items: [
-    { id: 'domain',       label: 'Registro de dominio',   desc: '.com.ar / .com, DNS, redirección www' },
-    { id: 'email_setup',  label: 'Correo profesional',    desc: 'Zoho / Gmail con tu dominio, SPF/DKIM' },
+    { id: 'domain',       label: 'Registro de dominio',   desc: '.com.ar / .com, DNS completo' },
+    { id: 'email_setup',  label: 'Correo profesional',    desc: 'Zoho / Gmail con dominio propio' },
     { id: 'ssl_cdn',      label: 'SSL + CDN imágenes',    desc: 'HTTPS automático, Cloudinary' },
-    { id: 'deploy_vercel',label: 'Deploy en Vercel',      desc: 'CI/CD desde GitHub, previews automáticos' },
+    { id: 'deploy_vercel',label: 'Deploy en Vercel',      desc: 'CI/CD desde GitHub, previews' },
     { id: 'whatsapp_api', label: 'Gateway WhatsApp',      desc: 'Mensajes automáticos, notificaciones' },
   ]},
   { category: '🗄️ Base de Datos & Backend', items: [
-    { id: 'db_firestore',   label: 'Firebase Firestore',       desc: 'NoSQL en tiempo real, reglas de seguridad' },
-    { id: 'db_supabase',    label: 'Supabase PostgreSQL',      desc: 'SQL, Row Level Security, API auto-generada' },
-    { id: 'db_mongodb',     label: 'MongoDB Atlas',            desc: 'Documentos flexibles, índices, agregaciones' },
-    { id: 'api_custom',     label: 'API Routes custom',        desc: 'Endpoints serverless en Next.js, JWT' },
-    { id: 'backend_nodejs', label: 'Backend Node.js/Express',  desc: 'API REST con autenticación y Mongoose' },
-    { id: 'webhooks',       label: 'Webhooks e integraciones', desc: 'Make.com, Zapier, N8N, servicios externos' },
+    { id: 'db_firestore',   label: 'Firebase Firestore',       desc: 'NoSQL en tiempo real, reglas' },
+    { id: 'db_supabase',    label: 'Supabase PostgreSQL',      desc: 'SQL, RLS, API auto-generada' },
+    { id: 'db_mongodb',     label: 'MongoDB Atlas',            desc: 'Documentos flexibles, agregaciones' },
+    { id: 'api_custom',     label: 'API Routes custom',        desc: 'Endpoints serverless, JWT' },
+    { id: 'backend_nodejs', label: 'Backend Node.js/Express',  desc: 'API REST con auth y Mongoose' },
+    { id: 'webhooks',       label: 'Webhooks e integraciones', desc: 'Make.com, Zapier, N8N' },
   ]},
   { category: '🤖 IA & Procesamiento', items: [
-    { id: 'ai_content',  label: 'Generación de contenido IA', desc: 'Gemini genera textos, captions, descripciones' },
-    { id: 'ai_document', label: 'Análisis de documentos IA',  desc: 'PDF upload, extracción de datos, resúmenes' },
-    { id: 'tts',         label: 'Text-to-Speech',             desc: 'Google TTS en español AR, voz para videos' },
-    { id: 'lead_finder', label: 'Lead Finder',                desc: 'Google Places API, scraping emails, CSV' },
+    { id: 'ai_content',  label: 'Generación de contenido IA', desc: 'Gemini: textos, captions, descripciones' },
+    { id: 'ai_document', label: 'Análisis de documentos IA',  desc: 'PDF, extracción de datos, resúmenes' },
+    { id: 'tts',         label: 'Text-to-Speech',             desc: 'Google TTS español AR' },
+    { id: 'lead_finder', label: 'Lead Finder',                desc: 'Google Places API, emails, CSV' },
   ]},
   { category: '📊 Analytics & Datos', items: [
     { id: 'powerbi',            label: 'Dashboard Power BI',        desc: 'KPIs interactivos, actualización automática' },
-    { id: 'recharts_dashboard', label: 'Dashboard web con gráficos', desc: 'Recharts: barras, líneas, torta en tiempo real' },
-    { id: 'excel_automation',   label: 'Excel / Power Query',       desc: 'Macros, ETL, dashboards dinámicos' },
-    { id: 'scraping',           label: 'Web Scraping',              desc: 'Python/Node, datos de competidores, MeLi' },
-    { id: 'gsc_dashboard',      label: 'Dashboard Search Console',  desc: 'Clicks, impresiones, posición semanal' },
+    { id: 'recharts_dashboard', label: 'Dashboard web con gráficos', desc: 'Recharts: barras, líneas, torta' },
+    { id: 'excel_automation',   label: 'Excel / Power Query',       desc: 'Macros, ETL, dashboards' },
+    { id: 'scraping',           label: 'Web Scraping',              desc: 'Python/Node, competidores, MeLi' },
   ]},
   { category: '📄 Documentos & Exportación', items: [
-    { id: 'pdf_export',    label: 'Exportación a PDF',        desc: 'jsPDF + html2canvas, documentos profesionales' },
-    { id: 'excel_export',  label: 'Exportación a Excel',      desc: 'Reportes XLSX descargables desde dashboards' },
-    { id: 'google_sheets', label: 'Integración Google Sheets',desc: 'Lectura/escritura de hojas como base de datos' },
-    { id: 'qr_code',       label: 'Códigos QR',               desc: 'QR dinámicos de productos, links, vCard' },
+    { id: 'pdf_export',    label: 'Exportación a PDF',        desc: 'jsPDF + html2canvas' },
+    { id: 'excel_export',  label: 'Exportación a Excel',      desc: 'Reportes XLSX descargables' },
+    { id: 'google_sheets', label: 'Integración Google Sheets',desc: 'Lectura/escritura como base de datos' },
+    { id: 'qr_code',       label: 'Códigos QR',               desc: 'QR dinámicos, links, vCard' },
   ]},
   { category: '🗺️ Mapas & Extras', items: [
-    { id: 'maps_leaflet',    label: 'Mapas interactivos',    desc: 'Leaflet, markers, polígonos de zonas, rutas' },
-    { id: 'calendar_system', label: 'Gestor de agenda',      desc: 'Vista mensual/semanal, eventos, disponibilidad' },
-    { id: 'admin_panel',     label: 'Panel admin completo',  desc: 'CRUD, roles, estadísticas, gestión de contenido' },
-    { id: 'mobile_app',      label: 'App React Native',      desc: 'Expo, Android e iOS, gestos avanzados' },
-    { id: 'mobile_pwa',      label: 'Progressive Web App',   desc: 'Instalable desde browser, notificaciones push' },
+    { id: 'maps_leaflet',    label: 'Mapas interactivos',    desc: 'Leaflet, markers, polígonos' },
+    { id: 'calendar_system', label: 'Gestor de agenda',      desc: 'Vista mensual/semanal, eventos' },
+    { id: 'admin_panel',     label: 'Panel admin completo',  desc: 'CRUD, roles, estadísticas' },
+    { id: 'mobile_app',      label: 'App React Native',      desc: 'Expo, Android e iOS' },
+    { id: 'mobile_pwa',      label: 'Progressive Web App',   desc: 'Instalable, notificaciones push' },
   ]},
 ];
 
+/* ── Helpers ─────────────────────────────────────────────────────────── */
 const fmt = (n) =>
-  Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function genNumber() {
   const d = new Date();
-  const yy  = String(d.getFullYear()).slice(-2);
-  const mm  = String(d.getMonth() + 1).padStart(2, '0');
-  const dd  = String(d.getDate()).padStart(2, '0');
-  const rnd = Math.floor(Math.random() * 900) + 100;
-  return `MA-${yy}${mm}${dd}-${rnd}`;
+  return `MA-${String(d.getFullYear()).slice(-2)}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${Math.floor(Math.random()*900)+100}`;
 }
 
+const DEFAULT_CUOTAS = [
+  { pct: 50,  label: 'Al inicio' },
+  { pct: 50,  label: 'A la entrega' },
+  { pct: 0,   label: 'A los 30 días' },
+  { pct: 0,   label: 'A los 60 días' },
+];
+
+/* ── Component ───────────────────────────────────────────────────────── */
 export default function QuoteBuilder() {
-  /* ── Client info ── */
+  /* client */
   const [clientName,    setClientName]    = useState('');
   const [clientEmail,   setClientEmail]   = useState('');
   const [clientCompany, setClientCompany] = useState('');
 
-  /* ── Items ── */
-  const [items, setItems] = useState([]); // { id, label, desc, priceUSD }
+  /* items: { id, label, desc, priceUSD, discount } */
+  const [items, setItems] = useState([]);
 
-  /* ── Settings ── */
-  const [arsRate,    setArsRate]    = useState(1300);
-  const [ivaRate,    setIvaRate]    = useState(21);
-  const [showIVA,    setShowIVA]    = useState(true);
-  const [notes,      setNotes]      = useState('');
-  const [validDays,  setValidDays]  = useState(30);
-  const [quoteNumber]               = useState(genNumber);
+  /* settings */
+  const [arsRate,   setArsRate]   = useState(1300);
+  const [ivaRate,   setIvaRate]   = useState(21);
+  const [showIVA,   setShowIVA]   = useState(true);
+  const [notes,     setNotes]     = useState('');
+  const [validDays, setValidDays] = useState(30);
+  const [quoteNumber]             = useState(genNumber);
 
-  /* ── UI ── */
+  /* cuotas */
+  const [showCuotas,  setShowCuotas]  = useState(false);
+  const [numCuotas,   setNumCuotas]   = useState(2);
+  const [cuotasConf,  setCuotasConf]  = useState(DEFAULT_CUOTAS);
+
+  /* ui */
   const [search,  setSearch]  = useState('');
   const [sending, setSending] = useState(false);
-  const [sendMsg, setSendMsg] = useState('');
+  const [saving,  setSaving]  = useState(false);
+  const [msg,     setMsg]     = useState({ text: '', ok: true });
 
   /* ── Totals ── */
   const totals = useMemo(() => {
-    const subtotalUSD = items.reduce((s, i) => s + (parseFloat(i.priceUSD) || 0), 0);
-    const ivaUSD      = showIVA ? subtotalUSD * ivaRate / 100 : 0;
-    const totalUSD    = subtotalUSD + ivaUSD;
+    const brutoUSD    = items.reduce((s, i) => s + (parseFloat(i.priceUSD) || 0), 0);
+    const descUSD     = items.reduce((s, i) => s + (parseFloat(i.priceUSD) || 0) * (parseFloat(i.discount) || 0) / 100, 0);
+    const netoUSD     = brutoUSD - descUSD;
+    const ivaUSD      = showIVA ? netoUSD * ivaRate / 100 : 0;
+    const totalUSD    = netoUSD + ivaUSD;
+    const hasDiscount = descUSD > 0;
     return {
-      subtotalUSD,
-      ivaUSD,
-      totalUSD,
-      subtotalARS: subtotalUSD * arsRate,
-      ivaARS:      ivaUSD * arsRate,
-      totalARS:    totalUSD * arsRate,
+      brutoUSD, descUSD, netoUSD, ivaUSD, totalUSD,
+      brutoARS: brutoUSD * arsRate,
+      descARS:  descUSD  * arsRate,
+      netoARS:  netoUSD  * arsRate,
+      ivaARS:   ivaUSD   * arsRate,
+      totalARS: totalUSD * arsRate,
+      hasDiscount,
     };
   }, [items, ivaRate, showIVA, arsRate]);
 
+  /* ── Cuotas amounts ── */
+  const cuotasAmounts = useMemo(() => {
+    return cuotasConf.slice(0, numCuotas).map(c => ({
+      label:   c.label,
+      pct:     c.pct,
+      usd:     totals.totalUSD * c.pct / 100,
+      ars:     totals.totalARS * c.pct / 100,
+    }));
+  }, [cuotasConf, numCuotas, totals]);
+
+  const pctSum = cuotasConf.slice(0, numCuotas).reduce((s, c) => s + (parseFloat(c.pct) || 0), 0);
+
   /* ── Dates ── */
   const today      = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
-  const validUntil = new Date(Date.now() + validDays * 864e5)
-    .toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const validUntil = new Date(Date.now() + validDays * 864e5).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  /* ── Service handlers ── */
-  const toggleService = (svc) => {
-    setItems(prev => {
-      const exists = prev.find(i => i.id === svc.id);
-      if (exists) return prev.filter(i => i.id !== svc.id);
-      return [...prev, { id: svc.id, label: svc.label, desc: svc.desc, priceUSD: '' }];
-    });
+  /* ── Handlers ── */
+  const toggleService = (svc) =>
+    setItems(prev => prev.find(i => i.id === svc.id)
+      ? prev.filter(i => i.id !== svc.id)
+      : [...prev, { id: svc.id, label: svc.label, desc: svc.desc, priceUSD: '', discount: 0 }]
+    );
+
+  const setField = (id, field, val) =>
+    setItems(prev => prev.map(i => i.id === id ? { ...i, [field]: val } : i));
+
+  const moveItem = (id, dir) => setItems(prev => {
+    const idx = prev.findIndex(i => i.id === id);
+    const nxt = idx + dir;
+    if (nxt < 0 || nxt >= prev.length) return prev;
+    const arr = [...prev];
+    [arr[idx], arr[nxt]] = [arr[nxt], arr[idx]];
+    return arr;
+  });
+
+  const changeCuotas = (n) => {
+    setNumCuotas(n);
+    const base = Math.floor(100 / n);
+    const rem  = 100 - base * n;
+    setCuotasConf(prev => prev.map((c, i) => ({
+      ...c,
+      pct: i < n ? (i === 0 ? base + rem : base) : 0,
+    })));
   };
 
-  const setPrice = (id, val) =>
-    setItems(prev => prev.map(i => i.id === id ? { ...i, priceUSD: val } : i));
+  const setCuotaPct = (i, val) =>
+    setCuotasConf(prev => prev.map((c, idx) => idx === i ? { ...c, pct: parseFloat(val) || 0 } : c));
 
-  const moveItem = (id, dir) =>
-    setItems(prev => {
-      const idx  = prev.findIndex(i => i.id === id);
-      const next = idx + dir;
-      if (next < 0 || next >= prev.length) return prev;
-      const arr  = [...prev];
-      [arr[idx], arr[next]] = [arr[next], arr[idx]];
-      return arr;
-    });
+  const setCuotaLabel = (i, val) =>
+    setCuotasConf(prev => prev.map((c, idx) => idx === i ? { ...c, label: val } : c));
+
+  const flash = (text, ok = true) => { setMsg({ text, ok }); setTimeout(() => setMsg({ text: '', ok: true }), 5000); };
+
+  /* ── Shared payload ── */
+  const buildPayload = () => ({
+    clientName, clientEmail, clientCompany,
+    items, totals, ivaRate, showIVA, arsRate,
+    notes, quoteNumber, validDays, today, validUntil,
+    cuotas: showCuotas ? { numCuotas, items: cuotasAmounts, pctSum } : null,
+  });
+
+  /* ── Save to Firestore ── */
+  const handleSave = async () => {
+    if (!items.length) { flash('Seleccioná al menos un servicio', false); return; }
+    setSaving(true);
+    try {
+      const res = await fetch('/api/presupuesto/save-quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildPayload()),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error');
+      flash(`✓ Guardado (ID: ${data.id})`);
+    } catch (e) { flash('Error: ' + e.message, false); }
+    finally { setSaving(false); }
+  };
+
+  /* ── Send email ── */
+  const handleSendEmail = async () => {
+    if (!clientEmail) { flash('Ingresá el email del cliente', false); return; }
+    if (!items.length) { flash('Seleccioná al menos un servicio', false); return; }
+    setSending(true);
+    try {
+      const res = await fetch('/api/presupuesto/send-quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildPayload()),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error');
+      flash('✓ Email enviado correctamente');
+    } catch (e) { flash('Error: ' + e.message, false); }
+    finally { setSending(false); }
+  };
 
   /* ── Filtered services ── */
   const filtered = useMemo(() => {
@@ -166,55 +248,24 @@ export default function QuoteBuilder() {
       .filter(cat => cat.items.length > 0);
   }, [search]);
 
-  /* ── Print ── */
-  const handlePrint = () => window.print();
-
-  /* ── Send email ── */
-  const handleSendEmail = async () => {
-    if (!clientEmail) { setSendMsg('Ingresá el email del cliente'); return; }
-    if (items.length === 0) { setSendMsg('Seleccioná al menos un servicio'); return; }
-    setSending(true);
-    setSendMsg('');
-    try {
-      const res = await fetch('/api/presupuesto/send-quote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientName, clientEmail, clientCompany,
-          items, totals, ivaRate, showIVA, arsRate,
-          notes, quoteNumber, validDays, today, validUntil,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al enviar');
-      setSendMsg('✓ Email enviado correctamente');
-    } catch (e) {
-      setSendMsg('Error: ' + e.message);
-    } finally {
-      setSending(false);
-      setTimeout(() => setSendMsg(''), 5000);
-    }
-  };
-
-  /* ── Input class ── */
   const inp = 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30';
 
   return (
     <>
-      {/* Print CSS */}
       <style>{`
         @media print {
           body * { visibility: hidden !important; }
           #qb-print, #qb-print * { visibility: visible !important; }
-          #qb-print { position: fixed; inset: 0; z-index: 9999; background: white; padding: 0; margin: 0; }
-          @page { margin: 1.5cm; size: A4; }
+          #qb-print { position:fixed;inset:0;z-index:9999;background:white;padding:0;margin:0; }
+          @page { margin:1.5cm; size:A4; }
+          .no-print { display:none !important; }
         }
       `}</style>
 
       <div className="flex flex-col xl:flex-row gap-6">
 
-        {/* ──────────── LEFT: Picker ──────────── */}
-        <div className="xl:w-72 shrink-0 space-y-3">
+        {/* ──── LEFT: Service picker ──── */}
+        <div className="xl:w-64 shrink-0 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">Servicios</h3>
             {items.length > 0 && (
@@ -224,13 +275,11 @@ export default function QuoteBuilder() {
             )}
           </div>
           <input
-            type="text"
-            placeholder="Buscar..."
-            value={search}
+            type="text" placeholder="Buscar..." value={search}
             onChange={e => setSearch(e.target.value)}
             className={`${inp} w-full`}
           />
-          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+          <div className="space-y-3 max-h-[72vh] overflow-y-auto pr-1">
             {filtered.map(cat => (
               <div key={cat.category}>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">{cat.category}</p>
@@ -238,13 +287,10 @@ export default function QuoteBuilder() {
                   {cat.items.map(svc => {
                     const sel = items.some(i => i.id === svc.id);
                     return (
-                      <button
-                        key={svc.id}
-                        onClick={() => toggleService(svc)}
+                      <button key={svc.id} onClick={() => toggleService(svc)}
                         className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all flex items-start gap-2 ${
-                          sel
-                            ? 'bg-indigo-600/15 border border-indigo-500/40 text-indigo-300'
-                            : 'bg-gray-50 dark:bg-gray-800/60 border border-transparent hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'
+                          sel ? 'bg-indigo-600/15 border border-indigo-500/40 text-indigo-300'
+                              : 'bg-gray-50 dark:bg-gray-800/60 border border-transparent hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'
                         }`}
                       >
                         <span className="mt-0.5 text-[11px] w-3 shrink-0">{sel ? '✓' : '+'}</span>
@@ -261,18 +307,18 @@ export default function QuoteBuilder() {
           </div>
         </div>
 
-        {/* ──────────── RIGHT: Quote ──────────── */}
+        {/* ──── RIGHT: Quote ──── */}
         <div className="flex-1 min-w-0 space-y-4">
 
           {/* Settings bar */}
-          <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
+          <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 no-print">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <div className="col-span-2 md:col-span-1">
                 <label className="text-xs text-gray-500 block mb-1">Cliente</label>
                 <input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Nombre" className={`${inp} w-full`} />
               </div>
               <div className="col-span-2 md:col-span-1">
-                <label className="text-xs text-gray-500 block mb-1">Email</label>
+                <label className="text-xs text-gray-500 block mb-1">Email cliente</label>
                 <input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)} placeholder="email@..." className={`${inp} w-full`} />
               </div>
               <div>
@@ -285,10 +331,10 @@ export default function QuoteBuilder() {
               </div>
               <div>
                 <label className="text-xs text-gray-500 block mb-1">Validez (días)</label>
-                <input type="number" value={validDays} onChange={e => setValidDays(Number(e.target.value))} className={`${inp} w-full`} min={1} />
+                <input type="number" value={validDays} min={1} onChange={e => setValidDays(Number(e.target.value))} className={`${inp} w-full`} />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-gray-500">IVA %</label>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">IVA %</label>
                 <div className="flex items-center gap-2">
                   <input type="number" value={ivaRate} onChange={e => setIvaRate(Number(e.target.value))} className={`${inp} w-16`} disabled={!showIVA} />
                   <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 cursor-pointer select-none">
@@ -300,11 +346,11 @@ export default function QuoteBuilder() {
             </div>
           </div>
 
-          {/* ── Printable quote area ── */}
+          {/* ── Printable area ── */}
           <div id="qb-print" className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
 
-            {/* Header gradient */}
-            <div style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }} className="px-8 py-6 text-white">
+            {/* Header */}
+            <div style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)' }} className="px-8 py-6 text-white">
               <div className="flex justify-between items-start gap-4">
                 <div>
                   <p className="text-xs tracking-widest uppercase text-indigo-200 mb-1">Propuesta comercial</p>
@@ -321,11 +367,11 @@ export default function QuoteBuilder() {
 
             <div className="p-8 space-y-6">
 
-              {/* Client info */}
+              {/* Client */}
               {(clientName || clientCompany || clientEmail) && (
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Para</p>
-                  {clientName    && <p className="font-semibold text-gray-900 text-base">{clientName}</p>}
+                  {clientName    && <p className="font-bold text-gray-900 text-base">{clientName}</p>}
                   {clientCompany && <p className="text-gray-600 text-sm">{clientCompany}</p>}
                   {clientEmail   && <p className="text-gray-400 text-sm">{clientEmail}</p>}
                 </div>
@@ -342,58 +388,87 @@ export default function QuoteBuilder() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b-2 border-gray-100">
-                        <th className="text-left py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">#</th>
+                        <th className="text-left py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider w-6">#</th>
                         <th className="text-left py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider pl-2">Servicio</th>
-                        <th className="text-right py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider w-36">Precio USD</th>
-                        <th className="text-right py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider w-36">Precio ARS</th>
-                        <th className="w-14 text-center py-2.5 print-hide text-xs font-semibold text-gray-400 uppercase tracking-wider">Ord.</th>
-                        <th className="w-8 print-hide"></th>
+                        <th className="text-right py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider w-32">Precio USD</th>
+                        <th className="text-center py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider w-24 no-print">Bonif. %</th>
+                        <th className="text-right py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider w-32">Total USD</th>
+                        <th className="text-right py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider w-32 hidden md:table-cell">Total ARS</th>
+                        <th className="w-14 text-center no-print"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                       {items.map((item, idx) => {
-                        const usdVal = parseFloat(item.priceUSD) || 0;
+                        const raw  = parseFloat(item.priceUSD) || 0;
+                        const disc = parseFloat(item.discount) || 0;
+                        const net  = raw * (1 - disc / 100);
                         return (
                           <tr key={item.id} className="group">
-                            <td className="py-3 text-gray-300 text-xs">{idx + 1}</td>
-                            <td className="py-3 pl-2">
+                            <td className="py-3 text-gray-300 text-xs align-top pt-4">{idx + 1}</td>
+                            <td className="py-3 pl-2 align-top">
                               <p className="font-semibold text-gray-900">{item.label}</p>
                               <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
                             </td>
-                            <td className="py-3 text-right">
-                              {/* Editor (hidden on print) */}
-                              <div className="flex items-center justify-end gap-1 print:hidden">
+
+                            {/* Precio bruto */}
+                            <td className="py-3 text-right align-top">
+                              <div className="no-print flex items-center justify-end gap-1">
                                 <span className="text-gray-400 text-xs">USD</span>
                                 <input
-                                  type="number"
-                                  min="0"
-                                  value={item.priceUSD}
-                                  onChange={e => setPrice(item.id, e.target.value)}
+                                  type="number" min="0" value={item.priceUSD}
+                                  onChange={e => setField(item.id, 'priceUSD', e.target.value)}
                                   placeholder="0"
-                                  className="w-24 text-right bg-gray-100 hover:bg-gray-200 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:bg-white transition-colors"
+                                  className="w-24 text-right bg-gray-100 hover:bg-gray-200 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white transition-colors"
                                 />
                               </div>
-                              {/* Print view */}
-                              <span className="hidden print:block font-semibold text-gray-900">
-                                {usdVal > 0 ? `USD ${fmt(usdVal)}` : <span className="text-gray-300">—</span>}
-                              </span>
+                              {/* Print: precio bruto solo si hay descuento */}
+                              {disc > 0 && (
+                                <span className="hidden print:block text-gray-400 line-through text-xs">USD {fmt(raw)}</span>
+                              )}
+                              {disc === 0 && (
+                                <span className="hidden print:block font-semibold text-gray-900 text-sm">
+                                  {raw > 0 ? `USD ${fmt(raw)}` : '—'}
+                                </span>
+                              )}
                             </td>
-                            <td className="py-3 text-right text-gray-500">
-                              {usdVal > 0 && arsRate > 0
-                                ? `ARS ${fmt(usdVal * arsRate)}`
-                                : <span className="text-gray-300">—</span>}
-                            </td>
-                            <td className="py-3 text-center print:hidden">
-                              <div className="flex flex-col gap-0.5 items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => moveItem(item.id, -1)} disabled={idx === 0} className="text-gray-400 hover:text-gray-600 disabled:opacity-30 text-xs leading-none">▲</button>
-                                <button onClick={() => moveItem(item.id, +1)} disabled={idx === items.length - 1} className="text-gray-400 hover:text-gray-600 disabled:opacity-30 text-xs leading-none">▼</button>
+
+                            {/* Bonificación */}
+                            <td className="py-3 text-center align-top no-print">
+                              <div className="flex items-center justify-center gap-1">
+                                <input
+                                  type="number" min="0" max="100" value={item.discount}
+                                  onChange={e => setField(item.id, 'discount', Math.min(100, Math.max(0, Number(e.target.value))))}
+                                  className="w-16 text-center bg-gray-100 hover:bg-gray-200 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400/30 focus:bg-white transition-colors"
+                                />
+                                <span className="text-gray-400 text-xs">%</span>
                               </div>
+                              {disc > 0 && (
+                                <p className="text-orange-500 text-xs mt-0.5">-USD {fmt(raw * disc / 100)}</p>
+                              )}
                             </td>
-                            <td className="py-3 text-right print:hidden">
-                              <button
-                                onClick={() => toggleService(item)}
-                                className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all text-base w-6"
-                              >×</button>
+
+                            {/* Total neto */}
+                            <td className="py-3 text-right align-top">
+                              <span className={`font-semibold text-sm ${disc > 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                                {net > 0 ? `USD ${fmt(net)}` : <span className="text-gray-300">—</span>}
+                              </span>
+                              {disc > 0 && (
+                                <p className="text-xs text-orange-500 print:hidden">-{disc}%</p>
+                              )}
+                            </td>
+
+                            {/* ARS */}
+                            <td className="py-3 text-right align-top text-gray-400 text-xs hidden md:table-cell">
+                              {net > 0 && arsRate > 0 ? `ARS ${fmt(net * arsRate)}` : '—'}
+                            </td>
+
+                            {/* Controls */}
+                            <td className="py-3 text-center align-top no-print">
+                              <div className="flex flex-col gap-0.5 items-center opacity-0 group-hover:opacity-100 transition-opacity mb-1">
+                                <button onClick={() => moveItem(item.id, -1)} disabled={idx === 0} className="text-gray-400 hover:text-gray-600 disabled:opacity-30 text-xs">▲</button>
+                                <button onClick={() => moveItem(item.id, +1)} disabled={idx === items.length - 1} className="text-gray-400 hover:text-gray-600 disabled:opacity-30 text-xs">▼</button>
+                              </div>
+                              <button onClick={() => toggleService(item)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all text-base">×</button>
                             </td>
                           </tr>
                         );
@@ -414,36 +489,104 @@ export default function QuoteBuilder() {
               {/* Totals */}
               {items.length > 0 && (
                 <div className="flex justify-end">
-                  <div className="w-80">
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between py-1.5 text-gray-500">
-                        <span>Subtotal <span className="text-xs">(sin IVA)</span></span>
-                        <div className="text-right">
-                          <span className="font-semibold text-gray-800">USD {fmt(totals.subtotalUSD)}</span>
-                          <br />
-                          <span className="text-xs text-gray-400">ARS {fmt(totals.subtotalARS)}</span>
-                        </div>
-                      </div>
-                      {showIVA && (
-                        <div className="flex justify-between py-1.5 text-gray-500 border-b border-dashed border-gray-200">
-                          <span>IVA ({ivaRate}%)</span>
+                  <div className="w-84 min-w-72 space-y-1.5 text-sm">
+                    {totals.hasDiscount && (
+                      <>
+                        <div className="flex justify-between py-1 text-gray-400">
+                          <span>Subtotal bruto</span>
                           <div className="text-right">
-                            <span className="font-semibold text-gray-800">USD {fmt(totals.ivaUSD)}</span>
-                            <br />
-                            <span className="text-xs text-gray-400">ARS {fmt(totals.ivaARS)}</span>
+                            <span className="font-medium text-gray-600">USD {fmt(totals.brutoUSD)}</span>
+                            <br /><span className="text-xs text-gray-300">ARS {fmt(totals.brutoARS)}</span>
                           </div>
                         </div>
-                      )}
-                      <div className="flex justify-between py-2.5 border-t-2 border-gray-800">
-                        <span className="font-black text-gray-900 text-base">TOTAL</span>
-                        <div className="text-right">
-                          <span className="font-black text-gray-900 text-xl">USD {fmt(totals.totalUSD)}</span>
-                          <br />
-                          <span className="text-sm text-gray-500 font-medium">ARS {fmt(totals.totalARS)}</span>
+                        <div className="flex justify-between py-1 text-orange-500">
+                          <span>Bonificaciones</span>
+                          <div className="text-right">
+                            <span className="font-semibold">- USD {fmt(totals.descUSD)}</span>
+                            <br /><span className="text-xs text-orange-300">- ARS {fmt(totals.descARS)}</span>
+                          </div>
                         </div>
+                      </>
+                    )}
+                    <div className="flex justify-between py-1.5 text-gray-500 border-t border-dashed border-gray-200">
+                      <span>Subtotal <span className="text-xs">(sin IVA)</span></span>
+                      <div className="text-right">
+                        <span className="font-semibold text-gray-800">USD {fmt(totals.netoUSD)}</span>
+                        <br /><span className="text-xs text-gray-400">ARS {fmt(totals.netoARS)}</span>
+                      </div>
+                    </div>
+                    {showIVA && (
+                      <div className="flex justify-between py-1.5 text-gray-500 border-b border-dashed border-gray-200">
+                        <span>IVA ({ivaRate}%)</span>
+                        <div className="text-right">
+                          <span className="font-semibold text-gray-800">USD {fmt(totals.ivaUSD)}</span>
+                          <br /><span className="text-xs text-gray-400">ARS {fmt(totals.ivaARS)}</span>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex justify-between py-3 border-t-2 border-gray-800">
+                      <span className="font-black text-gray-900 text-base">TOTAL</span>
+                      <div className="text-right">
+                        <span className="font-black text-gray-900 text-xl">USD {fmt(totals.totalUSD)}</span>
+                        <br /><span className="text-sm text-gray-500 font-medium">ARS {fmt(totals.totalARS)}</span>
                       </div>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* ── Plan de pagos ── */}
+              {showCuotas && items.length > 0 && (
+                <div className="border border-indigo-100 rounded-xl overflow-hidden">
+                  <div className="bg-indigo-50 px-5 py-3 flex items-center justify-between">
+                    <h4 className="font-semibold text-indigo-800 text-sm">Plan de pagos — {numCuotas} cuota{numCuotas > 1 ? 's' : ''}</h4>
+                    {Math.abs(pctSum - 100) > 0.1 && (
+                      <span className="text-xs text-orange-500 font-medium">⚠ Suma: {pctSum.toFixed(0)}% (debe ser 100%)</span>
+                    )}
+                  </div>
+                  <table className="w-full text-sm">
+                    <thead className="bg-indigo-50/50">
+                      <tr>
+                        <th className="text-left px-5 py-2 text-xs font-semibold text-indigo-600">Concepto</th>
+                        <th className="text-center px-3 py-2 text-xs font-semibold text-indigo-600 no-print">%</th>
+                        <th className="text-right px-5 py-2 text-xs font-semibold text-indigo-600">USD</th>
+                        <th className="text-right px-5 py-2 text-xs font-semibold text-indigo-600 hidden md:table-cell">ARS</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-indigo-50">
+                      {cuotasAmounts.map((c, i) => (
+                        <tr key={i}>
+                          <td className="px-5 py-3">
+                            <span className="no-print">
+                              <input
+                                value={cuotasConf[i].label}
+                                onChange={e => setCuotaLabel(i, e.target.value)}
+                                className="bg-transparent border-b border-dashed border-indigo-300 focus:outline-none text-gray-700 text-sm w-40"
+                              />
+                            </span>
+                            <span className="hidden print:inline font-medium text-gray-800">{c.label}</span>
+                          </td>
+                          <td className="px-3 py-3 text-center no-print">
+                            <div className="flex items-center gap-1 justify-center">
+                              <input
+                                type="number" min="0" max="100"
+                                value={cuotasConf[i].pct}
+                                onChange={e => setCuotaPct(i, e.target.value)}
+                                className="w-14 text-center bg-gray-100 rounded-lg px-1.5 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                              />
+                              <span className="text-gray-400 text-xs">%</span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3 text-right font-semibold text-gray-800">
+                            USD {fmt(c.usd)}
+                          </td>
+                          <td className="px-5 py-3 text-right text-gray-400 text-xs hidden md:table-cell">
+                            ARS {fmt(c.ars)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
 
@@ -455,41 +598,102 @@ export default function QuoteBuilder() {
             </div>
           </div>
 
-          {/* Notes input (not printed) */}
-          <div className="print:hidden">
-            <label className="text-xs text-gray-500 block mb-1">Notas / aclaraciones (aparecen en el presupuesto)</label>
-            <textarea
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              placeholder="Ej: Incluye 1 ronda de revisiones. Plazo estimado: 3 semanas..."
-              rows={2}
-              className={`${inp} w-full resize-none`}
-            />
-          </div>
+          {/* ── Controls below quote (no-print) ── */}
+          <div className="no-print space-y-3">
 
-          {/* Actions */}
-          <div className="print:hidden flex flex-wrap gap-3 items-center pb-4">
-            <button
-              onClick={handlePrint}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl text-sm font-medium transition-colors"
-            >
-              🖨️ Descargar PDF
-            </button>
-            <button
-              onClick={handleSendEmail}
-              disabled={sending}
-              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors"
-            >
-              {sending ? '⏳ Enviando...' : '📧 Enviar por email'}
-            </button>
-            {!clientEmail && (
-              <span className="text-xs text-gray-400">Completá el email del cliente para enviar</span>
-            )}
-            {sendMsg && (
-              <span className={`text-sm font-medium ${sendMsg.startsWith('✓') ? 'text-green-500' : 'text-red-400'}`}>
-                {sendMsg}
-              </span>
-            )}
+            {/* Notes */}
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Notas / aclaraciones (aparecen en el presupuesto)</label>
+              <textarea
+                value={notes} onChange={e => setNotes(e.target.value)}
+                placeholder="Ej: Incluye 1 ronda de revisiones. Plazo estimado: 3 semanas..."
+                rows={2} className={`${inp} w-full resize-none`}
+              />
+            </div>
+
+            {/* Cuotas toggle + config */}
+            <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 space-y-3">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input type="checkbox" checked={showCuotas} onChange={e => setShowCuotas(e.target.checked)} className="accent-indigo-500 w-4 h-4" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Plan de pagos en cuotas</span>
+              </label>
+              {showCuotas && (
+                <div className="space-y-3 pl-6">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-xs text-gray-500">Número de cuotas:</span>
+                    {[1, 2, 3, 4].map(n => (
+                      <button
+                        key={n}
+                        onClick={() => changeCuotas(n)}
+                        className={`w-9 h-9 rounded-xl text-sm font-bold transition-colors ${
+                          numCuotas === n
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid gap-2">
+                    {Array.from({ length: numCuotas }, (_, i) => (
+                      <div key={i} className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-400 w-16 text-xs">Cuota {i + 1}</span>
+                        <input
+                          value={cuotasConf[i].label}
+                          onChange={e => setCuotaLabel(i, e.target.value)}
+                          className={`${inp} flex-1 py-1.5`}
+                          placeholder="Descripción"
+                        />
+                        <input
+                          type="number" min="0" max="100"
+                          value={cuotasConf[i].pct}
+                          onChange={e => setCuotaPct(i, e.target.value)}
+                          className={`${inp} w-20 text-center py-1.5`}
+                        />
+                        <span className="text-gray-400 text-xs">%</span>
+                        <span className="text-indigo-600 font-medium text-xs w-28 text-right">
+                          USD {fmt(totals.totalUSD * (parseFloat(cuotasConf[i].pct) || 0) / 100)}
+                        </span>
+                      </div>
+                    ))}
+                    {Math.abs(pctSum - 100) > 0.1 && (
+                      <p className="text-xs text-orange-500">Suma total: {pctSum.toFixed(1)}% — debe ser exactamente 100%</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-wrap gap-3 items-center pb-2">
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl text-sm font-medium transition-colors"
+              >
+                🖨️ PDF
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors"
+              >
+                {saving ? '⏳ Guardando...' : '💾 Guardar'}
+              </button>
+              <button
+                onClick={handleSendEmail}
+                disabled={sending}
+                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors"
+              >
+                {sending ? '⏳ Enviando...' : '📧 Enviar email'}
+              </button>
+              {!clientEmail && (
+                <span className="text-xs text-gray-400">Completá el email para enviar</span>
+              )}
+              {msg.text && (
+                <span className={`text-sm font-medium ${msg.ok ? 'text-green-500' : 'text-red-400'}`}>{msg.text}</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
