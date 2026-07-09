@@ -23,8 +23,9 @@ function buildHtml({ clientName, clientEmail, clientCompany, items, totals, ivaR
       <tr style="border-bottom:1px solid #f3f4f6">
         <td style="padding:10px 8px;color:#9ca3af;font-size:12px;vertical-align:top">${i + 1}</td>
         <td style="padding:10px 8px;vertical-align:top">
-          <p style="margin:0;font-weight:600;color:#111827;font-size:14px">${item.label}</p>
-          <p style="margin:4px 0 0;color:#9ca3af;font-size:12px">${item.desc}</p>
+          <p style="margin:0;font-weight:700;color:#111827;font-size:14px">${item.label}</p>
+          <p style="margin:3px 0 0;color:#9ca3af;font-size:12px">${item.desc}</p>
+          ${item.benefit ? `<p style="margin:6px 0 0;font-size:12px;color:#4f46e5;font-style:italic;line-height:1.5;padding-left:8px;border-left:2px solid #c7d2fe">${item.benefit}</p>` : ''}
         </td>
         ${discCell}
         <td style="padding:10px 8px;text-align:right;vertical-align:top;white-space:nowrap">
