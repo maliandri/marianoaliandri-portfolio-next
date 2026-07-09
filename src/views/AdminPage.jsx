@@ -47,13 +47,20 @@ const TAB_MAP = Object.fromEntries(ADMIN_TABS.map(t => [t.id, t]));
 
 function PresupuestosTab() {
   const [sub, setSub] = useState('solicitudes');
+  const [editBudget, setEditBudget] = useState(null);
+
+  const handleOpenInBuilder = (budget) => {
+    setEditBudget(budget);
+    setSub('nuevo');
+  };
+
   return (
     <div className="p-6 space-y-5">
       <div className="flex gap-2">
         {[['solicitudes', '📥 Solicitudes'], ['nuevo', '✏️ Crear presupuesto']].map(([id, label]) => (
           <button
             key={id}
-            onClick={() => setSub(id)}
+            onClick={() => { setSub(id); if (id === 'nuevo' && sub !== 'nuevo') setEditBudget(null); }}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
               sub === id
                 ? 'bg-indigo-600 text-white'
@@ -64,8 +71,8 @@ function PresupuestosTab() {
           </button>
         ))}
       </div>
-      {sub === 'solicitudes' && <BudgetManager />}
-      {sub === 'nuevo'       && <QuoteBuilder />}
+      {sub === 'solicitudes' && <BudgetManager onOpenInBuilder={handleOpenInBuilder} />}
+      {sub === 'nuevo'       && <QuoteBuilder key={editBudget?.id || 'new'} initialData={editBudget} />}
     </div>
   );
 }

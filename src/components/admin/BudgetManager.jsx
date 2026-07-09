@@ -19,7 +19,7 @@ function StatusBadge({ status }) {
   );
 }
 
-function BudgetDetail({ budget, onClose }) {
+function BudgetDetail({ budget, onClose, onOpenInBuilder }) {
   const [budgetUSD, setBudgetUSD] = useState(budget.budgetUSD || '');
   const [budgetARS, setBudgetARS] = useState(budget.budgetARS || '');
   const [adminNotes, setAdminNotes] = useState(budget.adminNotes || '');
@@ -193,6 +193,14 @@ function BudgetDetail({ budget, onClose }) {
 
           {/* Acciones */}
           <section className="space-y-3">
+            {onOpenInBuilder && (
+              <button
+                onClick={() => { onClose(); onOpenInBuilder(budget); }}
+                className="w-full bg-indigo-600/15 border border-indigo-500/40 hover:bg-indigo-600/25 text-indigo-300 py-2.5 rounded-xl text-sm transition-colors font-medium"
+              >
+                ✏️ Abrir en presupuestador
+              </button>
+            )}
             <button onClick={handleSave} disabled={saving} className="w-full bg-[#111] border border-white/10 hover:border-indigo-500 text-white py-2.5 rounded-xl text-sm transition-colors disabled:opacity-50">
               {saving ? 'Guardando...' : '💾 Guardar cambios'}
             </button>
@@ -230,7 +238,7 @@ function BudgetDetail({ budget, onClose }) {
   );
 }
 
-export default function BudgetManager() {
+export default function BudgetManager({ onOpenInBuilder }) {
   const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -315,7 +323,7 @@ export default function BudgetManager() {
         </div>
       )}
 
-      {selected && <BudgetDetail budget={selected} onClose={() => setSelected(null)} />}
+      {selected && <BudgetDetail budget={selected} onClose={() => setSelected(null)} onOpenInBuilder={onOpenInBuilder} />}
     </div>
   );
 }

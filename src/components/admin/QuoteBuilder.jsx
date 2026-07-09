@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 /* ── Service catalogue ─────────────────────────────────────────────── */
 const SERVICES = [
@@ -95,28 +95,53 @@ const DEFAULT_CUOTAS = [
   { pct: 0,   label: 'A los 60 días' },
 ];
 
+/* ── Resolve initialData items ─────────────────────────────────────── */
+const ALL_SERVICES = SERVICES.flatMap(cat => cat.items);
+const SVC_MAP = Object.fromEntries(ALL_SERVICES.map(s => [s.id, s]));
+
+function resolveItems(data) {
+  if (!data) return [];
+  /* saved from QuoteBuilder — has full items array */
+  if (Array.isArray(data.items) && data.items.length > 0) return data.items;
+  /* from public form — only selectedServices IDs */
+  if (Array.isArray(data.selectedServices)) {
+    return data.selectedServices
+      .map(id => SVC_MAP[id])
+      .filter(Boolean)
+      .map(s => ({ id: s.id, label: s.label, desc: s.desc, priceUSD: '', discount: 0 }));
+  }
+  return [];
+}
+
 /* ── Component ───────────────────────────────────────────────────────── */
-export default function QuoteBuilder() {
+export default function QuoteBuilder({ initialData = null }) {
   /* client */
-  const [clientName,    setClientName]    = useState('');
-  const [clientEmail,   setClientEmail]   = useState('');
-  const [clientCompany, setClientCompany] = useState('');
+  const [clientName,    setClientName]    = useState(initialData?.clientName    || '');
+  const [clientEmail,   setClientEmail]   = useState(initialData?.clientEmail   || '');
+  const [clientCompany, setClientCompany] = useState(initialData?.clientCompany || '');
 
   /* items: { id, label, desc, priceUSD, discount } */
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(() => resolveItems(initialData));
 
   /* settings */
-  const [arsRate,   setArsRate]   = useState(1300);
-  const [ivaRate,   setIvaRate]   = useState(21);
-  const [showIVA,   setShowIVA]   = useState(true);
-  const [notes,     setNotes]     = useState('');
-  const [validDays, setValidDays] = useState(30);
+  const [arsRate,   setArsRate]   = useState(initialData?.arsRate   || 1300);
+  const [ivaRate,   setIvaRate]   = useState(initialData?.ivaRate   || 21);
+  const [showIVA,   setShowIVA]   = useState(initialData?.showIVA   ?? true);
+  const [notes,     setNotes]     = useState(initialData?.projectDescription || initialData?.notes || '');
+  const [validDays, setValidDays] = useState(initialData?.validDays || 30);
   const [quoteNumber]             = useState(genNumber);
 
   /* cuotas */
-  const [showCuotas,  setShowCuotas]  = useState(false);
-  const [numCuotas,   setNumCuotas]   = useState(2);
-  const [cuotasConf,  setCuotasConf]  = useState(DEFAULT_CUOTAS);
+  const initCuotas  = initialData?.cuotas;
+  const [showCuotas,  setShowCuotas]  = useState(!!initCuotas);
+  const [numCuotas,   setNumCuotas]   = useState(initCuotas?.numCuotas || 2);
+  const [cuotasConf,  setCuotasConf]  = useState(() => {
+    if (initCuotas?.items?.length) {
+      return initCuotas.items.map(c => ({ pct: c.pct, label: c.label }))
+        .concat(DEFAULT_CUOTAS.slice(initCuotas.items.length));
+    }
+    return DEFAULT_CUOTAS;
+  });
 
   /* ui */
   const [search,  setSearch]  = useState('');
@@ -309,6 +334,23 @@ export default function QuoteBuilder() {
 
         {/* ──── RIGHT: Quote ──── */}
         <div className="flex-1 min-w-0 space-y-4">
+
+          {/* Banner si viene de una solicitud */}
+          {initialData && (
+            <div className="bg-indigo-600/10 border border-indigo-500/30 rounded-xl px-4 py-3 flex items-center gap-3 no-print">
+              <span className="text-indigo-400 text-lg">✏️</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-indigo-300">
+                  Editando solicitud de {initialData.clientName || 'cliente'}
+                  {initialData.source === 'admin' ? '' : ' (formulario público)'}
+                </p>
+                <p className="text-xs text-indigo-400/70">
+                  {initialData.source !== 'admin' && 'Solicitud pública — los precios deben cargarse manualmente.'}
+                  {initialData.source === 'admin' && 'Presupuesto guardado previamente — precios y descuentos cargados.'}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Settings bar */}
           <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 no-print">
