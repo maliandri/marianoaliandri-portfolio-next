@@ -12,6 +12,7 @@ import ZoneAnalysis from '../components/admin/ZoneAnalysis';
 import LabsPublisher from '../components/admin/LabsPublisher';
 import BudgetManager from '../components/admin/BudgetManager';
 import QuoteBuilder from '../components/admin/QuoteBuilder';
+import BenefitsEditor from '../components/admin/BenefitsEditor';
 import AuditoriasManager from '../components/admin/AuditoriasManager';
 import SentEmailsManager from '../components/admin/SentEmailsManager';
 import LeadFinderPanel from '../components/LeadFinderPanel';
@@ -56,8 +57,8 @@ function PresupuestosTab() {
 
   return (
     <div className="p-6 space-y-5">
-      <div className="flex gap-2">
-        {[['solicitudes', '📥 Solicitudes'], ['nuevo', '✏️ Crear presupuesto']].map(([id, label]) => (
+      <div className="flex gap-2 flex-wrap">
+        {[['solicitudes', '📥 Solicitudes'], ['nuevo', '✏️ Crear presupuesto'], ['beneficios', '⚙️ Catálogo']].map(([id, label]) => (
           <button
             key={id}
             onClick={() => { setSub(id); if (id === 'nuevo' && sub !== 'nuevo') setEditBudget(null); }}
@@ -73,6 +74,7 @@ function PresupuestosTab() {
       </div>
       {sub === 'solicitudes' && <BudgetManager onOpenInBuilder={handleOpenInBuilder} />}
       {sub === 'nuevo'       && <QuoteBuilder key={editBudget?.id || 'new'} initialData={editBudget} />}
+      {sub === 'beneficios'  && <BenefitsEditor />}
     </div>
   );
 }

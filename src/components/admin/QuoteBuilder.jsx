@@ -201,6 +201,20 @@ export default function QuoteBuilder({ initialData = null }) {
     return DEFAULT_CUOTAS;
   });
 
+  /* db benefits — overrides hardcoded when available */
+  const [dbBenefits, setDbBenefits] = useState({});
+  useEffect(() => {
+    fetch('/api/service-benefits')
+      .then(r => r.json())
+      .then(data => {
+        if (data && typeof data === 'object') setDbBenefits(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  /* apply db benefits to new items when they're added */
+  const getBenefit = (svc) => dbBenefits[svc.id] ?? svc.benefit;
+
   /* ui */
   const [search,  setSearch]  = useState('');
   const [sending, setSending] = useState(false);
@@ -248,7 +262,7 @@ export default function QuoteBuilder({ initialData = null }) {
   const toggleService = (svc) =>
     setItems(prev => prev.find(i => i.id === svc.id)
       ? prev.filter(i => i.id !== svc.id)
-      : [...prev, { id: svc.id, label: svc.label, desc: svc.desc, benefit: svc.benefit, priceUSD: '', discount: 0 }]
+      : [...prev, { id: svc.id, label: svc.label, desc: svc.desc, benefit: getBenefit(svc), priceUSD: '', discount: 0 }]
     );
 
   const setField = (id, field, val) =>
@@ -282,6 +296,187 @@ export default function QuoteBuilder({ initialData = null }) {
     setCuotasConf(prev => prev.map((c, idx) => idx === i ? { ...c, label: val } : c));
 
   const flash = (text, ok = true) => { setMsg({ text, ok }); setTimeout(() => setMsg({ text: '', ok: true }), 5000); };
+
+  /* ── Build standalone print HTML ── */
+  const buildPrintHtml = () => {
+    const fmtN = (n) => Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const hasDiscount = totals.hasDiscount;
+
+    const rows = items.map((item, i) => {
+      const raw  = parseFloat(item.priceUSD) || 0;
+      const disc = parseFloat(item.discount)  || 0;
+      const net  = raw * (1 - disc / 100);
+      return `
+        <tr style="border-bottom:1px solid #f3f4f6">
+          <td style="padding:10px 6px;color:#9ca3af;font-size:12px;vertical-align:top;width:24px">${i + 1}</td>
+          <td style="padding:10px 8px;vertical-align:top">
+            <p style="margin:0;font-weight:700;color:#111827;font-size:14px">${item.label}</p>
+            <p style="margin:3px 0 0;color:#9ca3af;font-size:12px">${item.desc}</p>
+            ${item.benefit ? `<p style="margin:7px 0 0;font-size:12px;color:#4338ca;font-style:italic;line-height:1.55;border-left:2px solid #c7d2fe;padding-left:8px">${item.benefit}</p>` : ''}
+          </td>
+          ${hasDiscount ? `<td style="padding:10px 8px;text-align:center;vertical-align:top;white-space:nowrap;font-size:13px;color:#f59e0b">${disc > 0 ? `-${disc}%` : '—'}</td>` : ''}
+          <td style="padding:10px 8px;text-align:right;vertical-align:top;white-space:nowrap">
+            ${disc > 0
+              ? `<p style="margin:0;font-size:11px;color:#9ca3af;text-decoration:line-through">USD ${fmtN(raw)}</p>
+                 <p style="margin:2px 0 0;font-weight:600;color:#16a34a;font-size:14px">USD ${fmtN(net)}</p>`
+              : `<p style="margin:0;font-weight:600;color:#111827;font-size:14px">${raw > 0 ? `USD ${fmtN(raw)}` : '—'}</p>`}
+            ${net > 0 && arsRate > 0 ? `<p style="margin:2px 0 0;color:#9ca3af;font-size:11px">ARS ${fmtN(net * arsRate)}</p>` : ''}
+          </td>
+        </tr>`;
+    }).join('');
+
+    const cuotasHtml = showCuotas ? `
+      <div style="margin-top:28px;border:1px solid #e0e7ff;border-radius:10px;overflow:hidden">
+        <div style="background:#eef2ff;padding:10px 18px">
+          <p style="margin:0;font-weight:700;color:#4338ca;font-size:13px">Plan de pagos — cuota inicial + ${numMonthly} pago${numMonthly > 1 ? 's' : ''} mensual${numMonthly > 1 ? 'es' : ''}</p>
+        </div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f5f7ff">
+              <th style="padding:8px 18px;text-align:left;font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase">Cuota</th>
+              <th style="padding:8px 18px;text-align:right;font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;white-space:nowrap">USD</th>
+              <th style="padding:8px 18px;text-align:right;font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;white-space:nowrap">ARS</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${cuotasAmounts.map(c => `
+              <tr style="border-top:1px solid #e0e7ff">
+                <td style="padding:10px 18px;font-size:13px;color:#374151;font-weight:600">${c.label}</td>
+                <td style="padding:10px 18px;text-align:right;font-size:13px;font-weight:700;color:#111827;white-space:nowrap">USD ${fmtN(c.usd)}</td>
+                <td style="padding:10px 18px;text-align:right;font-size:12px;color:#6b7280;white-space:nowrap">ARS ${fmtN(c.ars)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>` : '';
+
+    const notesHtml = notes ? `
+      <div style="margin-top:24px;padding:14px 16px;border-left:3px solid #c7d2fe;background:#f5f3ff">
+        <p style="margin:0 0 5px;font-size:11px;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.05em">Notas</p>
+        <p style="margin:0;font-size:13px;color:#4b5563;white-space:pre-wrap;line-height:1.6">${notes}</p>
+      </div>` : '';
+
+    return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Presupuesto ${quoteNumber}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: white; color: #111827; }
+    @page { margin: 1.2cm 1.5cm; size: A4; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    table { border-collapse: collapse; width: 100%; }
+  </style>
+</head>
+<body>
+  <div style="max-width:750px;margin:0 auto">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:28px 36px;border-radius:14px 14px 0 0">
+      <table><tr>
+        <td style="vertical-align:top">
+          <p style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:4px">Propuesta comercial</p>
+          <p style="font-size:26px;font-weight:900;color:#fff;letter-spacing:-.5px">PRESUPUESTO</p>
+          <p style="font-size:13px;color:rgba(255,255,255,.7);margin-top:5px">Mariano Aliandri · Desarrollo Web &amp; Datos</p>
+        </td>
+        <td style="vertical-align:top;text-align:right">
+          <p style="font-weight:700;color:#fff;font-size:14px">N° ${quoteNumber}</p>
+          <p style="font-size:12px;color:rgba(255,255,255,.7);margin-top:4px">Fecha: ${today}</p>
+          <p style="font-size:12px;color:rgba(255,255,255,.7);margin-top:2px">Válido hasta: ${validUntil}</p>
+        </td>
+      </tr></table>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:28px 36px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 14px 14px">
+
+      ${(clientName || clientCompany) ? `
+      <div style="margin-bottom:24px;padding:14px 16px;background:#f9fafb;border-radius:8px">
+        <p style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Para</p>
+        ${clientName    ? `<p style="font-size:15px;font-weight:700;color:#111827">${clientName}</p>` : ''}
+        ${clientCompany ? `<p style="font-size:13px;color:#6b7280;margin-top:2px">${clientCompany}</p>` : ''}
+        ${clientEmail   ? `<p style="font-size:13px;color:#9ca3af;margin-top:2px">${clientEmail}</p>` : ''}
+      </div>` : ''}
+
+      <!-- Tabla de ítems -->
+      <table>
+        <thead>
+          <tr style="border-bottom:2px solid #e5e7eb">
+            <th style="padding:8px 6px;text-align:left;font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;width:24px">#</th>
+            <th style="padding:8px;text-align:left;font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Servicio</th>
+            ${hasDiscount ? `<th style="padding:8px;text-align:center;font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;width:60px">Bonif.</th>` : ''}
+            <th style="padding:8px;text-align:right;font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;width:130px">Precio</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+
+      <!-- Totales -->
+      <table style="margin-top:8px">
+        <tbody>
+          ${hasDiscount ? `
+          <tr>
+            <td style="padding:6px 8px;text-align:right;color:#6b7280;font-size:13px">Subtotal bruto</td>
+            <td style="padding:6px 8px;text-align:right;white-space:nowrap;width:130px">
+              <span style="color:#374151;font-size:13px">USD ${fmtN(totals.brutoUSD)}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px;text-align:right;color:#f59e0b;font-size:13px">Bonificaciones</td>
+            <td style="padding:6px 8px;text-align:right;white-space:nowrap">
+              <span style="color:#f59e0b;font-weight:500;font-size:13px">- USD ${fmtN(totals.descUSD)}</span>
+            </td>
+          </tr>` : ''}
+          <tr style="border-top:1px dashed #e5e7eb">
+            <td style="padding:8px 8px 4px;text-align:right;color:#6b7280;font-size:13px">Subtotal <span style="font-size:11px">(sin IVA)</span></td>
+            <td style="padding:8px 8px 4px;text-align:right;white-space:nowrap">
+              <p style="margin:0;color:#374151;font-weight:600;font-size:13px">USD ${fmtN(totals.netoUSD)}</p>
+              <p style="margin:2px 0 0;color:#9ca3af;font-size:11px">ARS ${fmtN(totals.netoARS)}</p>
+            </td>
+          </tr>
+          ${showIVA ? `
+          <tr style="border-bottom:1px dashed #e5e7eb">
+            <td style="padding:4px 8px 8px;text-align:right;color:#6b7280;font-size:13px">IVA (${ivaRate}%)</td>
+            <td style="padding:4px 8px 8px;text-align:right;white-space:nowrap">
+              <p style="margin:0;color:#374151;font-weight:500;font-size:13px">USD ${fmtN(totals.ivaUSD)}</p>
+              <p style="margin:2px 0 0;color:#9ca3af;font-size:11px">ARS ${fmtN(totals.ivaARS)}</p>
+            </td>
+          </tr>` : ''}
+          <tr style="border-top:2px solid #111827">
+            <td style="padding:12px 8px 8px;text-align:right;color:#111827;font-weight:900;font-size:16px">TOTAL</td>
+            <td style="padding:12px 8px 8px;text-align:right;white-space:nowrap">
+              <p style="margin:0;color:#111827;font-weight:900;font-size:20px">USD ${fmtN(totals.totalUSD)}</p>
+              <p style="margin:2px 0 0;color:#6b7280;font-size:13px;font-weight:500">ARS ${fmtN(totals.totalARS)}</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      ${cuotasHtml}
+      ${notesHtml}
+
+      <!-- Footer -->
+      <div style="margin-top:28px;padding-top:18px;border-top:1px solid #f3f4f6;text-align:center">
+        <p style="font-size:12px;color:#6b7280"><strong style="color:#4f46e5">Mariano Aliandri</strong> · Desarrollador Full Stack &amp; Analista de Datos</p>
+        <p style="font-size:12px;color:#9ca3af;margin-top:5px">marianoaliandri.com.ar · marianoaliandri@gmail.com · +54 299 541-4422</p>
+        <p style="font-size:11px;color:#d1d5db;margin-top:4px">Los precios en USD no incluyen IVA · Tipo de cambio referencial: 1 USD = ARS ${arsRate.toLocaleString('es-AR')}</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+  };
+
+  /* ── Open PDF in new window ── */
+  const handlePrint = () => {
+    if (!items.length) { flash('Seleccioná al menos un servicio para imprimir', false); return; }
+    const html = buildPrintHtml();
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 400);
+  };
 
   /* ── Shared payload ── */
   const buildPayload = () => ({
@@ -341,15 +536,6 @@ export default function QuoteBuilder({ initialData = null }) {
 
   return (
     <>
-      <style>{`
-        @media print {
-          body * { visibility: hidden !important; }
-          #qb-print, #qb-print * { visibility: visible !important; }
-          #qb-print { position:fixed;inset:0;z-index:9999;background:white;padding:0;margin:0; }
-          @page { margin:1.5cm; size:A4; }
-          .no-print { display:none !important; }
-        }
-      `}</style>
 
       <div className="flex flex-col xl:flex-row gap-6">
 
@@ -818,7 +1004,7 @@ export default function QuoteBuilder({ initialData = null }) {
             {/* Actions */}
             <div className="flex flex-wrap gap-3 items-center pb-2">
               <button
-                onClick={() => window.print()}
+                onClick={handlePrint}
                 className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl text-sm font-medium transition-colors"
               >
                 🖨️ PDF
