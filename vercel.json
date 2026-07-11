@@ -1,4 +1,7 @@
 {
+  "crons": [
+    { "path": "/api/analitica/refresh", "schedule": "0 10 * * *" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

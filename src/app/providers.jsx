@@ -31,6 +31,7 @@ const NAV_LINKS = [
   { label: 'Proyectos',   href: '/#proyectos' },
   { label: 'Contacto',    href: '/#contact' },
   { label: 'Auditorías',  href: '/auditorias' },
+  { label: 'Analítica',   href: '/analitica' },
   { label: 'Presupuesto', href: '/presupuesto' },
 ];
 const TOOLS = [
