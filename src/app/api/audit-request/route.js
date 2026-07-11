@@ -96,3 +96,32 @@ export async function POST(request) {
     return Response.json({ error: e.message }, { status: 500 });
   }
 }
+
+export async function GET() {
+  try {
+    const db = getDb();
+    if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });
+    const snap = await db.collection('audit_requests').orderBy('createdAt', 'desc').limit(200).get();
+    const items = snap.docs.map(d => ({
+      id: d.id,
+      ...d.data(),
+      createdAt: d.data().createdAt?.toDate?.()?.toISOString() || null,
+    }));
+    return Response.json(items);
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(request) {
+  try {
+    const db = getDb();
+    if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });
+    const { id, status } = await request.json();
+    if (!id || !status) return Response.json({ error: 'Faltan campos' }, { status: 400 });
+    await db.collection('audit_requests').doc(id).update({ status });
+    return Response.json({ success: true });
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 500 });
+  }
+}
