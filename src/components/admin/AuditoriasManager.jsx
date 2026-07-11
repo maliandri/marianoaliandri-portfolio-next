@@ -128,7 +128,7 @@ ${reportUrl}
           message:     pubCaption,
           networks,
           type:        'service',
-          useAI:       true,
+          useAI:       false,
           aiProvider:  'gemini',
           imageUrl,
           url:         imageUrl,
