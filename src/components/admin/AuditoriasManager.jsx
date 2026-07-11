@@ -112,9 +112,9 @@ ${reportUrl}
     if (!pub || !networks.length || !pubCaption.trim()) return;
     setPubSending(true); setPubMsg('');
     const reportUrl   = `https://marianoaliandri.com.ar/auditorias/${pub.id}`;
-    // Página de preview dedicada: solo stats + distribución + análisis + mapa, sin tabla ni nav/footer
-    const previewUrl  = `https://marianoaliandri.com.ar/auditorias/${pub.id}/preview?screenshot=1`;
-    const imageUrl    = `https://api.microlink.io/?url=${encodeURIComponent(previewUrl)}&screenshot=true&meta=false&embed=screenshot.url&viewport.width=1280&viewport.height=960`;
+    // screenshot=1 oculta navbar/footer/WA; viewport.height corta antes de la tabla
+    const screenshotUrl = `${reportUrl}?screenshot=1`;
+    const imageUrl    = `https://api.microlink.io/?url=${encodeURIComponent(screenshotUrl)}&screenshot=true&meta=false&embed=screenshot.url&viewport.width=1280&viewport.height=980`;
     try {
       const res = await fetch('/api/publish-social', {
         method: 'POST',
