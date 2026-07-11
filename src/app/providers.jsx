@@ -14,7 +14,8 @@ import Footer from '@/components/Footer';
 import WhatsAppButton from '@/components/WhatsAppButton';
 
 // Firebase-dependent components — deferred to keep Firebase out of the critical render path
-const AIChatBot = dynamic(() => import('@/components/AIChatBot'), { ssr: false, loading: () => null });
+const AIChatBot   = dynamic(() => import('@/components/AIChatBot'),   { ssr: false, loading: () => null });
+const AuthButton  = dynamic(() => import('@/components/AuthButton'),  { ssr: false, loading: () => null });
 
 // Tools: ssr:false evita que se pre-rendericen en servidor (usan window/browser APIs)
 const KpiRadar = dynamic(() => import('@/components/KpiRadar'), { ssr: false });
@@ -31,6 +32,10 @@ const NAV_LINKS = [
   { label: 'Contacto',    href: '/#contact' },
   { label: 'Auditorías',  href: '/auditorias' },
   { label: 'Presupuesto', href: '/presupuesto' },
+];
+const TOOLS = [
+  { label: 'Análisis de CV', href: '/ats',     icon: '📄', desc: 'Optimizá tu CV con IA' },
+  { label: 'Analítica Web',  href: '/radarweb', icon: '📊', desc: 'Radar de presencia digital' },
 ];
 
 const SCRAMBLE_POOL = 'abcdefghijklmnopqrstuvwxyz0123456789@#$_-+';
@@ -88,8 +93,56 @@ function ScrambleLogo({ onClick }) {
   );
 }
 
+function ToolsDropdown({ pathname }) {
+  const [open, setOpen] = useState(false);
+  const isActive = TOOL_PATHS.some(p => pathname === p);
+
+  return (
+    <div className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+      <button
+        onClick={() => setOpen(p => !p)}
+        className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          isActive ? 'text-indigo-400 bg-indigo-600/10' : 'text-gray-400 hover:text-white hover:bg-white/5'
+        }`}
+      >
+        Herramientas
+        <svg className={`w-3.5 h-3.5 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 z-50">
+          <div className="bg-[#111] border border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden w-64">
+            <div className="px-4 pt-3 pb-1">
+              <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest">Herramientas gratuitas</p>
+            </div>
+            {TOOLS.map(t => (
+              <Link
+                key={t.href}
+                href={t.href}
+                onClick={() => setOpen(false)}
+                className={`flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors group ${
+                  pathname === t.href ? 'bg-indigo-600/10' : ''
+                }`}
+              >
+                <span className="text-lg mt-0.5">{t.icon}</span>
+                <div>
+                  <p className={`text-sm font-medium ${pathname === t.href ? 'text-indigo-400' : 'text-white'}`}>{t.label}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{t.desc}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Navbar({ pathname }) {
   const [open, setOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-[1000] bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/8">
@@ -113,11 +166,15 @@ function Navbar({ pathname }) {
               {label}
             </Link>
           ))}
+          <ToolsDropdown pathname={pathname} />
         </div>
 
         {/* Right side */}
         <div className="flex items-center gap-2">
           <ThemeToggle />
+          <div className="hidden md:block">
+            <AuthButton />
+          </div>
           <AIChatBot />
           {/* Hamburger — mobile */}
           <button
@@ -145,6 +202,29 @@ function Navbar({ pathname }) {
               {label}
             </Link>
           ))}
+          {/* Herramientas — mobile expandible */}
+          <button
+            onClick={() => setToolsOpen(p => !p)}
+            className="flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <span>Herramientas</span>
+            <svg className={`w-4 h-4 transition-transform ${toolsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {toolsOpen && TOOLS.map(t => (
+            <Link
+              key={t.href}
+              href={t.href}
+              onClick={() => { setOpen(false); setToolsOpen(false); }}
+              className="flex items-center gap-3 px-6 py-2.5 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+            >
+              <span>{t.icon}</span> {t.label}
+            </Link>
+          ))}
+          <div className="pt-2 border-t border-white/8 mt-1">
+            <AuthButton />
+          </div>
         </div>
       )}
     </nav>
