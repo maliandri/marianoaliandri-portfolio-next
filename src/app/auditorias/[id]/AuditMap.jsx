@@ -59,7 +59,7 @@ function FitBounds({ points }) {
   return null;
 }
 
-export default function AuditMap({ results = [], radioKm = 20, ownDomains = [] }) {
+export default function AuditMap({ results = [], radioKm = 20, ownDomains = [], height = 420 }) {
   const all = results.filter(r => typeof r.lat === 'number' && typeof r.lon === 'number');
   if (!all.length) return null;
 
@@ -68,7 +68,7 @@ export default function AuditMap({ results = [], radioKm = 20, ownDomains = [] }
 
   return (
     <>
-      <div className="rounded-xl overflow-hidden border border-white/10" style={{ height: 420 }}>
+      <div className="rounded-xl overflow-hidden border border-white/10" style={{ height }}>
         <MapContainer center={[points[0].lat, points[0].lon]} zoom={12} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
           <TileLayer
             attribution='&copy; OpenStreetMap &copy; CARTO'

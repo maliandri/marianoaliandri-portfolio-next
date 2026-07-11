@@ -4,6 +4,7 @@ import { getDb } from '@/lib/firebase-admin';
 import { getGSCAuth, getVerifiedSites } from '@/lib/gscClient';
 import AuditTable from './AuditTable';
 import AuditMapLoader from './AuditMapLoader';
+import AuditRequestForm from '@/components/AuditRequestForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -180,6 +181,22 @@ export default async function AuditoriaDetailPage({ params }) {
       )}
 
       <AuditTable results={results} ownDomains={ownDomains} />
+
+      {/* CTA — Solicitar auditoría propia */}
+      <div className="mt-16 mb-8">
+        <div className="text-center mb-6">
+          <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-2">¿Tu sitio está en esta lista?</p>
+          <h2 className="text-2xl md:text-3xl font-black text-white">
+            Pedí tu análisis gratuito
+          </h2>
+          <p className="text-gray-500 text-sm mt-2 max-w-md mx-auto">
+            Si tenés un negocio en Argentina, analizamos cómo aparece tu sitio en Google y te mandamos el informe sin costo.
+          </p>
+        </div>
+        <div className="max-w-xl mx-auto">
+          <AuditRequestForm defaultSearchTerm={a.config?.term || ''} />
+        </div>
+      </div>
 
       <p className="text-center text-xs text-gray-700 mt-8">
         Auditoría realizada por{' '}

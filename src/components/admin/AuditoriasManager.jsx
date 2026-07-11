@@ -88,18 +88,20 @@ export default function AuditoriasManager() {
     const low      = a.stats?.lowSeoCount ?? 0;
     const avg      = a.stats?.avgSeoScore ?? '—';
     const pctLow   = total ? Math.round((low / total) * 100) : 0;
+    const reportUrl = `https://marianoaliandri.com.ar/auditorias/${a.id}`;
     setPub({ id: a.id, title: a.title });
-    // El link al reporte NO va en el texto: Make lo agrega al final (campo `link`).
     setPubCaption(
-`🔍 Auditoría SEO en ${ciudades}
+`🔍 Analizamos ${total} sitios web en ${ciudades}
 
-Analizamos ${total} sitios web de negocios locales:
-📉 ${low} con posicionamiento débil (${pctLow}%)
-📊 Score SEO promedio: ${avg}/100
+📉 ${low} negocios (${pctLow}%) tienen SEO débil — Google casi no los muestra.
+📊 Score promedio de la zona: ${avg}/100
 
-¿Tu negocio aparece en Google cuando te buscan? Mirá el reporte completo 👇
+Si tenés un local o negocio en la zona, puede que estés en la misma situación sin saberlo.
 
-#SEO #DesarrolloWeb #PresenciaDigital #Google`
+👇 Mirá el reporte completo y pedí tu análisis gratuito:
+${reportUrl}
+
+#SEO #MarketingDigital #PresenciaDigital #NegociosLocales`
     );
     setPubNets({ instagram: true, facebook: true, linkedin: true });
     setPubMsg('');
@@ -109,9 +111,10 @@ Analizamos ${total} sitios web de negocios locales:
     const networks = Object.keys(pubNets).filter(k => pubNets[k]);
     if (!pub || !networks.length || !pubCaption.trim()) return;
     setPubSending(true); setPubMsg('');
-    const reportUrl = `https://marianoaliandri.com.ar/auditorias/${pub.id}`;
-    // Screenshot del reporte via Microlink (muestra mapa + tabla) como imagen del post
-    const imageUrl = `https://api.microlink.io/?url=${encodeURIComponent(reportUrl)}&screenshot=true&meta=false&embed=screenshot.url`;
+    const reportUrl   = `https://marianoaliandri.com.ar/auditorias/${pub.id}`;
+    // Página de preview dedicada: solo stats + distribución + análisis + mapa, sin tabla ni nav/footer
+    const previewUrl  = `https://marianoaliandri.com.ar/auditorias/${pub.id}/preview?screenshot=1`;
+    const imageUrl    = `https://api.microlink.io/?url=${encodeURIComponent(previewUrl)}&screenshot=true&meta=false&embed=screenshot.url&viewport.width=1280&viewport.height=960`;
     try {
       const res = await fetch('/api/publish-social', {
         method: 'POST',
