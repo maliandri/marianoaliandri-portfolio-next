@@ -2,7 +2,7 @@
 
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -33,6 +33,61 @@ const NAV_LINKS = [
   { label: 'Presupuesto', href: '/presupuesto' },
 ];
 
+const SCRAMBLE_POOL = 'abcdefghijklmnopqrstuvwxyz0123456789@#$_-+';
+const LOGO_TEXT     = 'marianoaliandri';
+const LOGO_SUFFIX   = '.com.ar';
+
+function ScrambleLogo({ onClick }) {
+  const [chars, setChars] = useState(LOGO_TEXT.split(''));
+  const timer = useRef(null);
+
+  const run = useCallback(() => {
+    clearTimeout(timer.current);
+    let frame = 0;
+    const total = LOGO_TEXT.length * 3 + 8;
+
+    const tick = () => {
+      const locked = Math.floor(frame / 3);
+      setChars(
+        LOGO_TEXT.split('').map((ch, i) =>
+          i < locked ? ch : SCRAMBLE_POOL[Math.floor(Math.random() * SCRAMBLE_POOL.length)]
+        )
+      );
+      frame++;
+      if (frame < total) {
+        timer.current = setTimeout(tick, 38);
+      } else {
+        setChars(LOGO_TEXT.split(''));
+      }
+    };
+
+    tick();
+  }, []);
+
+  useEffect(() => {
+    // Pequeño retraso al montar para que se vea el efecto en la carga
+    timer.current = setTimeout(run, 120);
+    return () => clearTimeout(timer.current);
+  }, [run]);
+
+  return (
+    <Link
+      href="/"
+      onClick={onClick}
+      onMouseEnter={run}
+      className="shrink-0 select-none"
+      aria-label="marianoaliandri.com.ar — inicio"
+    >
+      <span className="font-mono font-bold text-base tracking-tight text-white">
+        {chars.join('')}
+      </span>
+      <span className="font-mono font-bold text-base tracking-tight text-indigo-400">
+        {LOGO_SUFFIX}
+      </span>
+    </Link>
+  );
+}
+
 function Navbar({ pathname }) {
   const [open, setOpen] = useState(false);
 
@@ -41,9 +96,7 @@ function Navbar({ pathname }) {
       <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
 
         {/* Logo */}
-        <Link href="/" className="text-white font-bold text-lg tracking-tight shrink-0" onClick={() => setOpen(false)}>
-          Mariano<span className="text-indigo-400">.</span>
-        </Link>
+        <ScrambleLogo onClick={() => setOpen(false)} />
 
         {/* Nav links — desktop */}
         <div className="hidden md:flex items-center gap-1">
