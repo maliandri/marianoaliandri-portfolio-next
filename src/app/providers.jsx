@@ -28,14 +28,14 @@ const LabsTool = dynamic(() => import('@/components/LabsTool'), { ssr: false });
 
 const TOOL_PATHS = ['/web', '/roi', '/stats', '/ats', '/kpi', '/radarweb', '/labs'];
 const NAV_LINKS = [
-  { label: 'Proyectos',    href: '/#proyectos' },
-  { label: 'Contacto',     href: '/#contact' },
-  { label: 'Auditorías',   href: '/auditorias' },
-  { label: 'Presupuesto',  href: '/presupuesto' },
-  { label: 'Análisis CV',  href: '/ats' },
+  { label: 'Proyectos',   href: '/#proyectos' },
+  { label: 'Contacto',    href: '/#contact' },
+  { label: 'Auditorías',  href: '/auditorias' },
+  { label: 'Presupuesto', href: '/presupuesto' },
 ];
 const TOOLS = [
-  { label: 'Análisis de CV', href: '/ats', icon: '📄', desc: 'Optimizá tu CV con IA' },
+  { label: 'Análisis de CV', href: '/ats',     icon: '📄', desc: 'Analizá tu CV contra ofertas con IA' },
+  { label: 'Radar Web',      href: '/radarweb', icon: '📊', desc: 'Analizá la presencia digital de un sitio' },
 ];
 
 const SCRAMBLE_POOL = 'abcdefghijklmnopqrstuvwxyz0123456789@#$_-+';
@@ -142,6 +142,7 @@ function ToolsDropdown({ pathname }) {
 
 function Navbar({ pathname }) {
   const [open, setOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-[1000] bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/8">
@@ -165,6 +166,7 @@ function Navbar({ pathname }) {
               {label}
             </Link>
           ))}
+          <ToolsDropdown pathname={pathname} />
         </div>
 
         {/* Right side */}
@@ -198,6 +200,26 @@ function Navbar({ pathname }) {
               className="px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
             >
               {label}
+            </Link>
+          ))}
+          {/* Herramientas — mobile */}
+          <button
+            onClick={() => setToolsOpen(p => !p)}
+            className="flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <span>Herramientas</span>
+            <svg className={`w-4 h-4 transition-transform ${toolsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {toolsOpen && TOOLS.map(t => (
+            <Link
+              key={t.href}
+              href={t.href}
+              onClick={() => { setOpen(false); setToolsOpen(false); }}
+              className="flex items-center gap-3 px-6 py-2.5 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+            >
+              <span>{t.icon}</span> {t.label}
             </Link>
           ))}
           <div className="pt-2 border-t border-white/8 mt-1">
