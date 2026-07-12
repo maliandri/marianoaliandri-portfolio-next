@@ -39,13 +39,13 @@ const KEYWORDS_PETROLEO = [
   'perforación Neuquén',
 ];
 
-// Grupo 4 — Servicios digitales (lo que ofrecés)
+// Grupo 4 — Desarrollo web & servicios digitales (lo que ofrecés)
 const KEYWORDS_DIGITAL = [
-  'diseño web',
-  'marketing digital',
-  'posicionamiento web',
-  'tienda online Argentina',
-  'redes sociales empresa',
+  'desarrollo web Neuquén',
+  'diseño web Neuquén',
+  'tienda online Neuquén',
+  'posicionamiento web Argentina',
+  'marketing digital Neuquén',
 ];
 
 async function fetchTrendingNow(geo) {
