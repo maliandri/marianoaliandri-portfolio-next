@@ -12,40 +12,40 @@ const KEY  = process.env.SERPAPI_KEY;
 const GEO_TRENDS  = 'AR';
 const GEO_DAILY   = 'AR-Q'; // trending now sí funciona a nivel provincia
 
-// Grupo 1 — Construcción, arquitectura y diseño
+// Grupo 1 — Construcción sustentable & modular (nicho principal)
 const KEYWORDS_CONSTRUCCION = [
+  'construcción sustentable',
+  'casa modular',
+  'vivienda prefabricada',
   'arquitecto Neuquén',
-  'constructora Neuquén',
-  'construcción sustentable Neuquén',
-  'muebles a medida Neuquén',
-  'diseño de interiores Neuquén',
+  'construcción modular Argentina',
 ];
 
 // Grupo 2 — Comercio local: tecnología, vehículos, indumentaria
 const KEYWORDS_COMERCIO = [
   'venta celulares Neuquén',
   'electrodomésticos Neuquén',
-  'concesionaria autos Neuquén',
+  'concesionaria Neuquén',
   'indumentaria Neuquén',
-  'informática Neuquén',
+  'computadoras Neuquén',
 ];
 
-// Grupo 3 — Petróleo, Vaca Muerta y servicios industriales
+// Grupo 3 — Petróleo & Vaca Muerta
 const KEYWORDS_PETROLEO = [
   'Vaca Muerta',
-  'servicios petroleros Neuquén',
-  'proveedores oil gas Neuquén',
-  'empresa servicios Neuquén',
-  'licitaciones Neuquén',
+  'servicios petroleros',
+  'oil and gas Argentina',
+  'YPF Neuquén',
+  'perforación Neuquén',
 ];
 
-// Grupo 4 — Servicios digitales (lo que vos ofrecés)
+// Grupo 4 — Servicios digitales (lo que ofrecés)
 const KEYWORDS_DIGITAL = [
-  'diseño web Neuquén',
-  'marketing digital Neuquén',
-  'posicionamiento web Neuquén',
-  'tienda online Neuquén',
-  'redes sociales empresa Neuquén',
+  'diseño web',
+  'marketing digital',
+  'posicionamiento web',
+  'tienda online Argentina',
+  'redes sociales empresa',
 ];
 
 async function fetchTrendingNow(geo) {
