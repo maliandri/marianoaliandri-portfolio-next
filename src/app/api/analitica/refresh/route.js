@@ -61,13 +61,7 @@ async function fetchRelatedQueries(keyword, geo) {
   } catch { return { rising: [], top: [] }; }
 }
 
-export async function GET(request) {
-  // Vercel Cron o llamada manual con CRON_SECRET
-  const auth = request.headers.get('authorization');
-  const isVercelCron = request.headers.get('x-vercel-cron') === '1';
-  if (!isVercelCron && process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export async function GET() {
   return handler();
 }
 
