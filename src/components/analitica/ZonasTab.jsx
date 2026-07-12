@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 
 function ScoreBadge({ score }) {
   if (score == null) return null;
@@ -71,7 +71,7 @@ function AuditoriaCard({ a }) {
             <BarChart data={barData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
               <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={40}>
                 {barData.map((d, i) => (
-                  <rect key={i} fill={d.fill} />
+                  <Cell key={i} fill={d.fill} />
                 ))}
               </Bar>
               <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 9 }} tickLine={false} axisLine={false} />

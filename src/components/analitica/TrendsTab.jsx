@@ -2,7 +2,7 @@
 
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  AreaChart, Area, Legend,
+  AreaChart, Area, Legend, Cell,
 } from 'recharts';
 
 const PALETTE = ['#6366f1', '#22d3ee', '#4ade80', '#f59e0b', '#f87171'];
@@ -51,11 +51,17 @@ function TrendingList({ trends = [] }) {
 
 function InterestChart({ data = [], keywords = [] }) {
   if (!data.length) return <p className="text-gray-600 text-sm">Sin datos de evolución.</p>;
-  // Limit to last 30 points for readability
-  const sliced = data.slice(-30);
+
+  // Transformar [{date, values:[n,n,n]}] → [{date, 'keyword':n, ...}] para Recharts
+  const chartData = data.slice(-30).map(p => {
+    const obj = { date: p.date };
+    keywords.slice(0, 5).forEach((kw, i) => { obj[kw] = p.values?.[i] ?? 0; });
+    return obj;
+  });
+
   return (
     <ResponsiveContainer width="100%" height={220}>
-      <AreaChart data={sliced} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+      <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
         <defs>
           {keywords.slice(0, 5).map((_, i) => (
             <linearGradient key={i} id={`grad${i}`} x1="0" y1="0" x2="0" y2="1">
@@ -71,7 +77,7 @@ function InterestChart({ data = [], keywords = [] }) {
         <Tooltip content={<CustomTooltip />} />
         <Legend wrapperStyle={{ fontSize: 11, color: '#9ca3af', paddingTop: 8 }} />
         {keywords.slice(0, 5).map((kw, i) => (
-          <Area key={kw} type="monotone" dataKey={`values[${i}]`} name={kw}
+          <Area key={kw} type="monotone" dataKey={kw} name={kw}
             stroke={PALETTE[i]} fill={`url(#grad${i})`} strokeWidth={1.5} dot={false} />
         ))}
       </AreaChart>

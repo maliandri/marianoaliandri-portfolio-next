@@ -70,10 +70,15 @@ async function fetchRelatedQueries(keyword, geo) {
 }
 
 export async function GET(request) {
-  // Vercel Cron: verifica el header de autorización en producción
+  // Vercel Cron envía Authorization: Bearer <CRON_SECRET>
+  // También se puede llamar desde el admin sin auth (POST con secret)
   const auth = request.headers.get('authorization');
-  if (process.env.NODE_ENV === 'production' && auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  const isVercelCron = request.headers.get('x-vercel-cron') === '1';
+  if (!isVercelCron && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+    // Permitir sin auth solo en development
+    if (process.env.NODE_ENV === 'production') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
   }
   return handler();
 }
