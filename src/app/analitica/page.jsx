@@ -71,22 +71,13 @@ export default function AnaliticaPage() {
           ))}
         </div>
 
-        {/* Selector de región (solo en Tendencias) */}
+        {/* Badge de cobertura */}
         {tab === 'tendencias' && (
-          <div className="flex gap-1 bg-[#111] border border-white/8 rounded-2xl p-1">
-            {REGIONS.map(r => (
-              <button
-                key={r.id}
-                onClick={() => setRegion(r.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-                  region === r.id
-                    ? 'bg-white/10 text-white'
-                    : 'text-gray-500 hover:text-gray-300'
-                }`}
-              >
-                {r.flag} {r.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#111] border border-white/8 rounded-2xl">
+            <span className="text-xs">📍</span>
+            <span className="text-xs text-gray-400 font-medium">Neuquén / Comahue</span>
+            <span className="text-gray-700 text-xs">·</span>
+            <span className="text-xs text-gray-600">Argentina nacional</span>
           </div>
         )}
       </div>
