@@ -6,17 +6,42 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 const SERP = 'https://serpapi.com/search.json';
 const KEY  = process.env.SERPAPI_KEY;
+const GEO  = 'AR-Q'; // Neuquén provincia
 
-// Keywords orgánicas de comercios — primera dimensión
-const BUSINESS_KEYWORDS = [
-  'restaurante Neuquén', 'taller mecánico Neuquén', 'dentista Neuquén',
-  'peluquería Neuquén', 'inmobiliaria Neuquén',
+// Grupo 1 — Construcción, arquitectura y diseño
+const KEYWORDS_CONSTRUCCION = [
+  'arquitecto Neuquén',
+  'constructora Neuquén',
+  'construcción sustentable Neuquén',
+  'muebles a medida Neuquén',
+  'diseño de interiores Neuquén',
 ];
 
-// Términos de búsqueda de trends — segunda dimensión
-const TREND_KEYWORDS = [
-  'construcción sustentable', 'marketing digital Patagonia',
-  'diseño web Neuquén', 'turismo Neuquén', 'emprendimientos Patagonia',
+// Grupo 2 — Comercio local: tecnología, vehículos, indumentaria
+const KEYWORDS_COMERCIO = [
+  'venta celulares Neuquén',
+  'electrodomésticos Neuquén',
+  'concesionaria autos Neuquén',
+  'indumentaria Neuquén',
+  'informática Neuquén',
+];
+
+// Grupo 3 — Petróleo, Vaca Muerta y servicios industriales
+const KEYWORDS_PETROLEO = [
+  'Vaca Muerta',
+  'servicios petroleros Neuquén',
+  'proveedores oil gas Neuquén',
+  'empresa servicios Neuquén',
+  'licitaciones Neuquén',
+];
+
+// Grupo 4 — Servicios digitales (lo que vos ofrecés)
+const KEYWORDS_DIGITAL = [
+  'diseño web Neuquén',
+  'marketing digital Neuquén',
+  'posicionamiento web Neuquén',
+  'tienda online Neuquén',
+  'redes sociales empresa Neuquén',
 ];
 
 async function fetchTrendingNow(geo) {
@@ -52,8 +77,8 @@ async function fetchRelatedQueries(keyword, geo) {
     const url = `${SERP}?engine=google_trends&q=${encodeURIComponent(keyword)}&geo=${geo}&data_type=RELATED_QUERIES&hl=es&api_key=${KEY}`;
     const res  = await fetch(url);
     const data = await res.json();
-    const rising = data?.related_queries?.rising  || [];
-    const top    = data?.related_queries?.top     || [];
+    const rising = data?.related_queries?.rising || [];
+    const top    = data?.related_queries?.top    || [];
     return {
       rising: rising.slice(0, 10).map(k => ({ query: k.query, value: k.extracted_value ?? 0 })),
       top:    top.slice(0, 10).map(k => ({ query: k.query, value: k.extracted_value ?? 0 })),
@@ -72,54 +97,56 @@ async function handler() {
     const db = getDb();
     if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });
 
-    // Trending now para ambas regiones (2 créditos)
-    const [neuquenTrends, argentinaTrends] = await Promise.all([
-      fetchTrendingNow('AR-Q'),
+    // 2 créditos — trending now AR + NQ
+    const [trendingAR, trendingNQ] = await Promise.all([
       fetchTrendingNow('AR'),
+      fetchTrendingNow(GEO),
     ]);
 
-    // Interest over time — 4 créditos (2 keyword groups × 2 regiones)
-    const interestComerciosNQ = await fetchInterestOverTime(BUSINESS_KEYWORDS, 'AR-Q');
-    const interestComerciosAR = await fetchInterestOverTime(BUSINESS_KEYWORDS, 'AR');
-    const interestTrendsNQ    = await fetchInterestOverTime(TREND_KEYWORDS, 'AR-Q');
-    const interestTrendsAR    = await fetchInterestOverTime(TREND_KEYWORDS, 'AR');
+    // 4 créditos — interest over time por grupo temático (solo Neuquén)
+    const interestConstruccion = await fetchInterestOverTime(KEYWORDS_CONSTRUCCION, GEO);
+    const interestComercio     = await fetchInterestOverTime(KEYWORDS_COMERCIO, GEO);
+    const interestPetroleo     = await fetchInterestOverTime(KEYWORDS_PETROLEO, GEO);
+    const interestDigital      = await fetchInterestOverTime(KEYWORDS_DIGITAL, GEO);
 
-    // Related queries — 2 créditos
-    const relatedNeuquen = await fetchRelatedQueries('restaurante Neuquén', 'AR-Q');
-    const relatedAR      = await fetchRelatedQueries('diseño web Argentina', 'AR');
+    // 2 créditos — related queries para los rubros más estratégicos
+    const relatedConstruccion = await fetchRelatedQueries('construcción sustentable Neuquén', GEO);
+    const relatedPetroleo     = await fetchRelatedQueries('servicios petroleros Neuquén', GEO);
+
+    // Total: ~8 créditos/día × 31 días = 248/mes (dentro del free tier de 250)
 
     const snapshot = {
       updatedAt: FieldValue.serverTimestamp(),
       date: new Date().toISOString().slice(0, 10),
       neuquen: {
-        dailyTrends:       neuquenTrends,
-        interestComercios: interestComerciosNQ,
-        interestTrends:    interestTrendsNQ,
-        relatedQueries:    relatedNeuquen,
-        keywordsComercios: BUSINESS_KEYWORDS,
-        keywordsTrends:    TREND_KEYWORDS,
+        dailyTrends:          trendingNQ,
+        interestConstruccion,
+        interestComercio,
+        interestPetroleo,
+        interestDigital,
+        relatedConstruccion,
+        relatedPetroleo,
+        keywordsConstruccion: KEYWORDS_CONSTRUCCION,
+        keywordsComercio:     KEYWORDS_COMERCIO,
+        keywordsPetroleo:     KEYWORDS_PETROLEO,
+        keywordsDigital:      KEYWORDS_DIGITAL,
       },
       argentina: {
-        dailyTrends:       argentinaTrends,
-        interestComercios: interestComerciosAR,
-        interestTrends:    interestTrendsAR,
-        relatedQueries:    relatedAR,
-        keywordsComercios: BUSINESS_KEYWORDS,
-        keywordsTrends:    TREND_KEYWORDS,
+        dailyTrends: trendingAR,
       },
     };
 
     await db.collection('analytics_cache').doc('trends').set(snapshot);
 
-    console.log('[analitica/refresh] ok —', new Date().toISOString(),
-      'NQ:', neuquenTrends.length, 'AR:', argentinaTrends.length);
-
+    console.log('[analitica/refresh] ok —', new Date().toISOString());
     return Response.json({
       success: true,
       date: snapshot.date,
-      neuquenTrends: neuquenTrends.length,
-      argentinaTrends: argentinaTrends.length,
-      creditsUsed: 8,
+      construccion: interestConstruccion.length,
+      comercio:     interestComercio.length,
+      petroleo:     interestPetroleo.length,
+      digital:      interestDigital.length,
+      creditsUsed:  8,
     });
 
   } catch (e) {
