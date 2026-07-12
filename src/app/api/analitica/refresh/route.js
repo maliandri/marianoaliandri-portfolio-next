@@ -119,25 +119,25 @@ async function handler() {
 
     // Total: ~8 créditos/día × 31 días = 248/mes (dentro del free tier de 250)
 
+    // Datos de interés compartidos (geo AR = Argentina, aplica a ambas vistas)
+    const interestData = {
+      interestConstruccion,
+      interestComercio,
+      interestPetroleo,
+      interestDigital,
+      relatedConstruccion,
+      relatedPetroleo,
+      keywordsConstruccion: KEYWORDS_CONSTRUCCION,
+      keywordsComercio:     KEYWORDS_COMERCIO,
+      keywordsPetroleo:     KEYWORDS_PETROLEO,
+      keywordsDigital:      KEYWORDS_DIGITAL,
+    };
+
     const snapshot = {
       updatedAt: FieldValue.serverTimestamp(),
       date: new Date().toISOString().slice(0, 10),
-      neuquen: {
-        dailyTrends:          trendingNQ,
-        interestConstruccion,
-        interestComercio,
-        interestPetroleo,
-        interestDigital,
-        relatedConstruccion,
-        relatedPetroleo,
-        keywordsConstruccion: KEYWORDS_CONSTRUCCION,
-        keywordsComercio:     KEYWORDS_COMERCIO,
-        keywordsPetroleo:     KEYWORDS_PETROLEO,
-        keywordsDigital:      KEYWORDS_DIGITAL,
-      },
-      argentina: {
-        dailyTrends: trendingAR,
-      },
+      neuquen:   { dailyTrends: trendingNQ, ...interestData },
+      argentina: { dailyTrends: trendingAR, ...interestData },
     };
 
     await db.collection('analytics_cache').doc('trends').set(snapshot);
