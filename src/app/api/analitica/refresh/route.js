@@ -6,7 +6,11 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 const SERP = 'https://serpapi.com/search.json';
 const KEY  = process.env.SERPAPI_KEY;
-const GEO  = 'AR-Q'; // Neuquén provincia
+// AR-Q (Neuquén provincia) no tiene volumen suficiente para interest over time.
+// Usamos AR (Argentina) — las keywords ya incluyen "Neuquén" en el texto,
+// así que los datos reflejan búsquedas específicas de la región igual.
+const GEO_TRENDS  = 'AR';
+const GEO_DAILY   = 'AR-Q'; // trending now sí funciona a nivel provincia
 
 // Grupo 1 — Construcción, arquitectura y diseño
 const KEYWORDS_CONSTRUCCION = [
@@ -100,18 +104,18 @@ async function handler() {
     // 2 créditos — trending now AR + NQ
     const [trendingAR, trendingNQ] = await Promise.all([
       fetchTrendingNow('AR'),
-      fetchTrendingNow(GEO),
+      fetchTrendingNow(GEO_DAILY),
     ]);
 
-    // 4 créditos — interest over time por grupo temático (solo Neuquén)
-    const interestConstruccion = await fetchInterestOverTime(KEYWORDS_CONSTRUCCION, GEO);
-    const interestComercio     = await fetchInterestOverTime(KEYWORDS_COMERCIO, GEO);
-    const interestPetroleo     = await fetchInterestOverTime(KEYWORDS_PETROLEO, GEO);
-    const interestDigital      = await fetchInterestOverTime(KEYWORDS_DIGITAL, GEO);
+    // 4 créditos — interest over time con geo AR (keywords ya incluyen "Neuquén")
+    const interestConstruccion = await fetchInterestOverTime(KEYWORDS_CONSTRUCCION, GEO_TRENDS);
+    const interestComercio     = await fetchInterestOverTime(KEYWORDS_COMERCIO,     GEO_TRENDS);
+    const interestPetroleo     = await fetchInterestOverTime(KEYWORDS_PETROLEO,     GEO_TRENDS);
+    const interestDigital      = await fetchInterestOverTime(KEYWORDS_DIGITAL,      GEO_TRENDS);
 
-    // 2 créditos — related queries para los rubros más estratégicos
-    const relatedConstruccion = await fetchRelatedQueries('construcción sustentable Neuquén', GEO);
-    const relatedPetroleo     = await fetchRelatedQueries('servicios petroleros Neuquén', GEO);
+    // 2 créditos — related queries
+    const relatedConstruccion = await fetchRelatedQueries('construcción sustentable Neuquén', GEO_TRENDS);
+    const relatedPetroleo     = await fetchRelatedQueries('servicios petroleros Neuquén',     GEO_TRENDS);
 
     // Total: ~8 créditos/día × 31 días = 248/mes (dentro del free tier de 250)
 
