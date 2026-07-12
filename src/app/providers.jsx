@@ -38,6 +38,7 @@ const TOOLS = [
   { label: 'Análisis de CV', href: '/ats',     icon: '📄', desc: 'Analizá tu CV contra ofertas con IA' },
   { label: 'Radar Web',      href: '/radarweb', icon: '📊', desc: 'Analizá la presencia digital de un sitio' },
   { label: 'Labs',           href: '/labs',     icon: '🧪', desc: 'Experimentos y herramientas en desarrollo' },
+  { label: 'FAQ',            href: '/faq',      icon: '❓', desc: '¿Cuánto cuesta? ¿Cuánto tarda? Todo acá' },
 ];
 
 const SCRAMBLE_POOL = 'abcdefghijklmnopqrstuvwxyz0123456789@#$_-+';

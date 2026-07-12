@@ -11,6 +11,8 @@ export default function Footer() {
     { name: 'Portfolio', href: '/#proyectos', type: 'scroll' },
     { name: 'Servicios', href: '/#servicios', type: 'scroll' },
     { name: 'Presupuesto', href: '/presupuesto', type: 'route' },
+    { name: 'Analítica Regional', href: '/analitica', type: 'route' },
+    { name: 'Preguntas frecuentes', href: '/faq', type: 'route' },
     { name: 'Contacto', href: '/#contact', type: 'scroll' },
   ];
 
