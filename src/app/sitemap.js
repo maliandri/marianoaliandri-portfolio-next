@@ -12,6 +12,7 @@ export default function sitemap() {
     { url: `${BASE_URL}/kpi/`,        lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/radarweb/`,   lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/web/`,        lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE_URL}/keywords/`,   lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/analitica/`,   lastModified: now, changeFrequency: 'daily',   priority: 0.8 },
     { url: `${BASE_URL}/faq/`,        lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE_URL}/stats/`,      lastModified: now, changeFrequency: 'monthly', priority: 0.6 },

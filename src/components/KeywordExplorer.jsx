@@ -1,0 +1,239 @@
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import { PROVINCIAS_AR } from '@/data/localidadesAR';
+import { CATEGORIAS_RUBROS } from '@/data/rubros';
+
+function interesColor(v) {
+  if (v >= 66) return 'bg-emerald-500';
+  if (v >= 33) return 'bg-amber-500';
+  return 'bg-rose-400';
+}
+
+export default function KeywordExplorer() {
+  const [provincia, setProvincia] = useState('Neuquén');
+  const [localidad, setLocalidad] = useState('Neuquén');
+  const [cats, setCats] = useState([]); // vacío = todas
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [data, setData] = useState(null);
+  const [expanded, setExpanded] = useState(null);
+
+  const localidades = useMemo(
+    () => PROVINCIAS_AR.find(p => p.provincia === provincia)?.localidades || [],
+    [provincia]
+  );
+
+  function toggleCat(c) {
+    setCats(prev => (prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]));
+  }
+
+  async function analizar() {
+    if (!localidad) { setError('Elegí una localidad'); return; }
+    setLoading(true); setError(''); setData(null); setExpanded(null);
+    try {
+      // Filtra rubros por categoría si el usuario eligió alguna
+      let rubroIds = null;
+      if (cats.length) {
+        const { RUBROS } = await import('@/data/rubros');
+        rubroIds = RUBROS.filter(r => cats.includes(r.cat)).map(r => r.id);
+      }
+      const res = await fetch('/api/keyword-explorer/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provincia, localidad, rubroIds }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error del servidor');
+      setData(json);
+      if (json.withData === 0) {
+        setError('Google no devolvió sugerencias (posible bloqueo desde el servidor). Probá de nuevo en unos minutos.');
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function exportCSV() {
+    if (!data?.results?.length) return;
+    const rows = [['Rubro', 'Categoria', 'Interes', 'Sugerencias', 'Frases']];
+    data.results.forEach(r => {
+      rows.push([r.label, r.cat, r.interes, r.count, r.suggestions.join(' | ')]);
+    });
+    const csv = rows.map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `keywords-${data.localidad}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const results = data?.results || [];
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-10">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
+          Rubros más buscados en tu zona
+        </h1>
+        <p className="mt-3 text-gray-600 dark:text-gray-400 max-w-xl mx-auto">
+          Descubrí qué servicios busca la gente en Google en cualquier localidad de Argentina.
+          Datos del autocompletado real de Google — gratis y sin registro.
+        </p>
+      </div>
+
+      {/* Panel de control */}
+      <div className="rounded-2xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/60 p-5 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Provincia</span>
+            <select
+              value={provincia}
+              onChange={e => { setProvincia(e.target.value); setLocalidad(''); }}
+              className="mt-1 w-full rounded-lg border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+            >
+              {PROVINCIAS_AR.map(p => (
+                <option key={p.provincia} value={p.provincia}>{p.provincia}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Localidad</span>
+            <select
+              value={localidad}
+              onChange={e => setLocalidad(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+            >
+              <option value="">— Elegí localidad —</option>
+              {localidades.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+          </label>
+        </div>
+
+        {/* Filtro de categorías */}
+        <div className="mt-4">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+            Categorías <span className="text-gray-400">(vacío = todas)</span>
+          </span>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {CATEGORIAS_RUBROS.map(c => {
+              const on = cats.includes(c);
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => toggleCat(c)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium border transition ${
+                    on
+                      ? 'bg-indigo-600 border-indigo-600 text-white'
+                      : 'bg-transparent border-gray-300 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:border-indigo-400'
+                  }`}
+                >
+                  {c}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <button
+          onClick={analizar}
+          disabled={loading || !localidad}
+          className="mt-5 w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 text-sm transition"
+        >
+          {loading ? 'Analizando zona…' : 'Analizar zona'}
+        </button>
+        {loading && (
+          <p className="mt-2 text-center text-xs text-gray-400">
+            Consultando Google por cada rubro, puede tardar unos segundos…
+          </p>
+        )}
+      </div>
+
+      {error && (
+        <p className="mt-4 text-sm text-amber-600 dark:text-amber-400 text-center">{error}</p>
+      )}
+
+      {/* Resultados */}
+      {data && results.length > 0 && (
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+              {data.withData} rubros con demanda en {data.localidad}
+            </h2>
+            <button
+              onClick={exportCSV}
+              className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              ↓ Exportar CSV
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {results.map((r, i) => (
+              <div
+                key={r.id}
+                className="rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/60 overflow-hidden"
+              >
+                <button
+                  onClick={() => setExpanded(expanded === r.id ? null : r.id)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left"
+                >
+                  <span className="text-xs font-mono text-gray-400 w-6">{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                        {r.label}
+                      </span>
+                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300 tabular-nums">
+                        {r.interes}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 rounded-full bg-gray-100 dark:bg-neutral-800 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${interesColor(r.interes)}`}
+                        style={{ width: `${r.interes}%` }}
+                      />
+                    </div>
+                  </div>
+                  {r.count > 0 && (
+                    <span className="text-gray-400 text-xs">{expanded === r.id ? '▲' : '▼'}</span>
+                  )}
+                </button>
+
+                {expanded === r.id && r.suggestions.length > 0 && (
+                  <div className="px-4 pb-3 pt-1 border-t border-gray-100 dark:border-neutral-800">
+                    <p className="text-[11px] uppercase tracking-wide text-gray-400 mt-2 mb-1.5">
+                      Lo que busca la gente
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {r.suggestions.map((s, k) => (
+                        <span
+                          key={k}
+                          className="px-2 py-1 rounded-md bg-gray-100 dark:bg-neutral-800 text-xs text-gray-700 dark:text-gray-300"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-6 text-xs text-gray-400 leading-relaxed">
+            El <strong>interés</strong> (0–100) es relativo a esta consulta: combina cuántas variantes
+            sugiere Google para el rubro en la zona y su relevancia. Un puntaje alto indica más demanda
+            de búsqueda. Es una estimación basada en el autocompletado de Google, no un volumen exacto.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
