@@ -162,6 +162,10 @@ GEMINI_API_KEY                      ← Google Cloud API key sin restricciones (
 
 # MercadoPago
 MERCADOPAGO_ACCESS_TOKEN
+MERCADOPAGO_WEBHOOK_SECRET           ← Clave secreta del webhook (Tus Integraciones → Webhooks).
+                                       Valida la firma x-signature (HMAC-SHA256) en payment-webhook
+                                       y subscription-webhook. Ver src/lib/mpWebhook.js
+NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY   ← Public key para el SDK del browser
 
 # LinkedIn OAuth
 LINKEDIN_CLIENT_ID

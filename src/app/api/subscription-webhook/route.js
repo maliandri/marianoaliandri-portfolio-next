@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { MercadoPagoConfig, PreApproval } from 'mercadopago';
 import { setPlan } from '@/lib/entitlements';
 import { PLANS } from '@/data/plans';
+import { verifyMpSignature } from '@/lib/mpWebhook';
 
 // Webhook de MercadoPago para suscripciones (PreApproval).
 // Configurar en MP → Webhooks el topic "Suscripciones" apuntando a:
@@ -11,7 +12,14 @@ import { PLANS } from '@/data/plans';
 export async function POST(request) {
   try {
     const url = new URL(request.url);
-    const body = await request.json().catch(() => ({}));
+    const rawBody = await request.text();
+    let body = {};
+    try { body = rawBody ? JSON.parse(rawBody) : {}; } catch { body = {}; }
+
+    // Validar firma x-signature de MercadoPago (evita webhooks falsos que activen planes)
+    if (!verifyMpSignature(request, body)) {
+      return Response.json({ error: 'Firma inválida' }, { status: 401 });
+    }
 
     const type = body?.type || url.searchParams.get('type') || body?.topic || url.searchParams.get('topic');
     const preapprovalId =
