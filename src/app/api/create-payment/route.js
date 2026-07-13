@@ -46,7 +46,7 @@ export async function POST(request) {
       },
       auto_return: 'approved',
       metadata: { ...(metadata || {}), external_reference: externalReference },
-      notification_url: `${baseUrl}/api/payment-webhook`,
+      notification_url: `${baseUrl}/api/payment-webhook/`,
     };
 
     const response = await preference.create({ body: preferenceData });
