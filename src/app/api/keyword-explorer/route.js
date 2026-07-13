@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 import { RUBROS } from '@/data/rubros';
+import { getUserFromRequest } from '@/lib/authServer';
+import { consumeSearch } from '@/lib/entitlements';
 
 // Consulta el autocompletado de Google (mismo motor que sugiere mientras tipeás).
 // client=chrome devuelve google:suggestrelevance → nos sirve para rankear.
@@ -74,10 +76,34 @@ async function runPool(items, worker, concurrency = 6) {
 
 export async function POST(request) {
   try {
+    // 1) Autenticación: requiere idToken de Firebase (no se puede evadir desde el cliente)
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return Response.json({ error: 'Necesitás iniciar sesión', reason: 'auth' }, { status: 401 });
+    }
+
     const body = await request.json().catch(() => ({}));
     const localidad = (body?.localidad || '').trim();
     if (!localidad) {
       return Response.json({ error: 'Falta la localidad' }, { status: 400 });
+    }
+
+    // 2) Cuota: consume una búsqueda del plan del usuario (transacción atómica)
+    const quota = await consumeSearch(user.uid);
+    if (!quota.allowed) {
+      const status = quota.reason === 'db_unavailable' ? 500 : 402;
+      return Response.json(
+        {
+          error:
+            quota.reason === 'limit'
+              ? 'Alcanzaste el límite de búsquedas de tu plan este mes'
+              : 'Usaste tu búsqueda gratis. Suscribite para seguir buscando',
+          reason: quota.reason,
+          plan: quota.plan,
+          remaining: 0,
+        },
+        { status }
+      );
     }
 
     // Permite filtrar por ids de rubro; si no vienen, analiza todos.
@@ -106,6 +132,8 @@ export async function POST(request) {
       total: ranked.length,
       withData,
       results: ranked,
+      plan: quota.plan,
+      remaining: quota.remaining, // null = ilimitado
       generatedAt: new Date().toISOString(),
     });
   } catch (e) {

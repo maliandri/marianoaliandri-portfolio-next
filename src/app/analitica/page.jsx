@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import TrendsTab from '@/components/analitica/TrendsTab';
-import ZonasTab  from '@/components/analitica/ZonasTab';
+import TrendsTab   from '@/components/analitica/TrendsTab';
+import ZonasTab    from '@/components/analitica/ZonasTab';
+import KeywordsTab from '@/components/analitica/KeywordsTab';
+import PlanBadge   from '@/components/analitica/PlanBadge';
+import AuthGate    from '@/components/AuthGate';
 
 const REGIONS = [
   { id: 'neuquen',   label: 'Neuquén',   flag: '📍' },
@@ -12,6 +15,7 @@ const REGIONS = [
 const TABS = [
   { id: 'tendencias', label: 'Tendencias',       icon: '📈' },
   { id: 'zonas',      label: 'Reportes de Zona', icon: '🗺️' },
+  { id: 'keywords',   label: 'Rubros buscados',  icon: '🔍' },
 ];
 
 export default function AnaliticaPage() {
@@ -50,8 +54,16 @@ export default function AnaliticaPage() {
             )}
           </p>
         )}
+
+        {/* Plan + cuota del usuario (solo si está logueado) */}
+        <PlanBadge />
       </div>
 
+      {/* Todo lo de abajo requiere registro */}
+      <AuthGate
+        title="Analítica Regional"
+        subtitle="Registrate gratis para acceder a tendencias, reportes de zona y el buscador de rubros. Incluye 1 búsqueda sin cargo."
+      >
       {/* Nav: tabs + selector de región */}
       <div className="max-w-6xl mx-auto px-4 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Tabs */}
@@ -94,9 +106,11 @@ export default function AnaliticaPage() {
           <>
             {tab === 'tendencias' && <TrendsTab trends={data?.trends} region={region} />}
             {tab === 'zonas'      && <ZonasTab  auditorias={data?.auditorias || []} />}
+            {tab === 'keywords'   && <KeywordsTab />}
           </>
         )}
       </div>
+      </AuthGate>
     </main>
   );
 }

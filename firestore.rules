@@ -8,6 +8,14 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Planes y cuota de búsquedas — el usuario puede LEER su propio entitlement,
+    // pero SOLO el Admin SDK (server) puede escribirlo. Esto evita que un usuario
+    // resetee su contador de búsquedas o se auto-asigne un plan desde el cliente.
+    match /entitlements/{uid} {
+      allow read:  if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // Reglas para órdenes
     match /orders/{orderId} {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;

@@ -3,6 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { PROVINCIAS_AR } from '@/data/localidadesAR';
 import { CATEGORIAS_RUBROS } from '@/data/rubros';
+import { useAuthUser } from '@/hooks/useAuthUser';
+import PlansModal from '@/components/PlansModal';
 
 function interesColor(v) {
   if (v >= 66) return 'bg-emerald-500';
@@ -10,7 +12,7 @@ function interesColor(v) {
   return 'bg-rose-400';
 }
 
-export default function KeywordExplorer() {
+export default function KeywordExplorer({ embedded = false }) {
   const [provincia, setProvincia] = useState('Neuquén');
   const [localidad, setLocalidad] = useState('Neuquén');
   const [cats, setCats] = useState([]); // vacío = todas
@@ -18,6 +20,11 @@ export default function KeywordExplorer() {
   const [error, setError] = useState('');
   const [data, setData] = useState(null);
   const [expanded, setExpanded] = useState(null);
+  const [showPlans, setShowPlans] = useState(false);
+
+  const { user, getIdToken, login } = useAuthUser();
+  const remaining = data?.remaining; // undefined si aún no buscó; null = ilimitado
+  const plan = data?.plan;
 
   const localidades = useMemo(
     () => PROVINCIAS_AR.find(p => p.provincia === provincia)?.localidades || [],
@@ -30,6 +37,15 @@ export default function KeywordExplorer() {
 
   async function analizar() {
     if (!localidad) { setError('Elegí una localidad'); return; }
+
+    // Requiere sesión: si no hay usuario, disparamos el login
+    const token = await getIdToken();
+    if (!token) {
+      setError('Iniciá sesión para buscar');
+      login();
+      return;
+    }
+
     setLoading(true); setError(''); setData(null); setExpanded(null);
     try {
       // Filtra rubros por categoría si el usuario eligió alguna
@@ -40,11 +56,20 @@ export default function KeywordExplorer() {
       }
       const res = await fetch('/api/keyword-explorer/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ provincia, localidad, rubroIds }),
       });
       const json = await res.json();
+
+      if (res.status === 401) { setError('Iniciá sesión para buscar'); login(); return; }
+      if (res.status === 402) {
+        // Límite alcanzado o búsqueda gratis consumida → mostrar planes
+        setError(json.error || 'Alcanzaste el límite de tu plan');
+        setShowPlans(true);
+        return;
+      }
       if (!res.ok) throw new Error(json.error || 'Error del servidor');
+
       setData(json);
       if (json.withData === 0) {
         setError('Google no devolvió sugerencias (posible bloqueo desde el servidor). Probá de nuevo en unos minutos.');
@@ -75,17 +100,19 @@ export default function KeywordExplorer() {
   const results = data?.results || [];
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
-          Rubros más buscados en tu zona
-        </h1>
-        <p className="mt-3 text-gray-600 dark:text-gray-400 max-w-xl mx-auto">
-          Descubrí qué servicios busca la gente en Google en cualquier localidad de Argentina.
-          Datos del autocompletado real de Google — gratis y sin registro.
-        </p>
-      </div>
+    <div className={embedded ? 'max-w-3xl' : 'max-w-3xl mx-auto px-4 pt-24 pb-10'}>
+      {/* Header (solo en la página standalone; en Analítica el hero ya existe) */}
+      {!embedded && (
+        <div className="text-center mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
+            Rubros más buscados en tu zona
+          </h1>
+          <p className="mt-3 text-gray-600 dark:text-gray-400 max-w-xl mx-auto">
+            Descubrí qué servicios busca la gente en Google en cualquier localidad de Argentina.
+            Datos del autocompletado real de Google — gratis y sin registro.
+          </p>
+        </div>
+      )}
 
       {/* Panel de control */}
       <div className="rounded-2xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/60 p-5 shadow-sm">
@@ -151,6 +178,21 @@ export default function KeywordExplorer() {
         {loading && (
           <p className="mt-2 text-center text-xs text-gray-400">
             Consultando Google por cada rubro, puede tardar unos segundos…
+          </p>
+        )}
+
+        {/* Cuota restante tras una búsqueda */}
+        {remaining !== undefined && (
+          <p className="mt-3 text-center text-xs text-gray-500 dark:text-gray-400">
+            {remaining === null ? (
+              <span className="text-emerald-500">Plan Full · búsquedas ilimitadas</span>
+            ) : remaining > 0 ? (
+              <>Te {remaining === 1 ? 'queda' : 'quedan'} <strong>{remaining}</strong> {remaining === 1 ? 'búsqueda' : 'búsquedas'}{plan === 'free' ? '' : ' este mes'}</>
+            ) : (
+              <button onClick={() => setShowPlans(true)} className="text-indigo-500 hover:underline font-medium">
+                Sin búsquedas disponibles — Ver planes
+              </button>
+            )}
           </p>
         )}
       </div>
@@ -234,6 +276,13 @@ export default function KeywordExplorer() {
           </p>
         </div>
       )}
+
+      <PlansModal
+        open={showPlans}
+        onClose={() => setShowPlans(false)}
+        getIdToken={getIdToken}
+        currentPlan={plan || 'free'}
+      />
     </div>
   );
 }

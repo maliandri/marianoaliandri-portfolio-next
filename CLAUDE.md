@@ -63,6 +63,11 @@ src/
         send-biz-email/ # POST: Gemini genera email personalizado + Resend lo envia al negocio
       presupuesto/      # POST: guarda solicitud en Firestore col "presupuestos" + notifica admin
       zone-caption/     # Genera caption de zona con Gemini
+      keyword-explorer/ # POST: rankea rubros por demanda (Google autocomplete) — requiere idToken + cuota
+      me/               # GET: plan y cuota del usuario autenticado (Authorization Bearer)
+      subscribe/        # POST: crea suscripcion mensual MercadoPago (PreApproval) → init_point
+      subscription-webhook/ # Webhook MP suscripciones → activa plan en "entitlements" (URL con barra!)
+      resend-webhook/   # Webhook de Resend (email.sent/delivered/opened/bounced) → col "sent_emails"
     auditorias/         # Paginas publicas de auditorias SEO (server components, force-dynamic)
       page.jsx          # Lista de auditorias — lee Firestore via getDb() directamente
       [id]/
@@ -229,6 +234,19 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   - `/kpi` — Radar KPI interactivo
   - `/radarweb` — Radar Web
   - `/stats` — Dashboard de estadisticas (GSC, Firebase, visitas)
+- **Analitica** (`/analitica`) — **PROTEGIDA CON REGISTRO + PLANES DE PAGO**:
+  - Toda la seccion requiere login (Firebase Auth). Tabs: Tendencias, Reportes de Zona, **Rubros buscados**
+  - Tab "Rubros buscados" = Keyword Explorer: elegis provincia/localidad de Argentina y ranquea los
+    rubros por demanda de busqueda via **autocompletado de Google** (endpoint publico gratuito, NO
+    usa Places API ni cuota). Devuelve las frases long-tail reales que busca la gente + export CSV
+  - Muro de login (`AuthGate`) + badge de plan/cuota (`PlanBadge`) en el header
+  - Planes (`src/data/plans.js`): Free (1 busqueda unica) / Basico $4999 (10/mes) / Full $14999 (ilimitado)
+  - Cobro: **MercadoPago PreApproval** (suscripcion mensual automatica) via `/api/subscribe` →
+    `/api/subscription-webhook` activa el plan en `entitlements`
+  - Enforcement server-side en `/api/keyword-explorer`: verifica idToken + consume cuota atomica
+    (transaccion Firestore). Sin token → 401. Cuota agotada → 402 → abre `PlansModal`. **NO evadible**
+- **Keywords** (`/keywords`): landing publica de SEO del buscador de rubros (funnel). La accion
+  "Analizar" pasa por el mismo gating (login + cuota) via `/api/keyword-explorer`
 - **Admin** (`/admin`): Panel interno con tabs: Stats, Productos, Publicar Redes, Reels, Proyectos GSC, Auditorias, Presupuestos
 - **Publicador de redes** (admin): envia POST a Make.com → Make llama a Gemini y publica en LinkedIn/Instagram/Facebook. Logos de servicios en Cloudinary (`service-logos/`)
 - **Generador de reels Canvas** (admin): flujo de 5 pasos:
@@ -260,7 +278,12 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 | `auditorias` | Reportes SEO publicos (con email para admin, sin dir/tel) | `/api/auditorias` POST |
 | `presupuestos` | Solicitudes de presupuesto con servicios seleccionados | `/api/presupuesto` POST |
 | `proyectos` | Descripcion y orden de proyectos GSC | Admin tab Proyectos |
+| `entitlements` | Plan y cuota de busquedas de keywords por usuario | **Solo Admin SDK** (server) |
 | `likes` / `visitas` | Contadores anonimos | Client-side |
+
+**IMPORTANTE `entitlements/{uid}`**: el cliente NO puede escribirla (regla `write: if false`).
+El plan y el contador de busquedas solo los escribe el Admin SDK desde el server. Esto evita que
+un usuario se auto-asigne un plan o resetee su cuota. Ver `src/lib/entitlements.js`.
 
 ---
 
@@ -329,6 +352,18 @@ Reply-to siempre apunta a `marianoaliandri@gmail.com`.
 ---
 
 ## Que NO tocar o romper
+
+- **`trailingSlash: true` en `next.config.mjs` + WEBHOOKS**: Next.js responde **308 redirect**
+  a cualquier POST sin barra final (`/api/x` → `/api/x/`). Los webhooks externos NO reenvian el
+  POST al seguir el redirect → quedan como Failed con body `Redirecting...`. **Regla: toda URL de
+  webhook registrada en un servicio externo (Resend, MercadoPago, Make.com) DEBE terminar en `/`.**
+  Ya paso con Resend (`/api/resend-webhook/`). Aplica igual a `/api/subscription-webhook/`.
+
+- **Buscador de Keywords / Analitica — enforcement server-side**: el limite de busquedas se
+  aplica en `/api/keyword-explorer` (verifica idToken con `src/lib/authServer.js` + consume cuota
+  atomica en `src/lib/entitlements.js`). NUNCA confiar solo en el cliente. La coleccion
+  `entitlements/{uid}` es `write: if false` en las reglas — solo el Admin SDK la escribe. El plan
+  y cuota NO van en `users/{uid}` (que si es escribible por el dueño).
 
 - **`src/app/layout.jsx` — dark mode script**: el script inline en `<head>` es
   intencional para evitar FOUC. No moverlo ni eliminarlo. Tambien contiene el favicon
