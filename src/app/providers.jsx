@@ -21,12 +21,10 @@ const AuthButton  = dynamic(() => import('@/components/auth/AuthButton'),  { ssr
 const KpiRadar = dynamic(() => import('@/components/tools/KpiRadar'), { ssr: false });
 const DashboardStats = dynamic(() => import('@/components/tools/DashboardStats'), { ssr: false });
 const CVATSUploader = dynamic(() => import('@/components/tools/CVATSUploader'), { ssr: false });
-const ROICalculator = dynamic(() => import('@/components/tools/Calculadora'), { ssr: false });
-const WebCalculator = dynamic(() => import('@/components/tools/CalculadoraWeb'), { ssr: false });
 const RadarWeb = dynamic(() => import('@/components/tools/RadarWeb'), { ssr: false });
 const LabsTool = dynamic(() => import('@/components/tools/LabsTool'), { ssr: false });
 
-const TOOL_PATHS = ['/web', '/roi', '/stats', '/ats', '/kpi', '/radarweb', '/labs'];
+const TOOL_PATHS = ['/stats', '/ats', '/kpi', '/radarweb', '/labs'];
 const NAV_LINKS = [
   { label: 'Proyectos',   href: '/#proyectos' },
   { label: 'Contacto',    href: '/#contact' },
@@ -262,8 +260,6 @@ function AppChromeInner({ children }) {
       <Suspense fallback={null}>
         {pathname === '/stats' && <DashboardStats isOpen={true} onClose={closeTool} hideFloatingButton={true} />}
         {pathname === '/ats' && <CVATSUploader isOpen={true} onClose={closeTool} hideFloatingButton={true} />}
-        {pathname === '/roi' && <ROICalculator isOpen={true} onClose={closeTool} hideFloatingButton={true} />}
-        {pathname === '/web' && <WebCalculator isOpen={true} onClose={closeTool} hideFloatingButton={true} />}
         {pathname === '/kpi' && <KpiRadar isOpen={true} onClose={closeTool} hideFloatingButton={true} />}
         {pathname === '/radarweb' && <RadarWeb isOpen={true} onClose={closeTool} hideFloatingButton={true} />}
         {pathname === '/labs' && <LabsTool isOpen={true} onClose={closeTool} hideFloatingButton={true} />}
