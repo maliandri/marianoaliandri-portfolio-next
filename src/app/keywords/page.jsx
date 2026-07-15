@@ -1,4 +1,4 @@
-import KeywordExplorer from '@/components/KeywordExplorer';
+import KeywordExplorer from '@/components/audit/KeywordExplorer';
 
 export const metadata = {
   title: 'Rubros más buscados en tu zona | Explorador de Keywords locales',

@@ -9,22 +9,22 @@ import Link from 'next/link';
 import { queryClient } from '@/utils/queryClient';
 
 // UI Components (critical - load immediately)
-import ThemeToggle from '@/components/ThemeToggle';
-import Footer from '@/components/Footer';
-import WhatsAppButton from '@/components/WhatsAppButton';
+import ThemeToggle from '@/components/ui/ThemeToggle';
+import Footer from '@/components/ui/Footer';
+import WhatsAppButton from '@/components/ui/WhatsAppButton';
 
 // Firebase-dependent components — deferred to keep Firebase out of the critical render path
-const AIChatBot   = dynamic(() => import('@/components/AIChatBot'),   { ssr: false, loading: () => null });
-const AuthButton  = dynamic(() => import('@/components/AuthButton'),  { ssr: false, loading: () => null });
+const AIChatBot   = dynamic(() => import('@/components/social/AIChatBot'),   { ssr: false, loading: () => null });
+const AuthButton  = dynamic(() => import('@/components/auth/AuthButton'),  { ssr: false, loading: () => null });
 
 // Tools: ssr:false evita que se pre-rendericen en servidor (usan window/browser APIs)
-const KpiRadar = dynamic(() => import('@/components/KpiRadar'), { ssr: false });
-const DashboardStats = dynamic(() => import('@/components/DashboardStats'), { ssr: false });
-const CVATSUploader = dynamic(() => import('@/components/CVATSUploader'), { ssr: false });
-const ROICalculator = dynamic(() => import('@/components/Calculadora'), { ssr: false });
-const WebCalculator = dynamic(() => import('@/components/CalculadoraWeb'), { ssr: false });
-const RadarWeb = dynamic(() => import('@/components/RadarWeb'), { ssr: false });
-const LabsTool = dynamic(() => import('@/components/LabsTool'), { ssr: false });
+const KpiRadar = dynamic(() => import('@/components/tools/KpiRadar'), { ssr: false });
+const DashboardStats = dynamic(() => import('@/components/tools/DashboardStats'), { ssr: false });
+const CVATSUploader = dynamic(() => import('@/components/tools/CVATSUploader'), { ssr: false });
+const ROICalculator = dynamic(() => import('@/components/tools/Calculadora'), { ssr: false });
+const WebCalculator = dynamic(() => import('@/components/tools/CalculadoraWeb'), { ssr: false });
+const RadarWeb = dynamic(() => import('@/components/tools/RadarWeb'), { ssr: false });
+const LabsTool = dynamic(() => import('@/components/tools/LabsTool'), { ssr: false });
 
 const TOOL_PATHS = ['/web', '/roi', '/stats', '/ats', '/kpi', '/radarweb', '/labs'];
 const NAV_LINKS = [

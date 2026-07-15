@@ -1,6 +1,6 @@
 'use client';
 
-import KeywordExplorer from '@/components/KeywordExplorer';
+import KeywordExplorer from '@/components/audit/KeywordExplorer';
 
 // Envuelve el KeywordExplorer forzando el tema oscuro (.dark) para que combine
 // con el fondo negro del panel de Analítica, independientemente del tema global.

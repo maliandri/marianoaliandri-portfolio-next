@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { PROVINCIAS_AR } from '@/data/localidadesAR';
 import { CATEGORIAS_RUBROS } from '@/data/rubros';
 import { useAuthUser } from '@/hooks/useAuthUser';
-import PlansModal from '@/components/PlansModal';
+import PlansModal from '@/components/payments/PlansModal';
 
 function interesColor(v) {
   if (v >= 66) return 'bg-emerald-500';

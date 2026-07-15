@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { db, firebaseQA } from '../utils/firebaseservice';
-import SocialMediaDashboard from '../components/SocialMediaDashboard';
+import SocialMediaDashboard from '../components/social/SocialMediaDashboard';
 import SocialPublisher from '../components/admin/SocialPublisher';
 import CanvasReelGenerator from '../components/admin/CanvasReelGenerator';
 import CronScheduler from '../components/admin/CronScheduler';
@@ -16,7 +16,7 @@ import BenefitsEditor from '../components/admin/BenefitsEditor';
 import AuditoriasManager from '../components/admin/AuditoriasManager';
 import AuditRequestsManager from '../components/admin/AuditRequestsManager';
 import SentEmailsManager from '../components/admin/SentEmailsManager';
-import LeadFinderPanel from '../components/LeadFinderPanel';
+import LeadFinderPanel from '../components/audit/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 
 const ADMIN_TABS = [

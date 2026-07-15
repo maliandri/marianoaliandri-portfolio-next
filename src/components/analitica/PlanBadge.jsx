@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { PLANS } from '@/data/plans';
-import PlansModal from '@/components/PlansModal';
+import PlansModal from '@/components/payments/PlansModal';
 
 // Badge de plan + búsquedas restantes + botón "Ver planes", para el header de Analítica.
 // Se autoconsulta /api/me. No renderiza nada si el usuario no está logueado.

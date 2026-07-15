@@ -5,7 +5,7 @@ import TrendsTab   from '@/components/analitica/TrendsTab';
 import ZonasTab    from '@/components/analitica/ZonasTab';
 import KeywordsTab from '@/components/analitica/KeywordsTab';
 import PlanBadge   from '@/components/analitica/PlanBadge';
-import AuthGate    from '@/components/AuthGate';
+import AuthGate    from '@/components/auth/AuthGate';
 
 const REGIONS = [
   { id: 'neuquen',   label: 'Neuquén',   flag: '📍' },

@@ -1,7 +1,7 @@
-import HeroNew from '@/components/HeroNew';
-import ProyectosGrid from '@/components/ProyectosGrid';
-import CapabilitiesCarousel from '@/components/CapabilitiesCarousel';
-import Contact from '@/components/Contact';
+import HeroNew from '@/components/home/HeroNew';
+import ProyectosGrid from '@/components/home/ProyectosGrid';
+import CapabilitiesCarousel from '@/components/home/CapabilitiesCarousel';
+import Contact from '@/components/home/Contact';
 
 export const metadata = {
   title: 'Mariano Aliandri | Sitios web que aparecen en Google',
