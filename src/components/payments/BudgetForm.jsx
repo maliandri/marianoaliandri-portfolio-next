@@ -7,113 +7,113 @@ const SERVICES = [
   {
     category: '🌐 Desarrollo Web',
     items: [
-      { id: 'landing',      label: 'Landing Page',          desc: 'Página de conversión de 1 sección, diseño custom, mobile-first' },
-      { id: 'web_business', label: 'Sitio Multi-página',    desc: 'Hasta 8 páginas, menú, formulario de contacto, SEO incluido' },
-      { id: 'ecommerce',    label: 'E-commerce',            desc: 'Catálogo, carrito, checkout MercadoPago, gestión de stock' },
-      { id: 'webapp',       label: 'Web App / Portal',      desc: 'Autenticación, dashboard, roles de usuario, CRUD completo' },
-      { id: 'blog',         label: 'Blog / Noticias',       desc: 'CMS liviano, categorías, RSS, SEO automático por artículo' },
-      { id: 'memberships',  label: 'Membresías / Acceso',   desc: 'Registro, login, contenido protegido, suscripciones' },
+      { id: 'landing',      label: 'Landing Page',          desc: 'Página de conversión de 1 sección, diseño custom, mobile-first',            price: 300  },
+      { id: 'web_business', label: 'Sitio Multi-página',    desc: 'Hasta 8 páginas, menú, formulario de contacto, SEO incluido',              price: 700  },
+      { id: 'ecommerce',    label: 'E-commerce',            desc: 'Catálogo, carrito, checkout MercadoPago, gestión de stock',                price: 1400 },
+      { id: 'webapp',       label: 'Web App / Portal',      desc: 'Autenticación, dashboard, roles de usuario, CRUD completo',                price: 2200 },
+      { id: 'blog',         label: 'Blog / Noticias',       desc: 'CMS liviano, categorías, RSS, SEO automático por artículo',                price: 450  },
+      { id: 'memberships',  label: 'Membresías / Acceso',   desc: 'Registro, login, contenido protegido, suscripciones',                      price: 900  },
     ],
   },
   {
     category: '⚙️ Funcionalidades',
     items: [
-      { id: 'contact_form', label: 'Formulario de contacto', desc: 'Con validación, anti-spam, notificación por email automática' },
-      { id: 'booking',      label: 'Reservas / Turnos',      desc: 'Calendario, disponibilidad en tiempo real, confirmación por email' },
-      { id: 'payments_mp',  label: 'Pagos MercadoPago',      desc: 'Preferencias, webhooks, confirmación automática, historial' },
-      { id: 'user_auth',    label: 'Registro de usuarios',   desc: 'Firebase Auth, Google login, perfil de usuario editable' },
-      { id: 'ai_chatbot',   label: 'Chatbot con IA',         desc: 'Gemini 2.5 Flash, entrenado con información de tu negocio' },
-      { id: 'search',       label: 'Búsqueda interna',       desc: 'Full-text search sobre contenido del sitio en tiempo real' },
-      { id: 'analytics_ga', label: 'Analytics integrado',    desc: 'Google Analytics 4, Search Console, eventos y conversiones' },
-      { id: 'inventory',    label: 'Inventario / Stock',     desc: 'Alta/baja de productos, alertas de stock mínimo, reportes' },
-      { id: 'crm_basic',    label: 'CRM básico',             desc: 'Registro de leads, estados, notas e historial de contacto' },
-      { id: 'multilang',    label: 'Multi-idioma',           desc: 'ES/EN, i18n con Next.js, URLs localizadas por idioma' },
+      { id: 'contact_form', label: 'Formulario de contacto', desc: 'Con validación, anti-spam, notificación por email automática',            price: 80   },
+      { id: 'booking',      label: 'Reservas / Turnos',      desc: 'Calendario, disponibilidad en tiempo real, confirmación por email',       price: 350  },
+      { id: 'payments_mp',  label: 'Pagos MercadoPago',      desc: 'Preferencias, webhooks, confirmación automática, historial',             price: 250  },
+      { id: 'user_auth',    label: 'Registro de usuarios',   desc: 'Firebase Auth, Google login, perfil de usuario editable',                price: 220  },
+      { id: 'ai_chatbot',   label: 'Chatbot con IA',         desc: 'Gemini 2.5 Flash, entrenado con información de tu negocio',              price: 480  },
+      { id: 'search',       label: 'Búsqueda interna',       desc: 'Full-text search sobre contenido del sitio en tiempo real',              price: 180  },
+      { id: 'analytics_ga', label: 'Analytics integrado',    desc: 'Google Analytics 4, Search Console, eventos y conversiones',             price: 100  },
+      { id: 'inventory',    label: 'Inventario / Stock',     desc: 'Alta/baja de productos, alertas de stock mínimo, reportes',              price: 380  },
+      { id: 'crm_basic',    label: 'CRM básico',             desc: 'Registro de leads, estados, notas e historial de contacto',              price: 500  },
+      { id: 'multilang',    label: 'Multi-idioma',           desc: 'ES/EN, i18n con Next.js, URLs localizadas por idioma',                   price: 280  },
     ],
   },
   {
     category: '🔍 SEO & Posicionamiento',
     items: [
-      { id: 'seo_technical', label: 'SEO técnico completo',      desc: 'Sitemap, robots.txt, canonical, Core Web Vitals optimizado' },
-      { id: 'seo_meta',      label: 'Metadata & Open Graph',     desc: 'Titles, descriptions, OG tags para compartir en redes sociales' },
-      { id: 'seo_schema',    label: 'Schema markup JSON-LD',     desc: 'Rich snippets para Google: negocio local, servicios, FAQ' },
-      { id: 'seo_gsc',       label: 'Google Search Console',     desc: 'Alta, verificación, monitoreo de posiciones y clics' },
-      { id: 'seo_speed',     label: 'Optimización de velocidad', desc: 'Imágenes, lazy load, CDN Cloudinary, PageSpeed score 90+' },
+      { id: 'seo_technical', label: 'SEO técnico completo',      desc: 'Sitemap, robots.txt, canonical, Core Web Vitals optimizado',         price: 350  },
+      { id: 'seo_meta',      label: 'Metadata & Open Graph',     desc: 'Titles, descriptions, OG tags para compartir en redes sociales',     price: 120  },
+      { id: 'seo_schema',    label: 'Schema markup JSON-LD',     desc: 'Rich snippets para Google: negocio local, servicios, FAQ',           price: 120  },
+      { id: 'seo_gsc',       label: 'Google Search Console',     desc: 'Alta, verificación, monitoreo de posiciones y clics',                price: 90   },
+      { id: 'seo_speed',     label: 'Optimización de velocidad', desc: 'Imágenes, lazy load, CDN Cloudinary, PageSpeed score 90+',          price: 250  },
     ],
   },
   {
     category: '📱 Redes Sociales & Automatización',
     items: [
-      { id: 'social_instagram', label: 'Auto-publicación Instagram', desc: 'Webhook → Make.com → Instagram Graph API, fotos y videos' },
-      { id: 'social_facebook',  label: 'Auto-publicación Facebook',  desc: 'Integración Graph API, posts de foto, texto y álbumes' },
-      { id: 'social_linkedin',  label: 'Auto-publicación LinkedIn',  desc: 'OAuth, posts de artículos, actualizaciones y estadísticas' },
-      { id: 'reel_generator',   label: 'Generador de reels',         desc: 'Canvas 1080x1920, voz TTS, música, upload automático a IG' },
-      { id: 'post_generator',   label: 'Publicaciones con IA',       desc: 'Gemini genera captions con datos reales de tu negocio' },
-      { id: 'cron_social',      label: 'Programador de publicaciones',desc: 'Calendario semanal, publicación automática por horario' },
-      { id: 'make_automations', label: 'Automatizaciones Make.com',  desc: 'Flujos multi-paso, routers condicionales, módulos conectados' },
+      { id: 'social_instagram', label: 'Auto-publicación Instagram', desc: 'Webhook → Make.com → Instagram Graph API, fotos y videos',       price: 350  },
+      { id: 'social_facebook',  label: 'Auto-publicación Facebook',  desc: 'Integración Graph API, posts de foto, texto y álbumes',         price: 300  },
+      { id: 'social_linkedin',  label: 'Auto-publicación LinkedIn',  desc: 'OAuth, posts de artículos, actualizaciones y estadísticas',     price: 300  },
+      { id: 'reel_generator',   label: 'Generador de reels',         desc: 'Canvas 1080x1920, voz TTS, música, upload automático a IG',     price: 600  },
+      { id: 'post_generator',   label: 'Publicaciones con IA',       desc: 'Gemini genera captions con datos reales de tu negocio',         price: 250  },
+      { id: 'cron_social',      label: 'Programador de publicaciones',desc: 'Calendario semanal, publicación automática por horario',       price: 350  },
+      { id: 'make_automations', label: 'Automatizaciones Make.com',  desc: 'Flujos multi-paso, routers condicionales, módulos conectados',  price: 280  },
     ],
   },
   {
     category: '🏗️ Infraestructura & Deploy',
     items: [
-      { id: 'domain',       label: 'Registro de dominio',      desc: '.com.ar, .com, configuración DNS completa, redirección www' },
-      { id: 'email_setup',  label: 'Correo profesional',       desc: 'Zoho/Gmail con tu dominio, MX records, SPF/DKIM anti-spam' },
-      { id: 'ssl_cdn',      label: 'SSL + CDN imágenes',       desc: 'HTTPS automático, Cloudinary para imágenes súper rápidas' },
-      { id: 'deploy_vercel',label: 'Deploy en Vercel',         desc: 'CI/CD automático desde GitHub, previews por rama' },
-      { id: 'whatsapp_api', label: 'Gateway WhatsApp',         desc: 'Mensajes automáticos desde panel admin, notificaciones' },
+      { id: 'domain',       label: 'Registro de dominio',      desc: '.com.ar, .com, configuración DNS completa, redirección www',          price: 30   },
+      { id: 'email_setup',  label: 'Correo profesional',       desc: 'Zoho/Gmail con tu dominio, MX records, SPF/DKIM anti-spam',          price: 90   },
+      { id: 'ssl_cdn',      label: 'SSL + CDN imágenes',       desc: 'HTTPS automático, Cloudinary para imágenes súper rápidas',           price: 100  },
+      { id: 'deploy_vercel',label: 'Deploy en Vercel',         desc: 'CI/CD automático desde GitHub, previews por rama',                   price: 120  },
+      { id: 'whatsapp_api', label: 'Gateway WhatsApp',         desc: 'Mensajes automáticos desde panel admin, notificaciones',             price: 400  },
     ],
   },
   {
     category: '🗄️ Base de Datos & Backend',
     items: [
-      { id: 'db_firestore',    label: 'Firebase Firestore',      desc: 'NoSQL en tiempo real, reglas de seguridad, queries avanzados' },
-      { id: 'db_supabase',     label: 'Supabase PostgreSQL',     desc: 'SQL, Row Level Security, API REST auto-generada, Auth' },
-      { id: 'db_mongodb',      label: 'MongoDB Atlas',           desc: 'Documentos flexibles, índices compuestos, agregaciones' },
-      { id: 'api_custom',      label: 'API Routes custom',       desc: 'Endpoints serverless en Next.js, autenticación JWT' },
-      { id: 'backend_nodejs',  label: 'Backend Node.js/Express', desc: 'API REST completa con autenticación, Mongoose, middleware' },
-      { id: 'webhooks',        label: 'Webhooks e integraciones',desc: 'Conexión con servicios externos, Make.com, Zapier, N8N' },
+      { id: 'db_firestore',    label: 'Firebase Firestore',      desc: 'NoSQL en tiempo real, reglas de seguridad, queries avanzados',      price: 180  },
+      { id: 'db_supabase',     label: 'Supabase PostgreSQL',     desc: 'SQL, Row Level Security, API REST auto-generada, Auth',            price: 180  },
+      { id: 'db_mongodb',      label: 'MongoDB Atlas',           desc: 'Documentos flexibles, índices compuestos, agregaciones',           price: 180  },
+      { id: 'api_custom',      label: 'API Routes custom',       desc: 'Endpoints serverless en Next.js, autenticación JWT',               price: 280  },
+      { id: 'backend_nodejs',  label: 'Backend Node.js/Express', desc: 'API REST completa con autenticación, Mongoose, middleware',        price: 550  },
+      { id: 'webhooks',        label: 'Webhooks e integraciones',desc: 'Conexión con servicios externos, Make.com, Zapier, N8N',          price: 200  },
     ],
   },
   {
     category: '🤖 IA & Procesamiento',
     items: [
-      { id: 'ai_content',  label: 'Generación de contenido IA', desc: 'Gemini genera textos, captions, descripciones de productos' },
-      { id: 'ai_document', label: 'Análisis de documentos IA',  desc: 'PDF upload, extracción de datos, resúmenes automáticos' },
-      { id: 'tts',         label: 'Text-to-Speech',             desc: 'Google TTS en español AR, voz natural para videos y reels' },
-      { id: 'lead_finder', label: 'Lead Finder',                desc: 'Google Places API, scraping de emails y contactos, CSV' },
+      { id: 'ai_content',  label: 'Generación de contenido IA', desc: 'Gemini genera textos, captions, descripciones de productos',        price: 250  },
+      { id: 'ai_document', label: 'Análisis de documentos IA',  desc: 'PDF upload, extracción de datos, resúmenes automáticos',           price: 400  },
+      { id: 'tts',         label: 'Text-to-Speech',             desc: 'Google TTS en español AR, voz natural para videos y reels',        price: 180  },
+      { id: 'lead_finder', label: 'Lead Finder',                desc: 'Google Places API, scraping de emails y contactos, CSV',           price: 500  },
     ],
   },
   {
     category: '📊 Analytics & Datos',
     items: [
-      { id: 'powerbi',           label: 'Dashboard Power BI',      desc: 'KPIs interactivos, actualización automática, compartible' },
-      { id: 'recharts_dashboard',label: 'Dashboard web con gráficos',desc: 'Recharts: barras, líneas, área, pie charts en tiempo real' },
-      { id: 'excel_automation',  label: 'Excel / Power Query',     desc: 'Macros, ETL, dashboards dinámicos sin código adicional' },
-      { id: 'scraping',          label: 'Web Scraping',            desc: 'Python/Node, datos de competidores, precios MeLi' },
-      { id: 'gsc_dashboard',     label: 'Dashboard Search Console', desc: 'Clicks, impresiones, posición y evolución semanal' },
+      { id: 'powerbi',           label: 'Dashboard Power BI',       desc: 'KPIs interactivos, actualización automática, compartible',      price: 400  },
+      { id: 'recharts_dashboard',label: 'Dashboard web con gráficos',desc: 'Recharts: barras, líneas, área, pie charts en tiempo real',   price: 500  },
+      { id: 'excel_automation',  label: 'Excel / Power Query',      desc: 'Macros, ETL, dashboards dinámicos sin código adicional',       price: 250  },
+      { id: 'scraping',          label: 'Web Scraping',             desc: 'Python/Node, datos de competidores, precios MeLi',             price: 320  },
+      { id: 'gsc_dashboard',     label: 'Dashboard Search Console', desc: 'Clicks, impresiones, posición y evolución semanal',            price: 250  },
     ],
   },
   {
     category: '📄 Exportación & Documentos',
     items: [
-      { id: 'pdf_export',    label: 'Exportación a PDF',       desc: 'jsPDF + html2canvas, documentos profesionales desde el sistema' },
-      { id: 'qr_code',       label: 'Códigos QR',              desc: 'QR dinámicos de productos, links, menús, contacto vCard' },
-      { id: 'excel_export',  label: 'Exportación a Excel',     desc: 'Reportes XLSX descargables desde dashboards y listados' },
-      { id: 'google_sheets', label: 'Integración Google Sheets',desc: 'Lectura/escritura de hojas de cálculo como base de datos' },
+      { id: 'pdf_export',    label: 'Exportación a PDF',        desc: 'jsPDF + html2canvas, documentos profesionales desde el sistema',   price: 180  },
+      { id: 'qr_code',       label: 'Códigos QR',               desc: 'QR dinámicos de productos, links, menús, contacto vCard',         price: 90   },
+      { id: 'excel_export',  label: 'Exportación a Excel',      desc: 'Reportes XLSX descargables desde dashboards y listados',          price: 120  },
+      { id: 'google_sheets', label: 'Integración Google Sheets', desc: 'Lectura/escritura de hojas de cálculo como base de datos',       price: 180  },
     ],
   },
   {
     category: '🗺️ Mapas & Geo',
     items: [
-      { id: 'maps_leaflet', label: 'Mapas interactivos',   desc: 'Leaflet + react-leaflet, markers, polígonos de zonas, rutas' },
-      { id: 'calendar_system',label: 'Gestor de agenda',   desc: 'Vista mensual/semanal, eventos, disponibilidad online' },
-      { id: 'admin_panel',  label: 'Panel admin completo', desc: 'CRUD, roles, estadísticas, gestión de contenido y usuarios' },
+      { id: 'maps_leaflet',   label: 'Mapas interactivos',    desc: 'Leaflet + react-leaflet, markers, polígonos de zonas, rutas',       price: 380  },
+      { id: 'calendar_system',label: 'Gestor de agenda',      desc: 'Vista mensual/semanal, eventos, disponibilidad online',             price: 380  },
+      { id: 'admin_panel',    label: 'Panel admin completo',  desc: 'CRUD, roles, estadísticas, gestión de contenido y usuarios',        price: 800  },
     ],
   },
   {
     category: '📱 Mobile',
     items: [
-      { id: 'mobile_app', label: 'App React Native',       desc: 'Expo, Android e iOS, gestos avanzados, diseño nativo' },
-      { id: 'mobile_pwa', label: 'Progressive Web App',    desc: 'App instalable desde el browser, notificaciones push, offline' },
+      { id: 'mobile_app', label: 'App React Native', desc: 'Expo, Android e iOS, gestos avanzados, diseño nativo',                       price: 2500 },
+      { id: 'mobile_pwa', label: 'Progressive Web App', desc: 'App instalable desde el browser, notificaciones push, offline',          price: 500  },
     ],
   },
 ];
@@ -160,6 +160,11 @@ function ServiceCard({ item, selected, onToggle }) {
       )}
       <p className="font-semibold text-white text-sm pr-6">{item.label}</p>
       <p className="text-gray-500 text-xs mt-1 leading-relaxed">{item.desc}</p>
+      {item.price && (
+        <p className={`text-xs font-semibold mt-2 ${selected ? 'text-indigo-400' : 'text-gray-600'}`}>
+          desde USD {item.price.toLocaleString()}
+        </p>
+      )}
     </button>
   );
 }
@@ -182,6 +187,7 @@ export default function BudgetForm() {
 
   const allServices = SERVICES.flatMap(c => c.items);
   const selectedItems = allServices.filter(s => selected.has(s.id));
+  const estimatedTotal = selectedItems.reduce((sum, s) => sum + (s.price || 0), 0);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -292,10 +298,14 @@ export default function BudgetForm() {
         {/* PASO 2 — Servicios */}
         {step === 1 && (
           <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-            <p className="text-gray-500 text-sm mb-6 text-center">
-              Seleccioná todos los servicios que necesitás. Podés elegir varios.
-              {selected.size > 0 && <span className="text-indigo-400 ml-2">{selected.size} seleccionados</span>}
-            </p>
+            <div className="flex items-center justify-center gap-4 mb-6 text-sm">
+              <span className="text-gray-500">Seleccioná todos los servicios que necesitás.</span>
+              {selected.size > 0 && (
+                <span className="bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 px-3 py-1 rounded-full text-xs font-semibold">
+                  {selected.size} seleccionados · desde USD {estimatedTotal.toLocaleString()}
+                </span>
+              )}
+            </div>
             <div className="space-y-8">
               {SERVICES.map(cat => (
                 <div key={cat.category}>
@@ -341,13 +351,25 @@ export default function BudgetForm() {
               </div>
               <div className="border-t border-white/5 pt-4">
                 <p className="text-gray-500 text-xs uppercase tracking-wide mb-3">Servicios seleccionados ({selectedItems.length})</p>
-                <div className="flex flex-wrap gap-2">
+                <div className="space-y-1.5 mb-4">
                   {selectedItems.map(s => (
-                    <span key={s.id} className="bg-indigo-600/15 border border-indigo-500/30 text-indigo-300 text-xs px-3 py-1 rounded-full">
-                      {s.label}
-                    </span>
+                    <div key={s.id} className="flex items-center justify-between gap-3">
+                      <span className="text-gray-300 text-sm">{s.label}</span>
+                      {s.price && (
+                        <span className="text-gray-500 text-xs whitespace-nowrap">desde USD {s.price.toLocaleString()}</span>
+                      )}
+                    </div>
                   ))}
                 </div>
+                {estimatedTotal > 0 && (
+                  <div className="flex items-center justify-between pt-3 border-t border-white/8">
+                    <span className="text-sm text-gray-400 font-medium">Total estimado</span>
+                    <div className="text-right">
+                      <span className="text-white font-bold text-lg">USD {estimatedTotal.toLocaleString()}</span>
+                      <p className="text-gray-700 text-[10px] mt-0.5">precio orientativo · puede variar según alcance</p>
+                    </div>
+                  </div>
+                )}
               </div>
               {form.projectDescription && (
                 <div className="border-t border-white/5 pt-4 mt-4">
