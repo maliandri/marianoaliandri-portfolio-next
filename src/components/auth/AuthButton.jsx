@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { firebaseAuth } from '../utils/firebaseservice';
+import { firebaseAuth } from '../../utils/firebaseservice';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 

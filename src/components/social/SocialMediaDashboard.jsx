@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import makeService from '../utils/makeService';
-import reelService from '../utils/reelService';
+import makeService from '../../utils/makeService';
+import reelService from '../../utils/reelService';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../utils/firebaseservice';
+import { db } from '../../utils/firebaseservice';
 import ReelEditor from './ReelEditor';
-import { useExtendedStats } from '../hooks/useFirebaseStats';
+import { useExtendedStats } from '../../hooks/useFirebaseStats';
 
 /**
  * Social Media Dashboard - Make.com Integration

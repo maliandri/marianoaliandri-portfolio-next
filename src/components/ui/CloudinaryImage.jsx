@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { getCloudinaryUrl, getResponsiveSrcSet } from '../utils/cloudinary';
+import { getCloudinaryUrl, getResponsiveSrcSet } from '../../utils/cloudinary';
 
 /**
  * Componente optimizado para imágenes de Cloudinary

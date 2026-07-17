@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { PROVINCIAS_AR } from '../data/localidadesAR';
+import { PROVINCIAS_AR } from '../../data/localidadesAR';
 
 export default function AuditRequestForm({ defaultSearchTerm = '', auditCity = '' }) {
   const [nombre,     setNombre]     = useState('');

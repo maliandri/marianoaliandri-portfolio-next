@@ -4,8 +4,8 @@
 // ✨ VERSIÓN ADAPTADA PARA BADGE CENTRAL con React Query
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { useBasicStats } from "../hooks/useFirebaseStats";
-import { useSearchConsoleStats } from "../hooks/useSearchConsole";
+import { useBasicStats } from "../../hooks/useFirebaseStats";
+import { useSearchConsoleStats } from "../../hooks/useSearchConsole";
 
 export default function DashboardStats({
   isOpen: isOpenProp,

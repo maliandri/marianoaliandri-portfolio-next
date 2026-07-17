@@ -4,7 +4,7 @@ import { getDb } from '@/lib/firebase-admin';
 import { getGSCAuth, getVerifiedSites } from '@/lib/gscClient';
 import AuditTable from './AuditTable';
 import AuditMapLoader from './AuditMapLoader';
-import AuditRequestForm from '@/components/AuditRequestForm';
+import AuditRequestForm from '@/components/audit/AuditRequestForm';
 
 export const dynamic = 'force-dynamic';
 
