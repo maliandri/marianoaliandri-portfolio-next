@@ -5,6 +5,7 @@ import { getGSCAuth, getVerifiedSites } from '@/lib/gscClient';
 import AuditTable from './AuditTable';
 import AuditMapLoader from './AuditMapLoader';
 import AuditRequestForm from '@/components/audit/AuditRequestForm';
+import AuditPdfButton from '@/components/audit/AuditPdfButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,7 +95,21 @@ export default async function AuditoriaDetailPage({ params }) {
       {/* Header */}
       <div className="mb-8">
         <p className="text-xs text-gray-500 mb-2">{formatDate(a.publishedAt)}</p>
-        <h1 className="text-3xl md:text-4xl font-black text-white mb-4">{a.title}</h1>
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <h1 className="text-3xl md:text-4xl font-black text-white">{a.title}</h1>
+          <AuditPdfButton
+            audit={{
+              title: a.title,
+              term: a.config?.term || '',
+              categoryLabels: a.config?.tiposLabels || [],
+              cities: ciudades,
+              summary: a.summary || '',
+              stats: a.stats || {},
+              results,
+              publishedAt: a.publishedAt,
+            }}
+          />
+        </div>
         <div className="flex flex-wrap gap-2">
           {ciudades.map(c => (
             <span key={c} className="text-sm bg-white/5 border border-white/10 text-gray-300 px-3 py-1.5 rounded-full">📍 {c}</span>
