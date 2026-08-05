@@ -144,7 +144,7 @@ export default function LeadFinderPanel() {
     const resp = await fetch('/api/lead-finder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, apiKey: configRef.current.apiKey, ...params }),
+      body: JSON.stringify({ action, ...params }),
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
@@ -187,6 +187,7 @@ export default function LeadFinderPanel() {
           let conWeb = 0;
           for (const place of places) {
             if (cancelRef.current) break;
+            if (!place.displayName?.text) continue;
             if (seenIds.has(place.id)) continue;
             seenIds.add(place.id);
 
@@ -194,25 +195,18 @@ export default function LeadFinderPanel() {
             if (!place.websiteUri) continue;
             if (isSocialUrl(place.websiteUri)) continue;
 
-            // Confirmar con detalles
-            let det = {};
-            try {
-              det = await callFn('getDetails', { placeId: place.id });
-            } catch { /* usar datos del place */ }
-
-            const siteUrl = det.websiteUri || place.websiteUri;
-            if (isSocialUrl(siteUrl)) continue;
+            const siteUrl = place.websiteUri;
 
             const neg = {
               id:          place.id,
-              nombre:      place.displayName?.text || 'Sin nombre',
+              nombre:      place.displayName.text,
               tipo:        etiqueta,
               ciudad,
               lat:         place.location?.latitude  ?? null,
               lon:         place.location?.longitude ?? null,
-              direccion:   det.formattedAddress        || '',
-              telefono:    det.internationalPhoneNumber || '',
-              rating:      place.rating ? Number(place.rating).toFixed(1) : '',
+              direccion:   place._address || '',
+              telefono:    place._phone   || '',
+              rating:      '',
               siteUrl,
               email:       null,
               hasSitemap:  null,
@@ -444,22 +438,6 @@ export default function LeadFinderPanel() {
 
         {showConfig && (
           <div className="p-6 space-y-5">
-            {/* API Key */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Google Places API Key</label>
-              <input
-                type="password"
-                value={config.apiKey}
-                onChange={e => setConfig(p => ({ ...p, apiKey: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 font-mono text-sm"
-                placeholder="AIza... — o configura GOOGLE_PLACES_API_KEY en Vercel"
-                disabled={isRunning}
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Si <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">GOOGLE_PLACES_API_KEY</code> está en Vercel, este campo puede quedar vacío.
-              </p>
-            </div>
-
             {/* Ciudades */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -883,8 +861,8 @@ export default function LeadFinderPanel() {
                       {neg.rating ? `★ ${neg.rating}` : '—'}
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
-                      <a href={`https://www.google.com/maps/place/?q=place_id:${neg.id}`} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400">Maps</a>
+                      <a href={`https://www.openstreetmap.org/${neg.id}`} target="_blank" rel="noopener noreferrer"
+                        className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400">OSM</a>
                     </td>
                   </tr>
                 ))}

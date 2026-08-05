@@ -1,5 +1,5 @@
 // Rubros de negocio local — fuente única compartida.
-// `id` = valor válido de la Table A de Google Places API (New) → se pasa como includedTypes.
+// `id` = identificador interno → mapeado a tags OSM en lead-finder/route.js (OSM_TAGS).
 // `label` = nombre en español (se usa como término de búsqueda en el Keyword Explorer).
 // `cat` = agrupación para el UI.
 // Usado por: LeadFinderPanel (admin) y KeywordExplorer (/keywords).
