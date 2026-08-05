@@ -168,12 +168,14 @@ function parseOsmElement(el) {
   };
 }
 
+const OVERPASS_LIMIT = 60;
+
 function buildTagQuery(tags, lat, lon, radiusM) {
   const parts = tags.flatMap(({ k, v }) => [
     `node["${k}"="${v}"](around:${radiusM},${lat},${lon});`,
     `way["${k}"="${v}"](around:${radiusM},${lat},${lon});`,
   ]);
-  return `[out:json][timeout:22];\n(\n${parts.join('\n')}\n);\nout center tags;`;
+  return `[out:json][timeout:22];\n(\n${parts.join('\n')}\n);\nout center tags ${OVERPASS_LIMIT};`;
 }
 
 function buildNameQuery(term, lat, lon, radiusM) {
@@ -181,7 +183,7 @@ function buildNameQuery(term, lat, lon, radiusM) {
   return `[out:json][timeout:22];\n(\n` +
     `node["name"~"${safe}",i](around:${radiusM},${lat},${lon});\n` +
     `way["name"~"${safe}",i](around:${radiusM},${lat},${lon});\n` +
-    `);\nout center tags;`;
+    `);\nout center tags ${OVERPASS_LIMIT};`;
 }
 
 async function queryOverpass(query) {
@@ -191,6 +193,8 @@ async function queryOverpass(query) {
     body: `data=${encodeURIComponent(query)}`,
     signal: AbortSignal.timeout(26000),
   });
+  // 406 = query muy grande / rate limit → ignorar silenciosamente
+  if (resp.status === 406 || resp.status === 429) return [];
   if (!resp.ok) throw new Error(`Overpass HTTP ${resp.status}`);
   const data = await resp.json();
   return (data.elements || []).map(parseOsmElement);
