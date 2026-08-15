@@ -3,89 +3,17 @@ export const dynamic = 'force-dynamic';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const EMAIL_RE = /\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b/g;
 const IGNORE_EMAIL = ['example','test','noreply','no-reply','spam','sentry','wix','google','apple','microsoft','adobe','.png','.jpg','.gif','.svg'];
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+const PLACES_NEARBY = 'https://places.googleapis.com/v1/places:searchNearby';
+const PLACES_TEXT   = 'https://places.googleapis.com/v1/places:searchText';
 const SOCIAL_DOMAINS = [
   'facebook.com','fb.com','instagram.com','twitter.com','x.com',
   'linkedin.com','youtube.com','tiktok.com','pinterest.com','snapchat.com',
   'whatsapp.com','telegram.org','linktr.ee','beacons.ai','bio.link',
 ];
 
-// Mapa de tipos (IDs de rubros.js) → tags OSM equivalentes
-const OSM_TAGS = {
-  // Gastronomía
-  restaurant:           [{ k: 'amenity', v: 'restaurant' }],
-  cafe:                 [{ k: 'amenity', v: 'cafe' }],
-  bar:                  [{ k: 'amenity', v: 'bar' }],
-  bakery:               [{ k: 'amenity', v: 'bakery' }, { k: 'shop', v: 'bakery' }],
-  pizza_restaurant:     [{ k: 'amenity', v: 'restaurant' }],
-  ice_cream_shop:       [{ k: 'amenity', v: 'ice_cream' }, { k: 'shop', v: 'ice_cream' }],
-  meal_takeaway:        [{ k: 'amenity', v: 'fast_food' }],
-  meal_delivery:        [{ k: 'amenity', v: 'fast_food' }],
-  // Comercios
-  store:                [{ k: 'shop', v: 'general' }],
-  clothing_store:       [{ k: 'shop', v: 'clothes' }],
-  shoe_store:           [{ k: 'shop', v: 'shoes' }],
-  jewelry_store:        [{ k: 'shop', v: 'jewelry' }],
-  hardware_store:       [{ k: 'shop', v: 'hardware' }],
-  florist:              [{ k: 'shop', v: 'florist' }],
-  pet_store:            [{ k: 'shop', v: 'pet' }],
-  supermarket:          [{ k: 'shop', v: 'supermarket' }],
-  convenience_store:    [{ k: 'shop', v: 'convenience' }],
-  furniture_store:      [{ k: 'shop', v: 'furniture' }],
-  electronics_store:    [{ k: 'shop', v: 'electronics' }],
-  home_goods_store:     [{ k: 'shop', v: 'houseware' }],
-  book_store:           [{ k: 'shop', v: 'books' }],
-  gift_shop:            [{ k: 'shop', v: 'gift' }],
-  sporting_goods_store: [{ k: 'shop', v: 'sports' }],
-  bicycle_store:        [{ k: 'shop', v: 'bicycle' }],
-  cell_phone_store:     [{ k: 'shop', v: 'mobile_phone' }],
-  liquor_store:         [{ k: 'shop', v: 'alcohol' }],
-  shopping_mall:        [{ k: 'shop', v: 'mall' }],
-  // Salud & Belleza
-  hair_care:            [{ k: 'shop', v: 'hairdresser' }],
-  beauty_salon:         [{ k: 'shop', v: 'beauty' }],
-  barber_shop:          [{ k: 'shop', v: 'hairdresser' }],
-  nail_salon:           [{ k: 'shop', v: 'beauty' }],
-  spa:                  [{ k: 'leisure', v: 'spa' }],
-  gym:                  [{ k: 'leisure', v: 'fitness_centre' }],
-  dentist:              [{ k: 'amenity', v: 'dentist' }],
-  doctor:               [{ k: 'amenity', v: 'doctors' }],
-  physiotherapist:      [{ k: 'amenity', v: 'physiotherapist' }, { k: 'healthcare', v: 'physiotherapist' }],
-  pharmacy:             [{ k: 'amenity', v: 'pharmacy' }],
-  veterinary_care:      [{ k: 'amenity', v: 'veterinary' }],
-  // Serv. Profesionales
-  real_estate_agency:   [{ k: 'office', v: 'estate_agent' }],
-  lawyer:               [{ k: 'office', v: 'lawyer' }],
-  accounting:           [{ k: 'office', v: 'accountant' }],
-  insurance_agency:     [{ k: 'office', v: 'insurance' }],
-  travel_agency:        [{ k: 'shop', v: 'travel_agency' }],
-  photographer:         [{ k: 'craft', v: 'photographer' }, { k: 'office', v: 'photographer' }],
-  // Automotor
-  car_repair:           [{ k: 'shop', v: 'car_repair' }],
-  car_dealer:           [{ k: 'shop', v: 'car' }],
-  car_wash:             [{ k: 'amenity', v: 'car_wash' }],
-  car_rental:           [{ k: 'amenity', v: 'car_rental' }],
-  gas_station:          [{ k: 'amenity', v: 'fuel' }],
-  // Hogar & Oficios
-  electrician:          [{ k: 'craft', v: 'electrician' }],
-  plumber:              [{ k: 'craft', v: 'plumber' }],
-  painter:              [{ k: 'craft', v: 'painter' }],
-  general_contractor:   [{ k: 'craft', v: 'construction' }],
-  locksmith:            [{ k: 'craft', v: 'locksmith' }],
-  laundry:              [{ k: 'shop', v: 'laundry' }, { k: 'amenity', v: 'laundry' }],
-  moving_company:       [{ k: 'craft', v: 'transport' }],
-  // Educación
-  school:               [{ k: 'amenity', v: 'school' }],
-  primary_school:       [{ k: 'amenity', v: 'school' }],
-  secondary_school:     [{ k: 'amenity', v: 'school' }],
-  preschool:            [{ k: 'amenity', v: 'kindergarten' }],
-  university:           [{ k: 'amenity', v: 'university' }],
-  // Alojamiento
-  lodging:              [{ k: 'tourism', v: 'hotel' }, { k: 'tourism', v: 'hostel' }, { k: 'tourism', v: 'guest_house' }],
-  hotel:                [{ k: 'tourism', v: 'hotel' }],
-  motel:                [{ k: 'tourism', v: 'motel' }],
-  campground:           [{ k: 'tourism', v: 'camp_site' }],
-};
+// Campos que pedimos a Places API — solo Basic Data (no dispara Place Details)
+// websiteUri + rating están en Basic; NO pedimos internationalPhoneNumber ni formattedAddress
+const SEARCH_FIELDS = 'places.id,places.displayName,places.websiteUri,places.rating,places.location';
 
 function isSocialUrl(url) {
   try {
@@ -148,58 +76,6 @@ function calcSeoScore({ hasSitemap, hasRobots, metaDesc, hasOG, lastModified }) 
   return Math.max(0, score);
 }
 
-// Convierte un elemento de Overpass al formato uniforme que usa processPlaces
-function parseOsmElement(el) {
-  const t = el.tags || {};
-  const lat = el.lat ?? el.center?.lat ?? null;
-  const lon = el.lon ?? el.center?.lon ?? null;
-  const website = t.website || t['contact:website'] || t['url'] || null;
-  const phone   = t.phone   || t['contact:phone']   || t['contact:mobile'] || null;
-  const street  = t['addr:street'] || '';
-  const num     = t['addr:housenumber'] || '';
-  return {
-    id:          `${el.type}/${el.id}`,
-    displayName: { text: t.name || t['name:es'] || '' },
-    websiteUri:  website,
-    rating:      null,
-    location:    lat !== null ? { latitude: lat, longitude: lon } : null,
-    _phone:      phone,
-    _address:    [street, num].filter(Boolean).join(' '),
-  };
-}
-
-const OVERPASS_LIMIT = 60;
-
-function buildTagQuery(tags, lat, lon, radiusM) {
-  const parts = tags.flatMap(({ k, v }) => [
-    `node["${k}"="${v}"](around:${radiusM},${lat},${lon});`,
-    `way["${k}"="${v}"](around:${radiusM},${lat},${lon});`,
-  ]);
-  return `[out:json][timeout:22];\n(\n${parts.join('\n')}\n);\nout center tags ${OVERPASS_LIMIT};`;
-}
-
-function buildNameQuery(term, lat, lon, radiusM) {
-  const safe = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return `[out:json][timeout:22];\n(\n` +
-    `node["name"~"${safe}",i](around:${radiusM},${lat},${lon});\n` +
-    `way["name"~"${safe}",i](around:${radiusM},${lat},${lon});\n` +
-    `);\nout center tags ${OVERPASS_LIMIT};`;
-}
-
-async function queryOverpass(query) {
-  const resp = await fetch(OVERPASS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `data=${encodeURIComponent(query)}`,
-    signal: AbortSignal.timeout(26000),
-  });
-  // 406 = query muy grande / rate limit → ignorar silenciosamente
-  if (resp.status === 406 || resp.status === 429) return [];
-  if (!resp.ok) throw new Error(`Overpass HTTP ${resp.status}`);
-  const data = await resp.json();
-  return (data.elements || []).map(parseOsmElement);
-}
-
 function ok(data)  { return Response.json({ ok: true, ...data }); }
 function fail(msg) { return Response.json({ ok: false, error: msg }); }
 
@@ -207,7 +83,8 @@ export async function POST(request) {
   let body;
   try { body = await request.json(); } catch { return fail('JSON inválido'); }
 
-  const { action, ...params } = body;
+  const { action, apiKey: clientKey, ...params } = body;
+  const gApiKey = process.env.GOOGLE_PLACES_API_KEY || clientKey;
 
   try {
     switch (action) {
@@ -223,22 +100,55 @@ export async function POST(request) {
       }
 
       case 'searchNearby': {
-        const { lat, lon, type, radiusM } = params;
-        const tags = OSM_TAGS[type];
-        if (!tags) return ok({ places: [], nextPageToken: null });
-        const query  = buildTagQuery(tags, lat, lon, radiusM);
-        const places = await queryOverpass(query);
-        return ok({ places, nextPageToken: null });
+        if (!gApiKey) return fail('API Key de Google requerida');
+        const { lat, lon, type, radiusM, pageToken } = params;
+        const reqBody = {
+          includedTypes: [type],
+          maxResultCount: 20,
+          locationRestriction: { circle: { center: { latitude: lat, longitude: lon }, radius: parseFloat(radiusM) } },
+        };
+        if (pageToken) reqBody.pageToken = pageToken;
+        const resp = await fetch(PLACES_NEARBY, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': gApiKey, 'X-Goog-FieldMask': SEARCH_FIELDS },
+          body: JSON.stringify(reqBody),
+          signal: AbortSignal.timeout(9000),
+        });
+        const data = await resp.json();
+        if (data.error) return fail(data.error.message || 'Error de Google Places');
+        // Normalizar al formato que usa processPlaces
+        const places = (data.places || []).map(p => ({
+          ...p,
+          _phone:   '',
+          _address: '',
+        }));
+        return ok({ places, nextPageToken: data.nextPageToken || null });
       }
 
       case 'searchText': {
-        const { lat, lon, query, radiusM } = params;
+        if (!gApiKey) return fail('API Key de Google requerida');
+        const { lat, lon, query, radiusM, pageToken } = params;
         if (!query) return fail('Término de búsqueda requerido');
-        // Extrae solo el término antes de la coma (sin la ciudad)
-        const term   = query.split(',')[0].trim();
-        const oQuery = buildNameQuery(term, lat, lon, radiusM);
-        const places = await queryOverpass(oQuery);
-        return ok({ places, nextPageToken: null });
+        const reqBody = {
+          textQuery: query,
+          maxResultCount: 20,
+          locationBias: { circle: { center: { latitude: lat, longitude: lon }, radius: parseFloat(radiusM) } },
+        };
+        if (pageToken) reqBody.pageToken = pageToken;
+        const resp = await fetch(PLACES_TEXT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': gApiKey, 'X-Goog-FieldMask': SEARCH_FIELDS + ',nextPageToken' },
+          body: JSON.stringify(reqBody),
+          signal: AbortSignal.timeout(9000),
+        });
+        const data = await resp.json();
+        if (data.error) return fail(data.error.message || 'Error de Google Places');
+        const places = (data.places || []).map(p => ({
+          ...p,
+          _phone:   '',
+          _address: '',
+        }));
+        return ok({ places, nextPageToken: data.nextPageToken || null });
       }
 
       case 'checkSite': {
