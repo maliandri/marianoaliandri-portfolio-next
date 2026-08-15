@@ -187,26 +187,32 @@ export default function LeadFinderPanel() {
           let conWeb = 0;
           for (const place of places) {
             if (cancelRef.current) break;
-            if (!place.displayName?.text) continue;
+            if (allResults.length >= cfg.maxAudit) break; // cap global
             if (seenIds.has(place.id)) continue;
             seenIds.add(place.id);
 
-            // Solo negocios CON sitio web propio (no redes sociales)
-            if (!place.websiteUri) continue;
-            if (isSocialUrl(place.websiteUri)) continue;
+            // Obtener website via getDetails (websiteUri no viene en search)
+            let websiteUri = null;
+            try {
+              const det = await callFn('getDetails', { placeId: place.id });
+              websiteUri = det.websiteUri || null;
+            } catch { /* skip */ }
 
-            const siteUrl = place.websiteUri;
+            if (!websiteUri) continue;
+            if (isSocialUrl(websiteUri)) continue;
+
+            const siteUrl = websiteUri;
 
             const neg = {
               id:          place.id,
-              nombre:      place.displayName.text,
+              nombre:      place.displayName?.text || 'Sin nombre',
               tipo:        etiqueta,
               ciudad,
               lat:         place.location?.latitude  ?? null,
               lon:         place.location?.longitude ?? null,
-              direccion:   place._address || '',
-              telefono:    place._phone   || '',
-              rating:      '',
+              direccion:   '',
+              telefono:    '',
+              rating:      place.rating ? Number(place.rating).toFixed(1) : '',
               siteUrl,
               email:       null,
               hasSitemap:  null,

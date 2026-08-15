@@ -11,9 +11,11 @@ const SOCIAL_DOMAINS = [
   'whatsapp.com','telegram.org','linktr.ee','beacons.ai','bio.link',
 ];
 
-// Campos que pedimos a Places API — solo Basic Data (no dispara Place Details)
-// websiteUri + rating están en Basic; NO pedimos internationalPhoneNumber ni formattedAddress
-const SEARCH_FIELDS = 'places.id,places.displayName,places.websiteUri,places.rating,places.location';
+const PLACES_DETAIL  = 'https://places.googleapis.com/v1/places/';
+// Campos del search: sin websiteUri (no viene en search, solo en getDetails)
+const SEARCH_FIELDS  = 'places.id,places.displayName,places.rating,places.location';
+// Campos del detail: solo lo mínimo para obtener el website (evita campos innecesarios)
+const DETAIL_FIELDS  = 'id,websiteUri';
 
 function isSocialUrl(url) {
   try {
@@ -149,6 +151,17 @@ export async function POST(request) {
           _address: '',
         }));
         return ok({ places, nextPageToken: data.nextPageToken || null });
+      }
+
+      case 'getDetails': {
+        if (!gApiKey) return fail('API Key de Google requerida');
+        const { placeId } = params;
+        const resp = await fetch(PLACES_DETAIL + placeId, {
+          headers: { 'X-Goog-Api-Key': gApiKey, 'X-Goog-FieldMask': DETAIL_FIELDS },
+          signal: AbortSignal.timeout(8000),
+        });
+        const data = await resp.json();
+        return ok(data);
       }
 
       case 'checkSite': {
