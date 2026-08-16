@@ -340,9 +340,20 @@ export default function LeadFinderPanel() {
     const dateStr = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
     const total = results.length;
     const pctLow = total ? Math.round((lowSeoCount / total) * 100) : 0;
-    setPubTitle(`Auditoría SEO — ${ciudadesStr} (${dateStr})`);
+
+    // Armar etiqueta de rubros seleccionados
+    const tiposSelec = (cfg.tipos || []).map(id => TIPOS.find(t => t.id === id)?.label || id);
+    const terminos   = cfg.terminos || [];
+    const todosRubros = [...tiposSelec, ...terminos];
+    let rubrosStr;
+    if (todosRubros.length === 0)       rubrosStr = 'negocios locales';
+    else if (todosRubros.length === 1)  rubrosStr = todosRubros[0];
+    else if (todosRubros.length <= 3)   rubrosStr = todosRubros.slice(0,-1).join(', ') + ' y ' + todosRubros.at(-1);
+    else rubrosStr = todosRubros.slice(0,3).join(', ') + ` y ${todosRubros.length - 3} más`;
+
+    setPubTitle(`Auditoría SEO de páginas web de ${rubrosStr} (${dateStr})`);
     setPubDesc(
-      `Auditoría SEO de ${total} negocios con sitio web propio en ${ciudadesStr}. ` +
+      `Auditoría SEO de ${total} sitios web de ${rubrosStr} en ${ciudadesStr}. ` +
       `El ${pctLow}% (${lowSeoCount}) tiene un posicionamiento web débil y el promedio general es ${avgSeoScore ?? '—'}/100. ` +
       `${withEmail} cuentan con un email público de contacto. ` +
       `El relevamiento evidencia oportunidades concretas de mejora en la presencia digital de los comercios de la zona.`
