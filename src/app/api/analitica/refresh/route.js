@@ -40,12 +40,14 @@ const KEYWORDS_PETROLEO = [
 ];
 
 // Grupo 4 — Desarrollo web & servicios digitales (lo que ofrecés)
+// Sin sufijo de localidad: combinadas con "Neuquén"/"Argentina" Google Trends
+// no devuelve datos (volumen insuficiente). Sin sufijo sí tienen volumen a nivel AR.
 const KEYWORDS_DIGITAL = [
-  'desarrollo web Neuquén',
-  'diseño web Neuquén',
-  'tienda online Neuquén',
-  'posicionamiento web Argentina',
-  'marketing digital Neuquén',
+  'diseño web',
+  'desarrollo web',
+  'tienda online',
+  'marketing digital',
+  'posicionamiento web',
 ];
 
 async function fetchTrendingNow(geo) {
