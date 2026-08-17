@@ -16,6 +16,7 @@ import BenefitsEditor from '../components/admin/BenefitsEditor';
 import AuditoriasManager from '../components/admin/AuditoriasManager';
 import AuditRequestsManager from '../components/admin/AuditRequestsManager';
 import SentEmailsManager from '../components/admin/SentEmailsManager';
+import SubscriptionsManager from '../components/admin/SubscriptionsManager';
 import LeadFinderPanel from '../components/audit/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 
@@ -32,6 +33,7 @@ const ADMIN_TABS = [
   { id: 'zonas', label: 'Zonas', icon: '🗺️' },
   { id: 'cron', label: 'Cron Social', icon: '⏰' },
   { id: 'presupuestos', label: 'Presupuestos', icon: '💰' },
+  { id: 'suscripciones', label: 'Suscripciones', icon: '🔁' },
   { id: 'auditorias', label: 'Auditorías', icon: '📋' },
   { id: 'audit-requests', label: 'Solicitudes SEO', icon: '🔍' },
   { id: 'emails', label: 'Emails', icon: '📧' },
@@ -40,7 +42,7 @@ const ADMIN_TABS = [
 // Secciones agrupadas por tipo (para la barra de navegación de escritorio)
 const ADMIN_GROUPS = [
   { id: 'panel',     label: 'Panel',          icon: '📊', tabs: ['dashboard'] },
-  { id: 'tienda',    label: 'Tienda',         icon: '🛍️', tabs: ['products', 'orders', 'presupuestos', 'users'] },
+  { id: 'tienda',    label: 'Tienda',         icon: '🛍️', tabs: ['products', 'orders', 'presupuestos', 'suscripciones', 'users'] },
   { id: 'redes',     label: 'Redes Sociales', icon: '📱', tabs: ['social', 'linkedin', 'cron'] },
   { id: 'marketing', label: 'Marketing',      icon: '🎯', tabs: ['leads', 'zonas', 'auditorias', 'audit-requests', 'emails'] },
   { id: 'sitio',     label: 'Sitio',          icon: '🌐', tabs: ['proyectos', 'questions'] },
@@ -763,6 +765,11 @@ export default function AdminPage() {
         )}
         {activeTab === 'presupuestos' && (
           <PresupuestosTab />
+        )}
+        {activeTab === 'suscripciones' && (
+          <div className="p-6">
+            <SubscriptionsManager />
+          </div>
         )}
         {activeTab === 'auditorias' && (
           <div className="p-6">
