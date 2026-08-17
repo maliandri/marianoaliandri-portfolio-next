@@ -52,7 +52,7 @@ function InterestChart({ data = [], keywords = [], color }) {
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
         <XAxis dataKey="date" tick={{ fill: '#6b7280', fontSize: 9 }} tickLine={false} axisLine={false}
-          tickFormatter={d => d?.slice(5)} />
+          tickFormatter={d => d?.replace(/\s\d{4}$/, '')} />
         <YAxis tick={{ fill: '#6b7280', fontSize: 9 }} tickLine={false} axisLine={false} domain={[0, 100]} />
         <Tooltip content={<CustomTooltip />} />
         <Legend wrapperStyle={{ fontSize: 10, color: '#9ca3af', paddingTop: 6 }} />

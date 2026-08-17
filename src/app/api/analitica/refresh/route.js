@@ -70,7 +70,7 @@ async function fetchInterestOverTime(keywords, geo) {
     const data = await res.json();
     const timeline = data?.interest_over_time?.timeline_data || [];
     return timeline.map(p => ({
-      date:   p.date?.slice(0, 10) || '',
+      date:   p.date || '',
       values: p.values?.map(v => v.extracted_value ?? 0) || [],
     }));
   } catch { return []; }
