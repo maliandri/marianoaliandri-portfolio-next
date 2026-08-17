@@ -31,7 +31,16 @@ export async function POST(request) {
     }
 
     const client = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN });
-    const sub = await new PreApproval(client).get({ id: preapprovalId });
+    let sub;
+    try {
+      sub = await new PreApproval(client).get({ id: preapprovalId });
+    } catch (e) {
+      // MP envía notificaciones de prueba (y a veces reales) con un id de preapproval
+      // que no existe en la cuenta (ej. el botón "Simular notificación" usa id ficticio).
+      // Responder 200 para no acumular reintentos/fallos por algo que no podemos procesar.
+      console.warn('[subscription-webhook] preapproval no encontrado:', preapprovalId, e?.message);
+      return Response.json({ ok: true, notFound: true });
+    }
 
     // external_reference = "<uid>:<planId>"
     const [uid, planId] = String(sub?.external_reference || '').split(':');
