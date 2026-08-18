@@ -205,6 +205,31 @@ const templates = {
     };
   },
 
+  'style-quiz-received': (data) => {
+    const likedList = (data.likedStyles || []).map(s =>
+      `<li style="color:#374151;font-size:13px;padding:4px 0;"><strong>${s.name}</strong>${s.comment ? ` — ${s.comment}` : ''}</li>`
+    ).join('');
+    const featuresList = (data.features || []).map(f => `<li style="color:#374151;font-size:13px;padding:3px 0;">${f}</li>`).join('');
+    return {
+      subject: `🎨 Nuevo test de estilo respondido: ${data.name}`,
+      html: baseTemplate(`
+        <div style="margin-bottom:20px;">${badge('Test de Estilo', '#9333ea')}</div>
+        <h2 style="margin:0 0 8px;color:#111827;font-size:20px;">Nueva respuesta del test de preferencias visuales</h2>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9fafb;border-radius:8px;padding:16px;">
+          ${infoRow('Nombre', data.name)}
+          ${infoRow('Email', data.email ? `<a href="mailto:${data.email}" style="color:#2563eb;text-decoration:none;">${data.email}</a>` : '')}
+          ${infoRow('Teléfono', data.phone ? `<a href="https://wa.me/${data.phone.replace(/[^0-9]/g, '')}" style="color:#22c55e;text-decoration:none;">${data.phone}</a>` : '')}
+        </table>
+        <div style="margin-top:20px;"><p style="margin:0 0 8px;color:#6b7280;font-size:12px;font-weight:600;text-transform:uppercase;">Estilos que le gustaron</p><ul style="margin:0;padding-left:16px;">${likedList || '<li style="color:#9ca3af;font-size:13px;">Ninguno marcado</li>'}</ul></div>
+        ${featuresList ? `<div style="margin-top:16px;"><p style="margin:0 0 8px;color:#6b7280;font-size:12px;font-weight:600;text-transform:uppercase;">Features que quiere en el sitio</p><ul style="margin:0;padding-left:16px;">${featuresList}</ul></div>` : ''}
+        ${data.comment ? `<div style="margin-top:16px;padding:14px;background:#faf5ff;border-left:4px solid #9333ea;border-radius:0 8px 8px 0;"><p style="margin:0;color:#111827;font-size:13px;line-height:1.6;">${data.comment}</p></div>` : ''}
+        <div style="margin-top:24px;text-align:center;">
+          <a href="https://marianoaliandri.com.ar/admin" style="display:inline-block;background:linear-gradient(135deg,#9333ea,#6366f1);color:#ffffff;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ver en Admin</a>
+        </div>
+      `, `${data.name} respondió el test de estilo — ${(data.likedStyles || []).length} estilos marcados`),
+    };
+  },
+
   'chatbot-lead': (data) => ({
     subject: `Lead del Chatbot: ${data.name}`,
     html: baseTemplate(`

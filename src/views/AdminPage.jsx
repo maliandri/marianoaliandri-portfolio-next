@@ -17,6 +17,7 @@ import AuditoriasManager from '../components/admin/AuditoriasManager';
 import AuditRequestsManager from '../components/admin/AuditRequestsManager';
 import SentEmailsManager from '../components/admin/SentEmailsManager';
 import SubscriptionsManager from '../components/admin/SubscriptionsManager';
+import StyleQuizManager from '../components/admin/StyleQuizManager';
 import LeadFinderPanel from '../components/audit/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 
@@ -35,6 +36,7 @@ const ADMIN_TABS = [
   { id: 'presupuestos', label: 'Presupuestos', icon: '💰' },
   { id: 'suscripciones', label: 'Suscripciones', icon: '🔁' },
   { id: 'auditorias', label: 'Auditorías', icon: '📋' },
+  { id: 'style-quiz', label: 'Test de Estilo', icon: '🎨' },
   { id: 'audit-requests', label: 'Solicitudes SEO', icon: '🔍' },
   { id: 'emails', label: 'Emails', icon: '📧' },
 ];
@@ -44,7 +46,7 @@ const ADMIN_GROUPS = [
   { id: 'panel',     label: 'Panel',          icon: '📊', tabs: ['dashboard'] },
   { id: 'tienda',    label: 'Tienda',         icon: '🛍️', tabs: ['products', 'orders', 'presupuestos', 'suscripciones', 'users'] },
   { id: 'redes',     label: 'Redes Sociales', icon: '📱', tabs: ['social', 'linkedin', 'cron'] },
-  { id: 'marketing', label: 'Marketing',      icon: '🎯', tabs: ['leads', 'zonas', 'auditorias', 'audit-requests', 'emails'] },
+  { id: 'marketing', label: 'Marketing',      icon: '🎯', tabs: ['leads', 'zonas', 'auditorias', 'audit-requests', 'emails', 'style-quiz'] },
   { id: 'sitio',     label: 'Sitio',          icon: '🌐', tabs: ['proyectos', 'questions'] },
 ];
 
@@ -774,6 +776,11 @@ export default function AdminPage() {
         {activeTab === 'auditorias' && (
           <div className="p-6">
             <AuditoriasManager />
+          </div>
+        )}
+        {activeTab === 'style-quiz' && (
+          <div className="p-6">
+            <StyleQuizManager />
           </div>
         )}
         {activeTab === 'audit-requests' && (
