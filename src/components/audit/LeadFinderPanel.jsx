@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { PROVINCIAS_AR } from '@/data/localidadesAR';
-import { RUBROS, CATEGORIAS_RUBROS } from '@/data/rubros';
+import { RUBROS, CATEGORIAS_RUBROS, DEFAULT_TIPOS } from '@/data/rubros';
 
 // Tipos de negocio → se pasan como `includedTypes` a la Places API (New).
 // Lista compartida en src/data/rubros.js (también la usa el Keyword Explorer /keywords).
@@ -10,13 +10,6 @@ const TIPOS = RUBROS;
 
 // Orden de rubros para el UI (agrupa TIPOS por `cat` preservando este orden)
 const CATEGORIAS = CATEGORIAS_RUBROS;
-
-// Selección por defecto: los rubros de negocio local más comunes
-const DEFAULT_TIPOS = [
-  'restaurant', 'cafe', 'bar', 'bakery', 'store', 'clothing_store', 'hair_care',
-  'beauty_salon', 'gym', 'dentist', 'real_estate_agency', 'lawyer', 'accounting',
-  'car_repair', 'pharmacy', 'pet_store', 'veterinary_care', 'lodging',
-];
 
 function loadConfig() {
   try {

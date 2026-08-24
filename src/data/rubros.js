@@ -81,3 +81,12 @@ export const RUBROS = [
 
 // Rubros agrupados por categoría, preservando el orden de aparición.
 export const CATEGORIAS_RUBROS = [...new Set(RUBROS.map(r => r.cat))];
+
+// Selección por defecto: los rubros de negocio local más comunes.
+// Usado por LeadFinderPanel (admin) y LeadMapPanel (mapa móvil) para no tener
+// que tildar los 65 rubros a mano en cada búsqueda.
+export const DEFAULT_TIPOS = [
+  'restaurant', 'cafe', 'bar', 'bakery', 'store', 'clothing_store', 'hair_care',
+  'beauty_salon', 'gym', 'dentist', 'real_estate_agency', 'lawyer', 'accounting',
+  'car_repair', 'pharmacy', 'pet_store', 'veterinary_care', 'lodging',
+];

@@ -18,6 +18,7 @@ import AuditRequestsManager from '../components/admin/AuditRequestsManager';
 import SentEmailsManager from '../components/admin/SentEmailsManager';
 import SubscriptionsManager from '../components/admin/SubscriptionsManager';
 import StyleQuizManager from '../components/admin/StyleQuizManager';
+import LeadMapPanel from '../components/admin/LeadMapPanel';
 import LeadFinderPanel from '../components/audit/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 
@@ -29,6 +30,7 @@ const ADMIN_TABS = [
   { id: 'social', label: 'Redes Sociales', icon: '📱' },
   { id: 'linkedin', label: 'LinkedIn', icon: '💼' },
   { id: 'leads', label: 'Lead Finder', icon: '🎯' },
+  { id: 'leads-map', label: 'Mapa de Leads', icon: '📍' },
   { id: 'questions', label: 'Preguntas', icon: '💬' },
   { id: 'proyectos', label: 'Proyectos', icon: '🌐' },
   { id: 'zonas', label: 'Zonas', icon: '🗺️' },
@@ -46,7 +48,7 @@ const ADMIN_GROUPS = [
   { id: 'panel',     label: 'Panel',          icon: '📊', tabs: ['dashboard'] },
   { id: 'tienda',    label: 'Tienda',         icon: '🛍️', tabs: ['products', 'orders', 'presupuestos', 'suscripciones', 'users'] },
   { id: 'redes',     label: 'Redes Sociales', icon: '📱', tabs: ['social', 'linkedin', 'cron'] },
-  { id: 'marketing', label: 'Marketing',      icon: '🎯', tabs: ['leads', 'zonas', 'auditorias', 'audit-requests', 'emails', 'style-quiz'] },
+  { id: 'marketing', label: 'Marketing',      icon: '🎯', tabs: ['leads', 'leads-map', 'zonas', 'auditorias', 'audit-requests', 'emails', 'style-quiz'] },
   { id: 'sitio',     label: 'Sitio',          icon: '🌐', tabs: ['proyectos', 'questions'] },
 ];
 
@@ -745,6 +747,10 @@ export default function AdminPage() {
 
         {activeTab === 'leads' && (
           <LeadFinderPanel />
+        )}
+
+        {activeTab === 'leads-map' && (
+          <LeadMapPanel onClose={() => setActiveTab('leads')} />
         )}
 
         {!loading && activeTab === 'questions' && (
