@@ -23,6 +23,69 @@ function isSocialUrl(url) {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+// Paleta de status validada (dataviz skill) — mismos roles good/warning/critical,
+// nunca reusados como serie categórica. Coincide con los cortes de scoreColor
+// en LeadMapView.jsx (<40 / 40-69 / ≥70).
+const SEO_BANDS = [
+  { id: 'bajo',  label: 'Bajo',  range: '< 40',    color: '#d03b3b', test: s => s < 40 },
+  { id: 'medio', label: 'Medio', range: '40–69',   color: '#fab219', test: s => s >= 40 && s < 70 },
+  { id: 'bueno', label: 'Bueno', range: '≥ 70',    color: '#0ca30c', test: s => s >= 70 },
+];
+
+// Barra apilada 100% — composición del SEO score entre los negocios con sitio
+// que ya fueron auditados. Legend + labels directos (nunca color solo).
+function SeoScoreBar({ businesses }) {
+  const audited = businesses.filter(b => b.hasWebsite === true && b.seoScore != null);
+  const withSitePending = businesses.filter(b => b.hasWebsite === true && b.seoScore == null).length;
+
+  if (audited.length === 0) return null;
+
+  const counts = SEO_BANDS.map(band => ({
+    ...band,
+    count: audited.filter(b => band.test(b.seoScore)).length,
+  }));
+
+  return (
+    <div className="bg-white/5 rounded-xl p-3">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-semibold text-gray-300">
+          SEO de los que tienen sitio ({audited.length})
+        </p>
+        {withSitePending > 0 && (
+          <span className="text-[10px] text-gray-500">{withSitePending} auditando…</span>
+        )}
+      </div>
+
+      {/* Barra apilada 100% — 2px de separación entre segmentos */}
+      <div className="flex h-4 rounded-full overflow-hidden gap-[2px]" role="img" aria-label={
+        counts.map(c => `${c.label}: ${Math.round(c.count / audited.length * 100)}%`).join(', ')
+      }>
+        {counts.filter(c => c.count > 0).map(c => (
+          <div
+            key={c.id}
+            style={{ flex: c.count, backgroundColor: c.color }}
+            title={`${c.label} (${c.range}): ${c.count} de ${audited.length}`}
+          />
+        ))}
+      </div>
+
+      {/* Legend con labels directos — nunca color solo */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+        {counts.map(c => (
+          <div key={c.id} className="flex items-center gap-1.5 text-[11px]">
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+            <span className="text-gray-300">{c.label}</span>
+            <span className="text-gray-500">{c.range}</span>
+            <span className="text-white font-semibold">
+              {Math.round(c.count / audited.length * 100)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function BusinessSheet({ business, onClose }) {
   if (!business) return null;
   const b = business;
@@ -278,6 +341,8 @@ export default function LeadMapPanel({ onClose }) {
             {pending > 0 && <span className="text-gray-500">{pending} auditando…</span>}
           </div>
         )}
+
+        {businesses.length > 0 && <SeoScoreBar businesses={businesses} />}
 
         {/* Drawer de filtros de rubros */}
         {showFilters && (
