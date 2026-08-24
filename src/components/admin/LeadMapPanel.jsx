@@ -7,7 +7,14 @@ import { RUBROS, CATEGORIAS_RUBROS, DEFAULT_TIPOS } from '@/data/rubros';
 const LeadMapView = dynamic(() => import('./LeadMapView'), { ssr: false });
 
 const RADIO_OPTIONS = [5, 10, 15, 20, 30]; // en cuadras (100m c/u — estándar AR)
-const MAX_NEGOCIOS = 120;
+
+// getDetails de Places API (New) es la llamada que FACTURA (generó $12.72 en
+// julio 2026 — ver memoria google-cloud-quotas). La cuota diaria en GCP está
+// bajada a 100/día como freno de emergencia y es COMPARTIDA con el Lead Finder
+// clásico (que ya capea su propio maxAudit a 60). Default conservador acá para
+// no comerse la cuota del día en una sola pasada del mapa.
+const MAX_NEGOCIOS_OPTIONS = [20, 40, 60, 100];
+const DEFAULT_MAX_NEGOCIOS = 40;
 
 const SOCIAL_DOMAINS = [
   'facebook.com','fb.com','instagram.com','twitter.com','x.com',
@@ -156,6 +163,7 @@ export default function LeadMapPanel({ onClose }) {
   const [locLoading, setLocLoading]     = useState(false);
 
   const [radioCuadras, setRadioCuadras] = useState(10);
+  const [maxNegocios, setMaxNegocios]   = useState(DEFAULT_MAX_NEGOCIOS);
   const [tipos, setTipos]               = useState(DEFAULT_TIPOS);
   const [showFilters, setShowFilters]   = useState(false);
 
@@ -265,7 +273,7 @@ export default function LeadMapPanel({ onClose }) {
 
     for (const tipo of tipos) {
       if (cancelRef.current) break;
-      if (collected.length >= MAX_NEGOCIOS) break;
+      if (collected.length >= maxNegocios) break;
       try {
         const res = await callFn('searchNearby', { lat: userLocation.lat, lon: userLocation.lon, type: tipo, radiusM });
         const label = RUBROS.find(r => r.id === tipo)?.label || tipo;
@@ -285,7 +293,7 @@ export default function LeadMapPanel({ onClose }) {
           };
           collected.push(biz);
           setBusinesses(prev => [...prev, biz]);
-          if (collected.length >= MAX_NEGOCIOS) break;
+          if (collected.length >= maxNegocios) break;
         }
       } catch {
         // seguimos con el siguiente tipo aunque uno falle
@@ -295,7 +303,7 @@ export default function LeadMapPanel({ onClose }) {
     setPhase('auditing');
     await runAuditQueue(collected);
     setPhase(cancelRef.current ? 'idle' : 'done');
-  }, [userLocation, radioCuadras, tipos, callFn, runAuditQueue]);
+  }, [userLocation, radioCuadras, maxNegocios, tipos, callFn, runAuditQueue]);
 
   const stopSearch = () => { cancelRef.current = true; setPhase('idle'); };
 
@@ -329,6 +337,10 @@ export default function LeadMapPanel({ onClose }) {
 
         {locError && <p className="text-xs text-red-400">{locError}</p>}
 
+        <p className="text-[10px] text-gray-600">
+          ⚠ Cada negocio consume 1 request paga a Google (cuota diaria de 100 compartida con Lead Finder).
+        </p>
+
         <div className="flex items-center gap-2 flex-wrap">
           <select
             value={radioCuadras}
@@ -337,6 +349,16 @@ export default function LeadMapPanel({ onClose }) {
             className="px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white"
           >
             {RADIO_OPTIONS.map(c => <option key={c} value={c}>{c} cuadras</option>)}
+          </select>
+
+          <select
+            value={maxNegocios}
+            onChange={e => setMaxNegocios(Number(e.target.value))}
+            disabled={isBusy}
+            title="Cada negocio consume 1 llamada paga a Google Places (getDetails) — cuota diaria compartida"
+            className="px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white"
+          >
+            {MAX_NEGOCIOS_OPTIONS.map(n => <option key={n} value={n}>máx. {n}</option>)}
           </select>
 
           <button
