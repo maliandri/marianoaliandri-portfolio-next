@@ -1,5 +1,14 @@
 export const dynamic = 'force-dynamic';
 
+import { getDb } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
+
+// Caché de auditorías por placeId — evita re-pagar getDetails (Places API) por un
+// negocio ya auditado. El sitio propio (checkSite) es gratis, así que solo importa
+// cachear el resultado combinado. TTL amplio: el SEO de un negocio no cambia seguido.
+const CACHE_COLLECTION = 'places_seo_cache';
+const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
+
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const EMAIL_RE = /\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b/g;
 const IGNORE_EMAIL = ['example','test','noreply','no-reply','spam','sentry','wix','google','apple','microsoft','adobe','.png','.jpg','.gif','.svg'];
@@ -80,6 +89,68 @@ function calcSeoScore({ hasSitemap, hasRobots, metaDesc, hasOG, lastModified }) 
 
 function ok(data)  { return Response.json({ ok: true, ...data }); }
 function fail(msg) { return Response.json({ ok: false, error: msg }); }
+
+// Auditoría SEO de un sitio (sitemap/robots/meta/OG/email) — sin costo, solo fetches propios.
+// Compartida por la acción 'checkSite' (uno por uno) y 'auditPlace' (con caché por placeId).
+async function auditSite(url) {
+  if (!url.startsWith('http')) url = 'https://' + url;
+  let origin;
+  try { origin = new URL(url).origin; } catch { throw new Error('URL inválida'); }
+
+  try {
+    const [robotsRes, mainRes, contactRes] = await Promise.allSettled([
+      fetch(origin + '/robots.txt', { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(7000) }),
+      fetch(origin,                 { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) }),
+      fetchFirstContact(origin),
+    ]);
+
+    let hasRobots = false, declaredSitemap = null;
+    if (robotsRes.status === 'fulfilled' && robotsRes.value.ok) {
+      hasRobots = true;
+      try {
+        const txt = await robotsRes.value.text();
+        const m = txt.match(/^\s*sitemap:\s*(\S+)/im);
+        if (m) declaredSitemap = m[1].trim();
+      } catch { /* ignore */ }
+    }
+
+    const candidates = [...new Set([
+      origin + '/sitemap.xml',
+      declaredSitemap,
+      origin + '/sitemap_index.xml',
+    ].filter(Boolean))];
+    let hasSitemap = false;
+    for (const cand of candidates) {
+      if (await resourceOk(cand)) { hasSitemap = true; break; }
+    }
+
+    let lastModified = null, metaDesc = null, hasOG = false, emailFromHome = null;
+    if (mainRes.status === 'fulfilled' && mainRes.value.ok) {
+      lastModified = mainRes.value.headers.get('last-modified') || null;
+      try {
+        const html = await mainRes.value.text();
+        emailFromHome = extractEmails(html)[0] || null;
+        metaDesc      = extractMetaDesc(html);
+        hasOG         = detectOG(html);
+      } catch { /* ignore */ }
+    }
+
+    let emailFromContact = null;
+    if (contactRes.status === 'fulfilled' && contactRes.value?.ok) {
+      try {
+        const contactHtml = await contactRes.value.text();
+        emailFromContact = extractEmails(contactHtml)[0] || null;
+      } catch { /* ignore */ }
+    }
+
+    const email    = emailFromHome || emailFromContact || null;
+    const seoScore = calcSeoScore({ hasSitemap, hasRobots, metaDesc, hasOG, lastModified });
+
+    return { hasSitemap, hasRobots, lastModified, email, metaDesc, hasOG, seoScore };
+  } catch {
+    return { hasSitemap: false, hasRobots: false, lastModified: null, email: null, metaDesc: null, hasOG: false, seoScore: null };
+  }
+}
 
 export async function POST(request) {
   let body;
@@ -166,66 +237,59 @@ export async function POST(request) {
       }
 
       case 'checkSite': {
-        let { url } = params;
+        const { url } = params;
         if (!url) return fail('URL requerida');
-        if (!url.startsWith('http')) url = 'https://' + url;
+        return ok(await auditSite(url));
+      }
 
-        let origin;
-        try { origin = new URL(url).origin; } catch { return fail('URL inválida'); }
+      // Auditoría de un place con caché por placeId en Firestore (30 días).
+      // Si está en caché, NO llama a Google — cero costo. Si no, llama a getDetails
+      // (pago) + auditSite (gratis) una sola vez y guarda el resultado para el futuro.
+      case 'auditPlace': {
+        const { placeId } = params;
+        if (!placeId) return fail('placeId requerido');
 
-        try {
-          const [robotsRes, mainRes, contactRes] = await Promise.allSettled([
-            fetch(origin + '/robots.txt', { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(7000) }),
-            fetch(origin,                 { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) }),
-            fetchFirstContact(origin),
-          ]);
+        const db = getDb();
+        const cacheRef = db ? db.collection(CACHE_COLLECTION).doc(placeId) : null;
 
-          let hasRobots = false, declaredSitemap = null;
-          if (robotsRes.status === 'fulfilled' && robotsRes.value.ok) {
-            hasRobots = true;
-            try {
-              const txt = await robotsRes.value.text();
-              const m = txt.match(/^\s*sitemap:\s*(\S+)/im);
-              if (m) declaredSitemap = m[1].trim();
-            } catch { /* ignore */ }
-          }
-
-          const candidates = [...new Set([
-            origin + '/sitemap.xml',
-            declaredSitemap,
-            origin + '/sitemap_index.xml',
-          ].filter(Boolean))];
-          let hasSitemap = false;
-          for (const cand of candidates) {
-            if (await resourceOk(cand)) { hasSitemap = true; break; }
-          }
-
-          let lastModified = null, metaDesc = null, hasOG = false, emailFromHome = null;
-          if (mainRes.status === 'fulfilled' && mainRes.value.ok) {
-            lastModified = mainRes.value.headers.get('last-modified') || null;
-            try {
-              const html = await mainRes.value.text();
-              emailFromHome = extractEmails(html)[0] || null;
-              metaDesc      = extractMetaDesc(html);
-              hasOG         = detectOG(html);
-            } catch { /* ignore */ }
-          }
-
-          let emailFromContact = null;
-          if (contactRes.status === 'fulfilled' && contactRes.value?.ok) {
-            try {
-              const contactHtml = await contactRes.value.text();
-              emailFromContact = extractEmails(contactHtml)[0] || null;
-            } catch { /* ignore */ }
-          }
-
-          const email    = emailFromHome || emailFromContact || null;
-          const seoScore = calcSeoScore({ hasSitemap, hasRobots, metaDesc, hasOG, lastModified });
-
-          return ok({ hasSitemap, hasRobots, lastModified, email, metaDesc, hasOG, seoScore });
-        } catch {
-          return ok({ hasSitemap: false, hasRobots: false, lastModified: null, email: null, metaDesc: null, hasOG: false, seoScore: null });
+        if (cacheRef) {
+          try {
+            const snap = await cacheRef.get();
+            if (snap.exists) {
+              const cached = snap.data();
+              const checkedAt = cached.checkedAt?.toDate?.()?.getTime() || 0;
+              if (Date.now() - checkedAt < CACHE_TTL_MS) {
+                const { checkedAt: _omit, ...rest } = cached;
+                return ok({ ...rest, fromCache: true });
+              }
+            }
+          } catch { /* si falla la lectura, seguimos y auditamos igual */ }
         }
+
+        if (!gApiKey) return fail('API Key de Google requerida');
+        const detResp = await fetch(PLACES_DETAIL + placeId, {
+          headers: { 'X-Goog-Api-Key': gApiKey, 'X-Goog-FieldMask': DETAIL_FIELDS },
+          signal: AbortSignal.timeout(8000),
+        });
+        const detData = await detResp.json();
+        if (detData.error) return fail(detData.error.message || 'Error de Google Places (getDetails)');
+
+        const websiteUri = detData.websiteUri && !isSocialUrl(detData.websiteUri) ? detData.websiteUri : null;
+        let result = {
+          hasWebsite: !!websiteUri, siteUrl: websiteUri,
+          seoScore: null, hasSitemap: null, hasRobots: null, metaDesc: null, hasOG: false, email: null,
+        };
+
+        if (websiteUri) {
+          const site = await auditSite(websiteUri);
+          result = { ...result, ...site };
+        }
+
+        if (cacheRef) {
+          await cacheRef.set({ ...result, checkedAt: FieldValue.serverTimestamp() }, { merge: true }).catch(() => {});
+        }
+
+        return ok({ ...result, fromCache: false });
       }
 
       default:

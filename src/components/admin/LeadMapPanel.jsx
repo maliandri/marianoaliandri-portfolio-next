@@ -16,18 +16,6 @@ const RADIO_OPTIONS = [5, 10, 15, 20, 30]; // en cuadras (100m c/u — estándar
 const MAX_NEGOCIOS_OPTIONS = [20, 40, 60, 100];
 const DEFAULT_MAX_NEGOCIOS = 40;
 
-const SOCIAL_DOMAINS = [
-  'facebook.com','fb.com','instagram.com','twitter.com','x.com',
-  'linkedin.com','youtube.com','tiktok.com','pinterest.com','snapchat.com',
-  'whatsapp.com','telegram.org','linktr.ee','beacons.ai','bio.link',
-];
-function isSocialUrl(url) {
-  try {
-    const host = new URL(url).hostname.replace(/^www\./, '');
-    return SOCIAL_DOMAINS.some(d => host === d || host.endsWith('.' + d));
-  } catch { return false; }
-}
-
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // Paleta de status validada (dataviz skill) — mismos roles good/warning/critical,
@@ -171,7 +159,10 @@ export default function LeadMapPanel({ onClose }) {
   const [phase, setPhase]               = useState('idle'); // idle | searching | auditing | done
   const [selectedId, setSelectedId]     = useState(null);
 
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
+
   const cancelRef = useRef(false);
+  const quotaRef  = useRef(false);
 
   const locate = useCallback(() => {
     if (!navigator.geolocation) {
@@ -207,25 +198,30 @@ export default function LeadMapPanel({ onClose }) {
     return data;
   }, []);
 
-  // Audita en background (getDetails + checkSite) un negocio ya listado en el mapa.
+  // Audita un negocio ya listado en el mapa vía 'auditPlace' (getDetails + checkSite
+  // en una sola acción, con caché de 30 días por placeId en Firestore — si ya se
+  // auditó antes, NO vuelve a gastar cuota de Google, sea hoy o en semanas).
   // IMPORTANTE: un error de red/API (rate limit, timeout, etc.) NO es lo mismo que
   // "no tiene sitio web" — se reintenta una vez y si sigue fallando queda marcado
   // como auditError (gris, reintentable) en vez de contarlo como "sin sitio" (falso negativo).
   const auditBusiness = useCallback(async (biz, attempt = 0) => {
+    if (quotaRef.current) return; // cuota ya agotada — no tiene sentido seguir pegándole a Google
+    setBusinesses(prev => prev.map(b => b.id === biz.id ? { ...b, auditError: false } : b));
     try {
-      const det = await callFn('getDetails', { placeId: biz.id });
-      const websiteUri = det.websiteUri && !isSocialUrl(det.websiteUri) ? det.websiteUri : null;
-
-      if (!websiteUri) {
-        setBusinesses(prev => prev.map(b => b.id === biz.id ? { ...b, hasWebsite: false, auditError: false } : b));
+      const res = await callFn('auditPlace', { placeId: biz.id });
+      setBusinesses(prev => prev.map(b => b.id === biz.id ? {
+        ...b,
+        hasWebsite: res.hasWebsite,
+        siteUrl: res.siteUrl || null,
+        seoScore: res.seoScore ?? null,
+      } : b));
+    } catch (e) {
+      if (String(e?.message || '').includes('Quota exceeded')) {
+        quotaRef.current = true;
+        setQuotaExceeded(true);
+        setBusinesses(prev => prev.map(b => b.id === biz.id ? { ...b, hasWebsite: null, auditError: true } : b));
         return;
       }
-
-      setBusinesses(prev => prev.map(b => b.id === biz.id ? { ...b, hasWebsite: true, siteUrl: websiteUri } : b));
-
-      const site = await callFn('checkSite', { url: websiteUri });
-      setBusinesses(prev => prev.map(b => b.id === biz.id ? { ...b, seoScore: site.seoScore ?? null } : b));
-    } catch {
       if (attempt < 1) {
         await sleep(1000);
         return auditBusiness(biz, attempt + 1);
@@ -300,10 +296,20 @@ export default function LeadMapPanel({ onClose }) {
       }
     }
 
-    setPhase('auditing');
-    await runAuditQueue(collected);
+    // No se audita automáticamente — cada auditPlace puede gastar cuota paga de
+    // Google. Se audita al tocar un pin, o con el botón "Auditar todos" (explícito).
     setPhase(cancelRef.current ? 'idle' : 'done');
-  }, [userLocation, radioCuadras, maxNegocios, tipos, callFn, runAuditQueue]);
+  }, [userLocation, radioCuadras, maxNegocios, tipos, callFn]);
+
+  // Auditoría masiva explícita — el usuario decide gastar cuota a propósito.
+  const auditAll = useCallback(async () => {
+    const targets = businesses.filter(b => b.hasWebsite === null && !b.auditError);
+    if (!targets.length) return;
+    cancelRef.current = false;
+    setPhase('auditing');
+    await runAuditQueue(targets);
+    setPhase(cancelRef.current ? 'idle' : 'done');
+  }, [businesses, runAuditQueue]);
 
   const stopSearch = () => { cancelRef.current = true; setPhase('idle'); };
 
@@ -388,13 +394,24 @@ export default function LeadMapPanel({ onClose }) {
             <span>{businesses.length} negocios</span>
             <span className="text-purple-400">{withoutSite} sin sitio</span>
             <span className="text-gray-300">{withSite} con sitio</span>
-            {pending > 0 && <span className="text-gray-500">{pending} auditando…</span>}
+            {phase === 'auditing' && <span className="text-gray-500">auditando…</span>}
+            {pending > 0 && phase !== 'auditing' && (
+              <button onClick={auditAll} disabled={isBusy || quotaExceeded} className="text-indigo-400 hover:text-indigo-300 disabled:opacity-50">
+                🔍 Auditar {pending} sin revisar
+              </button>
+            )}
             {errorCount > 0 && (
-              <button onClick={retryFailed} disabled={isBusy} className="text-orange-400 hover:text-orange-300 disabled:opacity-50">
-                ⚠ {errorCount} sin auditar — reintentar
+              <button onClick={retryFailed} disabled={isBusy || quotaExceeded} className="text-orange-400 hover:text-orange-300 disabled:opacity-50">
+                ⚠ {errorCount} con error — reintentar
               </button>
             )}
           </div>
+        )}
+
+        {quotaExceeded && (
+          <p className="text-[11px] text-orange-400">
+            ⚠ Se agotó la cuota diaria de Google (100 getDetails/día). Se resetea mañana — tocar pines o auditar no va a funcionar hasta entonces.
+          </p>
         )}
 
         {businesses.length > 0 && <SeoScoreBar businesses={businesses} />}
@@ -439,7 +456,14 @@ export default function LeadMapPanel({ onClose }) {
       {/* Mapa */}
       <div className="flex-1 relative">
         {userLocation ? (
-          <LeadMapView userLocation={userLocation} businesses={businesses} onSelect={b => setSelectedId(b.id)} />
+          <LeadMapView
+            userLocation={userLocation}
+            businesses={businesses}
+            onSelect={b => {
+              setSelectedId(b.id);
+              if (b.hasWebsite === null && !b.auditError) auditBusiness(b);
+            }}
+          />
         ) : (
           <div className="h-full flex items-center justify-center text-sm text-gray-500 px-6 text-center">
             {locLoading ? 'Obteniendo tu ubicación…' : 'Activá la ubicación para ver el mapa'}
