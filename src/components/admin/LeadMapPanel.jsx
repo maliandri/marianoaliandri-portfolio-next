@@ -86,7 +86,7 @@ function SeoScoreBar({ businesses }) {
   );
 }
 
-function BusinessSheet({ business, onClose }) {
+function BusinessSheet({ business, onClose, onRetry }) {
   if (!business) return null;
   const b = business;
   const color = b.hasWebsite === false ? '#a855f7'
@@ -108,7 +108,10 @@ function BusinessSheet({ business, onClose }) {
 
       <div className="mt-4 flex items-center gap-2">
         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-        {b.hasWebsite === null && <span className="text-sm text-gray-400">Auditando…</span>}
+        {b.hasWebsite === null && !b.auditError && <span className="text-sm text-gray-400">Auditando…</span>}
+        {b.hasWebsite === null && b.auditError && (
+          <span className="text-sm font-semibold text-orange-400">⚠ No se pudo auditar</span>
+        )}
         {b.hasWebsite === false && <span className="text-sm font-semibold text-purple-400">Sin sitio web — oportunidad</span>}
         {b.hasWebsite === true && (
           <span className="text-sm text-gray-300">
@@ -136,6 +139,12 @@ function BusinessSheet({ business, onClose }) {
             Contactar
           </a>
         )}
+        {b.auditError && (
+          <button onClick={() => onRetry?.(b)}
+            className="flex-1 text-center px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-sm font-medium transition-colors">
+            Reintentar auditoría
+          </button>
+        )}
       </div>
     </div>
   );
@@ -152,7 +161,7 @@ export default function LeadMapPanel({ onClose }) {
 
   const [businesses, setBusinesses]     = useState([]);
   const [phase, setPhase]               = useState('idle'); // idle | searching | auditing | done
-  const [selected, setSelected]         = useState(null);
+  const [selectedId, setSelectedId]     = useState(null);
 
   const cancelRef = useRef(false);
 
@@ -191,13 +200,16 @@ export default function LeadMapPanel({ onClose }) {
   }, []);
 
   // Audita en background (getDetails + checkSite) un negocio ya listado en el mapa.
-  const auditBusiness = useCallback(async (biz) => {
+  // IMPORTANTE: un error de red/API (rate limit, timeout, etc.) NO es lo mismo que
+  // "no tiene sitio web" — se reintenta una vez y si sigue fallando queda marcado
+  // como auditError (gris, reintentable) en vez de contarlo como "sin sitio" (falso negativo).
+  const auditBusiness = useCallback(async (biz, attempt = 0) => {
     try {
       const det = await callFn('getDetails', { placeId: biz.id });
       const websiteUri = det.websiteUri && !isSocialUrl(det.websiteUri) ? det.websiteUri : null;
 
       if (!websiteUri) {
-        setBusinesses(prev => prev.map(b => b.id === biz.id ? { ...b, hasWebsite: false } : b));
+        setBusinesses(prev => prev.map(b => b.id === biz.id ? { ...b, hasWebsite: false, auditError: false } : b));
         return;
       }
 
@@ -206,30 +218,45 @@ export default function LeadMapPanel({ onClose }) {
       const site = await callFn('checkSite', { url: websiteUri });
       setBusinesses(prev => prev.map(b => b.id === biz.id ? { ...b, seoScore: site.seoScore ?? null } : b));
     } catch {
-      setBusinesses(prev => prev.map(b => b.id === biz.id ? { ...b, hasWebsite: false } : b));
+      if (attempt < 1) {
+        await sleep(1000);
+        return auditBusiness(biz, attempt + 1);
+      }
+      setBusinesses(prev => prev.map(b => b.id === biz.id ? { ...b, hasWebsite: null, auditError: true } : b));
     }
   }, [callFn]);
 
-  // Pool de concurrencia simple para auditar varios negocios en paralelo sin saturar.
+  // Reintenta los negocios que quedaron con error de auditoría (no confirmados como "sin sitio").
+  const retryFailed = useCallback(async () => {
+    const failed = businesses.filter(b => b.auditError);
+    if (!failed.length) return;
+    setBusinesses(prev => prev.map(b => b.auditError ? { ...b, auditError: false } : b));
+    await runAuditQueueRef.current(failed);
+  }, [businesses]);
+
+  // Pool de concurrencia simple para auditar varios negocios sin saturar la cuota de Google.
   const runAuditQueue = useCallback(async (items) => {
     let i = 0;
-    const concurrency = 4;
+    const concurrency = 2;
     async function worker() {
       while (i < items.length) {
         if (cancelRef.current) return;
         const item = items[i++];
         await auditBusiness(item);
-        await sleep(150);
+        await sleep(350);
       }
     }
     await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
   }, [auditBusiness]);
 
+  const runAuditQueueRef = useRef(runAuditQueue);
+  useEffect(() => { runAuditQueueRef.current = runAuditQueue; }, [runAuditQueue]);
+
   const runSearch = useCallback(async () => {
     if (!userLocation) return;
     cancelRef.current = false;
     setBusinesses([]);
-    setSelected(null);
+    setSelectedId(null);
     setPhase('searching');
 
     const radiusM = radioCuadras * 100;
@@ -275,7 +302,8 @@ export default function LeadMapPanel({ onClose }) {
   const isBusy = phase === 'searching' || phase === 'auditing';
   const withSite    = businesses.filter(b => b.hasWebsite === true).length;
   const withoutSite = businesses.filter(b => b.hasWebsite === false).length;
-  const pending      = businesses.filter(b => b.hasWebsite === null).length;
+  const errorCount   = businesses.filter(b => b.auditError).length;
+  const pending      = businesses.filter(b => b.hasWebsite === null && !b.auditError).length;
 
   return (
     <div className="fixed inset-0 z-[100] bg-black flex flex-col" style={{ top: 0 }}>
@@ -334,11 +362,16 @@ export default function LeadMapPanel({ onClose }) {
         </div>
 
         {businesses.length > 0 && (
-          <div className="flex items-center gap-3 text-xs text-gray-400">
+          <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
             <span>{businesses.length} negocios</span>
             <span className="text-purple-400">{withoutSite} sin sitio</span>
             <span className="text-gray-300">{withSite} con sitio</span>
             {pending > 0 && <span className="text-gray-500">{pending} auditando…</span>}
+            {errorCount > 0 && (
+              <button onClick={retryFailed} disabled={isBusy} className="text-orange-400 hover:text-orange-300 disabled:opacity-50">
+                ⚠ {errorCount} sin auditar — reintentar
+              </button>
+            )}
           </div>
         )}
 
@@ -384,7 +417,7 @@ export default function LeadMapPanel({ onClose }) {
       {/* Mapa */}
       <div className="flex-1 relative">
         {userLocation ? (
-          <LeadMapView userLocation={userLocation} businesses={businesses} onSelect={setSelected} />
+          <LeadMapView userLocation={userLocation} businesses={businesses} onSelect={b => setSelectedId(b.id)} />
         ) : (
           <div className="h-full flex items-center justify-center text-sm text-gray-500 px-6 text-center">
             {locLoading ? 'Obteniendo tu ubicación…' : 'Activá la ubicación para ver el mapa'}
@@ -392,7 +425,14 @@ export default function LeadMapPanel({ onClose }) {
         )}
       </div>
 
-      <BusinessSheet business={selected} onClose={() => setSelected(null)} />
+      <BusinessSheet
+        business={businesses.find(b => b.id === selectedId) || null}
+        onClose={() => setSelectedId(null)}
+        onRetry={b => {
+          setBusinesses(prev => prev.map(x => x.id === b.id ? { ...x, auditError: false } : x));
+          auditBusiness(b);
+        }}
+      />
     </div>
   );
 }

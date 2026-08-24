@@ -161,6 +161,7 @@ export async function POST(request) {
           signal: AbortSignal.timeout(8000),
         });
         const data = await resp.json();
+        if (data.error) return fail(data.error.message || 'Error de Google Places (getDetails)');
         return ok(data);
       }
 

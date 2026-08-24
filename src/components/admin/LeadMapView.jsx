@@ -57,7 +57,8 @@ export default function LeadMapView({ userLocation, businesses = [], onSelect, h
                   <span style={{ color: '#6b7280' }}>{b.tipo}</span>
                   {b.rating ? <span style={{ color: '#d97706' }}> · ★ {b.rating}</span> : null}
                   <br />
-                  {b.hasWebsite === null && <span style={{ color: '#9ca3af' }}>Auditando…</span>}
+                  {b.hasWebsite === null && !b.auditError && <span style={{ color: '#9ca3af' }}>Auditando…</span>}
+                  {b.hasWebsite === null && b.auditError && <span style={{ color: '#fb923c' }}>⚠ Error al auditar — tocá para reintentar</span>}
                   {b.hasWebsite === false && <span style={{ color: '#a855f7', fontWeight: 600 }}>Sin sitio web</span>}
                   {b.hasWebsite === true && (
                     <>
