@@ -247,6 +247,10 @@ function AppChromeInner({ children }) {
   // Normalize: remove trailing slash for matching (trailingSlash:true adds it)
   const pathname = rawPathname.replace(/\/$/, '') || '/';
 
+  // /admin tiene su propio header, sidebar y hamburger — el chrome del sitio
+  // público (Navbar fijo z-1000) lo tapaba por completo en mobile.
+  const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/');
+
   const closeTool = () => router.push('/');
 
   return (
@@ -254,7 +258,7 @@ function AppChromeInner({ children }) {
 
       <Suspense fallback={null}><ScreenshotHider /></Suspense>
 
-      <div className="app-chrome"><Navbar pathname={pathname} /></div>
+      {!isAdmin && <div className="app-chrome"><Navbar pathname={pathname} /></div>}
 
       {/* Tool modals - lazy loaded */}
       <Suspense fallback={null}>
@@ -268,8 +272,8 @@ function AppChromeInner({ children }) {
       {/* Page content */}
       {children}
 
-      <div className="app-chrome"><Footer /></div>
-      <div className="app-chrome"><WhatsAppButton /></div>
+      {!isAdmin && <div className="app-chrome"><Footer /></div>}
+      {!isAdmin && <div className="app-chrome"><WhatsAppButton /></div>}
     </div>
   );
 }
