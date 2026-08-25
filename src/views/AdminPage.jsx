@@ -19,6 +19,7 @@ import SentEmailsManager from '../components/admin/SentEmailsManager';
 import SubscriptionsManager from '../components/admin/SubscriptionsManager';
 import StyleQuizManager from '../components/admin/StyleQuizManager';
 import LeadMapPanel from '../components/admin/LeadMapPanel';
+import FreeForDevBrowser from '../components/admin/FreeForDevBrowser';
 import LeadFinderPanel from '../components/audit/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 
@@ -41,6 +42,7 @@ const ADMIN_TABS = [
   { id: 'style-quiz', label: 'Test de Estilo', icon: '🎨' },
   { id: 'audit-requests', label: 'Solicitudes SEO', icon: '🔍' },
   { id: 'emails', label: 'Emails', icon: '📧' },
+  { id: 'free-for-dev', label: 'Free for Dev', icon: '🆓' },
 ];
 
 // Secciones agrupadas por tipo (para la barra de navegación de escritorio)
@@ -50,6 +52,7 @@ const ADMIN_GROUPS = [
   { id: 'redes',     label: 'Redes Sociales', icon: '📱', tabs: ['social', 'linkedin', 'cron'] },
   { id: 'marketing', label: 'Marketing',      icon: '🎯', tabs: ['leads', 'leads-map', 'zonas', 'auditorias', 'audit-requests', 'emails', 'style-quiz'] },
   { id: 'sitio',     label: 'Sitio',          icon: '🌐', tabs: ['proyectos', 'questions'] },
+  { id: 'dev',       label: 'Dev',            icon: '🧰', tabs: ['free-for-dev'] },
 ];
 
 const TAB_MAP = Object.fromEntries(ADMIN_TABS.map(t => [t.id, t]));
@@ -795,6 +798,11 @@ export default function AdminPage() {
         {activeTab === 'emails' && (
           <div className="p-6">
             <SentEmailsManager />
+          </div>
+        )}
+        {activeTab === 'free-for-dev' && (
+          <div className="p-6">
+            <FreeForDevBrowser />
           </div>
         )}
         </main>
