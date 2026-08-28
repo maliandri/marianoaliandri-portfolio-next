@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { db, firebaseQA } from '../utils/firebaseservice';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import SocialMediaDashboard from '../components/social/SocialMediaDashboard';
 import SocialPublisher from '../components/admin/SocialPublisher';
 import CanvasReelGenerator from '../components/admin/CanvasReelGenerator';
@@ -814,6 +815,30 @@ export default function AdminPage() {
 // Panel de edición de Proyectos
 const EMPTY_EDIT = { descripcionCorta: '', stack: '', funcionalidades: '', impacto: '', orden: 99, visible: true };
 
+const PERMISSION_INFO = {
+  siteOwner:          { label: 'Propietario',        className: 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' },
+  siteFullUser:        { label: 'Acceso completo',     className: 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' },
+  siteRestrictedUser:  { label: 'Acceso restringido',  className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400' },
+  siteUnverifiedUser:  { label: 'Sin verificar',       className: 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400' },
+};
+
+function GscStatusBadge({ permissionLevel, statsError }) {
+  if (statsError) {
+    return (
+      <span
+        title={typeof statsError === 'string' ? statsError : 'Error consultando Search Console'}
+        className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+      >
+        ⚠ Sin acceso a estadísticas
+      </span>
+    );
+  }
+  const info = PERMISSION_INFO[permissionLevel] || { label: permissionLevel || 'desconocido', className: 'bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-gray-400' };
+  return <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${info.className}`}>{info.label}</span>;
+}
+
+const SERVICE_ACCOUNT_EMAIL = 'firebase-adminsdk-fbsvc@marianoaliandri-3b135.iam.gserviceaccount.com';
+
 function AdminProyectosPanel({ db }) {
   const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -824,7 +849,7 @@ function AdminProyectosPanel({ db }) {
   const [captureResult, setCaptureResult] = useState(null);
 
   useEffect(() => {
-    fetch('/api/proyectos')
+    fetch('/api/proyectos?all=1')
       .then(r => r.json())
       .then(data => {
         const list = data.proyectos || [];
@@ -911,6 +936,41 @@ function AdminProyectosPanel({ db }) {
         </div>
       )}
 
+      {/* Config GSC — cuenta de servicio a agregar en cada propiedad nueva */}
+      <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 rounded-2xl p-4 text-xs text-indigo-700 dark:text-indigo-300">
+        Para que un sitio aparezca acá, agregá esta cuenta de servicio como usuario <strong>Completo</strong> en
+        Search Console → esa propiedad → Configuración → Usuarios y permisos:
+        <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+          <code className="px-2 py-1 rounded-lg bg-white dark:bg-neutral-900 border border-indigo-200 dark:border-indigo-500/30 text-[11px] break-all">
+            {SERVICE_ACCOUNT_EMAIL}
+          </code>
+          <button
+            onClick={() => navigator.clipboard?.writeText(SERVICE_ACCOUNT_EMAIL)}
+            className="px-2 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-medium"
+          >
+            Copiar
+          </button>
+        </div>
+      </div>
+
+      {/* Resumen general — clicks/impresiones por sitio */}
+      {proyectos.length > 0 && (
+        <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-5">
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">Resumen — clicks e impresiones (últimos 28 días)</h4>
+          <ResponsiveContainer width="100%" height={Math.max(220, proyectos.length * 42)}>
+            <BarChart data={proyectos.map(p => ({ domain: p.domain, clicks: p.clicks, impressions: p.impressions }))} layout="vertical" margin={{ left: 8, right: 16 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="currentColor" className="text-gray-200 dark:text-neutral-800" />
+              <XAxis type="number" tick={{ fontSize: 11 }} stroke="currentColor" className="text-gray-400" />
+              <YAxis type="category" dataKey="domain" tick={{ fontSize: 11 }} width={140} stroke="currentColor" className="text-gray-400" />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="clicks" name="Clicks" fill="#6366f1" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="impressions" name="Impresiones" fill="#c7d2fe" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
       {proyectos.map(p => {
         const e = edits[p.domain] || EMPTY_EDIT;
         const isSaving = saving === p.domain;
@@ -930,7 +990,13 @@ function AdminProyectosPanel({ db }) {
                   onError={ev => { ev.target.style.display = 'none'; }}
                 />
                 <div className="text-left">
-                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">{p.domain}</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-indigo-600 dark:text-indigo-400">{p.domain}</span>
+                    <GscStatusBadge permissionLevel={p.permissionLevel} statsError={p.statsError} />
+                    {!e.visible && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-500 dark:bg-neutral-800 dark:text-gray-400">Oculto</span>
+                    )}
+                  </div>
                   <div className="text-xs text-gray-500 mt-0.5">{p.clicks} clicks · {p.impressions} imp. · orden {e.orden}</div>
                 </div>
               </div>

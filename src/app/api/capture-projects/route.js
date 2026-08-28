@@ -10,7 +10,7 @@ const API_SECRET  = process.env.CLOUDINARY_API_SECRET;
 
 function microlinkScreenshotUrl(siteUrl) {
   const clean = siteUrl.replace(/\/$/, '');
-  return `https://api.microlink.io/?url=${encodeURIComponent(clean)}&screenshot=true&meta=false&embed=screenshot.url`;
+  return `https://api.microlink.io/?url=${encodeURIComponent(clean)}&screenshot=true&meta=false&embed=screenshot.url&waitFor=1500&viewport.width=1280&viewport.height=800`;
 }
 
 

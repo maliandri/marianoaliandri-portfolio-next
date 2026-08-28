@@ -1,12 +1,12 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 
-export function useProyectos() {
+export function useProyectos(days = 28, lag = 3) {
   return useQuery({
-    queryKey: ['proyectos'],
+    queryKey: ['proyectos', days, lag],
     queryFn: async () => {
-      const res = await fetch('/api/proyectos');
+      const res = await fetch(`/api/proyectos?days=${days}&lag=${lag}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.details || err.error || `HTTP ${res.status}`);
@@ -18,5 +18,6 @@ export function useProyectos() {
     gcTime: 60 * 60 * 1000,
     retry: 1,
     refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
   });
 }

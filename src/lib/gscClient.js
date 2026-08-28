@@ -40,6 +40,7 @@ export async function getVerifiedSites(auth) {
         domain,
         url: `https://${domain}`,
         siteUrl,
+        permissionLevel: entry.permissionLevel || 'unknown',
       });
     }
   }
