@@ -58,6 +58,15 @@ const ADMIN_GROUPS = [
 
 const TAB_MAP = Object.fromEntries(ADMIN_TABS.map(t => [t.id, t]));
 
+// Paleta "almamod" — navy + acento azul + esquina cortada (bottom-right) como firma visual
+const NAVY = '#12182b';
+const NAVY_SOFT = '#1a2340';
+const ACCENT = '#2d4a8a';
+const CREAM = '#f8f7f5';
+const BORDER_CREAM = '#e2ddd7';
+const CUT = 'rounded-[0_0_16px_0]';
+const CUT_SM = 'rounded-[0_0_8px_0]';
+
 function PresupuestosTab() {
   const [sub, setSub] = useState('solicitudes');
   const [editBudget, setEditBudget] = useState(null);
@@ -100,6 +109,26 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [socialSubTab, setSocialSubTab] = useState('publicar');
   const [navOpen, setNavOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Colapso de sidebar persistido (igual que almamod: localStorage('sidebar_collapsed'))
+  useEffect(() => {
+    setCollapsed(localStorage.getItem('admin_sidebar_collapsed') === 'true');
+  }, []);
+  const toggleCollapsed = () => {
+    setCollapsed(v => {
+      localStorage.setItem('admin_sidebar_collapsed', String(!v));
+      return !v;
+    });
+  };
+
+  // Cerrar el drawer mobile con Escape
+  useEffect(() => {
+    if (!navOpen) return;
+    const onKey = e => { if (e.key === 'Escape') setNavOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [navOpen]);
 
   // Data states
   const [users, setUsers] = useState([]);
@@ -389,62 +418,87 @@ export default function AdminPage() {
     }).format(amount);
   };
 
-  // Login Screen
+  // Login Screen — paleta navy/cream con esquina cortada (estilo almamod)
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-950 px-4">
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: CREAM }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-neutral-900 p-8 rounded-2xl border border-gray-200 dark:border-neutral-800 w-full max-w-md"
+          className="w-full max-w-sm"
         >
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1.5 text-center">Panel de Administración</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-center mb-8 text-sm">Acceso restringido</p>
-
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Usuario</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-                className="w-full px-4 py-3 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400"
-                placeholder="Usuario"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contraseña</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                className="w-full px-4 py-3 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400"
-                placeholder="••••••••"
-                required
-              />
-            </div>
-
-            {loginError && (
-              <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm">
-                {loginError}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className="w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+          <div className="text-center mb-8">
+            <div
+              className={`inline-flex items-center justify-center w-14 h-14 ${CUT_SM} text-2xl font-black text-white mb-3`}
+              style={{ background: NAVY }}
             >
-              Iniciar Sesión
-            </button>
-          </form>
+              M
+            </div>
+            <p className="text-xs tracking-widest uppercase" style={{ color: '#6b7280' }}>Panel de administración</p>
+          </div>
+
+          <div
+            className={`bg-white ${CUT} p-8`}
+            style={{ border: `1px solid ${BORDER_CREAM}`, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}
+          >
+            <h1 className="text-xl font-bold mb-6" style={{ color: NAVY }}>Iniciar sesión</h1>
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: '#3d4a5c' }}>Usuario</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
+                  className={`w-full px-3.5 py-2.5 bg-white ${CUT_SM} text-sm focus:outline-none transition-colors`}
+                  style={{ border: `1px solid ${BORDER_CREAM}`, color: NAVY }}
+                  onFocus={e => e.target.style.borderColor = ACCENT}
+                  onBlur={e => e.target.style.borderColor = BORDER_CREAM}
+                  placeholder="Usuario"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: '#3d4a5c' }}>Contraseña</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  className={`w-full px-3.5 py-2.5 bg-white ${CUT_SM} text-sm focus:outline-none transition-colors`}
+                  style={{ border: `1px solid ${BORDER_CREAM}`, color: NAVY }}
+                  onFocus={e => e.target.style.borderColor = ACCENT}
+                  onBlur={e => e.target.style.borderColor = BORDER_CREAM}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+
+              {loginError && (
+                <div className={`${CUT_SM} px-3.5 py-2.5 text-sm`} style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626' }}>
+                  {loginError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full py-3 ${CUT_SM} font-bold text-sm text-white transition-transform`}
+                style={{ background: loading ? '#9ca3af' : NAVY, cursor: loading ? 'not-allowed' : 'pointer' }}
+                onMouseEnter={e => { if (!loading) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                {loading ? 'Ingresando...' : 'Ingresar'}
+              </button>
+            </form>
+          </div>
 
           <button
             onClick={() => router.push('/')}
-            className="mt-6 w-full text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors text-sm"
+            className="mt-5 w-full text-center text-sm transition-colors"
+            style={{ color: '#6b7280' }}
           >
             ← Volver al sitio
           </button>
@@ -456,33 +510,47 @@ export default function AdminPage() {
   // Admin Dashboard
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-neutral-950 md:flex">
-      {/* Sidebar vertical agrupado por tipo */}
+      {/* Sidebar navy, colapsable en desktop, drawer en mobile (estilo almamod) */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 shrink-0 overflow-y-auto bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-800 p-4 transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0 ${navOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed inset-y-0 left-0 z-40 shrink-0 overflow-y-auto p-3 transition-[transform,width] duration-200 md:sticky md:top-0 md:h-screen md:translate-x-0 ${navOpen ? 'translate-x-0' : '-translate-x-full'} ${collapsed ? 'md:w-16' : 'md:w-60'} w-64`}
+        style={{ background: NAVY }}
       >
-        <div className="px-2 pb-4 mb-2 border-b border-gray-100 dark:border-neutral-800">
-          <p className="text-base font-semibold text-gray-900 dark:text-white">Admin</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{username}</p>
+        <div className="flex items-center justify-between px-1 pb-3 mb-2 border-b border-white/10">
+          {!collapsed && (
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white truncate">Admin</p>
+              <p className="text-[11px] text-white/40 truncate">{username}</p>
+            </div>
+          )}
+          <button
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+            className={`hidden md:flex items-center justify-center w-7 h-7 ${CUT_SM} text-white/60 hover:text-white hover:bg-white/10 transition-colors shrink-0`}
+          >
+            {collapsed ? '»' : '«'}
+          </button>
         </div>
-        <nav className="space-y-5">
+        <nav className="space-y-4">
           {ADMIN_GROUPS.map(group => (
             <div key={group.id}>
-              <p className="px-3 mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                <span>{group.icon}</span>{group.label}
-              </p>
+              {!collapsed && (
+                <p className="px-2.5 mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/35">
+                  <span>{group.icon}</span>{group.label}
+                </p>
+              )}
               <div className="space-y-0.5">
                 {group.tabs.map(id => TAB_MAP[id]).filter(Boolean).map(tab => (
                   <button
                     key={tab.id}
                     onClick={() => { setActiveTab(tab.id); setNavOpen(false); }}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium text-left transition-colors ${
-                      activeTab === tab.id
-                        ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800'
-                    }`}
+                    title={collapsed ? tab.label : undefined}
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 ${CUT_SM} text-sm font-medium text-left transition-colors ${collapsed ? 'justify-center' : ''}`}
+                    style={activeTab === tab.id
+                      ? { background: ACCENT, color: '#fff' }
+                      : { color: 'rgba(255,255,255,0.65)' }}
                   >
-                    <span className="text-base">{tab.icon}</span>
-                    {tab.label}
+                    <span className="text-base shrink-0">{tab.icon}</span>
+                    {!collapsed && tab.label}
                   </button>
                 ))}
               </div>
@@ -491,9 +559,13 @@ export default function AdminPage() {
         </nav>
       </aside>
 
-      {/* Backdrop en mobile cuando el menú está abierto */}
+      {/* Backdrop mobile con blur (estilo almamod), cierra con click o Escape */}
       {navOpen && (
-        <div className="fixed inset-0 z-30 bg-black/30 md:hidden" onClick={() => setNavOpen(false)} />
+        <div
+          className="fixed inset-0 z-30 md:hidden"
+          style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setNavOpen(false)}
+        />
       )}
 
       {/* Columna principal */}
@@ -518,13 +590,13 @@ export default function AdminPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => router.push('/')}
-                className="px-3 py-2 border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors text-sm font-medium"
+                className={`px-3 py-2 border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 ${CUT_SM} hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors text-sm font-medium`}
               >
                 🌐 <span className="hidden sm:inline">Ver sitio</span>
               </button>
               <button
                 onClick={handleLogout}
-                className="px-3 py-2 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-sm font-medium"
+                className={`px-3 py-2 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 ${CUT_SM} hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-sm font-medium`}
               >
                 🚪 <span className="hidden sm:inline">Salir</span>
               </button>
