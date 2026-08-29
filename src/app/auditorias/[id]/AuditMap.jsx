@@ -71,9 +71,9 @@ export default function AuditMap({ results = [], radioKm = 20, ownDomains = [], 
       <div className="rounded-xl overflow-hidden border border-white/10" style={{ height }}>
         <MapContainer center={[points[0].lat, points[0].lon]} zoom={12} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
           <TileLayer
-            attribution='&copy; OpenStreetMap &copy; CARTO'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            crossOrigin="anonymous"
+            attribution='&copy; OpenStreetMap contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            className="map-tiles-dark"
           />
           <FitBounds points={points} />
           {points.map((r, i) => {

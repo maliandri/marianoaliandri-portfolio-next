@@ -29,9 +29,9 @@ export default function LeadMapView({ userLocation, businesses = [], onSelect, h
     <div style={{ height, width: '100%' }}>
       <MapContainer center={center} zoom={15} zoomControl={false} style={{ height: '100%', width: '100%' }}>
         <TileLayer
-          attribution='&copy; OpenStreetMap &copy; CARTO'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          crossOrigin="anonymous"
+          attribution='&copy; OpenStreetMap contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          className="map-tiles-dark"
         />
         <RecenterOnLocation center={center} />
 

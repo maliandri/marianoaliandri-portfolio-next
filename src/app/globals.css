@@ -705,3 +705,8 @@ html {
 .dark * {
   scrollbar-color: #4b5563 transparent;
 }
+
+/* Tiles OSM estándar (gratis, sin API key) invertidas a modo oscuro para mapas del admin/auditorías */
+.map-tiles-dark {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+}
