@@ -6,6 +6,7 @@ import AuditTable from './AuditTable';
 import AuditMapLoader from './AuditMapLoader';
 import AuditRequestForm from '@/components/audit/AuditRequestForm';
 import AuditPdfButton from '@/components/audit/AuditPdfButton';
+import SeoScoreChart from './SeoScoreChart';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,8 +84,6 @@ export default async function AuditoriaDetailPage({ params }) {
     { key: 'medio', label: 'Mejorable (40–69)', color: '#f59e0b', n: scored.filter(r => r.seoScore >= 40 && r.seoScore < 70).length },
     { key: 'bueno', label: 'Aceptable (70+)',   color: '#22c55e', n: scored.filter(r => r.seoScore >= 70).length },
   ];
-  const pct = (n) => (nScored ? Math.round((n / nScored) * 100) : 0);
-
   return (
     <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20 px-2 md:px-4">
 
@@ -141,27 +140,24 @@ export default async function AuditoriaDetailPage({ params }) {
 
       {/* Distribución de Score SEO */}
       {nScored > 0 && (
-        <div className="mb-10">
+        <div className="mb-8">
           <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-3">Distribución de Score SEO</p>
-          <div className="flex gap-[2px] h-9">
-            {bands.filter(b => b.n > 0).map(b => (
-              <div
-                key={b.key}
-                className="flex items-center justify-center rounded-md text-[11px] font-bold text-black/75 min-w-[3px] overflow-hidden"
-                style={{ width: `${pct(b.n)}%`, background: b.color }}
-                title={`${b.label}: ${b.n} (${pct(b.n)}%)`}
-              >
-                {pct(b.n) >= 7 ? b.n : ''}
-              </div>
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-x-6 gap-y-1.5 mt-3 text-xs">
-            {bands.map(b => (
-              <span key={b.key} className="flex items-center gap-1.5 text-gray-400">
-                <span className="w-3 h-3 rounded-sm inline-block" style={{ background: b.color }} />
-                {b.label} — <span className="text-gray-200 font-semibold">{b.n}</span> <span className="text-gray-600">({pct(b.n)}%)</span>
-              </span>
-            ))}
+          <SeoScoreChart bands={bands} />
+        </div>
+      )}
+
+      {/* Mapa — justo debajo del gráfico */}
+      {results.some(r => typeof r.lat === 'number' && typeof r.lon === 'number') && (
+        <div className="mb-10">
+          <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-3">Mapa de los negocios</p>
+          <AuditMapLoader results={results} radioKm={a.config?.radioKm} ownDomains={ownDomains} />
+          <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-500">
+            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#ef4444' }} /> SEO débil (&lt; 40)</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#f59e0b' }} /> Mejorable (40–69)</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#22c55e' }} /> Aceptable (70+)</span>
+            {hasOwnSite && (
+              <span className="flex items-center gap-1.5 text-indigo-300"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#6366f1' }} /> ★ Hecho por mí</span>
+            )}
           </div>
         </div>
       )}
@@ -179,21 +175,6 @@ export default async function AuditoriaDetailPage({ params }) {
         <span className="text-indigo-400 font-semibold">¿Qué mide el Score SEO?</span>{' '}
         Evalúa sitemap (-25 si falta), robots.txt (-20), meta description (-25), Open Graph (-15) y antigüedad del sitio (-15 si más de 18 meses sin actualizar). Score 0–100: rojo = débil, amarillo = mejorable, verde = aceptable. Hacé click en los encabezados para ordenar.
       </div>
-
-      {results.some(r => typeof r.lat === 'number' && typeof r.lon === 'number') && (
-        <div className="mb-8">
-          <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-3">Mapa de los negocios</p>
-          <AuditMapLoader results={results} radioKm={a.config?.radioKm} ownDomains={ownDomains} />
-          <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-500">
-            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#ef4444' }} /> SEO débil (&lt; 40)</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#f59e0b' }} /> Mejorable (40–69)</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#22c55e' }} /> Aceptable (70+)</span>
-            {hasOwnSite && (
-              <span className="flex items-center gap-1.5 text-indigo-300"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#6366f1' }} /> ★ Hecho por mí</span>
-            )}
-          </div>
-        </div>
-      )}
 
       <AuditTable results={results} ownDomains={ownDomains} />
 
