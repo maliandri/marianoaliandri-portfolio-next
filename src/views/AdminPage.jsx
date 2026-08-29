@@ -24,39 +24,65 @@ import FreeForDevBrowser from '../components/admin/FreeForDevBrowser';
 import LeadFinderPanel from '../components/audit/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 
-const ADMIN_TABS = [
-  { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { id: 'users', label: 'Usuarios', icon: '👥' },
-  { id: 'orders', label: 'Órdenes', icon: '📦' },
-  { id: 'products', label: 'Productos', icon: '🛍️' },
-  { id: 'social', label: 'Redes Sociales', icon: '📱' },
-  { id: 'linkedin', label: 'LinkedIn', icon: '💼' },
-  { id: 'leads', label: 'Lead Finder', icon: '🎯' },
-  { id: 'leads-map', label: 'Mapa de Leads', icon: '📍' },
-  { id: 'questions', label: 'Preguntas', icon: '💬' },
-  { id: 'proyectos', label: 'Proyectos', icon: '🌐' },
-  { id: 'zonas', label: 'Zonas', icon: '🗺️' },
-  { id: 'cron', label: 'Cron Social', icon: '⏰' },
-  { id: 'presupuestos', label: 'Presupuestos', icon: '💰' },
-  { id: 'suscripciones', label: 'Suscripciones', icon: '🔁' },
-  { id: 'auditorias', label: 'Auditorías', icon: '📋' },
-  { id: 'style-quiz', label: 'Test de Estilo', icon: '🎨' },
-  { id: 'audit-requests', label: 'Solicitudes SEO', icon: '🔍' },
-  { id: 'emails', label: 'Emails', icon: '📧' },
-  { id: 'free-for-dev', label: 'Free for Dev', icon: '🆓' },
+// Navegación de 3 niveles (estilo almamod): 1º sidebar (secciones) · 2º pestañas arriba
+// (items de la sección) · 3º pestañas abajo (sub-items, solo si el item tiene "children")
+const ADMIN_NAV = [
+  { id: 'panel', label: 'Panel', icon: '📊', items: [
+    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+  ]},
+  { id: 'tienda', label: 'Tienda', icon: '🛍️', items: [
+    { id: 'products', label: 'Productos', icon: '🛍️' },
+    { id: 'orders', label: 'Órdenes', icon: '📦' },
+    { id: 'presupuestos', label: 'Presupuestos', icon: '💰', children: [
+      { id: 'solicitudes', label: 'Solicitudes' },
+      { id: 'nuevo', label: 'Nuevo' },
+      { id: 'beneficios', label: 'Beneficios' },
+    ]},
+    { id: 'suscripciones', label: 'Suscripciones', icon: '🔁' },
+    { id: 'users', label: 'Usuarios', icon: '👥' },
+  ]},
+  { id: 'redes', label: 'Redes Sociales', icon: '📱', items: [
+    { id: 'social', label: 'Redes Sociales', icon: '📱', children: [
+      { id: 'publicar', label: '📢 Publicar' },
+      { id: 'servicios', label: '🖼️ Servicios' },
+      { id: 'estadisticas', label: '📊 Estadísticas' },
+      { id: 'productos', label: '🛍️ Productos' },
+      { id: 'proyectos', label: '📁 Proyectos' },
+      { id: 'reel', label: '🎬 Reel' },
+      { id: 'labs', label: '🧪 Labs' },
+    ]},
+    { id: 'linkedin', label: 'LinkedIn', icon: '💼' },
+    { id: 'cron', label: 'Cron Social', icon: '⏰' },
+  ]},
+  { id: 'marketing', label: 'Marketing', icon: '🎯', items: [
+    { id: 'leads', label: 'Lead Finder', icon: '🎯' },
+    { id: 'leads-map', label: 'Mapa de Leads', icon: '📍' },
+    { id: 'zonas', label: 'Zonas', icon: '🗺️' },
+    { id: 'auditorias', label: 'Auditorías', icon: '📋' },
+    { id: 'audit-requests', label: 'Solicitudes SEO', icon: '🔍' },
+    { id: 'emails', label: 'Emails', icon: '📧' },
+    { id: 'style-quiz', label: 'Test de Estilo', icon: '🎨' },
+  ]},
+  { id: 'sitio', label: 'Sitio', icon: '🌐', items: [
+    { id: 'proyectos', label: 'Proyectos', icon: '🌐' },
+    { id: 'questions', label: 'Preguntas', icon: '💬' },
+  ]},
+  { id: 'dev', label: 'Dev', icon: '🧰', items: [
+    { id: 'free-for-dev', label: 'Free for Dev', icon: '🆓' },
+  ]},
 ];
 
-// Secciones agrupadas por tipo (para la barra de navegación de escritorio)
-const ADMIN_GROUPS = [
-  { id: 'panel',     label: 'Panel',          icon: '📊', tabs: ['dashboard'] },
-  { id: 'tienda',    label: 'Tienda',         icon: '🛍️', tabs: ['products', 'orders', 'presupuestos', 'suscripciones', 'users'] },
-  { id: 'redes',     label: 'Redes Sociales', icon: '📱', tabs: ['social', 'linkedin', 'cron'] },
-  { id: 'marketing', label: 'Marketing',      icon: '🎯', tabs: ['leads', 'leads-map', 'zonas', 'auditorias', 'audit-requests', 'emails', 'style-quiz'] },
-  { id: 'sitio',     label: 'Sitio',          icon: '🌐', tabs: ['proyectos', 'questions'] },
-  { id: 'dev',       label: 'Dev',            icon: '🧰', tabs: ['free-for-dev'] },
-];
-
+// Vista plana (compat con el resto del panel: título del header, etc.)
+const ADMIN_TABS = ADMIN_NAV.flatMap(g => g.items);
 const TAB_MAP = Object.fromEntries(ADMIN_TABS.map(t => [t.id, t]));
+
+function findNavLocation(tabId) {
+  for (const group of ADMIN_NAV) {
+    const item = group.items.find(i => i.id === tabId);
+    if (item) return { group, item };
+  }
+  return null;
+}
 
 // Paleta "almamod" — navy + acento azul + esquina cortada (bottom-right) como firma visual
 const NAVY = '#12182b';
@@ -67,32 +93,17 @@ const BORDER_CREAM = '#e2ddd7';
 const CUT = 'rounded-[0_0_16px_0]';
 const CUT_SM = 'rounded-[0_0_8px_0]';
 
-function PresupuestosTab() {
-  const [sub, setSub] = useState('solicitudes');
+// Sub-tab controlado desde el nivel 3 de navegación (barra de pestañas del panel)
+function PresupuestosTab({ sub, onOpenNuevo }) {
   const [editBudget, setEditBudget] = useState(null);
 
   const handleOpenInBuilder = (budget) => {
     setEditBudget(budget);
-    setSub('nuevo');
+    onOpenNuevo();
   };
 
   return (
     <div className="p-6 space-y-5">
-      <div className="flex gap-2 flex-wrap">
-        {[['solicitudes', '📥 Solicitudes'], ['nuevo', '✏️ Crear presupuesto'], ['beneficios', '⚙️ Catálogo']].map(([id, label]) => (
-          <button
-            key={id}
-            onClick={() => { setSub(id); if (id === 'nuevo' && sub !== 'nuevo') setEditBudget(null); }}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-              sub === id
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
       {sub === 'solicitudes' && <BudgetManager onOpenInBuilder={handleOpenInBuilder} />}
       {sub === 'nuevo'       && <QuoteBuilder key={editBudget?.id || 'new'} initialData={editBudget} />}
       {sub === 'beneficios'  && <BenefitsEditor />}
@@ -106,10 +117,22 @@ export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [activeGroup, setActiveGroup] = useState('panel');
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [socialSubTab, setSocialSubTab] = useState('publicar');
+  const [activeSubTab, setActiveSubTab] = useState(null);
   const [navOpen, setNavOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+
+  // Navega a un tab resolviendo automáticamente su grupo (nivel 1) y su primer
+  // sub-tab (nivel 3, si tiene). Único punto de entrada para cambiar de pantalla.
+  const goToTab = (tabId, subId) => {
+    const loc = findNavLocation(tabId);
+    if (!loc) return;
+    setActiveGroup(loc.group.id);
+    setActiveTab(tabId);
+    setActiveSubTab(subId ?? loc.item.children?.[0]?.id ?? null);
+    setNavOpen(false);
+  };
 
   // Colapso de sidebar persistido (igual que almamod: localStorage('sidebar_collapsed'))
   useEffect(() => {
@@ -530,31 +553,21 @@ export default function AdminPage() {
             {collapsed ? '»' : '«'}
           </button>
         </div>
-        <nav className="space-y-4">
-          {ADMIN_GROUPS.map(group => (
-            <div key={group.id}>
-              {!collapsed && (
-                <p className="px-2.5 mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/35">
-                  <span>{group.icon}</span>{group.label}
-                </p>
-              )}
-              <div className="space-y-0.5">
-                {group.tabs.map(id => TAB_MAP[id]).filter(Boolean).map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => { setActiveTab(tab.id); setNavOpen(false); }}
-                    title={collapsed ? tab.label : undefined}
-                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 ${CUT_SM} text-sm font-medium text-left transition-colors ${collapsed ? 'justify-center' : ''}`}
-                    style={activeTab === tab.id
-                      ? { background: ACCENT, color: '#fff' }
-                      : { color: 'rgba(255,255,255,0.65)' }}
-                  >
-                    <span className="text-base shrink-0">{tab.icon}</span>
-                    {!collapsed && tab.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* Nivel 1: secciones. Clickear una sección lleva a su primer item (nivel 2). */}
+        <nav className="space-y-0.5">
+          {ADMIN_NAV.map(group => (
+            <button
+              key={group.id}
+              onClick={() => goToTab(group.items[0].id)}
+              title={collapsed ? group.label : undefined}
+              className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 ${CUT_SM} text-sm font-medium text-left transition-colors ${collapsed ? 'justify-center' : ''}`}
+              style={activeGroup === group.id
+                ? { background: ACCENT, color: '#fff' }
+                : { color: 'rgba(255,255,255,0.65)' }}
+            >
+              <span className="text-base shrink-0">{group.icon}</span>
+              {!collapsed && group.label}
+            </button>
           ))}
         </nav>
       </aside>
@@ -584,7 +597,7 @@ export default function AdminPage() {
                 <span className={`block h-0.5 w-5 bg-current transition-transform ${navOpen ? '-translate-y-[5px] -rotate-45' : ''}`} />
               </button>
               <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {(TAB_MAP[activeTab] || ADMIN_TABS[0]).label}
+                {ADMIN_NAV.find(g => g.id === activeGroup)?.label || 'Panel'}
               </h1>
             </div>
             <div className="flex items-center gap-2">
@@ -602,6 +615,52 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
+
+          {/* Nivel 2: pestañas de los items de la sección activa (estilo "pestañas de navegador") */}
+          {(() => {
+            const group = ADMIN_NAV.find(g => g.id === activeGroup);
+            if (!group) return null;
+            return (
+              <div className="px-4 sm:px-6 lg:px-8 flex items-end gap-0 overflow-x-auto">
+                {group.items.map((it, idx) => {
+                  const isActive = it.id === activeTab;
+                  return (
+                    <button
+                      key={it.id}
+                      onClick={() => goToTab(it.id)}
+                      style={idx > 0 ? { marginLeft: '-8px' } : undefined}
+                      className={`relative px-4 py-2 text-sm font-medium whitespace-nowrap rounded-t-xl transition-colors ${
+                        isActive
+                          ? 'bg-gray-50 dark:bg-neutral-950 text-gray-900 dark:text-white z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]'
+                          : 'bg-gray-100/70 dark:bg-neutral-900/60 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800/80 z-0'
+                      }`}
+                    >
+                      <span className="mr-1.5">{it.icon}</span>{it.label}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* Nivel 3: sub-pestañas del item activo, solo si tiene children */}
+          {TAB_MAP[activeTab]?.children && (
+            <div className="px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap gap-1.5 bg-gray-50 dark:bg-neutral-950 border-t border-gray-100 dark:border-neutral-900">
+              {TAB_MAP[activeTab].children.map(child => (
+                <button
+                  key={child.id}
+                  onClick={() => setActiveSubTab(child.id)}
+                  className={`px-3 py-1.5 ${CUT_SM} text-xs font-medium transition-colors ${
+                    activeSubTab === child.id
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {child.label}
+                </button>
+              ))}
+            </div>
+          )}
         </header>
 
         {/* Content */}
@@ -782,38 +841,14 @@ export default function AdminPage() {
         )}
 
         {!loading && activeTab === 'social' && (
-          <div className="space-y-4">
-            {/* Sub-tabs */}
-            <div className="flex gap-2 border-b border-gray-200 dark:border-neutral-800 pb-1">
-              {[
-                { id: 'publicar',     label: '📢 Publicar' },
-                { id: 'servicios',    label: '🖼️ Servicios' },
-                { id: 'estadisticas', label: '📊 Estadísticas' },
-                { id: 'productos',    label: '🛍️ Productos' },
-                { id: 'proyectos',    label: '📁 Proyectos' },
-                { id: 'reel',         label: '🎬 Reel' },
-                { id: 'labs',         label: '🧪 Labs' },
-              ].map(sub => (
-                <button
-                  key={sub.id}
-                  onClick={() => setSocialSubTab(sub.id)}
-                  className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
-                    socialSubTab === sub.id
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                  }`}
-                >
-                  {sub.label}
-                </button>
-              ))}
-            </div>
-            {socialSubTab === 'publicar'     && <SocialMediaDashboard key="publicar"     initialTab="custom" />}
-            {socialSubTab === 'servicios'    && <SocialPublisher />}
-            {socialSubTab === 'estadisticas' && <SocialMediaDashboard key="estadisticas" initialTab="statistics" />}
-            {socialSubTab === 'productos'    && <SocialMediaDashboard key="productos"    initialTab="products" />}
-            {socialSubTab === 'proyectos'    && <SocialMediaDashboard key="proyectos"    initialTab="proyectos" />}
-            {socialSubTab === 'reel'         && <CanvasReelGenerator />}
-            {socialSubTab === 'labs'         && <LabsPublisher />}
+          <div>
+            {activeSubTab === 'publicar'     && <SocialMediaDashboard key="publicar"     initialTab="custom" />}
+            {activeSubTab === 'servicios'    && <SocialPublisher />}
+            {activeSubTab === 'estadisticas' && <SocialMediaDashboard key="estadisticas" initialTab="statistics" />}
+            {activeSubTab === 'productos'    && <SocialMediaDashboard key="productos"    initialTab="products" />}
+            {activeSubTab === 'proyectos'    && <SocialMediaDashboard key="proyectos"    initialTab="proyectos" />}
+            {activeSubTab === 'reel'         && <CanvasReelGenerator />}
+            {activeSubTab === 'labs'         && <LabsPublisher />}
           </div>
         )}
 
@@ -826,7 +861,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'leads-map' && (
-          <LeadMapPanel onClose={() => setActiveTab('leads')} />
+          <LeadMapPanel onClose={() => goToTab('leads')} />
         )}
 
         {!loading && activeTab === 'questions' && (
@@ -848,7 +883,7 @@ export default function AdminPage() {
           </div>
         )}
         {activeTab === 'presupuestos' && (
-          <PresupuestosTab />
+          <PresupuestosTab sub={activeSubTab} onOpenNuevo={() => setActiveSubTab('nuevo')} />
         )}
         {activeTab === 'suscripciones' && (
           <div className="p-6">
