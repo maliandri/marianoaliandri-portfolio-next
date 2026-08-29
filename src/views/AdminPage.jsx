@@ -954,8 +954,10 @@ function AdminProyectosPanel({ db }) {
   const [expanded, setExpanded] = useState({});
   const [capturing, setCapturing] = useState(false);
   const [captureResult, setCaptureResult] = useState(null);
+  const [recapturing, setRecapturing] = useState(null); // domain en curso, o null
+  const [lightbox, setLightbox] = useState(null); // domain abierto en el visor, o null
 
-  useEffect(() => {
+  const loadProyectos = () =>
     fetch('/api/proyectos?all=1')
       .then(r => r.json())
       .then(data => {
@@ -974,12 +976,35 @@ function AdminProyectosPanel({ db }) {
         });
         setEdits(initial);
       })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .catch(() => {});
+
+  useEffect(() => {
+    loadProyectos().finally(() => setLoading(false));
   }, []);
 
   const setField = (domain, field, value) =>
     setEdits(prev => ({ ...prev, [domain]: { ...prev[domain], [field]: value } }));
+
+  const recapture = async (domain) => {
+    setRecapturing(domain);
+    try {
+      const res = await fetch('/api/capture-projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain }),
+      });
+      const data = await res.json();
+      if (data.error || data.failed?.length) {
+        alert(`❌ Error recapturando ${domain}: ${data.error || data.failed[0]?.error}`);
+      } else {
+        await loadProyectos();
+      }
+    } catch (err) {
+      alert('❌ Error: ' + err.message);
+    } finally {
+      setRecapturing(null);
+    }
+  };
 
   const handleSave = async (domain) => {
     setSaving(domain);
@@ -1014,9 +1039,14 @@ function AdminProyectosPanel({ db }) {
               setCapturing(true);
               setCaptureResult(null);
               try {
-                const res = await fetch('/api/capture-projects', { method: 'POST' });
+                const res = await fetch('/api/capture-projects', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({}),
+                });
                 const data = await res.json();
                 setCaptureResult(data);
+                await loadProyectos();
               } catch (e) {
                 setCaptureResult({ error: e.message });
               } finally {
@@ -1085,18 +1115,28 @@ function AdminProyectosPanel({ db }) {
         return (
           <div key={p.domain} className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 overflow-hidden">
             {/* Header colapsable */}
-            <button
-              className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-              onClick={() => setExpanded(prev => ({ ...prev, [p.domain]: !prev[p.domain] }))}
-            >
-              <div className="flex items-center gap-3">
-                <img
-                  src={p.screenshotUrl}
-                  alt={p.domain}
-                  className="w-14 h-9 object-cover rounded border border-gray-200 dark:border-gray-600"
-                  onError={ev => { ev.target.style.display = 'none'; }}
-                />
-                <div className="text-left">
+            <div className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <button
+                type="button"
+                onClick={() => setExpanded(prev => ({ ...prev, [p.domain]: !prev[p.domain] }))}
+                className="flex items-center gap-3 min-w-0 flex-1 text-left"
+              >
+                <span
+                  role="button"
+                  tabIndex={0}
+                  title="Ver imagen completa"
+                  onClick={e => { e.stopPropagation(); setLightbox(p.domain); }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setLightbox(p.domain); } }}
+                  className="shrink-0 relative group"
+                >
+                  <img
+                    src={p.screenshotUrl}
+                    alt={p.domain}
+                    className="w-14 h-9 object-cover rounded border border-gray-200 dark:border-gray-600 group-hover:opacity-75 transition-opacity"
+                    onError={ev => { ev.target.style.display = 'none'; }}
+                  />
+                </span>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-indigo-600 dark:text-indigo-400">{p.domain}</span>
                     <GscStatusBadge permissionLevel={p.permissionLevel} statsError={p.statsError} />
@@ -1106,16 +1146,27 @@ function AdminProyectosPanel({ db }) {
                   </div>
                   <div className="text-xs text-gray-500 mt-0.5">{p.clicks} clicks · {p.impressions} imp. · orden {e.orden}</div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
+              </button>
+              <div className="flex items-center gap-3 shrink-0 ml-3">
                 {e.descripcionCorta && (
                   <span className="hidden sm:block text-xs text-green-600 dark:text-green-400 font-medium">Completo</span>
                 )}
-                <svg className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                <button
+                  type="button"
+                  onClick={() => recapture(p.domain)}
+                  disabled={recapturing === p.domain}
+                  title="Recapturar screenshot de este sitio"
+                  className="text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                >
+                  {recapturing === p.domain ? '⏳' : '🔄'}
+                </button>
+                <button type="button" onClick={() => setExpanded(prev => ({ ...prev, [p.domain]: !prev[p.domain] }))}>
+                  <svg className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
               </div>
-            </button>
+            </div>
 
             {/* Contenido expandido */}
             {isOpen && (
@@ -1198,6 +1249,48 @@ function AdminProyectosPanel({ db }) {
           </div>
         );
       })}
+
+      {/* Visor de imagen completa + recaptura */}
+      {lightbox && (() => {
+        const p = proyectos.find(pr => pr.domain === lightbox);
+        if (!p) return null;
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            onClick={() => setLightbox(null)}
+          >
+            <div
+              className="bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden max-w-2xl w-full"
+              onClick={e => e.stopPropagation()}
+            >
+              <img src={p.screenshotUrl} alt={p.domain} className="w-full max-h-[70vh] object-contain bg-gray-100 dark:bg-neutral-950" />
+              <div className="p-4 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-gray-900 dark:text-white truncate">{p.domain}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {p.screenshotUpdatedAt ? `Última captura: ${new Date(p.screenshotUpdatedAt).toLocaleString('es-AR')}` : 'Sin captura manual todavía (mostrando fallback en vivo)'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => recapture(p.domain)}
+                    disabled={recapturing === p.domain}
+                    className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    {recapturing === p.domain ? '⏳ Recapturando...' : '🔄 Recapturar'}
+                  </button>
+                  <button
+                    onClick={() => setLightbox(null)}
+                    className="px-3 py-2 border border-gray-300 dark:border-neutral-700 text-gray-600 dark:text-gray-300 text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

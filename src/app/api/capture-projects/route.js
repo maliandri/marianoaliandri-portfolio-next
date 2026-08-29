@@ -3,6 +3,7 @@ export const maxDuration = 60;
 
 import crypto from 'crypto';
 import { getGSCAuth, getVerifiedSites } from '../../../lib/gscClient';
+import { getDb } from '../../../lib/firebase-admin';
 
 const CLOUD_NAME  = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const API_KEY     = process.env.CLOUDINARY_API_KEY;
@@ -25,7 +26,8 @@ function cloudinarySignature(params) {
 async function uploadToCloudinary(imageUrl, publicId) {
   const timestamp = Math.floor(Date.now() / 1000);
   const params = {
-    overwrite: 'true',
+    invalidate: 'true',
+    overwrite:  'true',
     public_id:  publicId,
     timestamp:  String(timestamp),
   };
@@ -35,6 +37,9 @@ async function uploadToCloudinary(imageUrl, publicId) {
   form.append('file',       imageUrl);
   form.append('public_id',  publicId);
   form.append('overwrite',  'true');
+  // Sin esto, la captura se sube bien pero el CDN de Cloudinary sigue sirviendo
+  // la imagen vieja en el mismo public_id — es la causa de "no capta la última imagen".
+  form.append('invalidate', 'true');
   form.append('timestamp',  String(timestamp));
   form.append('api_key',    API_KEY);
   form.append('signature',  signature);
@@ -48,26 +53,42 @@ async function uploadToCloudinary(imageUrl, publicId) {
   return data.secure_url;
 }
 
-export async function POST() {
+export async function POST(request) {
   try {
     if (!API_KEY || !API_SECRET) {
       return Response.json({ error: 'Faltan CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET en las env vars' }, { status: 500 });
     }
 
-    // 1. Obtener todos los sitios verificados en GSC
-    const auth  = getGSCAuth();
-    const sites = await getVerifiedSites(auth);
+    const body = await request.json().catch(() => ({}));
+    const onlyDomain = body?.domain || null;
+
+    // 1. Obtener todos los sitios verificados en GSC (o filtrar a uno solo si vino ?domain)
+    const auth = getGSCAuth();
+    let sites = await getVerifiedSites(auth);
     if (!sites.length) {
       return Response.json({ error: 'No se encontraron sitios en GSC' }, { status: 404 });
     }
+    if (onlyDomain) {
+      sites = sites.filter(s => s.domain === onlyDomain);
+      if (!sites.length) {
+        return Response.json({ error: `Dominio ${onlyDomain} no encontrado en GSC` }, { status: 404 });
+      }
+    }
 
     // 2. Capturar y subir cada sitio en paralelo
+    const db = getDb();
     const results = await Promise.allSettled(
       sites.map(async ({ url, domain }) => {
         const screenshotUrl = microlinkScreenshotUrl(url);
         const publicId      = `MarianWeb/${domain}`;
 
         const cloudinaryUrl = await uploadToCloudinary(screenshotUrl, publicId);
+        if (db) {
+          await db.collection('proyectos').doc(domain).set(
+            { screenshotUpdatedAt: Date.now() },
+            { merge: true }
+          );
+        }
         return { url, domain, cloudinaryUrl };
       })
     );

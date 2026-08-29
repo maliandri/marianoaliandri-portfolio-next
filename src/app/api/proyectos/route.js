@@ -79,9 +79,12 @@ export async function GET(request) {
           url: site.url,
           // Captura manual (admin → "Capturar screenshots") subida a Cloudinary. Más confiable
           // que renderizar en vivo (evita capturas "vacías" de sitios con animaciones/dark hero).
+          // ?v= con el timestamp de la última captura evita que el navegador siga mostrando
+          // una copia vieja cacheada con la misma URL.
           screenshotUrl: CLOUD_NAME
-            ? `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/f_auto,q_auto,w_800/MarianWeb/${site.domain}`
+            ? `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/f_auto,q_auto,w_800/MarianWeb/${site.domain}?v=${fs.screenshotUpdatedAt || 0}`
             : microlinkScreenshotUrl(site.url),
+          screenshotUpdatedAt: fs.screenshotUpdatedAt || null,
           screenshotFallbackUrl: microlinkScreenshotUrl(site.url),
           descripcionCorta: fs.descripcionCorta || '',
           stack: fs.stack || '',
