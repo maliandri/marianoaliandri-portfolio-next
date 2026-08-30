@@ -24,7 +24,7 @@ const CVATSUploader = dynamic(() => import('@/components/tools/CVATSUploader'), 
 const RadarWeb = dynamic(() => import('@/components/tools/RadarWeb'), { ssr: false });
 const LabsTool = dynamic(() => import('@/components/tools/LabsTool'), { ssr: false });
 
-const TOOL_PATHS = ['/stats', '/ats', '/kpi', '/radarweb', '/labs'];
+const TOOL_PATHS = ['/stats', '/ats', '/kpi', '/radarweb', '/labs', '/lead-finder-pro'];
 const NAV_LINKS = [
   { label: 'Proyectos',   href: '/#proyectos' },
   { label: 'Contacto',    href: '/#contact' },
@@ -33,6 +33,7 @@ const NAV_LINKS = [
   { label: 'Presupuesto', href: '/presupuesto' },
 ];
 const TOOLS = [
+  { label: 'Lead Finder Pro', href: '/lead-finder-pro', icon: '🎯', desc: 'Para devs: encontrá negocios sin sitio o con SEO débil' },
   { label: 'Análisis de CV', href: '/ats',     icon: '📄', desc: 'Analizá tu CV contra ofertas con IA' },
   { label: 'Radar Web',      href: '/radarweb', icon: '📊', desc: 'Analizá la presencia digital de un sitio' },
   { label: 'Labs',           href: '/labs',     icon: '🧪', desc: 'Experimentos y herramientas en desarrollo' },
