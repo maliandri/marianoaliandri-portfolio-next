@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import PlansSection from '@/components/leadfinderpro/PlansSection';
 
 export const metadata = {
   title: 'Lead Finder Pro — Encontrá negocios sin sitio o con SEO débil',
@@ -67,6 +68,8 @@ export default function LeadFinderProLanding() {
           Con el plan Starter (100/mes) podés explorar toda tu zona sin límite, y quedarte con el detalle completo de los 100 negocios que más te sirvan.
         </p>
       </div>
+
+      <PlansSection />
 
       <div className="max-w-4xl mx-auto text-center">
         <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-2">Ejemplos reales</p>
