@@ -163,18 +163,11 @@ async function auditSite(url) {
   }
 }
 
-export async function POST(request) {
-  let body;
-  try { body = await request.json(); } catch { return fail('JSON inválido'); }
-
-  // Sin esto, cualquiera que encuentre esta URL puede llamarla directo y gastar la
-  // cuota de Google Places sin login ni nada. Solo la cuenta admin registrada puede
-  // usar esta ruta interna directo -- el resto pasa por /api/lead-finder-pro/run,
-  // que sí descuenta créditos.
-  const authUser = await getUserFromRequest(request);
-  if (!authUser || authUser.email !== ADMIN_EMAIL) return fail('No autorizado');
-
-  const { action, apiKey: clientKey, ...params } = body;
+// Lógica pura de las acciones (Places API + auditoría SEO), sin ningún chequeo de auth --
+// eso queda a cargo de quien la invoque: el POST de acá abajo (solo cuenta admin) y
+// /api/lead-finder-pro/run (cualquier usuario registrado + descuento de crédito).
+// Se llama directo (no por HTTP) para no pisar el auth de cada caller.
+export async function runLeadFinderAction(action, params, clientKey) {
   const gApiKey = process.env.GOOGLE_PLACES_API_KEY || clientKey;
 
   try {
@@ -320,4 +313,19 @@ export async function POST(request) {
   } catch (e) {
     return fail(e.message);
   }
+}
+
+// Ruta interna del admin (panel /admin — LeadFinderPanel y LeadMapPanel). Sin esto,
+// cualquiera que encuentre esta URL puede llamarla directo y gastar la cuota de Google
+// Places sin login ni nada. Solo la cuenta admin registrada puede usarla directo -- el
+// resto pasa por /api/lead-finder-pro/run, que sí descuenta créditos.
+export async function POST(request) {
+  let body;
+  try { body = await request.json(); } catch { return fail('JSON inválido'); }
+
+  const authUser = await getUserFromRequest(request);
+  if (!authUser || authUser.email !== ADMIN_EMAIL) return fail('No autorizado');
+
+  const { action, apiKey: clientKey, ...params } = body;
+  return runLeadFinderAction(action, params, clientKey);
 }

@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { getUserFromRequest } from '@/lib/authServer';
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { POST as leadFinderPost } from '../../lead-finder/route';
+import { runLeadFinderAction } from '../../lead-finder/route';
 
 // Acciones que solo buscan/listan negocios (sin pedir website/detalle) — no consumen
 // créditos, igual que "buscar y explorar" es gratis según lo que le prometimos al dev
@@ -50,14 +50,9 @@ export async function POST(request) {
     }
   }
 
-  // Reusa la misma lógica de /api/lead-finder (Places API + auditoría SEO + caché) —
-  // ya autenticado y con el crédito descontado, solo falta ejecutar la acción.
-  // OJO: headers armados a mano (no copiar request.headers tal cual) — el Content-Length
-  // original corresponde al body crudo de ESTE request, no al JSON re-serializado abajo.
-  const forwarded = new Request(request.url, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: request.headers.get('authorization') || '' },
-    body: JSON.stringify(body),
-  });
-  return leadFinderPost(forwarded);
+  // Llama directo a la lógica compartida (Places API + auditoría SEO + caché) — ya
+  // autenticado acá y con el crédito descontado arriba. Nada de HTTP interno: eso
+  // pisaba el auth propio de /api/lead-finder (solo admin) con el de esta ruta.
+  const { action: _a, apiKey, ...params } = body;
+  return runLeadFinderAction(action, params, apiKey);
 }
