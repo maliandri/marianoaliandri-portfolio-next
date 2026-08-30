@@ -1,10 +1,10 @@
 export const metadata = {
-  title: 'Analizador de CV con IA',
-  description: 'Subí tu CV en PDF y recibí un análisis ATS gratuito con inteligencia artificial. Sabé si tu curriculum pasa los filtros automáticos de selección.',
+  title: 'Analizador de CV — Test ATS Gratis',
+  description: 'Subí tu CV en PDF y descubrí si pasa los filtros ATS que usan las empresas. Score de compatibilidad por profesión, palabras clave que faltan y sugerencias concretas. Gratis, sin registro.',
   alternates: { canonical: 'https://marianoaliandri.com.ar/ats/' },
   openGraph: {
-    title: 'Analizador de CV con IA — Gratis | Mariano Aliandri',
-    description: 'Subí tu CV en PDF y recibí un análisis ATS gratuito con inteligencia artificial.',
+    title: 'Analizador de CV — Test ATS Gratis | Mariano Aliandri',
+    description: 'Subí tu CV en PDF y descubrí si pasa los filtros ATS que usan las empresas para preseleccionar candidatos.',
     url: 'https://marianoaliandri.com.ar/ats/',
     images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
   },
@@ -13,9 +13,9 @@ export const metadata = {
 const schema = {
   '@context': 'https://schema.org',
   '@type': 'WebApplication',
-  name: 'Analizador de CV con IA',
+  name: 'Analizador de CV — Test ATS',
   url: 'https://marianoaliandri.com.ar/ats/',
-  description: 'Herramienta gratuita para analizar CVs con inteligencia artificial. Detecta si tu curriculum supera los filtros ATS usados por empresas y recruiters.',
+  description: 'Herramienta gratuita que simula los filtros ATS de las empresas: detecta si tu CV tiene las palabras clave y la estructura que buscan para cada profesión.',
   applicationCategory: 'UtilitiesApplication',
   operatingSystem: 'Web',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
@@ -39,17 +39,17 @@ export default function ToolPage() {
       />
       <main className="max-w-2xl mx-auto px-4 py-16 text-center">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-          Analizador de CV con IA
+          Analizador de CV — Test ATS Gratis
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
-          Subí tu CV en PDF y recibí un análisis ATS instantáneo con inteligencia artificial.
-          La herramienta detecta si tu curriculum supera los filtros automáticos que usan
-          las empresas y recruiters, y te da sugerencias concretas para mejorarlo.
+          Subí tu CV en PDF y descubrí si pasa los filtros automáticos que usan las empresas
+          y consultoras para preseleccionar candidatos. Te mostramos tu compatibilidad contra
+          20 perfiles profesionales, qué palabras clave tenés y cuáles te faltan.
         </p>
         <ul className="text-sm text-gray-500 dark:text-gray-400 space-y-1 mb-8">
-          <li>✓ Análisis instantáneo por coincidencia de palabras clave</li>
-          <li>✓ Compatibilidad con sistemas ATS</li>
-          <li>✓ Sugerencias de mejora personalizadas</li>
+          <li>✓ Compara tu CV contra 20 perfiles profesionales</li>
+          <li>✓ Simula los filtros de los sistemas ATS reales</li>
+          <li>✓ Palabras clave presentes y faltantes por profesión</li>
           <li>✓ 100% gratuito, sin registro</li>
         </ul>
 
@@ -67,10 +67,10 @@ export default function ToolPage() {
           <section>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Cómo funciona?</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              Subís tu CV en PDF y lo analizamos en segundos:
-              revisa la estructura, la presencia de palabras clave, la claridad de la experiencia y la
-              compatibilidad general con los filtros automáticos. Recibís una puntuación y una lista de
-              mejoras concretas para aumentar tus chances de llegar a la entrevista.
+              Subís tu CV en PDF y lo comparamos en segundos contra las palabras clave y la
+              estructura (experiencia, educación, contacto, habilidades) que buscan los sistemas
+              ATS reales para cada profesión. Recibís un score de compatibilidad, qué palabras
+              clave tenés y cuáles te faltan, para aumentar tus chances de llegar a la entrevista.
             </p>
           </section>
           <section>
