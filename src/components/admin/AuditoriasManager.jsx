@@ -149,6 +149,22 @@ ${reportUrl}
     }
   };
 
+  const toggleDemo = async (a) => {
+    const next = !a.isDemoCase;
+    setAuditorias(prev => prev.map(x => x.id === a.id ? { ...x, isDemoCase: next } : x));
+    try {
+      const res = await fetch('/api/auditorias', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: a.id, isDemoCase: next }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Error');
+    } catch (e) {
+      setAuditorias(prev => prev.map(x => x.id === a.id ? { ...x, isDemoCase: !next } : x));
+      alert('Error: ' + e.message);
+    }
+  };
+
   const handleDelete = async (id, title) => {
     if (!confirm(`¿Eliminar "${title}"?\nEsta acción no se puede deshacer.`)) return;
     setDeleting(id);
@@ -208,6 +224,17 @@ ${reportUrl}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold text-gray-900 dark:text-white truncate">{a.title}</h3>
+                    <button
+                      onClick={() => toggleDemo(a)}
+                      title={a.isDemoCase ? 'Quitar de casos demo (Lead Finder Pro)' : 'Marcar como caso demo (Lead Finder Pro)'}
+                      className={`text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 transition-colors ${
+                        a.isDemoCase
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                      }`}
+                    >
+                      ⭐ Demo
+                    </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-1.5">
                     {(a.config?.ciudades || []).map(c => (

@@ -44,6 +44,7 @@ const COLS = [
   { key: 'hasOG',      label: 'OG',         sortKey: 'hasOG',        align: 'center' },
   { key: 'lastMod',    label: 'Actualizado',sortKey: 'lastModified', align: 'left' },
   { key: 'rating',     label: '★',          sortKey: 'rating',       align: 'center' },
+  { key: 'email',      label: 'Email',      sortKey: null,           align: 'left', adminOnly: true },
 ];
 
 function sortValue(neg, sortKey) {
@@ -72,9 +73,10 @@ function isOwnSite(url, ownDomains) {
   return h && ownDomains.some(d => h === d || h.endsWith('.' + d));
 }
 
-export default function AuditTable({ results, ownDomains = [] }) {
+export default function AuditTable({ results, ownDomains = [], showEmail = false }) {
   const [sortCol, setSortCol] = useState('seoScore');
   const [sortDir, setSortDir] = useState('asc');
+  const cols = showEmail ? COLS : COLS.filter(c => !c.adminOnly);
 
   const sorted = useMemo(() => {
     if (!sortCol) return results;
@@ -104,7 +106,7 @@ export default function AuditTable({ results, ownDomains = [] }) {
         <table className="min-w-full text-sm">
           <thead>
             <tr className="border-b border-white/10">
-              {COLS.map(col => (
+              {cols.map(col => (
                 <th
                   key={col.key}
                   onClick={() => handleSort(col.sortKey)}
@@ -154,6 +156,11 @@ export default function AuditTable({ results, ownDomains = [] }) {
                 <td className="px-4 py-3 text-xs text-yellow-500 text-center whitespace-nowrap">
                   {neg.rating ? `★ ${neg.rating}` : '—'}
                 </td>
+                {showEmail && (
+                  <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap max-w-[180px] truncate" title={neg.email || ''}>
+                    {neg.email || '—'}
+                  </td>
+                )}
               </tr>
               );
             })}
