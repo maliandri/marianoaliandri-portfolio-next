@@ -28,6 +28,8 @@ export default function CustomerLeadFinderPanel() {
   const [ciudades, setCiudades]       = useState([]);
   const [ciudadInput, setCiudadInput] = useState('');
   const [tipos, setTipos]             = useState(DEFAULT_TIPOS);
+  const [terminos, setTerminos]       = useState([]);
+  const [terminoInput, setTerminoInput] = useState('');
   const [radioKm, setRadioKm]         = useState(10);
   const [showConfig, setShowConfig]   = useState(true);
 
@@ -125,13 +127,54 @@ export default function CustomerLeadFinderPanel() {
             if (blocked) throw e;
           }
         }
+
+        // Términos de búsqueda libre (texto en Maps), además de los rubros por categoría
+        for (const term of terminos) {
+          if (cancelRef.current) break;
+          setProgress(prev => ({ ...prev, tipoActual: `"${term}"` }));
+          try {
+            let places = [];
+            let pageToken = null;
+            let page = 0;
+            do {
+              if (cancelRef.current) break;
+              const res = await callFn('searchText', { lat, lon, query: `${term}, ${ciudad}`, radiusM, pageToken });
+              places.push(...(res.places || []));
+              pageToken = res.nextPageToken || null;
+              page++;
+              if (pageToken && page < 3) await sleep(1500);
+            } while (pageToken && page < 3 && !cancelRef.current);
+
+            for (const place of places) {
+              if (seenIds.has(place.id)) continue;
+              seenIds.add(place.id);
+              const neg = {
+                id: place.id,
+                nombre: place.displayName?.text || 'Sin nombre',
+                tipo: term, ciudad,
+                lat: place.location?.latitude ?? null,
+                lon: place.location?.longitude ?? null,
+                previewRating: place.rating ? Number(place.rating).toFixed(1) : null,
+                hasWebsite: null, siteUrl: null, seoScore: null,
+                hasSitemap: null, hasRobots: null, metaDesc: null, hasOG: null,
+                phone: null, openingHours: null, rating: null, ratingCount: null,
+                auditError: false,
+              };
+              allResults.push(neg);
+              setResults(prev => [...prev, neg]);
+            }
+            setProgress(prev => ({ ...prev, encontrados: allResults.length }));
+          } catch (e) {
+            if (blocked) throw e;
+          }
+        }
       }
       setPhase('done');
     } catch (e) {
       setPhase(blocked ? 'idle' : 'error');
       if (!blocked) setError(e.message);
     }
-  }, [ciudades, tipos, radioKm, callFn, blocked]);
+  }, [ciudades, tipos, terminos, radioKm, callFn, blocked]);
 
   const startSearch = () => {
     setResults([]);
@@ -258,6 +301,51 @@ export default function CustomerLeadFinderPanel() {
             </div>
 
             <div>
+              <label className="block text-xs font-medium text-gray-400 mb-2">
+                Términos de búsqueda <span className="text-gray-600 font-normal">(opcional — buscá por texto en Maps)</span>
+              </label>
+              {terminos.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {terminos.map(t => (
+                    <span key={t} className="flex items-center gap-1 px-2.5 py-1 bg-blue-500/10 text-blue-300 rounded-full text-xs">
+                      🔎 {t}
+                      <button onClick={() => setTerminos(prev => prev.filter(x => x !== t))} className="ml-0.5 text-blue-400 hover:text-red-400">×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={terminoInput}
+                  onChange={e => setTerminoInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && terminoInput.trim()) {
+                      e.preventDefault();
+                      const v = terminoInput.trim();
+                      if (!terminos.includes(v)) setTerminos(prev => [...prev, v]);
+                      setTerminoInput('');
+                    }
+                  }}
+                  disabled={isRunning}
+                  placeholder='Ej: "gomería", "estudio contable"… (Enter)'
+                  className="flex-1 px-3 py-2 bg-[#0a0a0a] border border-white/10 rounded-lg text-white text-sm placeholder-gray-600"
+                />
+                <button
+                  onClick={() => {
+                    const v = terminoInput.trim();
+                    if (v && !terminos.includes(v)) setTerminos(prev => [...prev, v]);
+                    setTerminoInput('');
+                  }}
+                  disabled={isRunning || !terminoInput.trim()}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  + Agregar
+                </button>
+              </div>
+            </div>
+
+            <div>
               <label className="block text-xs font-medium text-gray-400 mb-2">Radio (km)</label>
               <input type="number" min={1} max={30} value={radioKm} disabled={isRunning}
                 onChange={e => setRadioKm(parseInt(e.target.value) || 1)}
@@ -300,7 +388,7 @@ export default function CustomerLeadFinderPanel() {
 
         <div className="flex flex-wrap items-center gap-3 px-5 py-4 bg-white/[0.02] border-t border-white/10">
           {!isRunning ? (
-            <button onClick={startSearch} disabled={!ciudades.length || !tipos.length}
+            <button onClick={startSearch} disabled={!ciudades.length || (!tipos.length && !terminos.length)}
               className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl font-semibold text-sm transition-colors">
               🔍 Buscar
             </button>
@@ -355,8 +443,8 @@ export default function CustomerLeadFinderPanel() {
             <table className="min-w-full text-sm">
               <thead className="bg-white/[0.02] sticky top-0">
                 <tr>
-                  {['Nombre','Ciudad','Tipo','Sitio','SEO','Tel.','★','',''].map(h => (
-                    <th key={h} className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                  {['Nombre','Ciudad','Tipo','Sitio','SEO','Tel.','★','Acción','Maps'].map((h, i) => (
+                    <th key={i} className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
