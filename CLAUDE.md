@@ -539,6 +539,17 @@ vercel env ls
 # Variables de entorno en PowerShell (Windows)
 vercel env rm VAR_NAME production
 vercel env add VAR_NAME production
+
+# Deployar reglas de Firestore (firebase.json + .firebaserc ya configurados,
+# proyecto marianoaliandri-3b135). Requiere login previo: firebase login
+firebase deploy --only firestore:rules
+```
+
+**PATH del CLI en Windows**: `gh` y `firebase` se instalan con winget pero la sesión de
+terminal actual no ve el PATH actualizado hasta reiniciarla. Si da "command not found",
+refrescar en la misma ventana con:
+```powershell
+$env:PATH = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 ```
 
 ---
