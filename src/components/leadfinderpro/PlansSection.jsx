@@ -91,7 +91,7 @@ export default function PlansSection() {
   if (plans.length === 0) return null;
 
   return (
-    <div className="max-w-5xl mx-auto mb-16">
+    <div id="planes" className="max-w-5xl mx-auto mb-16 scroll-mt-24">
       <div className="text-center mb-8">
         <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-2">Planes</p>
         <h2 className="text-2xl md:text-3xl font-black text-white">Elegí tu alcance</h2>
@@ -103,7 +103,10 @@ export default function PlansSection() {
       {hasFreeAccess ? (
         <div className="max-w-xl mx-auto bg-indigo-600/10 border border-indigo-500/20 rounded-2xl p-6 text-center">
           <p className="text-white font-bold text-lg mb-1">🎁 Tenés acceso gratuito a Lead Finder Pro</p>
-          <p className="text-gray-400 text-sm">Ya podés usar la herramienta sin pagar ningún plan — cortesía habilitada por el equipo.</p>
+          <p className="text-gray-400 text-sm mb-5">Ya podés usar la herramienta sin pagar ningún plan — cortesía habilitada por el equipo.</p>
+          <a href="/lead-finder-pro/buscar" className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm">
+            Abrir herramienta →
+          </a>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">

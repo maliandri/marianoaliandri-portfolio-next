@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { PROVINCIAS_AR } from '@/data/localidadesAR';
 import { RUBROS, CATEGORIAS_RUBROS, DEFAULT_TIPOS } from '@/data/rubros';
+import { useAuthUser } from '@/hooks/useAuthUser';
 
 // Tipos de negocio → se pasan como `includedTypes` a la Places API (New).
 // Lista compartida en src/data/rubros.js (también la usa el Keyword Explorer /keywords).
@@ -51,6 +52,7 @@ function isSocialUrl(url) {
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+const ADMIN_EMAIL_HINT = 'yo@marianoaliandri.com.ar';
 
 function formatDate(str) {
   if (!str) return null;
@@ -78,6 +80,7 @@ function ScoreBadge({ score }) {
 }
 
 export default function LeadFinderPanel() {
+  const { user, getIdToken, login } = useAuthUser();
   const [config, setConfig]         = useState(loadConfig);
   const [showConfig, setShowConfig]  = useState(true);
   const [ciudadInput, setCiudadInput] = useState('');
@@ -134,16 +137,20 @@ export default function LeadFinderPanel() {
   }, []);
 
   const callFn = useCallback(async (action, params = {}) => {
+    const idToken = await getIdToken();
     const resp = await fetch('/api/lead-finder', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+      },
       body: JSON.stringify({ action, apiKey: configRef.current.apiKey, ...params }),
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'Error en la función');
     return data;
-  }, []);
+  }, [getIdToken]);
 
   const runSearch = useCallback(async () => {
     const cfg = configRef.current;
@@ -429,6 +436,16 @@ export default function LeadFinderPanel() {
 
   return (
     <div className="space-y-6">
+      {!user && (
+        <div className="flex items-center justify-between gap-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl px-4 py-3">
+          <p className="text-sm text-amber-700 dark:text-amber-400">
+            ⚠️ Iniciá sesión con <strong>{ADMIN_EMAIL_HINT}</strong> para poder buscar — esta herramienta gasta cuota de Google, requiere cuenta admin registrada.
+          </p>
+          <button onClick={login} className="shrink-0 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors">
+            Iniciar sesión
+          </button>
+        </div>
+      )}
 
       {/* Config card */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">

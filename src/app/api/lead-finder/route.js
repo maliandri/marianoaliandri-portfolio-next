@@ -2,6 +2,15 @@ export const dynamic = 'force-dynamic';
 
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { getUserFromRequest } from '@/lib/authServer';
+
+// Cuenta registrada (Firebase Auth) reconocida como admin para esta ruta interna.
+// No es un password aparte -- es la MISMA cuenta con la que Mariano se loguea en el
+// sitio. Cualquier otro usuario autenticado NO puede llamar esta ruta directo (así no
+// evita el gate de créditos de /api/lead-finder-pro/run).
+// Sin fallback hardcodeado: si ADMIN_EMAIL no está seteada en las env vars, la ruta
+// queda cerrada para todos en vez de aceptar un email fijo en el código.
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || null;
 
 // Caché de auditorías por placeId — evita re-pagar getDetails (Places API) por un
 // negocio ya auditado. El sitio propio (checkSite) es gratis, así que solo importa
@@ -23,8 +32,10 @@ const SOCIAL_DOMAINS = [
 const PLACES_DETAIL  = 'https://places.googleapis.com/v1/places/';
 // Campos del search: sin websiteUri (no viene en search, solo en getDetails)
 const SEARCH_FIELDS  = 'places.id,places.displayName,places.rating,places.location';
-// Campos del detail: solo lo mínimo para obtener el website (evita campos innecesarios)
-const DETAIL_FIELDS  = 'id,websiteUri';
+// Campos del detail: website + teléfono/horarios/rating. Todos confirmados en el mismo
+// tier "Enterprise" de Google ($20/1.000) que websiteUri solo — agregarlos no sube el
+// costo por negocio. Evitar "reviews"/campos de "Atmosphere" (esos sí suben de tier).
+const DETAIL_FIELDS  = 'id,websiteUri,nationalPhoneNumber,regularOpeningHours,rating,userRatingCount';
 
 function isSocialUrl(url) {
   try {
@@ -156,6 +167,13 @@ export async function POST(request) {
   let body;
   try { body = await request.json(); } catch { return fail('JSON inválido'); }
 
+  // Sin esto, cualquiera que encuentre esta URL puede llamarla directo y gastar la
+  // cuota de Google Places sin login ni nada. Solo la cuenta admin registrada puede
+  // usar esta ruta interna directo -- el resto pasa por /api/lead-finder-pro/run,
+  // que sí descuenta créditos.
+  const authUser = await getUserFromRequest(request);
+  if (!authUser || authUser.email !== ADMIN_EMAIL) return fail('No autorizado');
+
   const { action, apiKey: clientKey, ...params } = body;
   const gApiKey = process.env.GOOGLE_PLACES_API_KEY || clientKey;
 
@@ -278,6 +296,10 @@ export async function POST(request) {
         let result = {
           hasWebsite: !!websiteUri, siteUrl: websiteUri,
           seoScore: null, hasSitemap: null, hasRobots: null, metaDesc: null, hasOG: false, email: null,
+          phone: detData.nationalPhoneNumber || null,
+          openingHours: detData.regularOpeningHours?.weekdayDescriptions || null,
+          rating: detData.rating ?? null,
+          ratingCount: detData.userRatingCount ?? null,
         };
 
         if (websiteUri) {

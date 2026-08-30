@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { RUBROS, CATEGORIAS_RUBROS, DEFAULT_TIPOS } from '@/data/rubros';
+import { useAuthUser } from '@/hooks/useAuthUser';
 
 const LeadMapView = dynamic(() => import('./LeadMapView'), { ssr: false });
 
@@ -17,6 +18,7 @@ const MAX_NEGOCIOS_OPTIONS = [20, 40, 60, 100];
 const DEFAULT_MAX_NEGOCIOS = 40;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+const ADMIN_EMAIL_HINT = 'yo@marianoaliandri.com.ar';
 
 // Paleta de status validada (dataviz skill) — mismos roles good/warning/critical,
 // nunca reusados como serie categórica. Coincide con los cortes de scoreColor
@@ -146,6 +148,7 @@ function BusinessSheet({ business, onClose, onRetry }) {
 }
 
 export default function LeadMapPanel({ onClose }) {
+  const { user, getIdToken, login } = useAuthUser();
   const [userLocation, setUserLocation] = useState(null);
   const [locError, setLocError]         = useState('');
   const [locLoading, setLocLoading]     = useState(false);
@@ -187,16 +190,20 @@ export default function LeadMapPanel({ onClose }) {
   useEffect(() => { locate(); }, [locate]);
 
   const callFn = useCallback(async (action, params = {}) => {
+    const idToken = await getIdToken();
     const resp = await fetch('/api/lead-finder', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+      },
       body: JSON.stringify({ action, ...params }),
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'Error en la función');
     return data;
-  }, []);
+  }, [getIdToken]);
 
   // Audita un negocio ya listado en el mapa vía 'auditPlace' (getDetails + checkSite
   // en una sola acción, con caché de 30 días por placeId en Firestore — si ya se
@@ -323,6 +330,16 @@ export default function LeadMapPanel({ onClose }) {
     <div className="fixed inset-0 z-[100] bg-black flex flex-col" style={{ top: 0 }}>
       {/* Barra superior */}
       <div className="shrink-0 bg-[#0a0a0a] border-b border-white/10 px-4 py-3 space-y-3" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
+        {!user && (
+          <div className="flex items-center justify-between gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2">
+            <p className="text-xs text-amber-400">
+              ⚠️ Iniciá sesión con <strong>{ADMIN_EMAIL_HINT}</strong> para poder auditar.
+            </p>
+            <button onClick={login} className="shrink-0 px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors">
+              Ingresar
+            </button>
+          </div>
+        )}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             {onClose && (
