@@ -21,8 +21,12 @@ export default function LeadFinderProLanding() {
           Encontrá negocios sin sitio<br className="hidden sm:block" /> o con SEO débil
         </h1>
         <p className="text-gray-400 text-base max-w-xl mx-auto mb-8">
-          La misma herramienta que uso para auditar negocios locales, ahora para que la uses vos.
-          Registrate gratis y mirá una auditoría real, tal cual la veo yo.
+          En vez de salir a golpear puertas a ciegas, elegís una zona — localidad, provincia o todo
+          el país — y un rubro, y te devolvemos la lista completa de negocios reales de Google Maps:
+          si tienen sitio web o no (los que no tienen son el lead más caliente), score SEO de 0 a 100,
+          teléfono, horarios y rating listos para armar tu lista de contacto, con mapa y tabla ordenable
+          para priorizar por zona o por qué tan débil está su presencia digital. Es la misma herramienta
+          que uso yo para conseguir mis propios clientes — ahora la podés usar vos para conseguir los tuyos.
         </p>
         <Link
           href="/lead-finder-pro/demo"
@@ -41,6 +45,27 @@ export default function LeadFinderProLanding() {
             <p className="text-gray-500 text-sm">{f.desc}</p>
           </div>
         ))}
+      </div>
+
+      <div className="max-w-4xl mx-auto bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 mb-16">
+        <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-4">¿Qué significa "100 negocios por mes"?</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div>
+            <p className="text-white font-semibold text-sm mb-1.5">🔍 Buscar y explorar — sin límite</p>
+            <p className="text-gray-500 text-sm">
+              Recorré el mapa, cambiá de rubro o de zona las veces que quieras. Ver los negocios de tu búsqueda no gasta nada de tu plan.
+            </p>
+          </div>
+          <div>
+            <p className="text-white font-semibold text-sm mb-1.5">✅ Auditar a fondo — 1 crédito por negocio</p>
+            <p className="text-gray-500 text-sm">
+              Cuando pedís el detalle completo de un negocio (website, teléfono, horarios, rating, score SEO), ahí sí consume 1 de tus créditos del mes. Vos elegís cuáles priorizar.
+            </p>
+          </div>
+        </div>
+        <p className="text-gray-600 text-xs mt-5">
+          Con el plan Starter (100/mes) podés explorar toda tu zona sin límite, y quedarte con el detalle completo de los 100 negocios que más te sirvan.
+        </p>
       </div>
 
       <div className="max-w-4xl mx-auto text-center">
