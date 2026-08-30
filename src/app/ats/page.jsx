@@ -21,7 +21,7 @@ const schema = {
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
   author: { '@type': 'Person', name: 'Mariano Aliandri', url: 'https://marianoaliandri.com.ar' },
   featureList: [
-    'Análisis ATS con IA (Google Gemini)',
+    'Análisis ATS por coincidencia de palabras clave',
     'Carga de CV en formato PDF',
     'Puntuación de compatibilidad',
     'Sugerencias de mejora personalizadas',
@@ -47,7 +47,7 @@ export default function ToolPage() {
           las empresas y recruiters, y te da sugerencias concretas para mejorarlo.
         </p>
         <ul className="text-sm text-gray-500 dark:text-gray-400 space-y-1 mb-8">
-          <li>✓ Análisis con Google Gemini 2.5 Flash</li>
+          <li>✓ Análisis instantáneo por coincidencia de palabras clave</li>
           <li>✓ Compatibilidad con sistemas ATS</li>
           <li>✓ Sugerencias de mejora personalizadas</li>
           <li>✓ 100% gratuito, sin registro</li>
@@ -67,7 +67,7 @@ export default function ToolPage() {
           <section>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Cómo funciona?</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              Subís tu CV en PDF y la inteligencia artificial (Google Gemini) lo analiza en segundos:
+              Subís tu CV en PDF y lo analizamos en segundos:
               revisa la estructura, la presencia de palabras clave, la claridad de la experiencia y la
               compatibilidad general con los filtros automáticos. Recibís una puntuación y una lista de
               mejoras concretas para aumentar tus chances de llegar a la entrevista.
