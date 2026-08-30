@@ -170,11 +170,30 @@ export default function CustomerLeadFinderPanel() {
         }
       }
       setPhase('done');
+      await checkMyAudits(allResults.map(r => r.id));
     } catch (e) {
       setPhase(blocked ? 'idle' : 'error');
       if (!blocked) setError(e.message);
     }
   }, [ciudades, tipos, terminos, radioKm, callFn, blocked]);
+
+  // Consulta en bloque cuáles de estos negocios ya los auditó este cliente antes —
+  // los completa directo, sin gastar otro crédito ni tener que tocar "Auditar".
+  const checkMyAudits = async (placeIds) => {
+    if (!placeIds.length) return;
+    try {
+      const idToken = await getIdToken();
+      const resp = await fetch('/api/lead-finder-pro/my-audits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}) },
+        body: JSON.stringify({ placeIds }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      const audits = data.audits || {};
+      if (!Object.keys(audits).length) return;
+      setResults(prev => prev.map(r => audits[r.id] ? { ...r, ...audits[r.id], fromMyHistory: true } : r));
+    } catch { /* no bloquea la búsqueda si esto falla */ }
+  };
 
   const startSearch = () => {
     setResults([]);

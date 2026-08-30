@@ -104,5 +104,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Configuracion editable del menu de navegacion (admin y panel del cliente).
+    // Lectura publica (el cliente logueado necesita leer su propio arbol de nav),
+    // escritura SOLO via Admin SDK (API route con adminPassword).
+    match /nav_config/{tree} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Auditorias ya hechas por cada cliente de Lead Finder Pro -- si ya audito un
+    // negocio, no se le vuelve a cobrar credito ni se relanza la llamada a Google.
+    // El cliente LEE las suyas, SOLO el Admin SDK escribe (se graba en el server
+    // al momento de auditar, ver /api/lead-finder-pro/run).
+    match /leadfinder_client_audits/{uid}/audits/{placeId} {
+      allow read:  if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
   }
 }

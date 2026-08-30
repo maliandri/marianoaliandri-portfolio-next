@@ -27,6 +27,18 @@ export async function POST(request) {
     const db = getDb();
     if (!db) return Response.json({ ok: false, error: 'DB no disponible' }, { status: 500 });
 
+    const { placeId } = body;
+    if (!placeId) return Response.json({ ok: false, error: 'placeId requerido' }, { status: 400 });
+
+    // Si este cliente YA auditó este negocio antes (cualquier búsqueda, cualquier día),
+    // se lo devolvemos directo: sin cobrar otro crédito, sin volver a llamar a Google.
+    const myAuditRef = db.collection('leadfinder_client_audits').doc(authUser.uid).collection('audits').doc(placeId);
+    const myAuditSnap = await myAuditRef.get();
+    if (myAuditSnap.exists) {
+      const { auditedAt: _o, ...rest } = myAuditSnap.data();
+      return Response.json({ ok: true, ...rest, fromCache: true, fromMyHistory: true });
+    }
+
     const ref = db.collection('leadfinder_entitlements').doc(authUser.uid);
     const gate = await db.runTransaction(async tx => {
       const snap = await tx.get(ref);
@@ -48,11 +60,25 @@ export async function POST(request) {
         code: 'NO_PLAN',
       }, { status: 402 });
     }
+
+    // Llama directo a la lógica compartida (Places API + auditoría SEO + caché global).
+    const { action: _a, apiKey, ...params } = body;
+    const resp = await runLeadFinderAction(action, params, apiKey);
+
+    // Guarda el resultado en el historial personal del cliente (fire-and-forget no —
+    // esperamos, para no perder el guardado si el server se corta después de responder).
+    try {
+      const data = await resp.clone().json();
+      if (data.ok) {
+        const { ok: _ok, fromCache: _fc, ...toStore } = data;
+        await myAuditRef.set({ ...toStore, placeId, auditedAt: FieldValue.serverTimestamp() }, { merge: true });
+      }
+    } catch { /* no romper la respuesta al cliente si falla el guardado del historial */ }
+
+    return resp;
   }
 
-  // Llama directo a la lógica compartida (Places API + auditoría SEO + caché) — ya
-  // autenticado acá y con el crédito descontado arriba. Nada de HTTP interno: eso
-  // pisaba el auth propio de /api/lead-finder (solo admin) con el de esta ruta.
+  // Acciones gratis (búsqueda) — sin gate de crédito.
   const { action: _a, apiKey, ...params } = body;
   return runLeadFinderAction(action, params, apiKey);
 }
