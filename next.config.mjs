@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   trailingSlash: true,
+  // pdf-parse (analizador de CV) usa pdfjs por debajo, que necesita correr
+  // fuera del bundle de webpack para resolver bien su worker en serverless.
+  serverExternalPackages: ['pdf-parse'],
   async redirects() {
     return [
       {
