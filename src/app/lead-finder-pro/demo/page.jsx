@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AuthGate from '@/components/auth/AuthGate';
+import ClientNavShell from '@/components/leadfinderpro/ClientNavShell';
 import AuditTable from '../../auditorias/[id]/AuditTable';
 import AuditMapLoader from '../../auditorias/[id]/AuditMapLoader';
 import SeoScoreChart from '../../auditorias/[id]/SeoScoreChart';
@@ -162,6 +163,9 @@ export default function LeadFinderProDemoPage() {
         title="Probá Lead Finder Pro"
         subtitle="Registrate gratis para ver una auditoría real completa — mapa, score SEO y contacto de cada negocio."
       >
+        <div className="max-w-6xl mx-auto px-4">
+          <ClientNavShell />
+        </div>
         <DemoReport />
       </AuthGate>
     </main>

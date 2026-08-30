@@ -25,62 +25,32 @@ import LeadFinderPlansManager from '../components/admin/LeadFinderPlansManager';
 import LeadFinderUsagePanel from '../components/admin/LeadFinderUsagePanel';
 import LeadFinderPanel from '../components/audit/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
+import { ADMIN_NAV_DEFAULT } from '../data/adminNav';
+import NavConfigEditor from '../components/admin/NavConfigEditor';
 
 // Navegación de 3 niveles (estilo almamod): 1º sidebar (secciones) · 2º pestañas arriba
-// (items de la sección) · 3º pestañas abajo (sub-items, solo si el item tiene "children")
-const ADMIN_NAV = [
-  { id: 'panel', label: 'Panel', icon: '📊', items: [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-  ]},
-  { id: 'tienda', label: 'Tienda', icon: '🛍️', items: [
-    { id: 'products', label: 'Productos', icon: '🛍️' },
-    { id: 'orders', label: 'Órdenes', icon: '📦' },
-    { id: 'presupuestos', label: 'Presupuestos', icon: '💰', children: [
-      { id: 'solicitudes', label: 'Solicitudes' },
-      { id: 'nuevo', label: 'Nuevo' },
-      { id: 'beneficios', label: 'Beneficios' },
-    ]},
-    { id: 'suscripciones', label: 'Suscripciones', icon: '🔁' },
-    { id: 'users', label: 'Usuarios', icon: '👥' },
-  ]},
-  { id: 'redes', label: 'Redes Sociales', icon: '📱', items: [
-    { id: 'social', label: 'Redes Sociales', icon: '📱', children: [
-      { id: 'publicar', label: '📢 Publicar' },
-      { id: 'servicios', label: '🖼️ Servicios' },
-      { id: 'estadisticas', label: '📊 Estadísticas' },
-      { id: 'productos', label: '🛍️ Productos' },
-      { id: 'proyectos', label: '📁 Proyectos' },
-      { id: 'reel', label: '🎬 Reel' },
-      { id: 'labs', label: '🧪 Labs' },
-    ]},
-    { id: 'linkedin', label: 'LinkedIn', icon: '💼' },
-    { id: 'cron', label: 'Cron Social', icon: '⏰' },
-  ]},
-  { id: 'marketing', label: 'Marketing', icon: '🎯', items: [
-    { id: 'leads', label: 'Lead Finder', icon: '🎯' },
-    { id: 'leads-map', label: 'Mapa de Leads', icon: '📍' },
-    { id: 'leadfinder-plans', label: 'Planes Lead Finder', icon: '💳' },
-    { id: 'zonas', label: 'Zonas', icon: '🗺️' },
-    { id: 'auditorias', label: 'Auditorías', icon: '📋' },
-    { id: 'audit-requests', label: 'Solicitudes SEO', icon: '🔍' },
-    { id: 'emails', label: 'Emails', icon: '📧' },
-    { id: 'style-quiz', label: 'Test de Estilo', icon: '🎨' },
-  ]},
-  { id: 'sitio', label: 'Sitio', icon: '🌐', items: [
-    { id: 'proyectos', label: 'Proyectos', icon: '🌐' },
-    { id: 'questions', label: 'Preguntas', icon: '💬' },
-  ]},
-  { id: 'dev', label: 'Dev', icon: '🧰', items: [
-    { id: 'free-for-dev', label: 'Free for Dev', icon: '🆓' },
-  ]},
-];
-
-// Vista plana (compat con el resto del panel: título del header, etc.)
-const ADMIN_TABS = ADMIN_NAV.flatMap(g => g.items);
+// (items de la sección) · 3º pestañas abajo (sub-items, solo si el item tiene "children").
+// Estructura editable desde Sitio > Configurar Interfaz (nav_config/admin en Firestore) —
+// ADMIN_NAV_DEFAULT es la semilla y el fallback si todavía no hay config guardada.
+// Vista plana (compat con el resto del panel: título del header, dispatch de contenido) —
+// se arma SIEMPRE sobre el default, no sobre la config editable, porque cada id acá
+// mapea a un bloque de contenido fijo en este archivo.
+const ADMIN_TABS = ADMIN_NAV_DEFAULT.flatMap(g => g.items);
 const TAB_MAP = Object.fromEntries(ADMIN_TABS.map(t => [t.id, t]));
+const KNOWN_TAB_IDS = new Set(ADMIN_TABS.map(t => t.id));
 
-function findNavLocation(tabId) {
-  for (const group of ADMIN_NAV) {
+// Valida una config cargada de Firestore contra los ids reales que existen en el código
+// (por si se borró un tab del código después de guardar una config vieja que lo mencionaba).
+function sanitizeNavConfig(sections) {
+  if (!Array.isArray(sections) || !sections.length) return null;
+  const cleaned = sections
+    .map(s => ({ ...s, items: (s.items || []).filter(i => KNOWN_TAB_IDS.has(i.id)) }))
+    .filter(s => s.items.length > 0);
+  return cleaned.length ? cleaned : null;
+}
+
+function findNavLocation(navTree, tabId) {
+  for (const group of navTree) {
     const item = group.items.find(i => i.id === tabId);
     if (item) return { group, item };
   }
@@ -125,11 +95,24 @@ export default function AdminPage() {
   const [activeSubTab, setActiveSubTab] = useState(null);
   const [navOpen, setNavOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [navTree, setNavTree] = useState(ADMIN_NAV_DEFAULT);
+
+  // Config editable desde Sitio > Configurar Interfaz — si hay una guardada en
+  // Firestore la usamos, si no seguimos con el default hardcodeado de arriba.
+  useEffect(() => {
+    fetch('/api/nav-config?tree=admin')
+      .then(r => r.json())
+      .then(data => {
+        const clean = sanitizeNavConfig(data.sections);
+        if (clean) setNavTree(clean);
+      })
+      .catch(() => {});
+  }, []);
 
   // Navega a un tab resolviendo automáticamente su grupo (nivel 1) y su primer
   // sub-tab (nivel 3, si tiene). Único punto de entrada para cambiar de pantalla.
   const goToTab = (tabId, subId) => {
-    const loc = findNavLocation(tabId);
+    const loc = findNavLocation(navTree, tabId);
     if (!loc) return;
     setActiveGroup(loc.group.id);
     setActiveTab(tabId);
@@ -558,7 +541,7 @@ export default function AdminPage() {
         </div>
         {/* Nivel 1: secciones. Clickear una sección lleva a su primer item (nivel 2). */}
         <nav className="space-y-0.5">
-          {ADMIN_NAV.map(group => (
+          {navTree.map(group => (
             <button
               key={group.id}
               onClick={() => goToTab(group.items[0].id)}
@@ -600,7 +583,7 @@ export default function AdminPage() {
                 <span className={`block h-0.5 w-5 bg-current transition-transform ${navOpen ? '-translate-y-[5px] -rotate-45' : ''}`} />
               </button>
               <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {ADMIN_NAV.find(g => g.id === activeGroup)?.label || 'Panel'}
+                {navTree.find(g => g.id === activeGroup)?.label || 'Panel'}
               </h1>
             </div>
             <div className="flex items-center gap-2">
@@ -621,7 +604,7 @@ export default function AdminPage() {
 
           {/* Nivel 2: pestañas de los items de la sección activa (estilo "pestañas de navegador") */}
           {(() => {
-            const group = ADMIN_NAV.find(g => g.id === activeGroup);
+            const group = navTree.find(g => g.id === activeGroup);
             if (!group) return null;
             return (
               <div className="px-4 sm:px-6 lg:px-8 flex items-end gap-0 overflow-x-auto">
@@ -876,6 +859,12 @@ export default function AdminPage() {
 
         {!loading && activeTab === 'questions' && (
           <AdminQuestionsPanel />
+        )}
+
+        {activeTab === 'nav-config' && (
+          <div className="p-6">
+            <NavConfigEditor />
+          </div>
         )}
 
         {activeTab === 'proyectos' && (
