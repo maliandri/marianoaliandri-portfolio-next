@@ -21,6 +21,7 @@ import SubscriptionsManager from '../components/admin/SubscriptionsManager';
 import StyleQuizManager from '../components/admin/StyleQuizManager';
 import LeadMapPanel from '../components/admin/LeadMapPanel';
 import FreeForDevBrowser from '../components/admin/FreeForDevBrowser';
+import LeadFinderPlansManager from '../components/admin/LeadFinderPlansManager';
 import LeadFinderPanel from '../components/audit/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 
@@ -57,6 +58,7 @@ const ADMIN_NAV = [
   { id: 'marketing', label: 'Marketing', icon: '🎯', items: [
     { id: 'leads', label: 'Lead Finder', icon: '🎯' },
     { id: 'leads-map', label: 'Mapa de Leads', icon: '📍' },
+    { id: 'leadfinder-plans', label: 'Planes Lead Finder', icon: '💳' },
     { id: 'zonas', label: 'Zonas', icon: '🗺️' },
     { id: 'auditorias', label: 'Auditorías', icon: '📋' },
     { id: 'audit-requests', label: 'Solicitudes SEO', icon: '🔍' },
@@ -862,6 +864,12 @@ export default function AdminPage() {
 
         {activeTab === 'leads-map' && (
           <LeadMapPanel onClose={() => goToTab('leads')} />
+        )}
+
+        {activeTab === 'leadfinder-plans' && (
+          <div className="p-6">
+            <LeadFinderPlansManager />
+          </div>
         )}
 
         {!loading && activeTab === 'questions' && (

@@ -89,5 +89,13 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
+    // Planes de Lead Finder Pro (ABM desde el admin). Lectura pública para la
+    // futura pagina de pricing/checkout; escritura SOLO via Admin SDK (API route
+    // con adminPassword), igual que "products".
+    match /leadfinder_plans/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
   }
 }
