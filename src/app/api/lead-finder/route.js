@@ -18,6 +18,22 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || null;
 const CACHE_COLLECTION = 'places_seo_cache';
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
 
+// Contador propio de uso diario (Google no expone las cuotas de Places API por
+// Cloud Monitoring — confirmado a mano, es una limitación de Maps Platform). Un doc
+// por día UTC, incrementado en cada llamada real a Google (no en cache hits).
+const USAGE_COLLECTION = 'leadfinder_usage';
+function todayKey() { return new Date().toISOString().slice(0, 10); }
+async function bumpUsage(field, n = 1) {
+  try {
+    const db = getDb();
+    if (!db) return;
+    await db.collection(USAGE_COLLECTION).doc(todayKey()).set(
+      { [field]: FieldValue.increment(n), updatedAt: FieldValue.serverTimestamp() },
+      { merge: true }
+    );
+  } catch { /* el contador es informativo, nunca debe romper la acción real */ }
+}
+
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const EMAIL_RE = /\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b/g;
 const IGNORE_EMAIL = ['example','test','noreply','no-reply','spam','sentry','wix','google','apple','microsoft','adobe','.png','.jpg','.gif','.svg'];
@@ -200,6 +216,7 @@ export async function runLeadFinderAction(action, params, clientKey) {
         });
         const data = await resp.json();
         if (data.error) return fail(data.error.message || 'Error de Google Places');
+        await bumpUsage('searchNearbyRequests');
         // Normalizar al formato que usa processPlaces
         const places = (data.places || []).map(p => ({
           ...p,
@@ -227,6 +244,7 @@ export async function runLeadFinderAction(action, params, clientKey) {
         });
         const data = await resp.json();
         if (data.error) return fail(data.error.message || 'Error de Google Places');
+        await bumpUsage('searchTextRequests');
         const places = (data.places || []).map(p => ({
           ...p,
           _phone:   '',
@@ -244,6 +262,7 @@ export async function runLeadFinderAction(action, params, clientKey) {
         });
         const data = await resp.json();
         if (data.error) return fail(data.error.message || 'Error de Google Places (getDetails)');
+        await bumpUsage('getPlaceRequests');
         return ok(data);
       }
 
@@ -270,6 +289,7 @@ export async function runLeadFinderAction(action, params, clientKey) {
               const cached = snap.data();
               const checkedAt = cached.checkedAt?.toDate?.()?.getTime() || 0;
               if (Date.now() - checkedAt < CACHE_TTL_MS) {
+                await bumpUsage('cacheHits');
                 const { checkedAt: _omit, ...rest } = cached;
                 return ok({ ...rest, fromCache: true });
               }
@@ -284,6 +304,7 @@ export async function runLeadFinderAction(action, params, clientKey) {
         });
         const detData = await detResp.json();
         if (detData.error) return fail(detData.error.message || 'Error de Google Places (getDetails)');
+        await bumpUsage('getPlaceRequests');
 
         const websiteUri = detData.websiteUri && !isSocialUrl(detData.websiteUri) ? detData.websiteUri : null;
         let result = {
