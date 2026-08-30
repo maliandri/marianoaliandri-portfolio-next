@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/utils/firebaseservice';
 import { useAuthUser } from '@/hooks/useAuthUser';
 
 const SCOPE_LABEL = {
@@ -62,6 +64,7 @@ function PlanCard({ plan, user, onLogin }) {
 export default function PlansSection() {
   const { user, loading, login } = useAuthUser();
   const [plans, setPlans] = useState(null);
+  const [hasFreeAccess, setHasFreeAccess] = useState(false);
 
   useEffect(() => {
     fetch('/api/leadfinder-plans')
@@ -69,6 +72,13 @@ export default function PlansSection() {
       .then(data => setPlans(data.plans || []))
       .catch(() => setPlans([]));
   }, []);
+
+  useEffect(() => {
+    if (!user) { setHasFreeAccess(false); return; }
+    getDoc(doc(db, 'leadfinder_entitlements', user.uid))
+      .then(snap => setHasFreeAccess(!!snap.data()?.unlimited))
+      .catch(() => setHasFreeAccess(false));
+  }, [user]);
 
   if (plans === null) {
     return (
@@ -89,11 +99,19 @@ export default function PlansSection() {
           <p className="text-gray-500 text-sm mt-2">Registrate gratis para elegir un plan.</p>
         )}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {plans.map(plan => (
-          <PlanCard key={plan.id} plan={plan} user={user} onLogin={login} />
-        ))}
-      </div>
+
+      {hasFreeAccess ? (
+        <div className="max-w-xl mx-auto bg-indigo-600/10 border border-indigo-500/20 rounded-2xl p-6 text-center">
+          <p className="text-white font-bold text-lg mb-1">🎁 Tenés acceso gratuito a Lead Finder Pro</p>
+          <p className="text-gray-400 text-sm">Ya podés usar la herramienta sin pagar ningún plan — cortesía habilitada por el equipo.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {plans.map(plan => (
+            <PlanCard key={plan.id} plan={plan} user={user} onLogin={login} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

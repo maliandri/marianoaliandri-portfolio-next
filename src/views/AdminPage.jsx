@@ -1675,8 +1675,42 @@ function AdminUsersPanel({ users, formatDate }) {
   const [deletingId, setDeletingId] = useState(null);
   const [actionResult, setActionResult] = useState(null);
   const [localUsers, setLocalUsers] = useState(users);
+  const [compedUids, setCompedUids] = useState(new Set());
+  const [grantingId, setGrantingId] = useState(null);
 
   useEffect(() => { setLocalUsers(users); }, [users]);
+
+  useEffect(() => {
+    const adminPassword = sessionStorage.getItem('adminPassword');
+    fetch(`/api/admin-leadfinder-access?adminPassword=${encodeURIComponent(adminPassword)}`)
+      .then(r => r.json())
+      .then(data => setCompedUids(new Set(data.uids || [])))
+      .catch(() => {});
+  }, []);
+
+  const toggleLeadFinderAccess = async (user) => {
+    const isGranted = compedUids.has(user.id);
+    if (!isGranted && !confirm(`¿Dar acceso gratuito e ilimitado a Lead Finder Pro a ${user.displayName || user.email}?`)) return;
+    setGrantingId(user.id);
+    try {
+      const adminPassword = sessionStorage.getItem('adminPassword');
+      const res = await fetch('/api/admin-leadfinder-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminPassword, uid: user.id, grant: !isGranted }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Error');
+      setCompedUids(prev => {
+        const next = new Set(prev);
+        if (isGranted) next.delete(user.id); else next.add(user.id);
+        return next;
+      });
+    } catch (err) {
+      setActionResult({ type: 'error', msg: 'Error: ' + err.message });
+    } finally {
+      setGrantingId(null);
+    }
+  };
 
   const resendWelcome = async (user) => {
     setSendingId(user.id);
@@ -1752,12 +1786,31 @@ function AdminUsersPanel({ users, formatDate }) {
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{user.displayName || 'Sin nombre'}</p>
+                  <p className="font-semibold text-gray-900 dark:text-white text-sm truncate flex items-center gap-1.5">
+                    {user.displayName || 'Sin nombre'}
+                    {compedUids.has(user.id) && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 font-medium">
+                        🎁 Lead Finder Pro gratis
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
                   <p className="text-xs text-gray-400 dark:text-gray-500">{formatDate(user.createdAt)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                <button
+                  onClick={() => toggleLeadFinderAccess(user)}
+                  disabled={grantingId === user.id}
+                  title="Otorgar/revocar acceso gratuito a Lead Finder Pro"
+                  className={`px-3 py-1.5 rounded-lg transition-colors text-xs font-medium disabled:opacity-50 ${
+                    compedUids.has(user.id)
+                      ? 'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-700'
+                      : 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20'
+                  }`}
+                >
+                  {grantingId === user.id ? '...' : compedUids.has(user.id) ? '🎁 Revocar' : '🎁 Dar acceso gratis'}
+                </button>
                 <button
                   onClick={() => resendWelcome(user)}
                   disabled={sendingId === user.id}

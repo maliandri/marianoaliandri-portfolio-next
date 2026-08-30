@@ -97,5 +97,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Cuota/acceso de Lead Finder Pro por usuario — el usuario LEE su propio estado,
+    // pero SOLO el Admin SDK puede escribirlo (mismo patron que "entitlements").
+    match /leadfinder_entitlements/{uid} {
+      allow read:  if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
   }
 }
