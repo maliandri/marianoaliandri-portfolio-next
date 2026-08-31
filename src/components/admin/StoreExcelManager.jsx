@@ -22,6 +22,7 @@ export default function StoreExcelManager() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [summary, setSummary] = useState(null);
+  const [replaceAll, setReplaceAll] = useState(false);
   const fileRef = useRef(null);
 
   const pass = () => sessionStorage.getItem('adminPassword');
@@ -90,21 +91,48 @@ export default function StoreExcelManager() {
 
       if (!rows.length) throw new Error('El archivo no tiene filas con ID');
 
+      if (replaceAll && !confirm(
+        `⚠️ REEMPLAZAR TODO\n\nSe van a BORRAR todos los productos actuales de la tienda y ` +
+        `cargar los ${rows.length} del Excel en su lugar. Esto no se puede deshacer.\n\n¿Continuar?`
+      )) { setBusy(false); if (fileRef.current) fileRef.current.value = ''; return; }
+
       const res = await fetch('/api/store-bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'import', adminPassword: pass(), rows }),
+        body: JSON.stringify({ action: 'import', adminPassword: pass(), rows, replace: replaceAll }),
       });
       const d = await res.json();
       if (!res.ok || d.error) throw new Error(d.error || 'Error');
 
       setSummary(d);
-      setMsg(`✓ ${d.updated} productos actualizados${d.rentalUpdated ? `, ${d.rentalUpdated} con alquiler` : ''}`);
+      setMsg(
+        `✓ ${d.deleted ? `${d.deleted} borrados, ` : ''}${d.updated} productos cargados` +
+        `${d.rentalUpdated ? `, ${d.rentalUpdated} con alquiler` : ''}`
+      );
     } catch (err) {
       setMsg('✕ ' + err.message);
     } finally {
       setBusy(false);
       if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const clearStore = async () => {
+    if (!confirm('⚠️ Se van a BORRAR TODOS los productos de la tienda (compra y alquiler). Esto no se puede deshacer.\n\n¿Vaciar la tienda?')) return;
+    setBusy(true); setMsg(''); setSummary(null);
+    try {
+      const res = await fetch('/api/store-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'clear', adminPassword: pass() }),
+      });
+      const d = await res.json();
+      if (!res.ok || d.error) throw new Error(d.error || 'Error');
+      setMsg(`✓ Tienda vaciada (${d.deleted} borrados). Recargá la pestaña para ver el cambio.`);
+    } catch (e) {
+      setMsg('✕ ' + e.message);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -140,6 +168,24 @@ export default function StoreExcelManager() {
           onChange={onFile}
           className="hidden"
         />
+
+        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={replaceAll}
+            onChange={(e) => setReplaceAll(e.target.checked)}
+            className="w-4 h-4 accent-red-600"
+          />
+          Reemplazar todo (borra los actuales al subir)
+        </label>
+
+        <button
+          onClick={clearStore}
+          disabled={busy}
+          className="px-3 py-2 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 text-sm font-medium"
+        >
+          🗑 Vaciar tienda
+        </button>
 
         {busy && <span className="text-sm text-gray-500">Procesando…</span>}
         {!busy && msg && <span className="text-sm text-gray-700 dark:text-gray-300">{msg}</span>}

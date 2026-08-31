@@ -47,10 +47,53 @@ export async function POST(request) {
       return Response.json({ products });
     }
 
+    // ---- DELETE ONE: borra un producto + su dato de alquiler ----
+    if (action === 'deleteOne') {
+      const id = String(body.id || '').trim();
+      if (!id) return Response.json({ error: 'Falta el ID' }, { status: 400 });
+      await Promise.all([
+        db.collection('products').doc(id).delete(),
+        db.collection('productos_alquiler').doc(id).delete().catch(() => {}),
+      ]);
+      return Response.json({ success: true, id });
+    }
+
+    // ---- CLEAR: borra TODOS los productos + datos de alquiler ----
+    if (action === 'clear') {
+      const [prodSnap, rentSnap] = await Promise.all([
+        db.collection('products').get(),
+        db.collection('productos_alquiler').get(),
+      ]);
+      let deleted = 0;
+      const delBatch = db.batch();
+      prodSnap.forEach((d) => { delBatch.delete(d.ref); deleted++; });
+      rentSnap.forEach((d) => { delBatch.delete(d.ref); });
+      await delBatch.commit();
+      return Response.json({ success: true, deleted });
+    }
+
     // ---- IMPORT: actualiza products + productos_alquiler ----
     if (action === 'import') {
       const rows = Array.isArray(body.rows) ? body.rows : [];
       if (!rows.length) return Response.json({ error: 'No hay filas para importar' }, { status: 400 });
+
+      const replace = body.replace === true;
+      // Validar que haya al menos una fila con ID ANTES de borrar nada
+      const validRows = rows.filter((r) => String(r.id || '').trim() !== '');
+      if (!validRows.length) return Response.json({ error: 'Ninguna fila tiene ID válido — no se borró nada' }, { status: 400 });
+
+      // En modo reemplazo: borrar todo primero (solo tras validar filas)
+      let deleted = 0;
+      if (replace) {
+        const [prodSnap, rentSnap] = await Promise.all([
+          db.collection('products').get(),
+          db.collection('productos_alquiler').get(),
+        ]);
+        const delBatch = db.batch();
+        prodSnap.forEach((d) => { delBatch.delete(d.ref); deleted++; });
+        rentSnap.forEach((d) => { delBatch.delete(d.ref); });
+        await delBatch.commit();
+      }
 
       const num = (v) => {
         if (v === '' || v === null || v === undefined) return null;
@@ -104,7 +147,7 @@ export async function POST(request) {
         }
       }
 
-      return Response.json({ success: true, updated, rentalUpdated, errors });
+      return Response.json({ success: true, updated, rentalUpdated, deleted, errors });
     }
 
     return Response.json({ error: 'Acción inválida' }, { status: 400 });

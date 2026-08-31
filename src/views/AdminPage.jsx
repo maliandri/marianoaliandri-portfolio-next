@@ -386,7 +386,19 @@ export default function AdminPage() {
     if (!confirm('¿Estás seguro de eliminar este producto?')) return;
 
     try {
-      await deleteDoc(doc(db, 'products', productId));
+      // Borrado server-side: las reglas de Firestore son write:false para
+      // `products`, asi que el SDK cliente da "permisos insuficientes".
+      const res = await fetch('/api/store-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'deleteOne',
+          adminPassword: sessionStorage.getItem('adminPassword'),
+          id: productId,
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok || d.error) throw new Error(d.error || 'Error');
       alert('Producto eliminado');
 
       // Recargar solo productos
