@@ -416,10 +416,12 @@ ${reportUrl}
   );
 }
 
-function SendEmailButton({ neg, auditoriaId }) {
+function SendEmailButton({ neg, auditoriaId, alreadySent, onSent }) {
   const [open, setOpen]                   = useState(false);
   const [busy, setBusy]                   = useState(null); // 'generating' | 'sending' | null
-  const [sent, setSent]                   = useState(false);
+  const [sentLocal, setSentLocal]         = useState(false);
+  const sent = sentLocal || alreadySent;
+  const setSent = (v) => { setSentLocal(v); if (v && onSent) onSent(neg.email); };
   const [emailText, setEmailText]         = useState('');
   const [screenshotUrl, setScreenshotUrl] = useState(null);
   const [source, setSource]               = useState(null); // 'gemini' | 'template' | 'edited'
@@ -567,6 +569,17 @@ function SendEmailButton({ neg, auditoriaId }) {
 function AuditoriaDetail({ id }) {
   const [data, setData]     = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sentSet, setSentSet] = useState(() => new Set()); // emails ya enviados
+  const [bulk, setBulk]     = useState(null); // { total, done, ok, fail, current, running, log }
+
+  const markSent = useCallback((email) => {
+    if (!email) return;
+    setSentSet(prev => {
+      const next = new Set(prev);
+      next.add(email);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     fetch(`/api/auditorias?id=${id}`)
@@ -583,7 +596,45 @@ function AuditoriaDetail({ id }) {
   if (!data) return null;
 
   const results = [...(data.results || [])].sort((a, b) => (a.seoScore ?? 999) - (b.seoScore ?? 999));
-  const withEmail = results.filter(r => r.email).length;
+  const withEmailList = results.filter(r => r.email);
+  const withEmail = withEmailList.length;
+
+  // Envío masivo: recorre secuencialmente los negocios con email que no fueron enviados
+  const sendAll = async () => {
+    const pending = withEmailList.filter(r => !sentSet.has(r.email));
+    if (!pending.length) return;
+    if (!confirm(`¿Enviar el email de análisis SEO a ${pending.length} negocio${pending.length !== 1 ? 's' : ''}?\nCada uno se genera con Gemini y se envía por separado. Puede tardar un poco.`)) return;
+
+    setBulk({ total: pending.length, done: 0, ok: 0, fail: 0, current: '', running: true, log: [] });
+    let ok = 0, fail = 0;
+    for (let i = 0; i < pending.length; i++) {
+      const neg = pending[i];
+      setBulk(b => ({ ...b, current: neg.nombre, done: i }));
+      try {
+        const resp = await fetch('/api/auditorias/send-biz-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            auditoriaId: id,
+            nombre: neg.nombre, siteUrl: neg.siteUrl, email: neg.email,
+            seoScore: neg.seoScore, hasSitemap: neg.hasSitemap, hasRobots: neg.hasRobots,
+            metaDesc: neg.metaDesc, hasOG: neg.hasOG, ciudad: neg.ciudad, tipo: neg.tipo,
+          }),
+        });
+        const d = await resp.json();
+        if (!resp.ok || d.error) throw new Error(d.error || 'Error');
+        ok++;
+        markSent(neg.email);
+        setBulk(b => ({ ...b, ok, log: [...b.log, { email: neg.email, nombre: neg.nombre, ok: true }] }));
+      } catch (e) {
+        fail++;
+        setBulk(b => ({ ...b, fail, log: [...b.log, { email: neg.email, nombre: neg.nombre, ok: false, err: e.message }] }));
+      }
+    }
+    setBulk(b => ({ ...b, done: pending.length, current: '', running: false }));
+  };
+
+  const pendingCount = withEmailList.filter(r => !sentSet.has(r.email)).length;
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700">
@@ -595,12 +646,49 @@ function AuditoriaDetail({ id }) {
         </div>
       )}
 
-      {/* Info emails */}
+      {/* Info emails + envío masivo */}
       {withEmail > 0 && (
-        <div className="px-5 py-2.5 bg-green-50/50 dark:bg-green-900/10 border-b border-gray-200 dark:border-gray-700">
-          <p className="text-xs text-green-700 dark:text-green-400">
-            ✉ <strong>{withEmail}</strong> empresa{withEmail !== 1 ? 's' : ''} con email — hacé click en <strong>Enviar</strong> para mandarles un análisis personalizado generado por Gemini
-          </p>
+        <div className="px-5 py-3 bg-green-50/50 dark:bg-green-900/10 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-xs text-green-700 dark:text-green-400">
+              ✉ <strong>{withEmail}</strong> empresa{withEmail !== 1 ? 's' : ''} con email
+              {sentSet.size > 0 && <> · <strong>{sentSet.size}</strong> enviado{sentSet.size !== 1 ? 's' : ''}</>}
+              {' '}— enviá uno a uno o a todos de una vez (Gemini genera cada texto).
+            </p>
+            <button
+              onClick={sendAll}
+              disabled={bulk?.running || pendingCount === 0}
+              className="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              {bulk?.running
+                ? `Enviando… ${bulk.done}/${bulk.total}`
+                : pendingCount === 0
+                  ? '✓ Todos enviados'
+                  : `✉ Enviar a todos (${pendingCount})`}
+            </button>
+          </div>
+
+          {bulk && (
+            <div className="mt-2.5">
+              <div className="h-1.5 w-full bg-green-100 dark:bg-green-900/30 rounded-full overflow-hidden">
+                <div className="h-full bg-green-500 transition-all duration-300"
+                  style={{ width: `${bulk.total ? Math.round((bulk.done / bulk.total) * 100) : 0}%` }} />
+              </div>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5">
+                {bulk.running
+                  ? <>Enviando a <strong>{bulk.current}</strong>… ({bulk.done}/{bulk.total})</>
+                  : <>Listo: <strong className="text-green-600">{bulk.ok} enviados</strong>{bulk.fail > 0 && <>, <strong className="text-red-500">{bulk.fail} con error</strong></>}.</>}
+              </p>
+              {!bulk.running && bulk.log.some(l => !l.ok) && (
+                <ul className="mt-1 space-y-0.5">
+                  {bulk.log.filter(l => !l.ok).map((l, i) => (
+                    <li key={i} className="text-[11px] text-red-500 truncate" title={l.err}>
+                      ✗ {l.nombre} ({l.email}): {l.err}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -643,7 +731,7 @@ function AuditoriaDetail({ id }) {
                   {neg.rating ? `★ ${neg.rating}` : '—'}
                 </td>
                 <td className="px-3 py-2">
-                  <SendEmailButton neg={neg} auditoriaId={id} />
+                  <SendEmailButton neg={neg} auditoriaId={id} alreadySent={sentSet.has(neg.email)} onSent={markSent} />
                 </td>
               </tr>
             ))}
