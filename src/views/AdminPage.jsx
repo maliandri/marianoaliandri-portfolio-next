@@ -95,6 +95,7 @@ export default function AdminPage() {
   const [activeGroup, setActiveGroup] = useState('panel');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSubTab, setActiveSubTab] = useState(null);
+  const [productsView, setProductsView] = useState('grid'); // 'grid' | 'list' (tab Productos)
   const [navOpen, setNavOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [navTree, setNavTree] = useState(ADMIN_NAV_DEFAULT);
@@ -811,7 +812,22 @@ export default function AdminPage() {
           <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Productos de la Tienda ({products.length})</h2>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Toggle Grid / Lista */}
+                <div className="flex items-center gap-1 bg-gray-100 dark:bg-neutral-800 rounded-lg p-1">
+                  <button
+                    onClick={() => setProductsView('grid')}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${productsView === 'grid' ? 'bg-white dark:bg-neutral-700 text-purple-700 dark:text-purple-300 shadow' : 'text-gray-500 dark:text-gray-400'}`}
+                  >
+                    ▦ Grid
+                  </button>
+                  <button
+                    onClick={() => setProductsView('list')}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${productsView === 'list' ? 'bg-white dark:bg-neutral-700 text-purple-700 dark:text-purple-300 shadow' : 'text-gray-500 dark:text-gray-400'}`}
+                  >
+                    ☰ Lista
+                  </button>
+                </div>
                 <button
                   onClick={updateAllDescriptions}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
@@ -829,7 +845,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className={productsView === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-2'}>
               {products.map(product => (
                 <ProductCard
                   key={product.id}
@@ -837,6 +853,7 @@ export default function AdminPage() {
                   onUpdate={updateProduct}
                   onDelete={deleteProduct}
                   formatARS={formatARS}
+                  compact={productsView === 'list'}
                 />
               ))}
             </div>
@@ -1481,7 +1498,7 @@ function LinkedInPanel() {
   );
 }
 
-function ProductCard({ product, onUpdate, onDelete, formatARS }) {
+function ProductCard({ product, onUpdate, onDelete, formatARS, compact = false }) {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: product.name || product.title || '',
@@ -1636,6 +1653,37 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
     const [pick] = next.splice(idx, 1);
     saveImages([pick, ...next]);
   };
+
+  // Vista compacta (fila de lista) cuando no se está editando
+  if (compact && !editing) {
+    return (
+      <div className="flex items-center gap-3 border border-gray-200 dark:border-neutral-800 rounded-lg p-2 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+        <div className="w-12 h-12 rounded-md overflow-hidden bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/40 dark:to-blue-900/40 flex-shrink-0 flex items-center justify-center">
+          {images[0] ? (
+            <img src={images[0]} alt={product.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-lg">🖼️</span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{product.name || product.title}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{product.description}</p>
+        </div>
+        <div className="text-right whitespace-nowrap hidden sm:block">
+          {product.priceUSD ? (
+            <span className="text-sm font-bold text-green-600 dark:text-green-400">USD {product.priceUSD}</span>
+          ) : (
+            <span className="text-xs text-gray-400">Sin precio</span>
+          )}
+          {images.length > 1 && <span className="block text-[10px] text-gray-400">📷 {images.length}</span>}
+        </div>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button onClick={() => setEditing(true)} className="px-2.5 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-medium" title="Editar">✏️</button>
+          <button onClick={() => onDelete(product.id)} className="px-2.5 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs font-medium" title="Eliminar">🗑️</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="border border-gray-200 dark:border-neutral-800 rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
