@@ -13,4 +13,6 @@ export const CAPABILITIES = [
   { id: 'leads',     emoji: '🎯', title: 'Buscador de clientes',   desc: 'Encontrá negocios y contactos por zona y rubro.',                         benefit: 'Prospectás sin perder horas buscando.',             techs: ['Google Places', 'Node.js'] },
   { id: 'pagos',     emoji: '💳', title: 'Cobros online',          desc: 'Pagos con MercadoPago, confirmación y avisos automáticos.',               benefit: 'Cobrás al instante, sin seguimiento manual.',       techs: ['MercadoPago', 'Webhooks'] },
   { id: 'mobile',    emoji: '📱', title: 'App mobile / PWA',       desc: 'App instalable para Android e iOS con notificaciones.',                   benefit: 'Tu negocio en el bolsillo de tus clientes.',        techs: ['React Native', 'Expo'] },
+  { id: 'remitos',  emoji: '📄', title: 'Remitos con IA',          desc: 'Sacás una foto al remito o factura y la IA extrae y carga los datos automáticamente en el sistema.', benefit: 'Cero carga manual de datos, cero errores.',          techs: ['Gemini Vision', 'OCR', 'Next.js'] },
+  { id: 'chat',     emoji: '💬', title: 'Chat con clientes',       desc: 'Mensajes directos con cada cliente desde el panel de tu sitio, sin depender de WhatsApp ni email.', benefit: 'Seguimiento en tiempo real sin salir de la plataforma.', techs: ['Firebase', 'Next.js', 'Real-time'] },
 ];
