@@ -37,6 +37,7 @@ export default function CustomerLeadFinderPanel() {
   const [results, setResults]     = useState([]);
   const [progress, setProgress]   = useState({ ciudadActual: '', tipoActual: '', encontrados: 0 });
   const [blocked, setBlocked]     = useState(false); // sin plan activo
+  const [quotaExceeded, setQuotaExceeded] = useState(false); // cuota diaria de Google agotada
   const [error, setError]         = useState('');
   const [auditingId, setAuditingId] = useState(null);
   const [auditingAll, setAuditingAll] = useState(false);
@@ -45,6 +46,12 @@ export default function CustomerLeadFinderPanel() {
   const [loadingSavedId, setLoadingSavedId] = useState(null);
 
   const cancelRef = useRef(false);
+  // Se pone en true apenas el server dice "no sigas" (sin plan / cuota agotada). Usamos un
+  // ref en vez de leer el state `blocked`/`quotaExceeded` porque esos son closures viejas
+  // dentro de un loop async ya arrancado (React no re-renderiza el loop en curso) — con
+  // state stale, cada fila del lote seguía intentando y mostrando "Reintentar" en vez de
+  // frenar apenas se detecta el corte real.
+  const stopRef = useRef(false);
   const isRunning = phase === 'searching';
 
   const audited     = results.filter(r => r.hasWebsite !== null).length;
@@ -63,7 +70,16 @@ export default function CustomerLeadFinderPanel() {
       body: JSON.stringify({ action, ...params }),
     });
     const data = await resp.json().catch(() => ({}));
-    if (resp.status === 402 || data.code === 'NO_PLAN') { setBlocked(true); throw new Error(data.error || 'Sin plan activo'); }
+    if (resp.status === 402 || data.code === 'NO_PLAN') {
+      stopRef.current = true;
+      setBlocked(true);
+      throw new Error(data.error || 'Sin plan activo');
+    }
+    if (data.code === 'QUOTA_EXCEEDED') {
+      stopRef.current = true;
+      setQuotaExceeded(true);
+      throw new Error(data.error || 'Cuota diaria de Google Places agotada');
+    }
     if (!resp.ok || !data.ok) throw new Error(data.error || `Error ${resp.status}`);
     return data;
   }, [getIdToken]);
@@ -86,7 +102,7 @@ export default function CustomerLeadFinderPanel() {
           const geo = await callFn('geocode', { city: ciudad, country: 'Argentina' });
           lat = geo.lat; lon = geo.lon;
         } catch (e) {
-          if (blocked) throw e;
+          if (stopRef.current) throw e;
           setError(`No se pudo ubicar "${ciudad}": ${e.message}`);
           continue;
         }
@@ -127,7 +143,7 @@ export default function CustomerLeadFinderPanel() {
             }
             setProgress(prev => ({ ...prev, encontrados: allResults.length }));
           } catch (e) {
-            if (blocked) throw e;
+            if (stopRef.current) throw e;
           }
         }
 
@@ -168,7 +184,7 @@ export default function CustomerLeadFinderPanel() {
             }
             setProgress(prev => ({ ...prev, encontrados: allResults.length }));
           } catch (e) {
-            if (blocked) throw e;
+            if (stopRef.current) throw e;
           }
         }
       }
@@ -176,10 +192,10 @@ export default function CustomerLeadFinderPanel() {
       await checkMyAudits(allResults.map(r => r.id));
       if (allResults.length) await saveSearch(allResults);
     } catch (e) {
-      setPhase(blocked ? 'idle' : 'error');
-      if (!blocked) setError(e.message);
+      setPhase(stopRef.current ? 'idle' : 'error');
+      if (!stopRef.current) setError(e.message);
     }
-  }, [ciudades, tipos, terminos, radioKm, callFn, blocked]);
+  }, [ciudades, tipos, terminos, radioKm, callFn]);
 
   // Guarda esta búsqueda (config + resultados) en el historial del cliente, para
   // poder volver a verla despues sin relanzarla.
@@ -259,6 +275,9 @@ export default function CustomerLeadFinderPanel() {
   };
 
   const startSearch = () => {
+    stopRef.current = false;
+    setBlocked(false);
+    setQuotaExceeded(false);
     setResults([]);
     setError('');
     setProgress({ ciudadActual: '', tipoActual: '', encontrados: 0 });
@@ -280,7 +299,7 @@ export default function CustomerLeadFinderPanel() {
         phone: det.phone, openingHours: det.openingHours, rating: det.rating, ratingCount: det.ratingCount,
       } : r));
     } catch (e) {
-      if (!blocked) setResults(prev => prev.map(r => r.id === negocio.id ? { ...r, auditError: true } : r));
+      if (!stopRef.current) setResults(prev => prev.map(r => r.id === negocio.id ? { ...r, auditError: true } : r));
     } finally {
       setAuditingId(null);
     }
@@ -290,7 +309,7 @@ export default function CustomerLeadFinderPanel() {
     setAuditingAll(true);
     const toAudit = results.filter(r => r.hasWebsite === null && !r.auditError);
     for (const neg of toAudit) {
-      if (blocked) break;
+      if (stopRef.current) break;
       await auditOne(neg);
       await sleep(250);
     }
@@ -328,6 +347,18 @@ export default function CustomerLeadFinderPanel() {
 
   return (
     <div className="space-y-5">
+      {quotaExceeded && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl px-5 py-4 flex items-start gap-3">
+          <span className="text-xl">⏳</span>
+          <div>
+            <p className="text-amber-300 font-semibold text-sm">Cuota diaria de auditorías agotada</p>
+            <p className="text-gray-400 text-xs mt-0.5">
+              Se llegó al límite diario de auditorías de Google Places. Se restablece solo (no es un problema de tu cuenta ni de tu plan) — probá auditar de nuevo más tarde.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Búsquedas anteriores */}
       {history.length > 0 && (
         <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden">

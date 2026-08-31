@@ -114,8 +114,20 @@ function calcSeoScore({ hasSitemap, hasRobots, metaDesc, hasOG, lastModified }) 
   return Math.max(0, score);
 }
 
-function ok(data)  { return Response.json({ ok: true, ...data }); }
-function fail(msg) { return Response.json({ ok: false, error: msg }); }
+function ok(data) { return Response.json({ ok: true, ...data }); }
+function fail(msg, code) { return Response.json({ ok: false, error: msg, code }); }
+
+// Google devuelve status 'RESOURCE_EXHAUSTED' cuando se pasa la cuota diaria de
+// getDetails (tope puesto a mano en GCP Console en 100/día para evitar facturación
+// sorpresa — ver memoria google-cloud-quotas). Se distingue con un `code` propio para
+// que el frontend muestre un aviso claro en vez de "reintentar" fila por fila (reintentar
+// no sirve de nada hasta que resetee la cuota).
+function detailsError(err) {
+  if (err?.status === 'RESOURCE_EXHAUSTED') {
+    return fail('Se alcanzó el límite diario de auditorías de Google Places. Se restablece automáticamente — probá de nuevo más tarde.', 'QUOTA_EXCEEDED');
+  }
+  return fail(err?.message || 'Error de Google Places (getDetails)');
+}
 
 // Auditoría SEO de un sitio (sitemap/robots/meta/OG/email) — sin costo, solo fetches propios.
 // Compartida por la acción 'checkSite' (uno por uno) y 'auditPlace' (con caché por placeId).
@@ -261,7 +273,7 @@ export async function runLeadFinderAction(action, params, clientKey) {
           signal: AbortSignal.timeout(8000),
         });
         const data = await resp.json();
-        if (data.error) return fail(data.error.message || 'Error de Google Places (getDetails)');
+        if (data.error) return detailsError(data.error);
         await bumpUsage('getPlaceRequests');
         return ok(data);
       }
@@ -303,7 +315,7 @@ export async function runLeadFinderAction(action, params, clientKey) {
           signal: AbortSignal.timeout(8000),
         });
         const detData = await detResp.json();
-        if (detData.error) return fail(detData.error.message || 'Error de Google Places (getDetails)');
+        if (detData.error) return detailsError(detData.error);
         await bumpUsage('getPlaceRequests');
 
         const websiteUri = detData.websiteUri && !isSocialUrl(detData.websiteUri) ? detData.websiteUri : null;
