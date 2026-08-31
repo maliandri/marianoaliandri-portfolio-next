@@ -59,11 +59,6 @@ export default function AnaliticaPage() {
         <PlanBadge />
       </div>
 
-      {/* Todo lo de abajo requiere registro */}
-      <AuthGate
-        title="Analítica Regional"
-        subtitle="Registrate gratis para acceder a tendencias, reportes de zona y el buscador de rubros. Incluye 1 búsqueda sin cargo."
-      >
       {/* Nav: tabs + selector de región */}
       <div className="max-w-6xl mx-auto px-4 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Tabs */}
@@ -106,11 +101,17 @@ export default function AnaliticaPage() {
           <>
             {tab === 'tendencias' && <TrendsTab trends={data?.trends} region={region} />}
             {tab === 'zonas'      && <ZonasTab  auditorias={data?.auditorias || []} />}
-            {tab === 'keywords'   && <KeywordsTab />}
+            {tab === 'keywords' && (
+              <AuthGate
+                title="Rubros buscados"
+                subtitle="Registrate gratis para rankear rubros por demanda de búsqueda en tu zona. Incluye 1 búsqueda sin cargo."
+              >
+                <KeywordsTab />
+              </AuthGate>
+            )}
           </>
         )}
       </div>
-      </AuthGate>
     </main>
   );
 }
