@@ -7,6 +7,29 @@ function monthKey(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+// Límite efectivo por plan: el editable desde Admin > Planes > Analítica (Firestore
+// analitica_plans/{id}) pisa el default de plans.js. Cacheado 30s en memoria para no
+// pegarle a Firestore en cada búsqueda (mismo patrón que rol_permisos de almamod).
+let _limitsCache = null;
+let _limitsCacheAt = 0;
+async function effectiveLimits() {
+  if (_limitsCache && Date.now() - _limitsCacheAt < 30000) return _limitsCache;
+  const limits = { free: PLANS.free.limit, basico: PLANS.basico.limit, full: PLANS.full.limit };
+  try {
+    const db = getDb();
+    if (db) {
+      const snap = await db.collection('analitica_plans').get();
+      snap.forEach(doc => {
+        const data = doc.data();
+        if (data.limit !== undefined) limits[doc.id] = data.limit;
+      });
+    }
+  } catch { /* si falla, seguimos con los defaults */ }
+  _limitsCache = limits;
+  _limitsCacheAt = Date.now();
+  return limits;
+}
+
 // Plan efectivo: un plan pago solo cuenta si está activo; si no, degrada a free.
 function effectivePlan(e) {
   if (e?.plan && e.plan !== 'free' && e.planStatus === 'active') return e.plan;
@@ -27,21 +50,21 @@ function defaultEntitlement() {
 }
 
 // Búsquedas restantes SIN consumir (para mostrar en el UI). null = ilimitado.
-function remainingFor(e) {
+function remainingFor(e, limits) {
   const plan = effectivePlan(e);
-  const def = PLANS[plan] || PLANS.free;
-  if (def.limit === null) return null; // full
+  const limit = limits[plan] ?? PLANS.free.limit;
+  if (limit === null) return null; // full
   if (plan === 'free') return e.freeUsed ? 0 : 1;
   // básico: cuenta por mes
   const used = e.usagePeriod === monthKey() ? (e.usageCount || 0) : 0;
-  return Math.max(0, def.limit - used);
+  return Math.max(0, limit - used);
 }
 
 // Lee (o crea implícitamente el default) el entitlement del usuario para mostrarlo.
 export async function getEntitlement(uid) {
   const db = getDb();
   if (!db) return null;
-  const snap = await db.collection(COLLECTION).doc(uid).get();
+  const [snap, limits] = await Promise.all([db.collection(COLLECTION).doc(uid).get(), effectiveLimits()]);
   const e = snap.exists ? snap.data() : defaultEntitlement();
   const plan = effectivePlan(e);
   return {
@@ -49,8 +72,8 @@ export async function getEntitlement(uid) {
     rawPlan: e.plan || 'free',
     planStatus: e.planStatus || 'active',
     planRenewsAt: e.planRenewsAt || null,
-    remaining: remainingFor(e),
-    limit: (PLANS[plan] || PLANS.free).limit,
+    remaining: remainingFor(e, limits),
+    limit: limits[plan] ?? PLANS.free.limit,
   };
 }
 
@@ -59,6 +82,7 @@ export async function consumeSearch(uid) {
   const db = getDb();
   if (!db) return { allowed: false, reason: 'db_unavailable' };
 
+  const limits = await effectiveLimits();
   const ref = db.collection(COLLECTION).doc(uid);
   const mk = monthKey();
 
@@ -66,11 +90,11 @@ export async function consumeSearch(uid) {
     const snap = await tx.get(ref);
     const e = snap.exists ? snap.data() : defaultEntitlement();
     const plan = effectivePlan(e);
-    const def = PLANS[plan] || PLANS.free;
+    const limit = limits[plan] ?? PLANS.free.limit;
     const now = new Date().toISOString();
 
     // FULL — ilimitado (contamos solo para métricas)
-    if (def.limit === null) {
+    if (limit === null) {
       const count = (e.usagePeriod === mk ? (e.usageCount || 0) : 0) + 1;
       tx.set(ref, { ...e, plan, usagePeriod: mk, usageCount: count, updatedAt: now }, { merge: true });
       return { allowed: true, plan, remaining: null };
@@ -85,12 +109,12 @@ export async function consumeSearch(uid) {
 
     // BÁSICO — límite mensual (reset si cambió el mes)
     let used = e.usagePeriod === mk ? (e.usageCount || 0) : 0;
-    if (used >= def.limit) {
+    if (used >= limit) {
       return { allowed: false, reason: 'limit', plan, remaining: 0 };
     }
     used += 1;
     tx.set(ref, { ...e, plan, usagePeriod: mk, usageCount: used, updatedAt: now }, { merge: true });
-    return { allowed: true, plan, remaining: def.limit - used };
+    return { allowed: true, plan, remaining: limit - used };
   });
 }
 

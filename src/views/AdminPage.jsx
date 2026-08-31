@@ -21,8 +21,7 @@ import SubscriptionsManager from '../components/admin/SubscriptionsManager';
 import StyleQuizManager from '../components/admin/StyleQuizManager';
 import LeadMapPanel from '../components/admin/LeadMapPanel';
 import FreeForDevBrowser from '../components/admin/FreeForDevBrowser';
-import LeadFinderPlansManager from '../components/admin/LeadFinderPlansManager';
-import LeadFinderUsagePanel from '../components/admin/LeadFinderUsagePanel';
+import PlansManager from '../components/admin/PlansManager';
 import LeadFinderPanel from '../components/audit/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 import { ADMIN_NAV_DEFAULT } from '../data/adminNav';
@@ -853,8 +852,7 @@ export default function AdminPage() {
 
         {activeTab === 'leadfinder-plans' && (
           <div className="p-6">
-            <LeadFinderUsagePanel />
-            <LeadFinderPlansManager />
+            <PlansManager />
           </div>
         )}
 

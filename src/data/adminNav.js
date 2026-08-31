@@ -34,7 +34,7 @@ export const ADMIN_NAV_DEFAULT = [
   { id: 'marketing', label: 'Marketing', icon: '🎯', items: [
     { id: 'leads', label: 'Lead Finder', icon: '🎯' },
     { id: 'leads-map', label: 'Mapa de Leads', icon: '📍' },
-    { id: 'leadfinder-plans', label: 'Planes Lead Finder', icon: '💳' },
+    { id: 'leadfinder-plans', label: 'Planes', icon: '💳' },
     { id: 'zonas', label: 'Zonas', icon: '🗺️' },
     { id: 'auditorias', label: 'Auditorías', icon: '📋' },
     { id: 'audit-requests', label: 'Solicitudes SEO', icon: '🔍' },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 
 const SCOPE_LABEL = {
   localidad: { label: '📍 Localidad', className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400' },
@@ -119,7 +119,7 @@ function PlanForm({ initial, onCancel, onSave, saving }) {
   );
 }
 
-export default function LeadFinderPlansManager() {
+const LeadFinderPlansManager = forwardRef(function LeadFinderPlansManager(_props, ref) {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -136,6 +136,7 @@ export default function LeadFinderPlansManager() {
   };
 
   useEffect(() => { load(); }, []);
+  useImperativeHandle(ref, () => ({ reload: load, getPlans: () => plans }));
 
   const handleSave = async (form) => {
     setSaving(true);
@@ -263,4 +264,6 @@ export default function LeadFinderPlansManager() {
       )}
     </div>
   );
-}
+});
+
+export default LeadFinderPlansManager;

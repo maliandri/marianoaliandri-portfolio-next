@@ -97,6 +97,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Overrides de precio/cuota de los planes de Analítica (free/basico/full).
+    // Los ids son fijos (los usa /api/subscribe y el webhook de MercadoPago) --
+    // solo se edita precio y limite, nunca se crean ids nuevos desde acá.
+    match /analitica_plans/{planId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Cuota/acceso de Lead Finder Pro por usuario — el usuario LEE su propio estado,
     // pero SOLO el Admin SDK puede escribirlo (mismo patron que "entitlements").
     match /leadfinder_entitlements/{uid} {

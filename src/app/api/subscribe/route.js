@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { MercadoPagoConfig, PreApproval } from 'mercadopago';
 import { getUserFromRequest } from '@/lib/authServer';
+import { getDb } from '@/lib/firebase-admin';
 import { PLANS, PAID_PLAN_IDS, CURRENCY } from '@/data/plans';
 
 // POST /api/subscribe  { plan: 'basico' | 'full' }
@@ -23,7 +24,14 @@ export async function POST(request) {
     if (!PAID_PLAN_IDS.includes(planId)) {
       return Response.json({ error: 'Plan inválido' }, { status: 400 });
     }
-    const plan = PLANS[planId];
+    const plan = { ...PLANS[planId] };
+    // Precio editable desde Admin > Planes > Analítica (Firestore analitica_plans) —
+    // pisa el default de plans.js si hay un override guardado.
+    try {
+      const db = getDb();
+      const ov = db ? (await db.collection('analitica_plans').doc(planId).get()).data() : null;
+      if (ov?.price !== undefined) plan.price = ov.price;
+    } catch { /* si falla, seguimos con el precio default */ }
     const origin = new URL(request.url).origin;
 
     const client = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN });
