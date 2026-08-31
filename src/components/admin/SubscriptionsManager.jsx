@@ -23,16 +23,18 @@ function StatusBadge({ status, plan }) {
     ? 'bg-green-500/15 text-green-400 border-green-500/30'
     : status === 'pending'
     ? 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'
+    : status === 'agotado'
+    ? 'bg-orange-500/15 text-orange-400 border-orange-500/30'
     : 'bg-red-500/15 text-red-400 border-red-500/30';
-  const label = status === 'active' ? 'Activa' : status === 'pending' ? 'Pendiente' : 'Cancelada';
+  const label = status === 'active' ? 'Activa' : status === 'pending' ? 'Pendiente' : status === 'agotado' ? 'Sin créditos' : 'Cancelada';
   return <span className={`inline-block text-xs font-bold px-2 py-0.5 rounded-full border ${cls}`}>{label}</span>;
 }
 
 const PLAN_FILTERS = [
   { id: 'all', label: 'Todos' },
   { id: 'paid', label: 'Pagos' },
-  { id: 'basico', label: 'Básico' },
-  { id: 'full', label: 'Full' },
+  { id: 'Analítica', label: '📊 Analítica' },
+  { id: 'Lead Finder Pro', label: '🎯 Lead Finder Pro' },
   { id: 'free', label: 'Free' },
 ];
 
@@ -65,7 +67,8 @@ export default function SubscriptionsManager() {
   const filtered = useMemo(() => {
     let list = subscriptions;
     if (filter === 'paid') list = list.filter(s => s.plan !== 'free');
-    else if (filter !== 'all') list = list.filter(s => s.plan === filter);
+    else if (filter === 'free') list = list.filter(s => s.plan === 'free');
+    else if (filter !== 'all') list = list.filter(s => s.product === filter);
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
@@ -152,35 +155,37 @@ export default function SubscriptionsManager() {
             <thead>
               <tr>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Usuario</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Producto</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Plan</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Uso del mes</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Uso</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Próx. renovación</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actualizado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-neutral-800">
               {filtered.map(s => (
-                <tr key={s.uid} className="hover:bg-gray-50 dark:hover:bg-neutral-800/50">
+                <tr key={`${s.product}-${s.uid}`} className="hover:bg-gray-50 dark:hover:bg-neutral-800/50">
                   <td className="px-5 py-3 text-sm">
                     <div className="text-gray-900 dark:text-white font-medium">{s.displayName || '(sin nombre)'}</div>
                     <div className="text-gray-500 dark:text-gray-400 text-xs">{s.email || s.uid}</div>
+                  </td>
+                  <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-300">
+                    {s.product === 'Analítica' ? '📊' : '🎯'} {s.product}
                   </td>
                   <td className="px-5 py-3 text-sm text-gray-900 dark:text-white">
                     {s.planName}
                     {s.planPrice > 0 && <span className="text-gray-500 dark:text-gray-400 text-xs ml-1">({formatARS(s.planPrice)}/mes)</span>}
                   </td>
-                  <td className="px-5 py-3 text-sm"><StatusBadge status={s.planStatus} plan={s.plan} /></td>
-                  <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-300">
-                    {s.usageLimit === null ? `${s.usageCount} (ilimitado)` : `${s.usageCount}/${s.usageLimit}`}
-                  </td>
-                  <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-300">{formatDate(s.planRenewsAt)}</td>
+                  <td className="px-5 py-3 text-sm"><StatusBadge status={s.status} plan={s.plan} /></td>
+                  <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-300">{s.usageLabel}</td>
+                  <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-300">{formatDate(s.renewsAt)}</td>
                   <td className="px-5 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(s.updatedAt)}</td>
                 </tr>
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <td colSpan={7} className="px-5 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                     No hay suscripciones para este filtro.
                   </td>
                 </tr>
