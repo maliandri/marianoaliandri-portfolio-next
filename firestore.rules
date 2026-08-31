@@ -121,5 +121,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Historial de búsquedas guardadas por cliente -- Lead Finder Pro y Analítica
+    // (Rubros buscados). El cliente LEE las suyas, SOLO el Admin SDK escribe.
+    match /leadfinder_searches/{uid}/items/{searchId} {
+      allow read:  if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+    match /keyword_searches/{uid}/items/{searchId} {
+      allow read:  if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
   }
 }

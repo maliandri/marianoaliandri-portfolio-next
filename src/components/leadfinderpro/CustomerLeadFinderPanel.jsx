@@ -40,6 +40,9 @@ export default function CustomerLeadFinderPanel() {
   const [error, setError]         = useState('');
   const [auditingId, setAuditingId] = useState(null);
   const [auditingAll, setAuditingAll] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [loadingSavedId, setLoadingSavedId] = useState(null);
 
   const cancelRef = useRef(false);
   const isRunning = phase === 'searching';
@@ -171,11 +174,71 @@ export default function CustomerLeadFinderPanel() {
       }
       setPhase('done');
       await checkMyAudits(allResults.map(r => r.id));
+      if (allResults.length) await saveSearch(allResults);
     } catch (e) {
       setPhase(blocked ? 'idle' : 'error');
       if (!blocked) setError(e.message);
     }
   }, [ciudades, tipos, terminos, radioKm, callFn, blocked]);
+
+  // Guarda esta búsqueda (config + resultados) en el historial del cliente, para
+  // poder volver a verla despues sin relanzarla.
+  const saveSearch = async (allResults) => {
+    try {
+      const idToken = await getIdToken();
+      await fetch('/api/lead-finder-pro/searches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}) },
+        body: JSON.stringify({ ciudades, tipos, terminos, radioKm, results: allResults }),
+      });
+      loadHistory();
+    } catch { /* no bloquea la búsqueda si esto falla */ }
+  };
+
+  const loadHistory = async () => {
+    try {
+      const idToken = await getIdToken();
+      const resp = await fetch('/api/lead-finder-pro/searches', {
+        headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
+      });
+      const data = await resp.json().catch(() => ({}));
+      setHistory(data.items || []);
+    } catch { /* noop */ }
+  };
+
+  useEffect(() => { loadHistory(); }, []);
+
+  const openSaved = async (id) => {
+    setLoadingSavedId(id);
+    try {
+      const idToken = await getIdToken();
+      const resp = await fetch(`/api/lead-finder-pro/searches?id=${id}`, {
+        headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (data.results) {
+        setResults(data.results);
+        setCiudades(data.ciudades || []);
+        setTipos(data.tipos || []);
+        setTerminos(data.terminos || []);
+        setRadioKm(data.radioKm || 10);
+        setPhase('done');
+        setShowConfig(false);
+        setShowHistory(false);
+      }
+    } finally {
+      setLoadingSavedId(null);
+    }
+  };
+
+  const deleteSaved = async (id) => {
+    const idToken = await getIdToken();
+    await fetch(`/api/lead-finder-pro/searches?id=${id}`, {
+      method: 'DELETE',
+      headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
+    });
+    setHistory(prev => prev.filter(h => h.id !== id));
+  };
 
   // Consulta en bloque cuáles de estos negocios ya los auditó este cliente antes —
   // los completa directo, sin gastar otro crédito ni tener que tocar "Auditar".
@@ -265,6 +328,37 @@ export default function CustomerLeadFinderPanel() {
 
   return (
     <div className="space-y-5">
+      {/* Búsquedas anteriores */}
+      {history.length > 0 && (
+        <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden">
+          <button onClick={() => setShowHistory(v => !v)} className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors">
+            <span className="text-white font-semibold text-sm">🕘 Búsquedas anteriores ({history.length})</span>
+            <span className="text-gray-500 text-xs">{showHistory ? '▲' : '▼'}</span>
+          </button>
+          {showHistory && (
+            <div className="divide-y divide-white/5 border-t border-white/10">
+              {history.map(h => (
+                <div key={h.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                  <div className="min-w-0">
+                    <p className="text-white text-sm truncate">{(h.ciudades || []).join(', ') || 'Sin localidad'}</p>
+                    <p className="text-gray-500 text-xs">
+                      {h.resultCount} negocios · {h.createdAt ? new Date(h.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button onClick={() => openSaved(h.id)} disabled={loadingSavedId === h.id}
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors">
+                      {loadingSavedId === h.id ? '⏳' : 'Ver'}
+                    </button>
+                    <button onClick={() => deleteSaved(h.id)} className="px-2 py-1.5 text-gray-500 hover:text-red-400 text-xs transition-colors">🗑️</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Config */}
       <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden">
         <button onClick={() => setShowConfig(v => !v)} className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors">
