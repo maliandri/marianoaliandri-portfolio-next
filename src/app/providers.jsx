@@ -25,7 +25,7 @@ const CVATSUploader = dynamic(() => import('@/components/tools/CVATSUploader'), 
 const RadarWeb = dynamic(() => import('@/components/tools/RadarWeb'), { ssr: false });
 const LabsTool = dynamic(() => import('@/components/tools/LabsTool'), { ssr: false });
 
-const TOOL_PATHS = ['/stats', '/ats', '/kpi', '/radarweb', '/labs', '/lead-finder-pro'];
+const TOOL_PATHS = ['/stats', '/ats', '/kpi', '/radarweb', '/labs', '/lead-finder-pro', '/analitica', '/herramientas'];
 const NAV_LINKS = [
   { label: 'Proyectos',   href: '/#proyectos' },
   { label: 'Contacto',    href: '/#contact' },
@@ -36,8 +36,9 @@ const NAV_LINKS = [
 ];
 const TOOLS = [
   { label: 'Lead Finder Pro', href: '/lead-finder-pro', icon: '🎯', desc: 'Para devs: encontrá negocios sin sitio o con SEO débil' },
+  { label: 'Analítica Regional', href: '/analitica', icon: '📊', desc: 'Rubros más buscados por zona' },
   { label: 'Análisis de CV', href: '/ats',     icon: '📄', desc: 'Analizá tu CV contra ofertas con IA' },
-  { label: 'Radar Web',      href: '/radarweb', icon: '📊', desc: 'Analizá la presencia digital de un sitio' },
+  { label: 'Radar Web',      href: '/radarweb', icon: '📈', desc: 'Analizá la presencia digital de un sitio' },
   { label: 'Labs',           href: '/labs',     icon: '🧪', desc: 'Experimentos y herramientas en desarrollo' },
   { label: 'FAQ',            href: '/faq',      icon: '❓', desc: '¿Cuánto cuesta? ¿Cuánto tarda? Todo acá' },
 ];
@@ -119,7 +120,7 @@ function ToolsDropdown({ pathname }) {
         <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 z-50">
           <div className="bg-[#111] border border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden w-64">
             <div className="px-4 pt-3 pb-1">
-              <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest">Herramientas gratuitas</p>
+              <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest">Herramientas</p>
             </div>
             {TOOLS.map(t => (
               <Link
@@ -137,6 +138,13 @@ function ToolsDropdown({ pathname }) {
                 </div>
               </Link>
             ))}
+            <Link
+              href="/herramientas"
+              onClick={() => setOpen(false)}
+              className="block px-4 py-3 border-t border-white/10 text-center text-xs font-semibold text-indigo-400 hover:text-indigo-300 hover:bg-white/5 transition-colors"
+            >
+              Ver todas + planes →
+            </Link>
           </div>
         </div>
       )}
@@ -226,6 +234,15 @@ function Navbar({ pathname }) {
               <span>{t.icon}</span> {t.label}
             </Link>
           ))}
+          {toolsOpen && (
+            <Link
+              href="/herramientas"
+              onClick={() => { setOpen(false); setToolsOpen(false); }}
+              className="flex items-center gap-3 px-6 py-2.5 rounded-xl text-sm font-semibold text-indigo-400 hover:text-indigo-300 hover:bg-white/5 transition-colors"
+            >
+              Ver todas + planes →
+            </Link>
+          )}
           <div className="pt-2 border-t border-white/8 mt-1">
             <AuthButton />
           </div>

@@ -82,7 +82,7 @@ function PlanCard({ plan, user, onLogin, getIdToken }) {
   );
 }
 
-export default function PlansSection() {
+export default function PlansSection({ anchorId = 'planes' }) {
   const { user, loading, login, getIdToken } = useAuthUser();
   const [plans, setPlans] = useState(null);
   const [access, setAccess] = useState(null); // null = sin chequear, o { comped, hasCredits }
@@ -120,7 +120,7 @@ export default function PlansSection() {
   if (plans.length === 0) return null;
 
   return (
-    <div id="planes" className="max-w-5xl mx-auto mb-16 scroll-mt-24">
+    <div id={anchorId} className="max-w-5xl mx-auto mb-16 scroll-mt-24">
       <div className="text-center mb-8">
         <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-2">Planes</p>
         <h2 className="text-2xl md:text-3xl font-black text-white">Elegí tu alcance</h2>

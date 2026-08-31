@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getDb } from '@/lib/firebase-admin';
+import PlansSection from '@/components/leadfinderpro/PlansSection';
 
 export const dynamic = 'force-dynamic';
 
@@ -131,6 +132,18 @@ export default async function AuditoriasPage() {
             ))}
           </div>
         )}
+
+        {/* Upsell: estos reportes salen de Lead Finder Pro — el mismo motor con el que
+            cualquiera puede auditar sus propios negocios eligiendo un plan. */}
+        <div className="mt-20">
+          <div className="text-center mb-10">
+            <span className="text-xs font-semibold tracking-widest text-indigo-400 uppercase">¿Querés tus propias auditorías?</span>
+            <p className="text-gray-500 text-sm max-w-xl mx-auto mt-2">
+              Estos reportes se generan con Lead Finder Pro. Elegí un plan y auditá los negocios de tu propia zona.
+            </p>
+          </div>
+          <PlansSection />
+        </div>
       </div>
     </main>
   );

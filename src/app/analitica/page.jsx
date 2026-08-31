@@ -5,6 +5,7 @@ import TrendsTab   from '@/components/analitica/TrendsTab';
 import KeywordsTab from '@/components/analitica/KeywordsTab';
 import PlanBadge   from '@/components/analitica/PlanBadge';
 import AuthGate    from '@/components/auth/AuthGate';
+import AnaliticaPlansSection from '@/components/analitica/AnaliticaPlansSection';
 
 const REGIONS = [
   { id: 'neuquen',   label: 'Neuquén',   flag: '📍' },
@@ -108,6 +109,11 @@ export default function AnaliticaPage() {
             )}
           </>
         )}
+      </div>
+
+      {/* Planes — siempre visibles, no solo cuando se agota la cuota */}
+      <div className="max-w-6xl mx-auto px-4 mt-16">
+        <AnaliticaPlansSection />
       </div>
     </main>
   );
