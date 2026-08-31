@@ -7,6 +7,33 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '../context/CartContext';
 import { ExchangeService, formatARS, formatUSD } from '../utils/exchangeService';
 
+// Portada branded generada por categoría (fallback cuando no hay imagen).
+const COVER_GRADIENTS = {
+  'consulting':      'from-amber-500 via-orange-500 to-rose-500',
+  'web-development':  'from-indigo-500 via-violet-500 to-purple-600',
+  'data-analytics':  'from-cyan-500 via-sky-500 to-blue-600',
+  'store':           'from-fuchsia-500 via-pink-500 to-rose-500',
+  'custom':          'from-slate-600 via-gray-600 to-zinc-700',
+};
+const COVER_EMOJI = {
+  'consulting': '📈', 'web-development': '🌐', 'data-analytics': '📊', 'store': '🛒', 'custom': '✨',
+};
+
+function BrandedCover({ product }) {
+  const grad = COVER_GRADIENTS[product.category] || COVER_GRADIENTS['web-development'];
+  const emoji = COVER_EMOJI[product.category] || '🚀';
+  return (
+    <div className={`w-full h-full bg-gradient-to-br ${grad} relative flex flex-col items-center justify-center p-4 text-center`}>
+      <div className="absolute inset-0 opacity-20"
+        style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, white 1px, transparent 1px)', backgroundSize: '22px 22px' }} />
+      <span className="text-5xl mb-2 drop-shadow-lg">{emoji}</span>
+      <span className="relative text-white font-bold text-lg leading-tight drop-shadow-md line-clamp-3">
+        {product.name}
+      </span>
+    </div>
+  );
+}
+
 export default function ProductCard({ product, onViewDetails, rentMode = false, rental = null }) {
   const { addToCart } = useCart();
   const router = useRouter();
@@ -68,18 +95,10 @@ export default function ProductCard({ product, onViewDetails, rentMode = false, 
             src={product.image}
             alt={product.name}
             className="w-full h-full object-cover"
-            onError={(e) => {
-              // Fallback si la imagen no carga
-              e.target.style.display = 'none';
-            }}
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
         ) : (
-          // Placeholder con icono
-          <div className="w-full h-full flex items-center justify-center">
-            <svg className="w-20 h-20 text-blue-600 dark:text-blue-400 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
+          <BrandedCover product={product} />
         )}
 
         {/* Demo badge si existe */}

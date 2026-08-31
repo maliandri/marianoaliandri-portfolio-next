@@ -1525,6 +1525,70 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
     setEditing(false);
   };
 
+  // --- IA: contenido e imagen ---
+  const [aiBusy, setAiBusy] = useState(null); // 'content' | 'image' | null
+  const [aiMsg, setAiMsg] = useState('');
+  const [gen, setGen] = useState(null); // contenido generado pendiente de aplicar
+
+  const generateContent = async () => {
+    setAiBusy('content'); setAiMsg(''); setGen(null);
+    try {
+      const res = await fetch('/api/product-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: product.name || product.title || '',
+          description: product.description || product.shortDescription || '',
+          category: product.category || '',
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok || d.error) throw new Error(d.error || 'Error');
+      setGen(d.content);
+    } catch (e) {
+      setAiMsg('✕ ' + e.message);
+    } finally {
+      setAiBusy(null);
+    }
+  };
+
+  const applyContent = () => {
+    if (!gen) return;
+    onUpdate(product.id, {
+      description: gen.descripcion,
+      shortDescription: gen.descripcion,
+      ideaDesarrollo: gen.ideaDesarrollo,
+      features: gen.features,
+      deliverables: gen.deliverables,
+      tags: gen.tags,
+    });
+    setGen(null);
+  };
+
+  const generateImage = async () => {
+    setAiBusy('image'); setAiMsg('');
+    try {
+      const res = await fetch('/api/product-image-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminPassword: sessionStorage.getItem('adminPassword'),
+          id: product.id,
+          name: product.name || product.title || '',
+          description: product.description || product.shortDescription || '',
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok || d.error) throw new Error(d.error || 'Error');
+      onUpdate(product.id, { image: d.imageUrl }); // refresca estado local
+      setAiMsg('✓ Imagen generada');
+    } catch (e) {
+      setAiMsg('✕ ' + e.message);
+    } finally {
+      setAiBusy(null);
+    }
+  };
+
   return (
     <div className="border border-gray-200 dark:border-neutral-800 rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
       {editing ? (
@@ -1630,7 +1694,15 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
         </div>
       ) : (
         <div>
-          <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start justify-between mb-3 gap-3">
+            {/* Thumbnail de la imagen actual */}
+            <div className="w-20 h-20 rounded-lg overflow-hidden bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/40 dark:to-blue-900/40 flex-shrink-0 flex items-center justify-center">
+              {product.image ? (
+                <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-2xl">🖼️</span>
+              )}
+            </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
                 {product.name || product.title}
@@ -1638,8 +1710,52 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 {product.description}
               </p>
+              {product.ideaDesarrollo && (
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">🛠 {product.ideaDesarrollo}</p>
+              )}
             </div>
           </div>
+
+          {/* Acciones IA */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <button
+              onClick={generateContent}
+              disabled={aiBusy !== null}
+              className="px-3 py-1.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity text-xs font-medium disabled:opacity-50"
+            >
+              {aiBusy === 'content' ? '✨ Generando…' : '✨ Generar contenido'}
+            </button>
+            <button
+              onClick={generateImage}
+              disabled={aiBusy !== null}
+              className="px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity text-xs font-medium disabled:opacity-50"
+            >
+              {aiBusy === 'image' ? '🎨 Generando…' : '🎨 Ilustración IA'}
+            </button>
+            {aiMsg && <span className="text-xs text-gray-600 dark:text-gray-300">{aiMsg}</span>}
+          </div>
+
+          {/* Preview del contenido generado */}
+          {gen && (
+            <div className="mb-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20 p-3 text-sm space-y-2">
+              <p className="text-gray-800 dark:text-gray-200"><strong>Descripción:</strong> {gen.descripcion}</p>
+              {gen.ideaDesarrollo && <p className="text-gray-700 dark:text-gray-300"><strong>Idea de desarrollo:</strong> {gen.ideaDesarrollo}</p>}
+              {gen.features?.length > 0 && (
+                <p className="text-gray-700 dark:text-gray-300"><strong>Features:</strong> {gen.features.join(' · ')}</p>
+              )}
+              {gen.tags?.length > 0 && (
+                <p className="text-xs text-gray-500">Tags: {gen.tags.join(', ')}</p>
+              )}
+              <div className="flex gap-2 pt-1">
+                <button onClick={applyContent} className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700">
+                  ✓ Aplicar y guardar
+                </button>
+                <button onClick={() => setGen(null)} className="px-3 py-1.5 bg-gray-400 text-white rounded-lg text-xs hover:bg-gray-500">
+                  Descartar
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">
