@@ -1589,6 +1589,30 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
     }
   };
 
+  const generatePexels = async () => {
+    setAiBusy('pexels'); setAiMsg('');
+    try {
+      const res = await fetch('/api/product-image-pexels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminPassword: sessionStorage.getItem('adminPassword'),
+          id: product.id,
+          name: product.name || product.title || '',
+          category: product.category || '',
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok || d.error) throw new Error(d.error || 'Error');
+      onUpdate(product.id, { image: d.imageUrl });
+      setAiMsg(`✓ Foto de Pexels${d.credit ? ` (${d.credit})` : ''}`);
+    } catch (e) {
+      setAiMsg('✕ ' + e.message);
+    } finally {
+      setAiBusy(null);
+    }
+  };
+
   return (
     <div className="border border-gray-200 dark:border-neutral-800 rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
       {editing ? (
@@ -1726,9 +1750,17 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
               {aiBusy === 'content' ? '✨ Generando…' : '✨ Generar contenido'}
             </button>
             <button
+              onClick={generatePexels}
+              disabled={aiBusy !== null}
+              className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:opacity-90 transition-opacity text-xs font-medium disabled:opacity-50"
+            >
+              {aiBusy === 'pexels' ? '🖼 Buscando…' : '🖼 Foto Pexels (gratis)'}
+            </button>
+            <button
               onClick={generateImage}
               disabled={aiBusy !== null}
               className="px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity text-xs font-medium disabled:opacity-50"
+              title="Requiere billing habilitado en Gemini (tier gratuito = límite 0)"
             >
               {aiBusy === 'image' ? '🎨 Generando…' : '🎨 Ilustración IA'}
             </button>

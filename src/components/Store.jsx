@@ -8,6 +8,8 @@ import ProductDetailModal from './ProductDetailModal';
 import Cart from './Cart';
 import { useCart } from '../context/CartContext';
 import priceService from '../utils/priceService';
+import { ExchangeService, formatARS } from '../utils/exchangeService';
+import ProductListRow from './ProductListRow';
 
 export default function Store({ isOpen, onClose, asPage = false }) {
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -18,7 +20,16 @@ export default function Store({ isOpen, onClose, asPage = false }) {
   const [loading, setLoading] = useState(true);
   const [rentMode, setRentMode] = useState(false);
   const [rentalMap, setRentalMap] = useState({});
+  const [viewMode, setViewMode] = useState('grid');   // 'grid' | 'list'
+  const [sortBy, setSortBy] = useState('name');        // 'name' | 'price' | 'category'
+  const [sortDir, setSortDir] = useState('asc');       // 'asc' | 'desc'
+  const [fxRate, setFxRate] = useState(null);
   const { getCartCount } = useCart();
+
+  // Cotización para mostrar precios en pesos en la vista lista
+  useEffect(() => {
+    new ExchangeService().getExchangeRate().then(setFxRate).catch(() => {});
+  }, []);
 
   // Cargar productos desde Firebase
   useEffect(() => {
@@ -117,6 +128,26 @@ export default function Store({ isOpen, onClose, asPage = false }) {
     return filtered;
   }, [products, searchQuery, selectedCategory]);
 
+  // Ordenamiento (asc/desc por nombre, precio o categoría)
+  const sortedProducts = React.useMemo(() => {
+    const dir = sortDir === 'asc' ? 1 : -1;
+    const priceOf = (p) => (p.priceUSD === null || p.priceUSD === undefined) ? Infinity : p.priceUSD;
+    return [...filteredProducts].sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === 'price') cmp = priceOf(a) - priceOf(b);
+      else if (sortBy === 'category') cmp = String(a.category || '').localeCompare(String(b.category || ''));
+      else cmp = String(a.name || '').localeCompare(String(b.name || ''), 'es');
+      return cmp * dir;
+    });
+  }, [filteredProducts, sortBy, sortDir]);
+
+  // Click en encabezado de columna: alterna dirección o cambia de criterio
+  const toggleSort = (field) => {
+    if (sortBy === field) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortBy(field); setSortDir('asc'); }
+  };
+  const sortArrow = (field) => sortBy !== field ? '↕' : (sortDir === 'asc' ? '▲' : '▼');
+
   const categories = [
     { id: 'all', label: 'Todos', icon: '🏪' },
     { id: productCategories.WEB_DEVELOPMENT, label: 'Desarrollo Web', icon: '💻' },
@@ -213,6 +244,48 @@ export default function Store({ isOpen, onClose, asPage = false }) {
                 </button>
               ))}
             </div>
+
+            {/* Barra de vista + orden */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* Toggle Grid / Lista */}
+              <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-gray-700 text-purple-700 dark:text-purple-300 shadow' : 'text-gray-500 dark:text-gray-400'}`}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                  Grid
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'list' ? 'bg-white dark:bg-gray-700 text-purple-700 dark:text-purple-300 shadow' : 'text-gray-500 dark:text-gray-400'}`}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                  Lista
+                </button>
+              </div>
+
+              {/* Orden (para la vista grid; en lista se ordena por columnas) */}
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-500 dark:text-gray-400">Ordenar:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+                >
+                  <option value="name">Nombre</option>
+                  <option value="price">Precio</option>
+                  <option value="category">Categoría</option>
+                </select>
+                <button
+                  onClick={() => setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))}
+                  className="px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  title={sortDir === 'asc' ? 'Ascendente' : 'Descendente'}
+                >
+                  {sortDir === 'asc' ? '▲ Asc' : '▼ Desc'}
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Grid de productos */}
@@ -222,18 +295,52 @@ export default function Store({ isOpen, onClose, asPage = false }) {
                 <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-purple-600 mb-4"></div>
                 <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Cargando productos...</h3>
               </div>
-            ) : filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onViewDetails={setSelectedProduct}
-                    rentMode={rentMode}
-                    rental={rentalMap[product.id] || null}
-                  />
-                ))}
-              </div>
+            ) : sortedProducts.length > 0 ? (
+              viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {sortedProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onViewDetails={setSelectedProduct}
+                      rentMode={rentMode}
+                      rental={rentalMap[product.id] || null}
+                    />
+                  ))}
+                </div>
+              ) : (
+                /* Vista lista compacta encolumnada, ordenable por columna */
+                <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-semibold w-16">Img</th>
+                        <th className="px-4 py-3 text-left font-semibold cursor-pointer select-none" onClick={() => toggleSort('name')}>
+                          Producto <span className="text-xs">{sortArrow('name')}</span>
+                        </th>
+                        <th className="px-4 py-3 text-left font-semibold cursor-pointer select-none hidden sm:table-cell" onClick={() => toggleSort('category')}>
+                          Categoría <span className="text-xs">{sortArrow('category')}</span>
+                        </th>
+                        <th className="px-4 py-3 text-right font-semibold cursor-pointer select-none" onClick={() => toggleSort('price')}>
+                          Precio <span className="text-xs">{sortArrow('price')}</span>
+                        </th>
+                        <th className="px-4 py-3 text-right font-semibold w-40">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                      {sortedProducts.map((product) => (
+                        <ProductListRow
+                          key={product.id}
+                          product={product}
+                          fxRate={fxRate}
+                          rentMode={rentMode}
+                          rental={rentalMap[product.id] || null}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
             ) : (
               <div className="text-center py-16">
                 <svg className="w-24 h-24 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
