@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { queryClient } from '@/utils/queryClient';
+import { CartProvider } from '@/context/CartContext';
 
 // UI Components (critical - load immediately)
 import ThemeToggle from '@/components/ui/ThemeToggle';
@@ -30,6 +31,7 @@ const NAV_LINKS = [
   { label: 'Contacto',    href: '/#contact' },
   { label: 'Auditorías',  href: '/auditorias' },
   { label: 'Analítica',   href: '/analitica' },
+  { label: 'Tienda',      href: '/tienda' },
   { label: 'Presupuesto', href: '/presupuesto' },
 ];
 const TOOLS = [
@@ -288,7 +290,9 @@ function AppChrome({ children }) {
 export function Providers({ children }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppChrome>{children}</AppChrome>
+      <CartProvider>
+        <AppChrome>{children}</AppChrome>
+      </CartProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
