@@ -536,7 +536,56 @@ Gracias a todos por el apoyo.
 #DesarrolloWeb #Resultados #Éxito`
   };
 
-  const useTemplate = (template) => {
+  const fmtARS = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n || 0);
+
+  // Trae el precio real desde los planes centralizados (Admin > Planes) — nunca un
+  // número pegado a mano que se desactualiza cuando cambiás precios.
+  const TOOL_IMAGES = {
+    leadfinder: 'https://res.cloudinary.com/dlshym1te/image/upload/v1788138716/social/leadfinder-promo.png',
+    analitica: 'https://res.cloudinary.com/dlshym1te/image/upload/v1788138719/social/analitica-promo.png',
+  };
+
+  const buildToolTemplate = async (tool) => {
+    if (tool === 'leadfinder') {
+      const res = await fetch('/api/leadfinder-plans');
+      const data = await res.json().catch(() => ({}));
+      const cheapest = (data.plans || []).filter(p => p.priceARS > 0).sort((a, b) => a.priceARS - b.priceARS)[0];
+      const priceLine = cheapest ? `Desde ${fmtARS(cheapest.priceARS)}${cheapest.billingType === 'subscription' ? '/mes' : ''}.` : '';
+      return `🎯 ¿Sabés cuántos negocios de tu zona todavía no tienen sitio web?
+
+Lead Finder Pro audita negocios locales por localidad, provincia o todo el país: te muestra si tienen web o no, su score SEO, teléfono, horarios y rating — todo en un mapa.
+
+${priceLine} Probalo gratis con una auditoría real:
+https://marianoaliandri.com.ar/lead-finder-pro
+
+#LeadFinderPro #SEO #NegociosLocales #MarketingDigital`;
+    }
+    if (tool === 'analitica') {
+      const res = await fetch('/api/analitica-plans');
+      const data = await res.json().catch(() => ({}));
+      const basico = (data.plans || []).find(p => p.id === 'basico');
+      const priceLine = basico ? `Desde ${fmtARS(basico.price)}/mes.` : '';
+      return `📊 ¿Qué buscan realmente tus clientes en Google?
+
+Analítica Regional te muestra qué rubros y servicios tienen más demanda de búsqueda en tu zona, con las frases exactas que usa la gente.
+
+${priceLine} Mirá las tendencias gratis, sin registrarte:
+https://marianoaliandri.com.ar/analitica
+
+#AnaliticaRegional #SEO #Tendencias #MarketingDigital`;
+    }
+    return '';
+  };
+
+  const useTemplate = async (template) => {
+    if (template === 'leadfinder' || template === 'analitica') {
+      showMessage('info', 'Trayendo precio actual...');
+      const text = await buildToolTemplate(template);
+      setPostText(text);
+      setUseAI(true); // el texto es un brief para que la IA arme el post final con hashtags
+      setCustomImageUrl(TOOL_IMAGES[template] || '');
+      return;
+    }
     setPostText(templates[template]);
   };
 
@@ -723,6 +772,18 @@ Gracias a todos por el apoyo.
                 className="px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs sm:text-sm hover:bg-indigo-200 dark:hover:bg-indigo-900/50"
               >
                 🎉 Logro
+              </button>
+              <button
+                onClick={() => useTemplate('leadfinder')}
+                className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg text-xs sm:text-sm hover:bg-purple-200 dark:hover:bg-purple-900/50"
+              >
+                🎯 Lead Finder Pro
+              </button>
+              <button
+                onClick={() => useTemplate('analitica')}
+                className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg text-xs sm:text-sm hover:bg-purple-200 dark:hover:bg-purple-900/50"
+              >
+                📊 Analítica Regional
               </button>
             </div>
           </div>
