@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, serverTimestamp, increment } from 'firebase/firestore';
@@ -829,7 +829,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {products.map(product => (
                 <ProductCard
                   key={product.id}
@@ -1525,10 +1525,22 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
     setEditing(false);
   };
 
-  // --- IA: contenido e imagen ---
-  const [aiBusy, setAiBusy] = useState(null); // 'content' | 'image' | null
+  // --- IA de contenido + galería de imágenes ---
+  const [aiBusy, setAiBusy] = useState(null); // 'content' | 'pexels' | 'upload' | null
   const [aiMsg, setAiMsg] = useState('');
   const [gen, setGen] = useState(null); // contenido generado pendiente de aplicar
+  const [images, setImages] = useState(
+    Array.isArray(product.images) && product.images.length
+      ? product.images
+      : (product.image ? [product.image] : [])
+  );
+  const imgFileRef = useRef(null);
+
+  // Persiste la galería (image = portada = primera del array)
+  const saveImages = (next) => {
+    setImages(next);
+    onUpdate(product.id, { images: next, image: next[0] || null });
+  };
 
   const generateContent = async () => {
     setAiBusy('content'); setAiMsg(''); setGen(null);
@@ -1565,31 +1577,8 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
     setGen(null);
   };
 
-  const generateImage = async () => {
-    setAiBusy('image'); setAiMsg('');
-    try {
-      const res = await fetch('/api/product-image-ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          adminPassword: sessionStorage.getItem('adminPassword'),
-          id: product.id,
-          name: product.name || product.title || '',
-          description: product.description || product.shortDescription || '',
-        }),
-      });
-      const d = await res.json();
-      if (!res.ok || d.error) throw new Error(d.error || 'Error');
-      onUpdate(product.id, { image: d.imageUrl }); // refresca estado local
-      setAiMsg('✓ Imagen generada');
-    } catch (e) {
-      setAiMsg('✕ ' + e.message);
-    } finally {
-      setAiBusy(null);
-    }
-  };
-
-  const generatePexels = async () => {
+  // Agrega una foto de Pexels a la galería
+  const addPexels = async () => {
     setAiBusy('pexels'); setAiMsg('');
     try {
       const res = await fetch('/api/product-image-pexels', {
@@ -1604,13 +1593,48 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
       });
       const d = await res.json();
       if (!res.ok || d.error) throw new Error(d.error || 'Error');
-      onUpdate(product.id, { image: d.imageUrl });
-      setAiMsg(`✓ Foto de Pexels${d.credit ? ` (${d.credit})` : ''}`);
+      saveImages([...images, d.imageUrl]);
+      setAiMsg(`✓ Foto agregada${d.credit ? ` (${d.credit})` : ''}`);
     } catch (e) {
       setAiMsg('✕ ' + e.message);
     } finally {
       setAiBusy(null);
     }
+  };
+
+  // Sube una o varias fotos propias a Cloudinary y las agrega a la galería
+  const uploadFiles = async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    setAiBusy('upload'); setAiMsg('');
+    try {
+      const uploaded = [];
+      for (const file of files) {
+        const form = new FormData();
+        form.append('file', file);
+        form.append('upload_preset', 'zone_analysis_images');
+        form.append('folder', 'store-products');
+        const up = await fetch('https://api.cloudinary.com/v1_1/dlshym1te/image/upload', { method: 'POST', body: form });
+        const ud = await up.json();
+        if (!up.ok || !ud.secure_url) throw new Error(ud?.error?.message || 'Error subiendo a Cloudinary');
+        uploaded.push(ud.secure_url);
+      }
+      saveImages([...images, ...uploaded]);
+      setAiMsg(`✓ ${uploaded.length} foto(s) subida(s)`);
+    } catch (e) {
+      setAiMsg('✕ ' + e.message);
+    } finally {
+      setAiBusy(null);
+      if (imgFileRef.current) imgFileRef.current.value = '';
+    }
+  };
+
+  const removeImage = (idx) => saveImages(images.filter((_, i) => i !== idx));
+  const makeCover = (idx) => {
+    if (idx === 0) return;
+    const next = [...images];
+    const [pick] = next.splice(idx, 1);
+    saveImages([pick, ...next]);
   };
 
   return (
@@ -1718,30 +1742,62 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
         </div>
       ) : (
         <div>
-          <div className="flex items-start justify-between mb-3 gap-3">
-            {/* Thumbnail de la imagen actual */}
-            <div className="w-20 h-20 rounded-lg overflow-hidden bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/40 dark:to-blue-900/40 flex-shrink-0 flex items-center justify-center">
-              {product.image ? (
-                <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-2xl">🖼️</span>
-              )}
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                {product.name || product.title}
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {product.description}
-              </p>
-              {product.ideaDesarrollo && (
-                <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">🛠 {product.ideaDesarrollo}</p>
-              )}
-            </div>
+          {/* Portada */}
+          <div className="w-full h-36 rounded-lg overflow-hidden bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/40 dark:to-blue-900/40 flex items-center justify-center mb-2">
+            {images[0] ? (
+              <img src={images[0]} alt={product.name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-3xl">🖼️</span>
+            )}
           </div>
 
-          {/* Acciones IA */}
-          <div className="flex flex-wrap items-center gap-2 mb-3">
+          {/* Galería de miniaturas */}
+          {images.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {images.map((url, idx) => (
+                <div key={idx} className="relative group w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-neutral-700">
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  {idx === 0 && (
+                    <span className="absolute bottom-0 inset-x-0 bg-purple-600/80 text-white text-[9px] text-center leading-tight">portada</span>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                    {idx !== 0 && (
+                      <button onClick={() => makeCover(idx)} title="Poner de portada" className="text-white text-xs">★</button>
+                    )}
+                    <button onClick={() => removeImage(idx)} title="Quitar" className="text-white text-xs">✕</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1 line-clamp-1">
+            {product.name || product.title}
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+            {product.description}
+          </p>
+          {product.ideaDesarrollo && (
+            <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 line-clamp-2">🛠 {product.ideaDesarrollo}</p>
+          )}
+
+          {/* Acciones de fotos + contenido */}
+          <div className="flex flex-wrap items-center gap-2 my-3">
+            <button
+              onClick={addPexels}
+              disabled={aiBusy !== null}
+              className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:opacity-90 transition-opacity text-xs font-medium disabled:opacity-50"
+            >
+              {aiBusy === 'pexels' ? '🖼 Buscando…' : '🖼 + Foto Pexels'}
+            </button>
+            <button
+              onClick={() => imgFileRef.current?.click()}
+              disabled={aiBusy !== null}
+              className="px-3 py-1.5 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 text-xs font-medium disabled:opacity-50"
+            >
+              {aiBusy === 'upload' ? '⬆ Subiendo…' : '⬆ Subir fotos'}
+            </button>
+            <input ref={imgFileRef} type="file" accept="image/*" multiple onChange={(e) => uploadFiles(e.target.files)} className="hidden" />
             <button
               onClick={generateContent}
               disabled={aiBusy !== null}
@@ -1749,22 +1805,7 @@ function ProductCard({ product, onUpdate, onDelete, formatARS }) {
             >
               {aiBusy === 'content' ? '✨ Generando…' : '✨ Generar contenido'}
             </button>
-            <button
-              onClick={generatePexels}
-              disabled={aiBusy !== null}
-              className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:opacity-90 transition-opacity text-xs font-medium disabled:opacity-50"
-            >
-              {aiBusy === 'pexels' ? '🖼 Buscando…' : '🖼 Foto Pexels (gratis)'}
-            </button>
-            <button
-              onClick={generateImage}
-              disabled={aiBusy !== null}
-              className="px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity text-xs font-medium disabled:opacity-50"
-              title="Requiere billing habilitado en Gemini (tier gratuito = límite 0)"
-            >
-              {aiBusy === 'image' ? '🎨 Generando…' : '🎨 Ilustración IA'}
-            </button>
-            {aiMsg && <span className="text-xs text-gray-600 dark:text-gray-300">{aiMsg}</span>}
+            {aiMsg && <span className="text-xs text-gray-600 dark:text-gray-300 w-full">{aiMsg}</span>}
           </div>
 
           {/* Preview del contenido generado */}

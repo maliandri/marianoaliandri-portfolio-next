@@ -26,6 +26,7 @@ export default function ProductDetailPage({ productId: propProductId }) {
   const [fx, setFx] = useState({ rate: null, loading: true });
   const [rentMode, setRentMode] = useState(false);
   const [rental, setRental] = useState(null); // datos de productos_alquiler
+  const [activeImg, setActiveImg] = useState(null);
   const fxService = new ExchangeService();
   const analyticsRef = useRef(null);
 
@@ -147,9 +148,9 @@ export default function ProductDetailPage({ productId: propProductId }) {
           >
             {/* Header imagen */}
             <div className="relative h-64 md:h-80 bg-gradient-to-br from-purple-600 to-blue-600 overflow-hidden">
-              {product.image && (
+              {(activeImg || product.image) && (
                 <img
-                  src={product.image}
+                  src={activeImg || product.image}
                   alt={product.name}
                   className="w-full h-full object-cover opacity-40"
                   onError={(e) => e.target.style.display = 'none'}
@@ -166,6 +167,24 @@ export default function ProductDetailPage({ productId: propProductId }) {
                 <p className="text-lg text-gray-200">{product.shortDescription}</p>
               </div>
             </div>
+
+            {/* Galería de miniaturas */}
+            {product.images?.length > 1 && (
+              <div className="flex gap-2 p-4 overflow-x-auto bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                {product.images.map((url, idx) => {
+                  const current = (activeImg || product.image) === url;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveImg(url)}
+                      className={`w-20 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${current ? 'border-purple-600' : 'border-transparent hover:border-gray-300'}`}
+                    >
+                      <img src={url} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Contenido */}
             <div className="p-6 md:p-8">

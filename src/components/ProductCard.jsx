@@ -101,6 +101,14 @@ export default function ProductCard({ product, onViewDetails, rentMode = false, 
           <BrandedCover product={product} />
         )}
 
+        {/* Badge de cantidad de fotos */}
+        {product.images?.length > 1 && (
+          <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 6h16v12H4V6z" /></svg>
+            {product.images.length}
+          </div>
+        )}
+
         {/* Demo badge si existe */}
         {product.demo && (
           <div className="absolute bottom-2 left-2">

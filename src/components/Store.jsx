@@ -68,7 +68,8 @@ export default function Store({ isOpen, onClose, asPage = false }) {
           deliverables: ['Código fuente', 'Documentación técnica', 'Capacitación'],
           tags: [product.category || 'Servicio'],
           duration: '2-4 semanas',
-          image: product.image || null,
+          images: Array.isArray(product.images) ? product.images : [],
+          image: product.image || (Array.isArray(product.images) ? product.images[0] : null) || null,
           demo: product.demo || null,
           featured: product.featured || false,
           isCustom: !product.priceUSD

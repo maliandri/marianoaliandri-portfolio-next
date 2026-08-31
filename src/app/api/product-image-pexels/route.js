@@ -1,5 +1,4 @@
 export const dynamic = 'force-dynamic';
-import admin, { getDb } from '@/lib/firebase-admin';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
@@ -44,20 +43,7 @@ export async function POST(request) {
     const imageUrl = photo?.src?.landscape || photo?.src?.large || photo?.src?.original;
     if (!imageUrl) return Response.json({ error: 'Foto sin URL utilizable' }, { status: 502 });
 
-    try {
-      const db = getDb();
-      await db.collection('products').doc(id).set(
-        {
-          image: imageUrl,
-          imageCredit: photo?.photographer ? `Foto: ${photo.photographer} (Pexels)` : 'Pexels',
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-    } catch (e) {
-      return Response.json({ imageUrl, warning: 'Imagen encontrada pero no se pudo guardar: ' + e.message });
-    }
-
+    // Devuelve la URL; el cliente decide si la agrega a la galería del producto.
     return Response.json({ success: true, imageUrl, query: q, credit: photo?.photographer });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });
