@@ -4,6 +4,37 @@ import { MercadoPagoConfig, PreApproval } from 'mercadopago';
 import { setPlan } from '@/lib/entitlements';
 import { PLANS } from '@/data/plans';
 import { verifyMpSignature } from '@/lib/mpWebhook';
+import admin, { getDb } from '@/lib/firebase-admin';
+
+// Suscripciones de Lead Finder Pro usan external_reference "lfp:<uid>:<planId>" para
+// distinguirse de las de Analítica ("<uid>:<planId>"). El cupo mensual se resetea solo
+// (mismo patrón que Analítica: usagePeriod/usageCount comparado contra el mes actual en
+// /api/lead-finder-pro/run) — acá solo trackeamos el estado de la suscripción, no créditos.
+async function handleLeadFinderProSubscription(uid, planId, status, preapprovalId) {
+  const db = getDb();
+  if (!db) return;
+  const ref = db.collection('leadfinder_entitlements').doc(uid);
+
+  if (status === 'authorized') {
+    const planSnap = await db.collection('leadfinder_plans').doc(planId).get();
+    const plan = planSnap.exists ? planSnap.data() : null;
+    const renewsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    await ref.set({
+      status: 'active',
+      billingType: 'subscription',
+      planId,
+      planName: plan?.name || planId,
+      planCredits: Number(plan?.credits) || 0,
+      mpPreapprovalId: preapprovalId,
+      renewsAt,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  } else if (status === 'cancelled' || status === 'paused') {
+    await ref.set({ status: 'cancelled', renewsAt: null, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  } else {
+    await ref.set({ status: 'pending', renewsAt: null, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  }
+}
 
 // Webhook de MercadoPago para suscripciones (PreApproval).
 // Configurar en MP → Webhooks el topic "Suscripciones" apuntando a:
@@ -42,13 +73,23 @@ export async function POST(request) {
       return Response.json({ ok: true, notFound: true });
     }
 
-    // external_reference = "<uid>:<planId>"
-    const [uid, planId] = String(sub?.external_reference || '').split(':');
+    const externalRef = String(sub?.external_reference || '');
+    const status = sub?.status; // authorized | pending | cancelled | paused
+
+    // Lead Finder Pro: external_reference = "lfp:<uid>:<planId>"
+    if (externalRef.startsWith('lfp:')) {
+      const [, uid, planId] = externalRef.split(':');
+      if (!uid || !planId) return Response.json({ ok: true, notFound: true });
+      await handleLeadFinderProSubscription(uid, planId, status, preapprovalId);
+      return Response.json({ ok: true, status, product: 'leadfinder-pro' });
+    }
+
+    // Analítica: external_reference = "<uid>:<planId>"
+    const [uid, planId] = externalRef.split(':');
     if (!uid || !PLANS[planId]) {
       return Response.json({ ok: true, notFound: true });
     }
 
-    const status = sub?.status; // authorized | pending | cancelled | paused
     if (status === 'authorized') {
       // Suscripción activa → activar plan; próxima renovación en ~1 mes
       const renewsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();

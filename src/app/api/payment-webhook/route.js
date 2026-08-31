@@ -48,6 +48,35 @@ async function sendCVAnalysisEmail(paymentData, baseUrl) {
   }
 }
 
+// Acredita un plan de pago único ("project") de Lead Finder Pro. Idempotente: usa el
+// paymentId de MercadoPago como llave de deduplicación, porque MP puede reenviar el mismo
+// webhook varias veces (reintentos) y no queremos sumar créditos dos veces.
+async function creditLeadFinderPlan(paymentData) {
+  const metadata = paymentData.metadata;
+  const uid = metadata?.uid;
+  const planId = metadata?.planId;
+  const credits = Number(metadata?.credits) || 0;
+  if (!uid || !credits) return;
+
+  const dedupeRef = db.collection('leadfinder_processed_payments').doc(String(paymentData.id));
+  const alreadyProcessed = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(dedupeRef);
+    if (snap.exists) return true;
+    tx.set(dedupeRef, { uid, planId, credits, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+    tx.set(db.collection('leadfinder_entitlements').doc(uid), {
+      credits: admin.firestore.FieldValue.increment(credits),
+      billingType: 'project',
+      planId,
+      status: 'active',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return false;
+  });
+  if (alreadyProcessed) {
+    console.warn('[payment-webhook] pago de Lead Finder Pro ya procesado, se ignora:', paymentData.id);
+  }
+}
+
 async function saveCVOrder(paymentData) {
   const metadata = paymentData.metadata;
   await db.collection('orders').doc(`CV-${paymentData.id}`).set({
@@ -95,6 +124,9 @@ export async function POST(request) {
         if (metadata?.cvAnalysis) {
           try { await sendCVAnalysisEmail(paymentData, baseUrl); } catch (e) { console.error(e); }
           try { await saveCVOrder(paymentData); } catch (e) { console.error(e); }
+        }
+        if (metadata?.type === 'leadfinder_plan') {
+          try { await creditLeadFinderPlan(paymentData); } catch (e) { console.error('[payment-webhook] error acreditando Lead Finder Pro:', e); }
         }
       }
     }

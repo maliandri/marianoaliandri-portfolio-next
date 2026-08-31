@@ -18,7 +18,14 @@ function LeadFinderProCard({ user }) {
       .catch(() => setEntitlement(null));
   }, [user]);
 
-  const hasAccess = entitlement?.unlimited === true && entitlement?.status === 'active';
+  const comped = entitlement?.unlimited === true && entitlement?.status === 'active';
+  const activeSub = entitlement?.billingType === 'subscription' && entitlement?.status === 'active' && entitlement?.planCredits > 0;
+  const hasCredits = (entitlement?.credits || 0) > 0;
+  const hasAccess = comped || activeSub || hasCredits;
+
+  const monthKey = new Date().toISOString().slice(0, 7);
+  const subUsed = entitlement?.usagePeriod === monthKey ? (entitlement?.usageCount || 0) : 0;
+  const subRemaining = activeSub ? Math.max(0, entitlement.planCredits - subUsed) : null;
 
   return (
     <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
@@ -30,7 +37,9 @@ function LeadFinderProCard({ user }) {
         {entitlement === undefined ? (
           <span className="text-xs text-gray-500">Cargando...</span>
         ) : hasAccess ? (
-          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-green-500/10 text-green-400">🎁 Acceso activo</span>
+          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-green-500/10 text-green-400">
+            {comped ? '🎁 Acceso gratuito' : '✅ Plan activo'}
+          </span>
         ) : (
           <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-500/10 text-gray-400">Sin plan</span>
         )}
@@ -40,6 +49,8 @@ function LeadFinderProCard({ user }) {
         <>
           <p className="text-gray-400 text-sm mb-4">
             {entitlement.auditCount || 0} negocios auditados hasta ahora.
+            {activeSub && ` ${subRemaining} de ${entitlement.planCredits} auditorías este mes.`}
+            {!activeSub && hasCredits && ` ${entitlement.credits} créditos disponibles.`}
           </p>
           <div className="flex flex-wrap gap-2">
             <Link href="/lead-finder-pro/buscar" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors">

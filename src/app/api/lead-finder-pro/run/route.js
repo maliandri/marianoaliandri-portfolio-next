@@ -40,17 +40,40 @@ export async function POST(request) {
     }
 
     const ref = db.collection('leadfinder_entitlements').doc(authUser.uid);
+    const monthKey = new Date().toISOString().slice(0, 7); // YYYY-MM
     const gate = await db.runTransaction(async tx => {
       const snap = await tx.get(ref);
       const e = snap.exists ? snap.data() : null;
+      if (!e) return { allowed: false };
 
-      // Hoy solo existe acceso "comped" (otorgado a mano desde el admin) — el checkout
-      // con créditos comprables todavía no está construido. Sin unlimited, no hay acceso.
-      if (!e || e.unlimited !== true || e.status !== 'active') {
-        return { allowed: false };
+      // 1. Acceso "comped" (cortesía otorgada a mano desde el admin) — ilimitado.
+      if (e.unlimited === true && e.status === 'active') {
+        tx.set(ref, { auditCount: FieldValue.increment(1), lastAuditAt: FieldValue.serverTimestamp() }, { merge: true });
+        return { allowed: true };
       }
-      tx.set(ref, { auditCount: FieldValue.increment(1), lastAuditAt: FieldValue.serverTimestamp() }, { merge: true });
-      return { allowed: true };
+
+      // 2. Suscripción activa — cupo mensual (planCredits), se resetea solo al cambiar el mes.
+      if (e.billingType === 'subscription' && e.status === 'active' && e.planCredits > 0) {
+        const used = e.usagePeriod === monthKey ? (e.usageCount || 0) : 0;
+        if (used < e.planCredits) {
+          tx.set(ref, {
+            usagePeriod: monthKey, usageCount: used + 1,
+            auditCount: FieldValue.increment(1), lastAuditAt: FieldValue.serverTimestamp(),
+          }, { merge: true });
+          return { allowed: true };
+        }
+      }
+
+      // 3. Saldo de créditos comprado (plan de pago único) — se descuenta por auditoría.
+      if ((e.credits || 0) > 0) {
+        tx.set(ref, {
+          credits: FieldValue.increment(-1),
+          auditCount: FieldValue.increment(1), lastAuditAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+        return { allowed: true };
+      }
+
+      return { allowed: false };
     });
 
     if (!gate.allowed) {
