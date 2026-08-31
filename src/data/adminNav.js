@@ -46,6 +46,9 @@ export const ADMIN_NAV_DEFAULT = [
     { id: 'questions', label: 'Preguntas', icon: '💬' },
     { id: 'nav-config', label: 'Configurar Interfaz', icon: '🧭' },
   ]},
+  { id: 'herramientas', label: 'Herramientas', icon: '🔧', items: [
+    { id: 'rubros-buscados', label: 'Rubros buscados', icon: '🔍' },
+  ]},
   { id: 'dev', label: 'Dev', icon: '🧰', items: [
     { id: 'free-for-dev', label: 'Free for Dev', icon: '🆓' },
   ]},

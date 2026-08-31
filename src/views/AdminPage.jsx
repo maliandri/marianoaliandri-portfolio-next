@@ -27,6 +27,7 @@ import LeadFinderPanel from '../components/audit/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 import { ADMIN_NAV_DEFAULT } from '../data/adminNav';
 import NavConfigEditor from '../components/admin/NavConfigEditor';
+import KeywordExplorer from '../components/audit/KeywordExplorer';
 
 // Navegación de 3 niveles (estilo almamod): 1º sidebar (secciones) · 2º pestañas arriba
 // (items de la sección) · 3º pestañas abajo (sub-items, solo si el item tiene "children").
@@ -864,6 +865,12 @@ export default function AdminPage() {
         {activeTab === 'nav-config' && (
           <div className="p-6">
             <NavConfigEditor />
+          </div>
+        )}
+
+        {activeTab === 'rubros-buscados' && (
+          <div className="p-6">
+            <KeywordExplorer embedded />
           </div>
         )}
 

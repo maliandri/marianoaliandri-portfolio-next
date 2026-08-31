@@ -5,6 +5,11 @@ import { RUBROS } from '@/data/rubros';
 import { getUserFromRequest } from '@/lib/authServer';
 import { consumeSearch } from '@/lib/entitlements';
 
+// Cuenta admin registrada (misma que /api/lead-finder) — sin límite de cuota acá.
+// El autocompletado de Google es gratis (sin riesgo de facturación como Places API),
+// así que el único motivo del límite es evitar abuso de terceros, no el costo.
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || null;
+
 // Consulta el autocompletado de Google (mismo motor que sugiere mientras tipeás).
 // client=chrome devuelve google:suggestrelevance → nos sirve para rankear.
 // Es un endpoint no oficial pero estable y gratuito. Puede limitar desde IPs
@@ -88,8 +93,10 @@ export async function POST(request) {
       return Response.json({ error: 'Falta la localidad' }, { status: 400 });
     }
 
-    // 2) Cuota: consume una búsqueda del plan del usuario (transacción atómica)
-    const quota = await consumeSearch(user.uid);
+    // 2) Cuota: consume una búsqueda del plan del usuario (transacción atómica) —
+    // salvo la cuenta admin, que no tiene límite.
+    const isAdmin = ADMIN_EMAIL && user.email === ADMIN_EMAIL;
+    const quota = isAdmin ? { allowed: true, plan: 'admin', remaining: null } : await consumeSearch(user.uid);
     if (!quota.allowed) {
       const status = quota.reason === 'db_unavailable' ? 500 : 402;
       return Response.json(
