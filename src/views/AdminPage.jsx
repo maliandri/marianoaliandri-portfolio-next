@@ -16,6 +16,7 @@ import QuoteBuilder from '../components/admin/QuoteBuilder';
 import BenefitsEditor from '../components/admin/BenefitsEditor';
 import AuditoriasManager from '../components/admin/AuditoriasManager';
 import PaymentPlanEditor from '../components/admin/PaymentPlanEditor';
+import StoreExcelManager from '../components/admin/StoreExcelManager';
 import AuditRequestsManager from '../components/admin/AuditRequestsManager';
 import SentEmailsManager from '../components/admin/SentEmailsManager';
 import SubscriptionsManager from '../components/admin/SubscriptionsManager';
@@ -793,6 +794,7 @@ export default function AdminPage() {
 
         {!loading && activeTab === 'products' && (
           <>
+          <StoreExcelManager />
           <PaymentPlanEditor />
           <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
             <div className="flex items-center justify-between mb-6">
