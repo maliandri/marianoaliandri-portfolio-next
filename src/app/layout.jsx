@@ -7,8 +7,8 @@ export const metadata = {
     default: 'Mariano Aliandri | Dev. Full Stack, React, Python & Data',
     template: '%s | Mariano Aliandri',
   },
-  description: 'Desarrollador Full Stack y Analista de Datos con experiencia en React y Python. Explora mi portfolio de proyectos y habilidades en Power BI.',
-  keywords: ['React', 'Python', 'Power BI', 'Full Stack', 'Developer', 'Data Analytics', 'Argentina'],
+  description: 'Desarrollador Full Stack y Analista de Datos con experiencia en React y Python. Sistemas a medida en la nube, con base de datos y backend, y páginas web para empresas en Neuquén y toda Argentina.',
+  keywords: ['React', 'Python', 'Power BI', 'Full Stack', 'Developer', 'Data Analytics', 'Argentina', 'Neuquén', 'diseño web Neuquén', 'páginas web para empresas', 'sistemas a medida', 'sistemas en la nube', 'desarrollo backend'],
   authors: [{ name: 'Mariano Aliandri' }],
   creator: 'Mariano Aliandri',
   openGraph: {

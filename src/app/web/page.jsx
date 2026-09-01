@@ -1,10 +1,10 @@
 export const metadata = {
-  title: 'Cotizador de Sitios Web',
-  description: 'Obtené un presupuesto instantáneo para tu sitio web. Elegí las funcionalidades que necesitás y conocé el precio al instante.',
+  title: 'Cotizador de Páginas Web para Empresas | Neuquén',
+  description: 'Obtené un presupuesto instantáneo para tu página web empresarial. Diseño y desarrollo web en Neuquén y todo el país — elegí las funcionalidades y conocé el precio al instante.',
   alternates: { canonical: 'https://marianoaliandri.com.ar/web/' },
   openGraph: {
-    title: 'Cotizador de Sitios Web — Gratis | Mariano Aliandri',
-    description: 'Obtené un presupuesto instantáneo para tu sitio web.',
+    title: 'Cotizador de Páginas Web para Empresas — Gratis | Mariano Aliandri',
+    description: 'Obtené un presupuesto instantáneo para tu página web empresarial. Neuquén y todo el país.',
     url: 'https://marianoaliandri.com.ar/web/',
     images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
   },
@@ -15,7 +15,7 @@ const schema = {
   '@type': 'WebApplication',
   name: 'Cotizador de Sitios Web',
   url: 'https://marianoaliandri.com.ar/web/',
-  description: 'Herramienta gratuita para obtener un presupuesto instantáneo de desarrollo web. Elegí las funcionalidades que necesitás (landing page, e-commerce, chatbot IA, etc.) y conocé el precio estimado al instante.',
+  description: 'Herramienta gratuita para obtener un presupuesto instantáneo de desarrollo de páginas web para empresas en Neuquén y toda Argentina. Elegí las funcionalidades que necesitás (landing page, e-commerce, chatbot IA, etc.) y conocé el precio estimado al instante.',
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
@@ -39,12 +39,13 @@ export default function ToolPage() {
       />
       <main className="max-w-2xl mx-auto px-4 py-16 text-center">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-          Cotizador de Sitios Web
+          Cotizador de Páginas Web para Empresas
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
-          Obtené un presupuesto instantáneo para tu proyecto web. Seleccioná el tipo de sitio
-          y las funcionalidades que necesitás — landing page, e-commerce, chatbot con IA,
-          panel de administración — y conocé el precio estimado al instante.
+          Obtené un presupuesto instantáneo para la página web de tu empresa o negocio. Diseño y
+          desarrollo web en Neuquén y todo el país. Seleccioná el tipo de sitio y las
+          funcionalidades que necesitás — landing page, e-commerce, chatbot con IA, panel de
+          administración — y conocé el precio estimado al instante.
         </p>
         <ul className="text-sm text-gray-500 dark:text-gray-400 space-y-1 mb-8">
           <li>✓ Configurador de funcionalidades paso a paso</li>
@@ -83,6 +84,10 @@ export default function ToolPage() {
               <div>
                 <h3 className="font-semibold text-gray-800 dark:text-gray-200">¿Incluye posicionamiento en Google?</h3>
                 <p className="text-gray-600 dark:text-gray-400">Sí, podés sumar SEO técnico para que el sitio aparezca en las búsquedas sin depender de publicidad paga.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200">¿Trabajás con empresas de Neuquén?</h3>
+                <p className="text-gray-600 dark:text-gray-400">Sí, estoy en Neuquén capital y trabajo con negocios de la ciudad, el Comahue y también de forma remota en todo el país.</p>
               </div>
             </div>
           </section>
