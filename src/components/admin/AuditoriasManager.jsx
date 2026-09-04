@@ -566,6 +566,126 @@ function SendEmailButton({ neg, auditoriaId, alreadySent, onSent }) {
   );
 }
 
+function GenerateDMButton({ neg }) {
+  const [open, setOpen]     = useState(false);
+  const [busy, setBusy]     = useState(false);
+  const [dmText, setDmText] = useState('');
+  const [source, setSource] = useState(null); // 'gemini' | 'template'
+  const [errorMsg, setErrorMsg] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const payload = {
+    nombre:     neg.nombre,
+    siteUrl:    neg.siteUrl,
+    seoScore:   neg.seoScore,
+    hasSitemap: neg.hasSitemap,
+    hasRobots:  neg.hasRobots,
+    metaDesc:   neg.metaDesc,
+    hasOG:      neg.hasOG,
+    ciudad:     neg.ciudad,
+    tipo:       neg.tipo,
+  };
+
+  const generate = async () => {
+    setBusy(true); setErrorMsg(''); setCopied(false);
+    try {
+      const resp = await fetch('/api/auditorias/generate-dm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || 'Error al generar');
+      setDmText(data.dmText || '');
+      setSource(data.source || null);
+      setOpen(true);
+    } catch (e) {
+      setErrorMsg(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(dmText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch { /* clipboard puede fallar sin https/permiso, no rompemos nada */ }
+  };
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <button
+        onClick={generate}
+        disabled={busy}
+        title={`Generar DM de Instagram para ${neg.nombre}`}
+        className={`shrink-0 px-2 py-0.5 rounded text-xs font-medium transition-colors
+          ${busy ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-wait'
+                 : 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 hover:bg-pink-200 dark:hover:bg-pink-900/50'}`}>
+        {busy && !open ? '⏳ Generando…' : '📷 Generar DM'}
+      </button>
+      {!open && errorMsg && (
+        <span className="text-[10px] text-red-500 max-w-[130px] truncate" title={errorMsg}>{errorMsg}</span>
+      )}
+
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => !busy && setOpen(false)}
+        >
+          <div
+            className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 w-full max-w-md max-h-[85vh] overflow-y-auto p-5 text-left"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">DM de Instagram</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Para <strong>{neg.nombre}</strong></p>
+              </div>
+              <button onClick={() => setOpen(false)} disabled={busy}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none disabled:opacity-40">✕</button>
+            </div>
+
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-medium text-gray-500">Mensaje (podés editarlo)</label>
+              {source === 'gemini'   && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">✨ IA (Gemini)</span>}
+              {source === 'template' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" title="Gemini no disponible — se usó una plantilla">✍️ Plantilla</span>}
+            </div>
+            <textarea
+              value={dmText}
+              onChange={e => setDmText(e.target.value)}
+              rows={5}
+              disabled={busy}
+              className="w-full text-sm bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl p-3 text-gray-700 dark:text-gray-200 leading-relaxed focus:outline-none focus:ring-2 focus:ring-pink-400/50 resize-y disabled:opacity-60"
+            />
+
+            <p className="text-[11px] text-gray-400 mt-2">
+              Buscá a <strong>{neg.nombre}</strong> en Instagram y pegalo en el DM a mano — no hay forma
+              segura de automatizar esto sin arriesgar la cuenta.
+            </p>
+
+            {errorMsg && <p className="mt-3 text-xs text-red-500">{errorMsg}</p>}
+
+            <div className="flex items-center justify-end gap-2 mt-4">
+              <button onClick={generate} disabled={busy}
+                className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-xl transition-colors disabled:opacity-40">
+                {busy ? '↻ Regenerando…' : '↻ Regenerar'}
+              </button>
+              <button onClick={copy} disabled={busy || !dmText.trim()}
+                className={`px-4 py-2 text-sm rounded-xl transition-colors disabled:opacity-50 ${
+                  copied ? 'bg-green-600 text-white' : 'bg-pink-600 text-white hover:bg-pink-700'
+                }`}>
+                {copied ? '✓ Copiado' : '📋 Copiar mensaje'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AuditoriaDetail({ id }) {
   const [data, setData]     = useState(null);
   const [loading, setLoading] = useState(true);
@@ -697,7 +817,7 @@ function AuditoriaDetail({ id }) {
         <table className="min-w-full text-xs">
           <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
             <tr className="border-b border-gray-200 dark:border-gray-700">
-              {['Negocio', 'Ciudad', 'Sitio web', 'Score', 'Sitemap', 'Robots', 'Meta', 'OG', '★', 'Email'].map(h => (
+              {['Negocio', 'Ciudad', 'Sitio web', 'Score', 'Sitemap', 'Robots', 'Meta', 'OG', '★', 'Email', 'DM'].map(h => (
                 <th key={h} className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{h}</th>
               ))}
             </tr>
@@ -732,6 +852,9 @@ function AuditoriaDetail({ id }) {
                 </td>
                 <td className="px-3 py-2">
                   <SendEmailButton neg={neg} auditoriaId={id} alreadySent={sentSet.has(neg.email)} onSent={markSent} />
+                </td>
+                <td className="px-3 py-2">
+                  <GenerateDMButton neg={neg} />
                 </td>
               </tr>
             ))}
