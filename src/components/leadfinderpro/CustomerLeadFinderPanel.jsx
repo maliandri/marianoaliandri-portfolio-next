@@ -1,13 +1,21 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { PROVINCIAS_AR } from '@/data/localidadesAR';
 import { RUBROS, CATEGORIAS_RUBROS, DEFAULT_TIPOS } from '@/data/rubros';
 import { useAuthUser } from '@/hooks/useAuthUser';
 
 const TIPOS = RUBROS;
 const CATEGORIAS = CATEGORIAS_RUBROS;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// Separa "Ciudad, País" en sus dos partes. Sin coma, se manda solo la ciudad
+// (Nominatim igual la resuelve, con menos precisión) — ver geocode en
+// src/app/api/lead-finder/route.js, que ya soporta country vacío.
+function parseZona(raw) {
+  const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+  if (parts.length < 2) return { city: raw.trim(), country: '' };
+  return { city: parts.slice(0, -1).join(', '), country: parts[parts.length - 1] };
+}
 
 function shortUrl(url) {
   if (!url) return '';
@@ -26,7 +34,7 @@ export default function CustomerLeadFinderPanel() {
   const { getIdToken } = useAuthUser();
 
   const [ciudades, setCiudades]       = useState([]);
-  const [ciudadInput, setCiudadInput] = useState('');
+  const [zonaInput, setZonaInput]     = useState('');
   const [tipos, setTipos]             = useState(DEFAULT_TIPOS);
   const [terminos, setTerminos]       = useState([]);
   const [terminoInput, setTerminoInput] = useState('');
@@ -99,7 +107,8 @@ export default function CustomerLeadFinderPanel() {
 
         let lat, lon;
         try {
-          const geo = await callFn('geocode', { city: ciudad, country: 'Argentina' });
+          const { city, country } = parseZona(ciudad);
+          const geo = await callFn('geocode', { city, country });
           lat = geo.lat; lon = geo.lon;
         } catch (e) {
           if (stopRef.current) throw e;
@@ -400,7 +409,9 @@ export default function CustomerLeadFinderPanel() {
         {showConfig && (
           <div className="p-5 space-y-4 border-t border-white/10">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-2">Localidad</label>
+              <label className="block text-xs font-medium text-gray-400 mb-2">
+                Localidad <span className="text-gray-600 font-normal">(cualquier país — ej. &quot;Neuquén, Argentina&quot; o &quot;Miami, USA&quot;)</span>
+              </label>
               {ciudades.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {ciudades.map(c => (
@@ -412,31 +423,29 @@ export default function CustomerLeadFinderPanel() {
                 </div>
               )}
               <div className="flex gap-2">
-                <select
-                  value={ciudadInput.split('||')[0] || ''}
-                  onChange={e => setCiudadInput(e.target.value + '||')}
+                <input
+                  type="text"
+                  value={zonaInput}
+                  onChange={e => setZonaInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && zonaInput.trim()) {
+                      e.preventDefault();
+                      const v = zonaInput.trim();
+                      if (!ciudades.includes(v)) setCiudades(prev => [...prev, v]);
+                      setZonaInput('');
+                    }
+                  }}
                   disabled={isRunning}
-                  className="flex-1 px-3 py-2 bg-[#0a0a0a] border border-white/10 rounded-lg text-white text-sm"
-                >
-                  <option value="">— Provincia —</option>
-                  {PROVINCIAS_AR.map(p => <option key={p.provincia} value={p.provincia}>{p.provincia}</option>)}
-                </select>
-                <select
-                  value={ciudadInput.split('||')[1] || ''}
-                  onChange={e => setCiudadInput((ciudadInput.split('||')[0] || '') + '||' + e.target.value)}
-                  disabled={isRunning || !ciudadInput.split('||')[0]}
-                  className="flex-1 px-3 py-2 bg-[#0a0a0a] border border-white/10 rounded-lg text-white text-sm disabled:opacity-40"
-                >
-                  <option value="">— Localidad —</option>
-                  {(PROVINCIAS_AR.find(p => p.provincia === ciudadInput.split('||')[0])?.localidades || []).map(l => <option key={l} value={l}>{l}</option>)}
-                </select>
+                  placeholder="Ciudad, País… (Enter)"
+                  className="flex-1 px-3 py-2 bg-[#0a0a0a] border border-white/10 rounded-lg text-white text-sm placeholder-gray-600"
+                />
                 <button
                   onClick={() => {
-                    const loc = ciudadInput.split('||')[1]?.trim();
-                    if (loc && !ciudades.includes(loc)) setCiudades(prev => [...prev, loc]);
-                    setCiudadInput('');
+                    const v = zonaInput.trim();
+                    if (v && !ciudades.includes(v)) setCiudades(prev => [...prev, v]);
+                    setZonaInput('');
                   }}
-                  disabled={isRunning || !ciudadInput.split('||')[1]?.trim()}
+                  disabled={isRunning || !zonaInput.trim()}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-lg text-sm font-medium transition-colors"
                 >
                   + Agregar

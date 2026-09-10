@@ -43,3 +43,8 @@ next-env.d.ts
 
 .env*.local
 .env.vercel.local
+
+# trabajo local de la publicacion en Play Store (no subir a git)
+PLAYSTORE.md
+PLAYSTORE-BLOQUEOS.md
+/capturas-proyectos

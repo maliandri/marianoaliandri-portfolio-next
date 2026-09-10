@@ -202,7 +202,7 @@ export async function runLeadFinderAction(action, params, clientKey) {
     switch (action) {
       case 'geocode': {
         const { city, country } = params;
-        const q = encodeURIComponent(`${city}, ${country}`);
+        const q = encodeURIComponent(country ? `${city}, ${country}` : city);
         const resp = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
           headers: { 'User-Agent': 'LeadFinderAdmin/1.0' }, signal: AbortSignal.timeout(9000),
         });

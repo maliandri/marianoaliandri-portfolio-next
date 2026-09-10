@@ -1,0 +1,20 @@
+{
+  "name": "Lead Finder Pro",
+  "short_name": "Lead Finder Pro",
+  "description": "Auditá negocios locales de cualquier zona: sitio web, score SEO, teléfono y rating.",
+  "start_url": "/lead-finder-pro/buscar/",
+  "scope": "/lead-finder-pro/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0a0a",
+  "theme_color": "#4f46e5",
+  "lang": "es-AR",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-192x192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-512x512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
