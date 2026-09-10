@@ -16,6 +16,23 @@ export async function POST(request) {
       return Response.json({ error: 'Error de base de datos' }, { status: 500 });
     }
 
+    // Dedupe: si este mismo email mandó los mismos servicios en los últimos 10 minutos
+    // (doble clic, reintento de red, o el cliente resubmitiendo por las dudas), devolvemos
+    // la solicitud ya creada en vez de guardar un duplicado. Filtramos solo por email
+    // (single-field, no requiere índice compuesto) y el resto en memoria — el volumen por
+    // cliente es siempre chico.
+    const dedupeSinceMs = Date.now() - 10 * 60 * 1000;
+    const recentSnap = await db.collection('presupuestos').where('clientEmail', '==', clientEmail).get();
+    const sortedIncoming = [...selectedServices].sort().join(',');
+    const dupe = recentSnap.docs.find(d => {
+      const data = d.data();
+      const createdMs = data.createdAt?.toMillis?.() ?? 0;
+      return createdMs >= dedupeSinceMs && [...(data.selectedServices || [])].sort().join(',') === sortedIncoming;
+    });
+    if (dupe) {
+      return Response.json({ success: true, budgetId: dupe.id, deduped: true });
+    }
+
     const docRef = await db.collection('presupuestos').add({
       clientName,
       clientEmail,
@@ -79,6 +96,22 @@ export async function PATCH(request) {
   } catch (error) {
     console.error('presupuesto PATCH error:', error);
     return Response.json({ error: 'Error al actualizar' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request) {
+  try {
+    const id = new URL(request.url).searchParams.get('id');
+    if (!id) return Response.json({ error: 'id requerido' }, { status: 400 });
+
+    const db = getDb();
+    if (!db) return Response.json({ error: 'Error de base de datos' }, { status: 500 });
+
+    await db.collection('presupuestos').doc(id).delete();
+    return Response.json({ success: true });
+  } catch (error) {
+    console.error('presupuesto DELETE error:', error);
+    return Response.json({ error: 'Error al eliminar' }, { status: 500 });
   }
 }
 

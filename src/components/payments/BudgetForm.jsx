@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const LAST_SENT_KEY = 'presupuesto_last_sent';
 
 const SERVICES = [
   {
@@ -176,6 +178,16 @@ export default function BudgetForm() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
+  const [lastSent, setLastSent] = useState(null); // { email, servicesCount, when } — de una visita anterior
+
+  // Si ya mandaste una solicitud antes (mismo navegador), lo mostramos en vez de un
+  // formulario vacío — evita reenvíos por las dudas de "¿esto se habrá enviado?".
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LAST_SENT_KEY);
+      if (raw) setLastSent(JSON.parse(raw));
+    } catch { /* localStorage no disponible */ }
+  }, []);
 
   const toggleService = (id) => {
     setSelected(prev => {
@@ -201,6 +213,11 @@ export default function BudgetForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al enviar');
       setDone(true);
+      try {
+        localStorage.setItem(LAST_SENT_KEY, JSON.stringify({
+          email: form.clientEmail, servicesCount: selectedItems.length, when: new Date().toISOString(),
+        }));
+      } catch { /* localStorage no disponible */ }
     } catch (e) {
       setError(e.message);
     } finally {
@@ -225,6 +242,30 @@ export default function BudgetForm() {
           Recibí tu solicitud con {selectedItems.length} servicios seleccionados. Te respondo en menos de 24 horas con el presupuesto detallado.
         </p>
         <p className="text-gray-600 text-sm mt-4">📧 Revisá {form.clientEmail}</p>
+      </motion.div>
+    );
+  }
+
+  // Ya mandó una solicitud antes desde este navegador y todavía no tocó nada del
+  // formulario actual — se lo mostramos en vez de un formulario vacío, para que no
+  // reenvíe por las dudas. Si de verdad quiere mandar otra, puede seguir de largo.
+  if (lastSent && step === 0 && !form.clientName && !form.projectDescription) {
+    const when = new Date(lastSent.when).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16">
+        <p className="text-3xl mb-4">✅</p>
+        <h2 className="text-xl font-bold text-white mb-3">Ya enviaste una solicitud</h2>
+        <p className="text-gray-400 max-w-md mx-auto text-sm">
+          El {when} enviaste una solicitud con {lastSent.servicesCount} servicio{lastSent.servicesCount !== 1 ? 's' : ''}
+          {lastSent.email ? <> a nombre de <span className="text-white">{lastSent.email}</span></> : ''}.
+          Si todavía no te respondimos, dentro de las 24 horas te llega el presupuesto — no hace falta reenviarla.
+        </p>
+        <button
+          onClick={() => setLastSent(null)}
+          className="mt-6 text-indigo-400 hover:text-indigo-300 text-sm underline"
+        >
+          Necesito enviar una solicitud distinta →
+        </button>
       </motion.div>
     );
   }
