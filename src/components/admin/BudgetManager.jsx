@@ -28,6 +28,19 @@ function clientKey(b) {
   return (b.clientEmail || '').trim().toLowerCase() || `sin-email:${b.clientName}`;
 }
 
+// Devuelve la lista de pagos de un presupuesto. Compatibilidad: si todavía tiene el
+// campo viejo de un solo pago (paymentDate/paymentAmount, antes de soportar varios),
+// lo muestra como si fuera el primer pago de la lista.
+function getPayments(b) {
+  if (Array.isArray(b.payments)) return b.payments;
+  if (b.paymentDate || b.paymentAmount) return [{ id: 'legacy', date: b.paymentDate || '', amount: b.paymentAmount || 0 }];
+  return [];
+}
+
+function sumPayments(b) {
+  return getPayments(b).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+}
+
 function StatusBadge({ status }) {
   const c = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
   return (
@@ -41,8 +54,9 @@ function BudgetDetail({ budget, onClose, onOpenInBuilder, onDelete }) {
   const [budgetUSD, setBudgetUSD] = useState(budget.budgetUSD || '');
   const [budgetARS, setBudgetARS] = useState(budget.budgetARS || '');
   const [adminNotes, setAdminNotes] = useState(budget.adminNotes || '');
-  const [paymentDate, setPaymentDate] = useState(budget.paymentDate || '');
-  const [paymentAmount, setPaymentAmount] = useState(budget.paymentAmount || '');
+  const [payments, setPayments] = useState(getPayments(budget));
+  const [newPaymentDate, setNewPaymentDate] = useState('');
+  const [newPaymentAmount, setNewPaymentAmount] = useState('');
   const [savingPayment, setSavingPayment] = useState(false);
   const [saving, setSaving] = useState(false);
   const [generatingMP, setGeneratingMP] = useState(false);
@@ -131,15 +145,30 @@ function BudgetDetail({ budget, onClose, onOpenInBuilder, onDelete }) {
     setTimeout(() => setMsg(''), 2000);
   };
 
-  const handleSavePayment = async () => {
+  const savePayments = async (next) => {
     setSavingPayment(true);
     try {
-      await patch({ paymentDate: paymentDate || null, paymentAmount: Number(paymentAmount) || null });
-      budget.paymentDate = paymentDate; budget.paymentAmount = Number(paymentAmount) || null;
+      // Limpiamos los campos viejos de un solo pago para no dejar datos duplicados/confusos.
+      await patch({ payments: next, paymentDate: null, paymentAmount: null });
+      budget.payments = next;
+      setPayments(next);
       setMsg('Pago guardado ✓');
     } catch { setMsg('Error al guardar el pago'); }
     finally { setSavingPayment(false); setTimeout(() => setMsg(''), 3000); }
   };
+
+  const handleAddPayment = () => {
+    if (!newPaymentDate || !newPaymentAmount) { setMsg('Completá fecha y monto'); setTimeout(() => setMsg(''), 2000); return; }
+    const next = [...payments, { id: Date.now().toString(), date: newPaymentDate, amount: Number(newPaymentAmount) }];
+    setNewPaymentDate(''); setNewPaymentAmount('');
+    savePayments(next);
+  };
+
+  const handleRemovePayment = (id) => {
+    savePayments(payments.filter(p => p.id !== id));
+  };
+
+  const totalPaidThisBudget = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
   const createdAt = budget.createdAt ? new Date(budget.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
@@ -205,26 +234,42 @@ function BudgetDetail({ budget, onClose, onOpenInBuilder, onDelete }) {
             </div>
           </section>
 
-          {/* Pago recibido — seguimiento manual, solo relevante una vez aceptado */}
+          {/* Pagos recibidos — seguimiento manual, admite varios (adelantos, cuotas) */}
           {budget.status === 'accepted' && (
             <section>
-              <h4 className="text-gray-400 text-xs uppercase tracking-wider mb-3">💵 Pago recibido</h4>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-gray-400 text-xs uppercase tracking-wider">💵 Pagos recibidos</h4>
+                {payments.length > 0 && (
+                  <span className="text-green-400 text-xs font-semibold">Total: ARS {totalPaidThisBudget.toLocaleString('es-AR')}</span>
+                )}
+              </div>
               <div className="bg-[#111] border border-white/10 rounded-xl p-4 space-y-3">
+                {payments.length > 0 && (
+                  <div className="space-y-2 mb-1">
+                    {payments.map(p => (
+                      <div key={p.id} className="flex items-center justify-between bg-[#0a0a0a] border border-white/10 rounded-lg px-3 py-2">
+                        <span className="text-gray-300 text-sm">{new Date(p.date + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        <span className="text-white text-sm font-medium">ARS {Number(p.amount).toLocaleString('es-AR')}</span>
+                        <button onClick={() => handleRemovePayment(p.id)} disabled={savingPayment} className="text-red-400/70 hover:text-red-400 text-xs disabled:opacity-40">🗑</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-gray-500 text-xs mb-1 block">Fecha de pago</label>
-                    <input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)}
+                    <input type="date" value={newPaymentDate} onChange={e => setNewPaymentDate(e.target.value)}
                       className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 focus:outline-none text-sm" />
                   </div>
                   <div>
-                    <label className="text-gray-500 text-xs mb-1 block">Monto pagado (ARS)</label>
-                    <input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} placeholder="0"
+                    <label className="text-gray-500 text-xs mb-1 block">Monto (ARS)</label>
+                    <input type="number" value={newPaymentAmount} onChange={e => setNewPaymentAmount(e.target.value)} placeholder="0"
                       className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 focus:outline-none text-sm" />
                   </div>
                 </div>
-                <button onClick={handleSavePayment} disabled={savingPayment}
+                <button onClick={handleAddPayment} disabled={savingPayment}
                   className="w-full bg-green-600/15 border border-green-500/40 hover:bg-green-600/25 text-green-300 py-2 rounded-xl text-sm transition-colors disabled:opacity-50">
-                  {savingPayment ? 'Guardando...' : 'Guardar pago'}
+                  {savingPayment ? 'Guardando...' : '+ Agregar pago'}
                 </button>
               </div>
             </section>
@@ -426,10 +471,9 @@ export default function BudgetManager({ onOpenInBuilder }) {
 
   const filtered = filter === 'all' ? budgets : budgets.filter(b => b.status === filter);
   const showPaymentCols = filter === 'accepted';
-  const totalPaid = filtered.reduce((sum, b) => sum + (Number(b.paymentAmount) || 0), 0);
+  const totalPaid = filtered.reduce((sum, b) => sum + sumPayments(b), 0);
 
   const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
-  const formatPaymentDate = (d) => d ? new Date(d + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
   return (
     <div className="space-y-5">
@@ -554,12 +598,14 @@ export default function BudgetManager({ onOpenInBuilder }) {
                 <th className="pb-3 pr-4">Servicios</th>
                 <th className="pb-3 pr-4">Estado</th>
                 <th className="pb-3 pr-4">Fecha</th>
-                {showPaymentCols && <th className="pb-3 pr-4">Fecha de pago</th>}
-                {showPaymentCols && <th className="pb-3">Monto pagado</th>}
+                {showPaymentCols && <th className="pb-3 pr-4">Pagos</th>}
+                {showPaymentCols && <th className="pb-3">Total pagado</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {filtered.map(b => (
+              {filtered.map(b => {
+                const bPayments = getPayments(b);
+                return (
                 <tr
                   key={b.id}
                   onClick={() => setSelected(b)}
@@ -573,10 +619,11 @@ export default function BudgetManager({ onOpenInBuilder }) {
                   <td className="py-3 pr-4 text-gray-700 dark:text-gray-300">{(b.selectedServices || []).length} servicios</td>
                   <td className="py-3 pr-4"><StatusBadge status={b.status} /></td>
                   <td className="py-3 pr-4 text-gray-400 text-xs whitespace-nowrap">{formatDate(b.createdAt)}</td>
-                  {showPaymentCols && <td className="py-3 pr-4 text-gray-400 text-xs whitespace-nowrap">{formatPaymentDate(b.paymentDate)}</td>}
-                  {showPaymentCols && <td className="py-3 text-gray-300 text-xs whitespace-nowrap">{b.paymentAmount ? `ARS ${Number(b.paymentAmount).toLocaleString('es-AR')}` : '—'}</td>}
+                  {showPaymentCols && <td className="py-3 pr-4 text-gray-400 text-xs whitespace-nowrap">{bPayments.length || '—'}</td>}
+                  {showPaymentCols && <td className="py-3 text-gray-300 text-xs whitespace-nowrap">{bPayments.length ? `ARS ${sumPayments(b).toLocaleString('es-AR')}` : '—'}</td>}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
