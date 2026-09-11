@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { trackGAEvent } from '@/utils/firebaseservice';
 
 const WhatsAppButton = () => {
   const [currentSection, setCurrentSection] = useState('Inicio');
@@ -80,6 +81,7 @@ const WhatsAppButton = () => {
   }, [pathname]);
 
   const handleClick = () => {
+    trackGAEvent('whatsapp_click', { section: currentSection, page_path: pathname });
     const message = `¡Hola Mariano! 👋 Te escribo desde tu web, sección: *${currentSection}*. Me gustaría consultarte sobre...`;
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;

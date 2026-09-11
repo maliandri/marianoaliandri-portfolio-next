@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { trackGAEvent } from '@/utils/firebaseservice';
 
 const LAST_SENT_KEY = 'presupuesto_last_sent';
 
@@ -213,6 +214,7 @@ export default function BudgetForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al enviar');
       setDone(true);
+      trackGAEvent('generate_lead', { services_count: selectedItems.length, estimated_value: estimatedTotal });
       try {
         localStorage.setItem(LAST_SENT_KEY, JSON.stringify({
           email: form.clientEmail, servicesCount: selectedItems.length, when: new Date().toISOString(),

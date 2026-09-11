@@ -8,6 +8,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { queryClient } from '@/utils/queryClient';
 import { CartProvider } from '@/context/CartContext';
+import { trackGAEvent } from '@/utils/firebaseservice';
 
 // UI Components (critical - load immediately)
 import ThemeToggle from '@/components/ui/ThemeToggle';
@@ -272,6 +273,16 @@ function AppChromeInner({ children }) {
   const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/');
 
   const closeTool = () => router.push('/');
+
+  // GA4 page_view en cada cambio de ruta — Next.js App Router no lo dispara solo
+  // (no es una navegación de documento completa), hay que engancharlo a mano.
+  useEffect(() => {
+    trackGAEvent('page_view', {
+      page_path: pathname,
+      page_location: window.location.href,
+      page_title: document.title,
+    });
+  }, [pathname]);
 
   return (
     <div className="App font-sans min-h-screen text-gray-800 bg-gray-50 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-500 relative overflow-x-hidden">

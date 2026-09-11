@@ -28,6 +28,7 @@ import {
   signOut,
   onAuthStateChanged
 } from 'firebase/auth';
+import { getAnalytics, logEvent, isSupported } from 'firebase/analytics';
 
 // 🔥 CONFIGURACIÓN DE FIREBASE - MARIANO ALIANDRI (FIRESTORE)
 // Las credenciales se cargan desde variables de entorno (.env)
@@ -47,6 +48,22 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
+
+// Firebase Analytics (GA4) — solo en browser, isSupported() descarta SSR y
+// navegadores sin soporte (ej. bloqueadores de tracking). analyticsPromise se
+// resuelve una sola vez y las llamadas a trackGAEvent quedan encoladas hasta
+// entonces, sin perder eventos disparados apenas carga la página.
+const analyticsPromise = typeof window !== 'undefined'
+  ? isSupported().then(supported => (supported ? getAnalytics(app) : null)).catch(() => null)
+  : Promise.resolve(null);
+
+// Evento genérico de GA4 — page_view, clicks en CTAs, etc. No hace nada si
+// Analytics no está disponible (SSR, bloqueador, measurementId sin configurar).
+export function trackGAEvent(eventName, params = {}) {
+  analyticsPromise.then(analytics => {
+    if (analytics) logEvent(analytics, eventName, params);
+  });
+}
 
 // Clase para manejar analytics de tu portfolio con Firestore
 export class FirebaseAnalyticsService {
