@@ -136,9 +136,12 @@ class CanvasReelService {
     }
 
     // ── 3. Imagen de fondo (cover, zona central) ─────────────────────────────
+    // idx/imgDur quedan disponibles fuera del if para el texto por-slide (modo
+    // multi-producto): cada imagen puede traer su propio título/subtítulo.
+    const imgDur = validImgs.length > 0 ? duration / validImgs.length : duration;
+    let idx = 0;
     if (validImgs.length > 0) {
-      const imgDur   = duration / validImgs.length;
-      const idx      = Math.floor(elapsed / imgDur) % validImgs.length;
+      idx = Math.floor(elapsed / imgDur) % validImgs.length;
       const next     = (idx + 1) % validImgs.length;
       const localP   = (elapsed % imgDur) / imgDur;
       const crossStart = 0.75;
@@ -151,10 +154,10 @@ class CanvasReelService {
 
       if (localP > crossStart) {
         const crossAlpha = (localP - crossStart) / (1 - crossStart);
-        this._drawCoverInZone(ctx, validImgs[idx],  W, midH, midY, 1);
-        this._drawCoverInZone(ctx, validImgs[next], W, midH, midY, crossAlpha);
+        this._drawCoverInZone(ctx, validImgs[idx],  W, midH, midY, 1, localP);
+        this._drawCoverInZone(ctx, validImgs[next], W, midH, midY, crossAlpha, 0);
       } else {
-        this._drawCoverInZone(ctx, validImgs[idx], W, midH, midY, 1);
+        this._drawCoverInZone(ctx, validImgs[idx], W, midH, midY, 1, localP);
       }
       ctx.restore();
     } else {
@@ -192,11 +195,19 @@ class CanvasReelService {
     ctx.restore();
 
     // ── 5. Texto principal (zona central, clipeado para no pisar CTA) ─────────
+    // Modo multi-producto: config.titles trae un título por imagen — cada vez que
+    // cambia la imagen, el texto se reanima desde cero (elapsed local a esa slide)
+    // en vez de mostrar siempre el mismo título estático de punta a punta.
+    const perSlide     = Array.isArray(config.titles) && config.titles.length > 0;
+    const activeTitle  = perSlide ? (config.titles[idx] ?? title) : title;
+    const activeSub    = perSlide ? (config.subtitles?.[idx] ?? '') : subtitle;
+    const textElapsed  = perSlide ? (elapsed % imgDur) : elapsed;
+
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, midY, W, midH);
     ctx.clip();
-    this._drawText(ctx, W, H, midY, midH, elapsed, title, subtitle, textEffect, duration);
+    this._drawText(ctx, W, H, midY, midH, textElapsed, activeTitle, activeSub, textEffect, duration);
     ctx.restore();
 
     // ── 6. Zona inferior: fondo oscuro + CTA ─────────────────────────────────
@@ -229,8 +240,10 @@ class CanvasReelService {
     ctx.fillRect(0, barY, W * Math.min(elapsed / duration, 1), barH);
   }
 
-  // Dibuja imagen cover dentro de una zona Y offset (sin clip externo)
-  _drawCoverInZone(ctx, img, W, zoneH, zoneY, alpha) {
+  // Dibuja imagen cover dentro de una zona Y offset (sin clip externo).
+  // `progress` (0..1, tiempo transcurrido de ESTA imagen en pantalla) genera un Ken
+  // Burns sutil: zoom continuo 1.0→1.06 hacia el centro, en vez de imagen estática.
+  _drawCoverInZone(ctx, img, W, zoneH, zoneY, alpha, progress = 0) {
     if (!img) return;
     const imgRatio    = img.width / img.height;
     const zoneRatio   = W / zoneH;
@@ -246,9 +259,16 @@ class CanvasReelService {
       sx = 0;
       sy = (img.height - sh) / 2;
     }
+    // Ken Burns: recorta una porción cada vez más chica del source (centrada),
+    // manteniendo el destino fijo — visualmente es un zoom-in hacia el centro.
+    const zoom = 1 + Math.max(0, Math.min(1, progress)) * 0.06;
+    const zsw = sw / zoom;
+    const zsh = sh / zoom;
+    const zsx = sx + (sw - zsw) / 2;
+    const zsy = sy + (sh - zsh) / 2;
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.drawImage(img, sx, sy, sw, sh, 0, zoneY, W, zoneH);
+    ctx.drawImage(img, zsx, zsy, zsw, zsh, 0, zoneY, W, zoneH);
     ctx.restore();
   }
 

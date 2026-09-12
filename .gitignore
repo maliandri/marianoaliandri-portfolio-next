@@ -48,3 +48,6 @@ next-env.d.ts
 PLAYSTORE.md
 PLAYSTORE-BLOQUEOS.md
 /capturas-proyectos
+
+# config local de Claude Code (por maquina, no del proyecto)
+.claude/settings.local.json

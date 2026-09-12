@@ -52,15 +52,26 @@ export default function CanvasReelGenerator() {
   const [priceLabel, setPriceLabel]           = useState('');
   const [showPrice, setShowPrice]             = useState(false);
 
+  // ── Multi-producto: varios items en un mismo reel, un slide c/u ──
+  const [multiMode, setMultiMode]             = useState(false);
+  const [multiSelectedIds, setMultiSelectedIds] = useState([]);
+  const MULTI_MAX = 4;
+
   // ── Script (paso 2) ──
   const [script, setScript]           = useState('');
   const [scriptLoading, setScriptLoading] = useState(false);
   const [scriptError, setScriptError] = useState(null);
 
-  // ── Audio (paso 3) ──
+  // ── Audio (paso 3) — música vía Jamendo (catálogo real, gratis) ──
   const [mood, setMood]               = useState('upbeat');
   const [musicUrl, setMusicUrl]       = useState('');
   const [musicLoading, setMusicLoading] = useState(false);
+  const [musicTracks, setMusicTracks] = useState([]);
+  const [musicOffset, setMusicOffset] = useState(0);
+  const [hasMoreMusic, setHasMoreMusic] = useState(false);
+  const [musicQuery, setMusicQuery]   = useState('');
+  const [selectedTrack, setSelectedTrack] = useState(null);
+  const [previewingTrackId, setPreviewingTrackId] = useState(null);
   const [ttsBase64, setTtsBase64]     = useState('');
   const [ttsLoading, setTtsLoading]   = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
@@ -98,13 +109,64 @@ export default function CanvasReelGenerator() {
       .catch(() => {});
   }, [activeTab]);
 
-  // Auto-seleccionar primero al cambiar tab
+  // Auto-seleccionar primero al cambiar tab (solo en modo single)
   useEffect(() => {
+    if (multiMode) return;
     if (activeTab === 'producto' && products.length > 0)
       selectContent({ ...products[0], type: 'producto' }, [products[0].image].filter(Boolean));
     else if (activeTab === 'tecnologia')
       selectContent({ ...TECH_ITEMS[0], type: 'tecnologia' }, [TECH_ITEMS[0].imageUrl]);
-  }, [activeTab, products]);
+  }, [activeTab, products, multiMode]);
+
+  // Al cambiar de tab en modo multi, limpiar la selección (los ids son por tab)
+  useEffect(() => {
+    if (multiMode) setMultiSelectedIds([]);
+  }, [activeTab, multiMode]);
+
+  // Reconstruye selectedContent como un "combo" a partir de los items tildados
+  // en modo multi — un slide por item, con su propia imagen + título/subtítulo.
+  useEffect(() => {
+    if (!multiMode) return;
+    const pool = activeTab === 'producto' ? products
+      : activeTab === 'tecnologia' ? TECH_ITEMS
+      : projects.map((p) => ({ ...p, id: p.domain, name: p.domain }));
+
+    const items = multiSelectedIds
+      .map((id) => pool.find((it) => (it.id ?? it.domain) === id))
+      .filter(Boolean);
+
+    if (items.length === 0) {
+      setSelectedContent(null);
+      setSelectedImages([]);
+      return;
+    }
+
+    const images = items.map((it) => it.image || it.imageUrl || it.screenshotUrl).filter(Boolean);
+    const titles = items.map((it) => it.name || it.domain || 'Sin título');
+    const subtitles = items.map((it) => {
+      if (it.priceUSD) return `USD ${it.priceUSD}`;
+      if (it.priceARS || it.price) return formatARS(it.priceARS || it.price);
+      return it.category || '';
+    });
+
+    setSelectedContent({
+      type: activeTab,
+      multi: true,
+      items,
+      name: `${items.length} items combinados`,
+      titles,
+      subtitles,
+    });
+    setSelectedImages(images.slice(0, MULTI_MAX));
+    setVideoUrl(null);
+    setError(null);
+  }, [multiMode, multiSelectedIds, activeTab, products, projects]);
+
+  function toggleMultiSelect(id) {
+    setMultiSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < MULTI_MAX ? [...prev, id] : prev
+    );
+  }
 
   // Enriquecer con rental
   useEffect(() => {
@@ -164,6 +226,9 @@ export default function CanvasReelGenerator() {
     return {
       title:       customMainText || selectedContent?.name || selectedContent?.sitio || 'Sin título',
       subtitle:    textLines.join(' · '),
+      // Modo multi-producto: un título/subtítulo por imagen, se reanima al cambiar de slide
+      titles:      selectedContent?.multi ? selectedContent.titles : undefined,
+      subtitles:   selectedContent?.multi ? selectedContent.subtitles : undefined,
       textEffect,
       duration,
       musicUrl,
@@ -201,6 +266,9 @@ export default function CanvasReelGenerator() {
           contentType:        selectedContent.type || 'producto',
           contentName:        selectedContent.name || selectedContent.sitio || '',
           contentDescription: selectedContent.shortDescription || selectedContent.description || '',
+          items: selectedContent.multi
+            ? selectedContent.items.map((it) => ({ name: it.name || it.domain, description: it.shortDescription || it.description || it.category || '' }))
+            : undefined,
         }),
       });
       const data = await res.json();
@@ -214,30 +282,56 @@ export default function CanvasReelGenerator() {
     }
   }
 
-  // ── PASO 3: Música ────────────────────────────────────────────────────────
-  async function handleLoadMusic(selectedMood) {
-    setMood(selectedMood);
+  // ── PASO 3: Música — catálogo real vía Jamendo (gratis, buscable) ──────────
+  async function loadMusicTracks({ append = false, moodOverride, queryOverride } = {}) {
+    const useMood = moodOverride !== undefined ? moodOverride : mood;
+    const useQuery = queryOverride !== undefined ? queryOverride : musicQuery;
+    const offset = append ? musicOffset : 0;
     setMusicLoading(true);
     try {
-      const res  = await fetch('/api/reel-music', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mood: selectedMood }),
-      });
+      const params = new URLSearchParams({ mood: useMood, offset: String(offset) });
+      if (useQuery.trim()) params.set('q', useQuery.trim());
+      const res = await fetch(`/api/reel-music-jamendo?${params}`);
       const data = await res.json();
-      setMusicUrl(data.musicUrl || '');
+      if (data.error) throw new Error(data.error);
+      const newTracks = data.tracks || [];
+      setMusicTracks((prev) => (append ? [...prev, ...newTracks] : newTracks));
+      setMusicOffset(offset + newTracks.length);
+      setHasMoreMusic(newTracks.length === 20);
     } catch {
-      setMusicUrl('');
+      if (!append) setMusicTracks([]);
     } finally {
       setMusicLoading(false);
     }
   }
 
-  async function handlePreviewMusic() {
-    if (!musicUrl) return;
+  function handleLoadMusic(selectedMood) {
+    setMood(selectedMood);
+    setSelectedTrack(null);
+    setMusicUrl('');
+    loadMusicTracks({ moodOverride: selectedMood, queryOverride: '' });
+    setMusicQuery('');
+  }
+
+  function handleSearchMusic() {
+    setSelectedTrack(null);
+    loadMusicTracks({ queryOverride: musicQuery });
+  }
+
+  function selectTrack(track) {
+    setSelectedTrack(track);
+    setMusicUrl(track.audioUrl);
+  }
+
+  function previewTrack(track) {
     if (previewRef) { try { previewRef.source?.stop(); previewRef.audioCtx?.close(); } catch {} }
-    const ref = await canvasReelService.playAudioPreview(musicUrl, false);
-    setPreviewRef(ref);
+    if (previewingTrackId === track.id) { setPreviewingTrackId(null); return; }
+    const audio = new Audio(track.audioUrl);
+    audio.volume = 0.5;
+    audio.play().catch(() => {});
+    audio.onended = () => setPreviewingTrackId(null);
+    setPreviewRef({ source: { stop: () => audio.pause() }, audioCtx: null });
+    setPreviewingTrackId(track.id);
   }
 
   // ── PASO 3: Voz ───────────────────────────────────────────────────────────
@@ -346,56 +440,70 @@ export default function CanvasReelGenerator() {
           <section className="space-y-3">
             <h3 className="text-sm font-bold text-purple-400 uppercase tracking-wide">Paso 1 — Contenido</h3>
 
-            <div className="flex gap-2 mb-2">
-              {TABS.map((t) => (
-                <button key={t.id} onClick={() => setActiveTab(t.id)}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                    activeTab === t.id
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >{t.label}</button>
-              ))}
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex gap-2">
+                {TABS.map((t) => (
+                  <button key={t.id} onClick={() => setActiveTab(t.id)}
+                    className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                      activeTab === t.id
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >{t.label}</button>
+                ))}
+              </div>
+              <button onClick={() => setMultiMode((v) => !v)}
+                title="Combinar varios items en un mismo reel (un slide por item)"
+                className={`shrink-0 px-2.5 py-1.5 rounded text-xs font-semibold transition-colors ${
+                  multiMode ? 'bg-pink-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                }`}
+              >🧩 Multi {multiMode ? `(${multiSelectedIds.length}/${MULTI_MAX})` : ''}</button>
             </div>
 
             <div className="max-h-40 overflow-y-auto space-y-1 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
               {activeTab === 'producto' && products.map((p) => (
                 <button key={p.id}
-                  onClick={() => selectContent({ ...p, type: 'producto' }, [p.image].filter(Boolean))}
-                  className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
-                    selectedContent?.id === p.id
+                  onClick={() => multiMode ? toggleMultiSelect(p.id) : selectContent({ ...p, type: 'producto' }, [p.image].filter(Boolean))}
+                  className={`w-full text-left px-3 py-2 rounded text-sm transition-colors flex items-center gap-2 ${
+                    (multiMode ? multiSelectedIds.includes(p.id) : selectedContent?.id === p.id)
                       ? 'bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                   }`}
-                >{p.name}</button>
+                >{multiMode && <span>{multiSelectedIds.includes(p.id) ? '☑' : '☐'}</span>}{p.name}</button>
               ))}
               {activeTab === 'tecnologia' && TECH_ITEMS.map((t) => (
                 <button key={t.id}
-                  onClick={() => selectContent({ ...t, type: 'tecnologia' }, [t.imageUrl])}
-                  className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
-                    selectedContent?.id === t.id
+                  onClick={() => multiMode ? toggleMultiSelect(t.id) : selectContent({ ...t, type: 'tecnologia' }, [t.imageUrl])}
+                  className={`w-full text-left px-3 py-2 rounded text-sm transition-colors flex items-center gap-2 ${
+                    (multiMode ? multiSelectedIds.includes(t.id) : selectedContent?.id === t.id)
                       ? 'bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                   }`}
-                >{t.name} <span className="text-gray-400">— {t.category}</span></button>
+                >{multiMode && <span>{multiSelectedIds.includes(t.id) ? '☑' : '☐'}</span>}{t.name} <span className="text-gray-400">— {t.category}</span></button>
               ))}
               {activeTab === 'proyecto' && projects.length === 0 && (
                 <p className="text-xs text-gray-400 p-2">Cargando proyectos…</p>
               )}
               {activeTab === 'proyecto' && projects.map((p, i) => (
                 <button key={i}
-                  onClick={() => selectContent(
+                  onClick={() => multiMode ? toggleMultiSelect(p.domain) : selectContent(
                     { ...p, id: p.domain, name: p.domain, type: 'proyecto' },
                     [p.screenshotUrl].filter(Boolean)
                   )}
-                  className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
-                    selectedContent?.id === p.sitio
+                  className={`w-full text-left px-3 py-2 rounded text-sm transition-colors flex items-center gap-2 ${
+                    (multiMode ? multiSelectedIds.includes(p.domain) : selectedContent?.id === p.sitio)
                       ? 'bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                   }`}
-                >{p.domain}</button>
+                >{multiMode && <span>{multiSelectedIds.includes(p.domain) ? '☑' : '☐'}</span>}{p.domain}</button>
               ))}
             </div>
+
+            {multiMode && selectedContent?.multi && (
+              <div className="bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-700 rounded-lg p-2 text-xs text-pink-700 dark:text-pink-300">
+                🧩 {selectedContent.items.length} items combinados — 1 slide por c/u: {selectedContent.titles.join(' · ')}
+              </div>
+            )}
 
             {/* Imágenes */}
             {availableImages.length > 0 && (
@@ -423,7 +531,7 @@ export default function CanvasReelGenerator() {
             )}
 
             {/* Info precio */}
-            {selectedContent && (
+            {selectedContent && !selectedContent.multi && (
               <div className="bg-slate-900/40 border border-slate-700 rounded-lg p-2 text-xs space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <div>
@@ -493,28 +601,66 @@ export default function CanvasReelGenerator() {
           <section className="space-y-3">
             <h3 className="text-sm font-bold text-purple-400 uppercase tracking-wide">Paso 3 — Audio</h3>
 
-            {/* Música */}
+            {/* Música — catálogo Jamendo (gratis, buscable) */}
             <div>
-              <p className="text-xs text-gray-500 mb-1.5">Estado de ánimo de la música</p>
-              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+              <p className="text-xs text-gray-500 mb-1.5">Estilo (catálogo Jamendo, gratis)</p>
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 mb-2">
                 {MOODS.map((m) => (
                   <button key={m.id}
                     onClick={() => handleLoadMusic(m.id)}
                     disabled={musicLoading}
                     className={`py-1.5 px-2 rounded text-xs font-medium transition-colors ${
-                      mood === m.id
+                      mood === m.id && !musicQuery
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                     }`}
                   >{m.label}</button>
                 ))}
               </div>
-              {musicUrl && (
-                <button onClick={handlePreviewMusic}
-                  className="mt-1.5 text-xs text-blue-400 hover:text-blue-300 underline"
-                >▶ Preview música</button>
+
+              <div className="flex gap-1.5 mb-2">
+                <input
+                  value={musicQuery}
+                  onChange={(e) => setMusicQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearchMusic()}
+                  placeholder="Buscar por nombre o artista…"
+                  className="flex-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                />
+                <button onClick={handleSearchMusic} disabled={musicLoading}
+                  className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                >🔍</button>
+              </div>
+
+              {musicLoading && musicTracks.length === 0 && <p className="text-xs text-gray-400">Cargando música…</p>}
+
+              {musicTracks.length > 0 && (
+                <div className="max-h-48 overflow-y-auto space-y-1 border border-gray-200 dark:border-gray-700 rounded-lg p-1.5">
+                  {musicTracks.map((t) => (
+                    <div key={t.id}
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors ${
+                        selectedTrack?.id === t.id
+                          ? 'bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100'
+                          : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      <button onClick={() => previewTrack(t)} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500">
+                        {previewingTrackId === t.id ? '⏸' : '▶'}
+                      </button>
+                      <button onClick={() => selectTrack(t)} className="flex-1 text-left truncate">
+                        <span className="font-medium">{t.nombre}</span>
+                        <span className="text-gray-400"> — {t.artista}</span>
+                      </button>
+                      {selectedTrack?.id === t.id && <span className="shrink-0 text-blue-500">✓</span>}
+                    </div>
+                  ))}
+                  {hasMoreMusic && (
+                    <button onClick={() => loadMusicTracks({ append: true })} disabled={musicLoading}
+                      className="w-full text-center text-xs text-blue-400 hover:text-blue-300 py-1 disabled:opacity-50"
+                    >{musicLoading ? 'Cargando…' : 'Cargar más ↓'}</button>
+                  )}
+                </div>
               )}
-              {musicLoading && <p className="text-xs text-gray-400 mt-1">Cargando música…</p>}
+
               <div className="mt-2 flex items-center gap-2">
                 <span className="text-xs text-gray-500 w-20 shrink-0">🎵 Volumen</span>
                 <input type="range" min="0" max="1" step="0.05" value={musicVolume}
