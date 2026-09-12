@@ -248,7 +248,7 @@ export default function CanvasReelGenerator() {
 
   const availableImages = (() => {
     if (!selectedContent) return [];
-    return [...new Set([selectedContent.image, selectedContent.imageUrl, selectedContent.screenshot].filter(Boolean))];
+    return [...new Set([selectedContent.image, selectedContent.imageUrl, selectedContent.screenshotUrl].filter(Boolean))];
   })();
 
   const wordCount = script.trim() ? script.trim().split(/\s+/).length : 0;
@@ -265,7 +265,9 @@ export default function CanvasReelGenerator() {
         body: JSON.stringify({
           contentType:        selectedContent.type || 'producto',
           contentName:        selectedContent.name || selectedContent.sitio || '',
-          contentDescription: selectedContent.shortDescription || selectedContent.description || '',
+          // Los proyectos guardan la descripción real en `descripcionCorta` (Firestore
+          // coleccion "proyectos"), no en shortDescription/description como los productos.
+          contentDescription: selectedContent.shortDescription || selectedContent.description || selectedContent.descripcionCorta || '',
           items: selectedContent.multi
             ? selectedContent.items.map((it) => ({ name: it.name || it.domain, description: it.shortDescription || it.description || it.category || '' }))
             : undefined,
@@ -275,6 +277,54 @@ export default function CanvasReelGenerator() {
       if (data.error) throw new Error(data.error);
       setScript(data.script || '');
       setTtsBase64(''); // reset TTS si se regenera
+    } catch (e) {
+      setScriptError(e.message);
+    } finally {
+      setScriptLoading(false);
+    }
+  }
+
+  // Caso de éxito: arma 4 slides (problema → solución → impacto → CTA) a partir
+  // de los datos reales del proyecto (descripcionCorta/funcionalidades/impacto en
+  // Firestore) en vez de un slide único genérico. Reusa el motor de "titles" por
+  // imagen que ya usa el modo multi-producto, repitiendo la misma captura 4 veces.
+  const canCaseStudy = activeTab === 'proyecto' && selectedContent && !selectedContent.multi
+    && (selectedContent.descripcionCorta || selectedContent.impacto || selectedContent.funcionalidades);
+
+  async function handleGenerateCaseStudy() {
+    if (!selectedContent) return;
+    setScriptLoading(true);
+    setScriptError(null);
+    try {
+      const res = await fetch('/api/reel-script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'caso-exito',
+          proyecto: {
+            name: selectedContent.name || selectedContent.domain || '',
+            descripcionCorta: selectedContent.descripcionCorta || '',
+            funcionalidades: selectedContent.funcionalidades || '',
+            impacto: selectedContent.impacto || '',
+            stack: selectedContent.stack || '',
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setScript(data.script || '');
+      setTtsBase64('');
+
+      const slides = data.slides || [];
+      const shot = selectedImages[0];
+      setSelectedContent((prev) => ({
+        ...prev,
+        multi: true,
+        titles: slides.map((s) => s.title || ''),
+        subtitles: slides.map((s) => s.subtitle || ''),
+      }));
+      if (shot && slides.length > 0) setSelectedImages(Array(slides.length).fill(shot));
     } catch (e) {
       setScriptError(e.message);
     } finally {
@@ -579,7 +629,27 @@ export default function CanvasReelGenerator() {
               )}
             </div>
 
+            {canCaseStudy && (
+              <button onClick={handleGenerateCaseStudy} disabled={scriptLoading}
+                title="Arma 4 slides (problema → solución → impacto → CTA) con los datos reales del proyecto, y un guion en primera persona"
+                className="w-full py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded text-sm font-semibold disabled:opacity-50 hover:from-amber-700 hover:to-orange-700 transition-all"
+              >
+                {scriptLoading ? 'Generando…' : '🎯 Armar caso de éxito (problema → solución → impacto)'}
+              </button>
+            )}
+
             {scriptError && <p className="text-red-400 text-xs">{scriptError}</p>}
+
+            {selectedContent?.multi && !multiMode && selectedContent?.titles?.length > 0 && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-2 space-y-1">
+                {selectedContent.titles.map((t, i) => (
+                  <p key={i} className="text-xs text-amber-800 dark:text-amber-300">
+                    <span className="font-bold">{i + 1}.</span> {t}
+                    {selectedContent.subtitles?.[i] && <span className="text-amber-600 dark:text-amber-500"> — {selectedContent.subtitles[i]}</span>}
+                  </p>
+                ))}
+              </div>
+            )}
 
             {script !== undefined && (
               <div className="space-y-1">

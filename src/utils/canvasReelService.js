@@ -240,35 +240,38 @@ class CanvasReelService {
     ctx.fillRect(0, barY, W * Math.min(elapsed / duration, 1), barH);
   }
 
-  // Dibuja imagen cover dentro de una zona Y offset (sin clip externo).
-  // `progress` (0..1, tiempo transcurrido de ESTA imagen en pantalla) genera un Ken
-  // Burns sutil: zoom continuo 1.0→1.06 hacia el centro, en vez de imagen estática.
+  // Dibuja la imagen COMPLETA dentro de la zona (contain, sin recortar) — clave
+  // para capturas de sitios web (horizontales) en un reel vertical: con "cover"
+  // se veía solo una tira vertical del centro. Deja franjas del fondo a los
+  // costados/arriba-abajo si el aspect ratio no coincide (el gradiente ya está
+  // pintado detrás). `progress` (0..1, tiempo de ESTA imagen en pantalla) agrega
+  // un Ken Burns sutil: zoom continuo 1.0→1.06 hacia el centro.
   _drawCoverInZone(ctx, img, W, zoneH, zoneY, alpha, progress = 0) {
     if (!img) return;
-    const imgRatio    = img.width / img.height;
-    const zoneRatio   = W / zoneH;
-    let sx, sy, sw, sh;
+    const imgRatio  = img.width / img.height;
+    const zoneRatio = W / zoneH;
+    let dw, dh;
     if (imgRatio > zoneRatio) {
-      sh = img.height;
-      sw = sh * zoneRatio;
-      sx = (img.width - sw) / 2;
-      sy = 0;
+      dw = W;
+      dh = W / imgRatio;
     } else {
-      sw = img.width;
-      sh = sw / zoneRatio;
-      sx = 0;
-      sy = (img.height - sh) / 2;
+      dh = zoneH;
+      dw = zoneH * imgRatio;
     }
-    // Ken Burns: recorta una porción cada vez más chica del source (centrada),
-    // manteniendo el destino fijo — visualmente es un zoom-in hacia el centro.
+    const dx = (W - dw) / 2;
+    const dy = zoneY + (zoneH - dh) / 2;
+
+    // Ken Burns sobre el destino (el caller ya clipea a la zona, así que el
+    // desborde del zoom se recorta solo).
     const zoom = 1 + Math.max(0, Math.min(1, progress)) * 0.06;
-    const zsw = sw / zoom;
-    const zsh = sh / zoom;
-    const zsx = sx + (sw - zsw) / 2;
-    const zsy = sy + (sh - zsh) / 2;
+    const zdw = dw * zoom;
+    const zdh = dh * zoom;
+    const zdx = dx - (zdw - dw) / 2;
+    const zdy = dy - (zdh - dh) / 2;
+
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.drawImage(img, zsx, zsy, zsw, zsh, 0, zoneY, W, zoneH);
+    ctx.drawImage(img, 0, 0, img.width, img.height, zdx, zdy, zdw, zdh);
     ctx.restore();
   }
 
