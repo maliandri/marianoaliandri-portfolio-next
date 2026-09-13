@@ -29,10 +29,11 @@ export const CLIP_TRANSITIONS = [
 
 // CTA por tipo de contenido
 const CTA_TEXT = {
-  producto:   'Consultá disponibilidad',
-  tecnologia: 'Lo implemento en tu proyecto',
-  proyecto:   'Ver proyecto en vivo',
-  default:    'marianoaliandri.com.ar',
+  producto:    'Consultá disponibilidad',
+  tecnologia:  'Lo implemento en tu proyecto',
+  proyecto:    'Ver proyecto en vivo',
+  herramienta: 'Probalo en marianoaliandri.com.ar',
+  default:     'marianoaliandri.com.ar',
 };
 
 // Ventana de transición entre clips, en segundos — clampeada a como mucho el
@@ -48,6 +49,8 @@ class CanvasReelService {
   constructor() {
     this.animationId = null;
     this.startTime  = null;
+    this._activeVideoId = null; // qué clip de video está "reproduciendo" ahora (evita re-play cada frame)
+    this._lastConfig = null;    // config de la última startPreview — para pausar videos al stopPreview
   }
 
   // ── Image helpers ──────────────────────────────────────────────────────────
@@ -90,6 +93,24 @@ class CanvasReelService {
     ctx.restore();
   }
 
+  // ── Media helpers (imagen o video, transparente para el resto del motor) ──
+
+  // Devuelve el elemento dibujable de un clip (HTMLImageElement o HTMLVideoElement).
+  _mediaOf(clip) {
+    if (!clip) return null;
+    return clip.type === 'video' ? clip.videoEl : clip.img;
+  }
+
+  // drawImage acepta tanto <img> como <video> igual — solo cambia de dónde se
+  // lee el tamaño natural.
+  _mediaSize(media) {
+    if (!media) return { w: 0, h: 0 };
+    if (typeof HTMLVideoElement !== 'undefined' && media instanceof HTMLVideoElement) {
+      return { w: media.videoWidth, h: media.videoHeight };
+    }
+    return { w: media.width, h: media.height };
+  }
+
   // ── Text helpers ───────────────────────────────────────────────────────────
 
   wrapText(ctx, text, maxWidth) {
@@ -121,10 +142,13 @@ class CanvasReelService {
 
   // ── Frame rendering — layout 3 zonas ──────────────────────────────────────
   // Zona superior  0–20%  : branding
-  // Zona central  20–80%  : imagen + texto animado
+  // Zona central  20–80%  : imagen/video + texto animado
   // Zona inferior 80–100% : CTA + progress bar
-
-  drawFrame(ctx, W, H, elapsed, config) {
+  //
+  // `mode`: 'preview' (loop en vivo, videos suenan por sus parlantes) | 'record'
+  // (grabación real, videos mudos pero tapeados a Web Audio vía config.videoGains) |
+  // 'static' (frame único del scrubber, todo pausado).
+  drawFrame(ctx, W, H, elapsed, config, { mode = 'preview' } = {}) {
     const { clips = [], textEffect, contentType = 'default' } = config;
     const topH      = H * 0.20;
     const midH      = H * 0.60;
@@ -144,14 +168,7 @@ class CanvasReelService {
     }
     ctx.fillRect(0, 0, W, H);
 
-    // ── 2. Miniatura producto (derecha superior) ───────────────────────────
-    if (config.thumbnailImage) {
-      this._drawThumbnail(ctx, config.thumbnailImage, W, H);
-    } else if (clips[0]?.img) {
-      this._drawThumbnail(ctx, clips[0].img, W, H);
-    }
-
-    // ── 3. Resolver el clip activo por duraciones acumuladas (cada clip puede
+    // ── 2. Resolver el clip activo por duraciones acumuladas (cada clip puede
     // durar distinto — ya no es un reparto parejo del total). localElapsed se
     // resetea solo en cada borde de clip: así el texto se reanima por slide.
     let idx = 0, acc = 0;
@@ -165,7 +182,19 @@ class CanvasReelService {
     const localProgress = activeClip?.duration ? Math.min(1, Math.max(0, localElapsed / activeClip.duration)) : 0;
     const prevClip      = idx > 0 ? clips[idx - 1] : null;
 
-    // ── 4. Imagen de fondo + transición (zona central) ──────────────────────
+    // ── 3. Sincronizar play/pause/mute/ganancia de los clips de video ANTES de
+    // dibujar, así el frame que se lee ya refleja el estado correcto.
+    this._syncVideoClips(clips, activeClip, localElapsed, mode, config);
+
+    // ── 4. Miniatura (derecha superior) — del primer clip, imagen o video ───
+    if (config.thumbnailImage) {
+      this._drawThumbnail(ctx, config.thumbnailImage, W, H);
+    } else {
+      const firstMedia = this._mediaOf(clips[0]);
+      if (firstMedia) this._drawThumbnail(ctx, firstMedia, W, H);
+    }
+
+    // ── 5. Imagen/video de fondo + transición (zona central) ────────────────
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, midY, W, midH);
@@ -187,7 +216,7 @@ class CanvasReelService {
     ctx.fillStyle = 'rgba(0,0,0,0.50)';
     ctx.fillRect(0, midY, W, midH);
 
-    // ── 5. Zona superior: gradiente oscuro + branding ────────────────────────
+    // ── 6. Zona superior: gradiente oscuro + branding ────────────────────────
     const topGrad = ctx.createLinearGradient(0, 0, 0, topH);
     topGrad.addColorStop(0, 'rgba(0,0,0,0.85)');
     topGrad.addColorStop(1, 'rgba(0,0,0,0.10)');
@@ -207,7 +236,7 @@ class CanvasReelService {
     ctx.fillText('marianoaliandri.com.ar', W / 2, topH * 0.6);
     ctx.restore();
 
-    // ── 6. Texto principal — posición libre por clip (no más zona fija) ─────
+    // ── 7. Texto principal — posición libre por clip (no más zona fija) ─────
     if (activeClip) {
       this._drawText(
         ctx, W, H, localElapsed,
@@ -216,7 +245,7 @@ class CanvasReelService {
       );
     }
 
-    // ── 7. Zona inferior: fondo oscuro + CTA ─────────────────────────────────
+    // ── 8. Zona inferior: fondo oscuro + CTA ─────────────────────────────────
     const botGrad = ctx.createLinearGradient(0, botY, 0, H);
     botGrad.addColorStop(0, 'rgba(0,0,0,0.15)');
     botGrad.addColorStop(1, 'rgba(0,0,0,0.90)');
@@ -234,7 +263,7 @@ class CanvasReelService {
     ctx.fillText(cta, W / 2, botY + botH * 0.45);
     ctx.restore();
 
-    // ── 8. Barra de progreso ─────────────────────────────────────────────────
+    // ── 9. Barra de progreso ─────────────────────────────────────────────────
     const barH = Math.max(6, H * 0.005);
     const barY = H - barH;
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
@@ -246,10 +275,58 @@ class CanvasReelService {
     ctx.fillRect(0, barY, W * Math.min(elapsed / totalDuration, 1), barH);
   }
 
+  // Mantiene el estado de reproducción de los clips de video coherente con
+  // cuál es el clip activo AHORA MISMO. Se llama una vez por frame — siempre
+  // chequea el estado actual antes de tocar play()/pause() para no spamear
+  // llamadas innecesarias a 60fps.
+  //
+  // - Inactivo: pausado siempre, ganancia (si graba) en 0.
+  // - Activo, mode 'static' (scrub): pausado, seekea solo si el drift es
+  //   notorio (>0.05s) para no encolar seeks en un drag rápido.
+  // - Activo, mode 'preview'/'record': si recién se activó, arranca desde 0 y
+  //   hace play() (atrapando el rechazo de la promise); en preview el audio
+  //   propio suena directo por los parlantes (mute=false), en record queda
+  //   muteado (mute=true) porque el audio real se tapea aparte vía
+  //   config.videoGains hacia el MediaStreamDestination de la grabación.
+  _syncVideoClips(clips, activeClip, localElapsed, mode, config) {
+    clips.forEach((c) => {
+      if (c.type !== 'video' || !c.videoEl) return;
+      const el   = c.videoEl;
+      const gain = config?.videoGains?.get?.(c.id);
+
+      if (c !== activeClip) {
+        if (!el.paused) el.pause();
+        if (gain) gain.gain.value = 0;
+        return;
+      }
+
+      if (mode === 'static') {
+        if (!el.paused) el.pause();
+        if (Number.isFinite(localElapsed) && Math.abs(el.currentTime - localElapsed) > 0.05) {
+          try { el.currentTime = Math.max(0, localElapsed); } catch { /* video sin metadata todavía */ }
+        }
+        if (gain) gain.gain.value = 0;
+        return;
+      }
+
+      if (this._activeVideoId !== c.id) {
+        this._activeVideoId = c.id;
+        try { el.currentTime = 0; } catch { /* noop */ }
+        el.muted = mode === 'record';
+        const p = el.play();
+        if (p?.catch) p.catch(() => {});
+      }
+      if (gain) gain.gain.value = c.videoVolume ?? 1;
+    });
+  }
+
   // Decide y dibuja la transición del clip ENTRANTE (activeClip) respecto al
   // saliente (prevClip). Si no hay clip previo, es corte, o ya pasó la ventana
-  // de transición, dibuja solo el clip activo (comportamiento normal).
+  // de transición, dibuja solo el clip activo (comportamiento normal). Funciona
+  // igual para imagen o video — ambos se dibujan vía _mediaOf/drawImage.
   _drawClipTransition(ctx, activeClip, prevClip, W, midH, midY, localElapsed, localProgress) {
+    const activeMedia = this._mediaOf(activeClip);
+    const prevMedia   = this._mediaOf(prevClip);
     const type = activeClip.transitionIn || 'cut';
     const windowCap = Math.min(
       TRANSITION_SEC,
@@ -258,7 +335,7 @@ class CanvasReelService {
     );
 
     if (!prevClip || type === 'cut' || localElapsed >= windowCap || windowCap <= 0) {
-      this._drawCoverInZone(ctx, activeClip.img, W, midH, midY, 1, localProgress);
+      this._drawCoverInZone(ctx, activeMedia, W, midH, midY, 1, localProgress);
       return;
     }
 
@@ -267,37 +344,40 @@ class CanvasReelService {
     if (type === 'slide') {
       ctx.save();
       ctx.translate(-W * t, 0);
-      this._drawCoverInZone(ctx, prevClip.img, W, midH, midY, 1, 1);
+      this._drawCoverInZone(ctx, prevMedia, W, midH, midY, 1, 1);
       ctx.restore();
       ctx.save();
       ctx.translate(W * (1 - t), 0);
-      this._drawCoverInZone(ctx, activeClip.img, W, midH, midY, 1, localProgress);
+      this._drawCoverInZone(ctx, activeMedia, W, midH, midY, 1, localProgress);
       ctx.restore();
       return;
     }
 
     if (type === 'zoom') {
-      this._drawCoverInZone(ctx, prevClip.img, W, midH, midY, 1 - t * 0.5, 1);
+      this._drawCoverInZone(ctx, prevMedia, W, midH, midY, 1 - t * 0.5, 1);
       const scaleBoost = 0.85 + t * 0.15; // entra achicado y llega a tamaño normal
-      this._drawCoverInZone(ctx, activeClip.img, W, midH, midY, t, localProgress, scaleBoost);
+      this._drawCoverInZone(ctx, activeMedia, W, midH, midY, t, localProgress, scaleBoost);
       return;
     }
 
     // crossfade (default para cualquier otro valor)
-    this._drawCoverInZone(ctx, prevClip.img, W, midH, midY, 1, 1);
-    this._drawCoverInZone(ctx, activeClip.img, W, midH, midY, t, localProgress);
+    this._drawCoverInZone(ctx, prevMedia, W, midH, midY, 1, 1);
+    this._drawCoverInZone(ctx, activeMedia, W, midH, midY, t, localProgress);
   }
 
-  // Dibuja la imagen COMPLETA dentro de la zona (contain, sin recortar) — clave
-  // para capturas de sitios web (horizontales) en un reel vertical: con "cover"
-  // se veía solo una tira vertical del centro. Deja franjas del fondo a los
-  // costados/arriba-abajo si el aspect ratio no coincide (el gradiente ya está
-  // pintado detrás). `progress` (0..1, tiempo de ESTE clip en pantalla) agrega
-  // un Ken Burns sutil: zoom continuo 1.0→1.06 hacia el centro. `extraScale`
-  // multiplica ese zoom (lo usa la transición "zoom" para el efecto de entrada).
-  _drawCoverInZone(ctx, img, W, zoneH, zoneY, alpha, progress = 0, extraScale = 1) {
-    if (!img) return;
-    const imgRatio  = img.width / img.height;
+  // Dibuja el media (imagen O video) COMPLETO dentro de la zona (contain, sin
+  // recortar) — clave para capturas de sitios web (horizontales) en un reel
+  // vertical: con "cover" se veía solo una tira vertical del centro. Deja
+  // franjas del fondo a los costados/arriba-abajo si el aspect ratio no
+  // coincide (el gradiente ya está pintado detrás). `progress` (0..1, tiempo de
+  // ESTE clip en pantalla) agrega un Ken Burns sutil: zoom continuo 1.0→1.06
+  // hacia el centro. `extraScale` multiplica ese zoom (lo usa la transición
+  // "zoom" para el efecto de entrada).
+  _drawCoverInZone(ctx, media, W, zoneH, zoneY, alpha, progress = 0, extraScale = 1) {
+    if (!media) return;
+    const { w: mw, h: mh } = this._mediaSize(media);
+    if (!mw || !mh) return; // video sin metadata cargada todavía — se saltea este frame
+    const imgRatio  = mw / mh;
     const zoneRatio = W / zoneH;
     let dw, dh;
     if (imgRatio > zoneRatio) {
@@ -320,7 +400,9 @@ class CanvasReelService {
 
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.drawImage(img, 0, 0, img.width, img.height, zdx, zdy, zdw, zdh);
+    try {
+      ctx.drawImage(media, 0, 0, mw, mh, zdx, zdy, zdw, zdh);
+    } catch { /* video en un estado no dibujable este frame puntual — se saltea */ }
     ctx.restore();
   }
 
@@ -495,8 +577,10 @@ class CanvasReelService {
     ctx.restore();
   }
 
-  _drawThumbnail(ctx, img, W, H) {
-    if (!img) return;
+  _drawThumbnail(ctx, media, W, H) {
+    if (!media) return;
+    const { w: mw, h: mh } = this._mediaSize(media);
+    if (!mw || !mh) return;
     const margin = Math.max(16, W * 0.02);
     const size = Math.min(170, W * 0.18, H * 0.18);
     const x = W - size - margin;
@@ -536,18 +620,18 @@ class CanvasReelService {
     ctx.closePath();
     ctx.clip();
 
-    const imgRatio = img.width / img.height;
+    const imgRatio = mw / mh;
     const targetRatio = 1;
-    let sx = 0, sy = 0, sw = img.width, sh = img.height;
+    let sx = 0, sy = 0, sw = mw, sh = mh;
     if (imgRatio > targetRatio) {
-      sw = img.height * targetRatio;
-      sx = (img.width - sw) / 2;
+      sw = mh * targetRatio;
+      sx = (mw - sw) / 2;
     } else {
-      sh = img.width / targetRatio;
-      sy = (img.height - sh) / 2;
+      sh = mw / targetRatio;
+      sy = (mh - sh) / 2;
     }
 
-    ctx.drawImage(img, sx, sy, sw, sh, x, y, size, size);
+    try { ctx.drawImage(media, sx, sy, sw, sh, x, y, size, size); } catch { /* noop */ }
     ctx.restore();
   }
 
@@ -560,10 +644,12 @@ class CanvasReelService {
     const ctx  = canvas.getContext('2d');
     const totalDuration = totalDurationOf(config.clips) || 15;
     this.startTime = performance.now() - resumeSeconds * 1000;
+    this._activeVideoId = null;
+    this._lastConfig = config;
 
     const loop = (now) => {
       const elapsed = ((now - this.startTime) / 1000) % totalDuration;
-      this.drawFrame(ctx, canvas.width, canvas.height, elapsed, config);
+      this.drawFrame(ctx, canvas.width, canvas.height, elapsed, config, { mode: 'preview' });
       this.animationId = requestAnimationFrame(loop);
     };
     this.animationId = requestAnimationFrame(loop);
@@ -574,13 +660,21 @@ class CanvasReelService {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
     }
+    // Corta cualquier video que haya quedado sonando/reproduciendo (ej. al
+    // arrancar un scrub) — drawFrameAt lo va a re-sincronizar en el próximo frame.
+    (this._lastConfig?.clips || []).forEach((c) => {
+      if (c.type === 'video' && c.videoEl && !c.videoEl.paused) {
+        try { c.videoEl.pause(); } catch { /* noop */ }
+      }
+    });
   }
 
   // Renderiza UN frame estático en un tiempo exacto — lo usa el scrubber del
   // timeline mientras el loop de preview está pausado.
   drawFrameAt(canvas, config, elapsedSeconds) {
     const ctx = canvas.getContext('2d');
-    this.drawFrame(ctx, canvas.width, canvas.height, elapsedSeconds, config);
+    this._lastConfig = config;
+    this.drawFrame(ctx, canvas.width, canvas.height, elapsedSeconds, config, { mode: 'static' });
   }
 
   // ── Audio helpers ─────────────────────────────────────────────────────────
@@ -636,13 +730,18 @@ class CanvasReelService {
     }
   }
 
-  async setupAudio(musicUrl, ttsBase64 = null, voiceVolume = 1.0, musicVolume = null) {
+  // videoEls: [{ id, el }] — un <video> propio de ESTA grabación por cada clip
+  // de video (nunca el de preview, ver record()). Cada uno se tapea con su
+  // propio GainNode arrancando en 0 — _syncVideoClips sube la ganancia solo
+  // mientras ese clip está activo.
+  async setupAudio(musicUrl, ttsBase64 = null, voiceVolume = 1.0, musicVolume = null, videoEls = []) {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return null;
       const audioCtx = new AudioCtx();
       const dest     = audioCtx.createMediaStreamDestination();
       const sources  = [];
+      const videoGains = new Map();
 
       if (ttsBase64) {
         const voiceBuf    = await this._base64ToAudioBuffer(audioCtx, ttsBase64);
@@ -669,7 +768,20 @@ class CanvasReelService {
         sources.push(musicSrc);
       }
 
-      return { stream: dest.stream, sources, audioCtx };
+      videoEls.forEach(({ id, el }) => {
+        try {
+          const src  = audioCtx.createMediaElementSource(el);
+          const gain = audioCtx.createGain();
+          gain.gain.value = 0; // arranca mudo — _syncVideoClips lo sube solo mientras es el activo
+          src.connect(gain);
+          gain.connect(dest);
+          videoGains.set(id, gain);
+        } catch (e) {
+          console.warn('No se pudo tapear el audio del clip de video', id, e.message);
+        }
+      });
+
+      return { stream: dest.stream, sources, audioCtx, videoGains };
     } catch (e) {
       console.warn('Audio setup failed:', e.message);
       return null;
@@ -685,10 +797,39 @@ class CanvasReelService {
     const ctx     = canvas.getContext('2d');
     const totalDuration = totalDurationOf(config.clips) || 15;
 
+    // Elementos de video PROPIOS de esta grabación — nunca se reusa el de
+    // preview, porque createMediaElementSource solo puede llamarse una vez
+    // por elemento (y quedaría atado para siempre al AudioContext de preview).
+    const videoClips = (config.clips || []).filter((c) => c.type === 'video' && c.videoUrl);
+    const recordVideoEls = new Map();
+    await Promise.all(videoClips.map((c) => new Promise((resolve) => {
+      const el = document.createElement('video');
+      el.crossOrigin = 'anonymous';
+      el.muted       = true; // se destapea vía Web Audio, no por los parlantes
+      el.loop        = true;
+      el.playsInline = true;
+      recordVideoEls.set(c.id, el);
+      const done = () => resolve();
+      el.addEventListener('loadedmetadata', done, { once: true });
+      el.addEventListener('error', done, { once: true }); // no bloquear la grabación si un video falla
+      el.src = c.videoUrl;
+    })));
+
+    const recordConfig = {
+      ...config,
+      clips: (config.clips || []).map((c) => (
+        c.type === 'video' ? { ...c, videoEl: recordVideoEls.get(c.id) } : c
+      )),
+    };
+
     let audioSetup = null;
-    if (config.musicUrl || config.ttsBase64) {
-      audioSetup = await this.setupAudio(config.musicUrl, config.ttsBase64, config.voiceVolume ?? 1.0, config.musicVolume ?? null);
+    if (config.musicUrl || config.ttsBase64 || recordVideoEls.size > 0) {
+      audioSetup = await this.setupAudio(
+        config.musicUrl, config.ttsBase64, config.voiceVolume ?? 1.0, config.musicVolume ?? null,
+        [...recordVideoEls.entries()].map(([id, el]) => ({ id, el }))
+      );
     }
+    recordConfig.videoGains = audioSetup?.videoGains;
 
     const videoStream = canvas.captureStream(30);
     const allTracks   = [...videoStream.getVideoTracks()];
@@ -704,15 +845,23 @@ class CanvasReelService {
     const chunks   = [];
     recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
 
+    const cleanupVideoEls = () => {
+      recordVideoEls.forEach((el) => {
+        try { el.pause(); el.removeAttribute('src'); el.load(); } catch { /* noop */ }
+      });
+    };
+
     return new Promise((resolve, reject) => {
       recorder.onstop = () => {
         audioSetup?.sources?.forEach((s) => { try { s.stop(); } catch {} });
         audioSetup?.audioCtx?.close?.();
+        cleanupVideoEls();
         resolve(new Blob(chunks, { type: mimeType }));
       };
-      recorder.onerror = (e) => reject(e.error);
+      recorder.onerror = (e) => { cleanupVideoEls(); reject(e.error); };
       recorder.start(100);
 
+      this._activeVideoId = null;
       const t0 = performance.now();
       const renderLoop = (now) => {
         const elapsed = (now - t0) / 1000;
@@ -722,7 +871,7 @@ class CanvasReelService {
           return;
         }
         onProgress?.(elapsed / totalDuration);
-        this.drawFrame(ctx, 1080, 1920, elapsed, config);
+        this.drawFrame(ctx, 1080, 1920, elapsed, recordConfig, { mode: 'record' });
         requestAnimationFrame(renderLoop);
       };
       requestAnimationFrame(renderLoop);

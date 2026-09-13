@@ -35,7 +35,7 @@ const NAV_LINKS = [
   { label: 'Tienda',      href: '/tienda' },
   { label: 'Presupuesto', href: '/presupuesto' },
 ];
-const TOOLS = [
+export const TOOLS = [
   { label: 'Lead Finder Pro', href: '/lead-finder-pro', icon: '🎯', desc: 'Para devs: encontrá negocios sin sitio o con SEO débil' },
   { label: 'Analítica Regional', href: '/analitica', icon: '📊', desc: 'Rubros más buscados por zona' },
   { label: 'Análisis de CV', href: '/ats',     icon: '📄', desc: 'Analizá tu CV contra ofertas con IA' },

@@ -98,15 +98,20 @@ export default function ReelTimeline({
               key={clip.id}
               data-clip-idx={idx}
               onPointerDown={handleBlockPointerDown(idx, clip)}
-              className={`relative h-full border-r border-black/40 shrink-0 bg-cover bg-center ${
+              className={`relative h-full border-r border-black/40 shrink-0 bg-cover bg-center flex items-center justify-center ${
                 selectedClipId === clip.id ? 'ring-2 ring-purple-400 ring-inset' : ''
               }`}
-              style={{
-                width: `${(clip.duration / total) * 100}%`,
-                backgroundImage: clip.imageUrl ? `url(${clip.imageUrl})` : undefined,
-                backgroundColor: clip.imageUrl ? undefined : '#333',
-              }}
+              style={
+                clip.type === 'video'
+                  ? { width: `${(clip.duration / total) * 100}%`, background: 'linear-gradient(135deg,#7c3aed,#db2777)' }
+                  : {
+                      width: `${(clip.duration / total) * 100}%`,
+                      backgroundImage: clip.imageUrl ? `url(${clip.imageUrl})` : undefined,
+                      backgroundColor: clip.imageUrl ? undefined : '#333',
+                    }
+              }
             >
+              {clip.type === 'video' && <span className="text-white text-sm drop-shadow">▶</span>}
               <span className="absolute bottom-0.5 left-1 text-[9px] text-white bg-black/60 px-1 rounded leading-tight">
                 {clip.duration.toFixed(1)}s
               </span>
