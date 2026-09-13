@@ -1,7 +1,8 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { canvasReelService, TEXT_EFFECTS } from '../../utils/canvasReelService';
+import { canvasReelService, TEXT_EFFECTS, CLIP_TRANSITIONS, MIN_CLIP_DURATION } from '../../utils/canvasReelService';
+import ReelTimeline from './ReelTimeline';
 import { SERVICE_LOGOS } from '../../data/serviceLogos';
 import { ExchangeService, formatARS, formatUSD } from '../../utils/exchangeService';
 
@@ -40,17 +41,45 @@ const MOODS = [
   { id: 'tech',          label: '💻 Tech' },
 ];
 
+// Construye un array de clips autocontenido a partir de URLs de imagen — punto
+// único de entrada para los 3 modos de contenido (single/multi-producto/caso de
+// éxito), en vez de tres caminos de código distintos. `perTitles`/`perSubs` (si
+// vienen) le dan a cada clip su propio texto; si no, todos comparten
+// `sharedTitle`/`sharedSub`. `textX/textY` en 0.5/0.5 reproduce el centrado de
+// siempre; `transitionIn` 'cut' en el primero (no hay de dónde transicionar).
+function buildDefaultClips(urls, perTitles, perSubs, sharedTitle, sharedSub, totalDuration) {
+  const list = (urls || []).filter(Boolean);
+  if (list.length === 0) return [];
+  const each = totalDuration / list.length;
+  return list.map((url, i) => ({
+    id: `clip-${i}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    imageUrl: url,
+    img: null,
+    duration: each,
+    title: perTitles ? (perTitles[i] || '') : (sharedTitle || 'Sin título'),
+    subtitle: perSubs ? (perSubs[i] || '') : (sharedSub || ''),
+    textX: 0.5,
+    textY: 0.5,
+    textScale: 1,
+    transitionIn: i === 0 ? 'cut' : 'crossfade',
+  }));
+}
+
 export default function CanvasReelGenerator() {
   // ── Contenido ──
   const [activeTab, setActiveTab]             = useState('producto');
   const [products, setProducts]               = useState([]);
   const [projects, setProjects]               = useState([]);
   const [selectedContent, setSelectedContent] = useState(null);
-  const [selectedImages, setSelectedImages]   = useState([]);
-  const [loadedImages, setLoadedImages]       = useState([]);
   const [rentalData, setRentalData]           = useState({});
   const [priceLabel, setPriceLabel]           = useState('');
   const [showPrice, setShowPrice]             = useState(false);
+
+  // ── Clips — fuente de verdad del timeline (reemplaza selectedImages/loadedImages) ──
+  const [clips, setClips]                     = useState([]);
+  const [selectedClipId, setSelectedClipId]   = useState(null);
+  const [currentTime, setCurrentTime]         = useState(0);
+  const [isScrubbing, setIsScrubbing]         = useState(false);
 
   // ── Multi-producto: varios items en un mismo reel, un slide c/u ──
   const [multiMode, setMultiMode]             = useState(false);
@@ -93,8 +122,13 @@ export default function CanvasReelGenerator() {
   const [videoUrl, setVideoUrl]           = useState(null);
   const [error, setError]                 = useState(null);
 
-  const canvasRef      = useRef(null);
-  const exchangeService = new ExchangeService();
+  const canvasRef        = useRef(null);
+  const previewWrapperRef = useRef(null);
+  const textDragRef      = useRef(null);
+  const exchangeService  = new ExchangeService();
+
+  const totalDuration = useMemo(() => clips.reduce((a, c) => a + (c.duration || 0), 0), [clips]);
+  const selectedClip  = clips.find((c) => c.id === selectedClipId) || null;
 
   // ── Carga inicial ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -116,6 +150,7 @@ export default function CanvasReelGenerator() {
       selectContent({ ...products[0], type: 'producto' }, [products[0].image].filter(Boolean));
     else if (activeTab === 'tecnologia')
       selectContent({ ...TECH_ITEMS[0], type: 'tecnologia' }, [TECH_ITEMS[0].imageUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, products, multiMode]);
 
   // Al cambiar de tab en modo multi, limpiar la selección (los ids son por tab)
@@ -137,7 +172,7 @@ export default function CanvasReelGenerator() {
 
     if (items.length === 0) {
       setSelectedContent(null);
-      setSelectedImages([]);
+      setClips([]);
       return;
     }
 
@@ -157,9 +192,10 @@ export default function CanvasReelGenerator() {
       titles,
       subtitles,
     });
-    setSelectedImages(images.slice(0, MULTI_MAX));
+    setClips(buildDefaultClips(images.slice(0, MULTI_MAX), titles, subtitles, null, null, duration));
     setVideoUrl(null);
     setError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [multiMode, multiSelectedIds, activeTab, products, projects]);
 
   function toggleMultiSelect(id) {
@@ -192,28 +228,11 @@ export default function CanvasReelGenerator() {
     }
   }, [selectedContent]);
 
-  // Preview canvas
+  // Mantiene sincronizado el título/subtítulo COMPARTIDO en modo single (no
+  // multi) contra los inputs custom / precio — pisa solo texto en cada clip,
+  // preserva duración/posición/transición ya ajustados a mano.
   useEffect(() => {
-    if (!canvasRef.current || !selectedContent) return;
-    canvasReelService.startPreview(canvasRef.current, buildConfig(), loadedImages);
-    return () => canvasReelService.stopPreview();
-  }, [selectedContent, textEffect, duration, loadedImages, bgTheme, showPrice, priceLabel]);
-
-  useEffect(() => {
-    canvasReelService.loadImages(selectedImages).then(setLoadedImages);
-  }, [selectedImages]);
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  function selectContent(content, images = []) {
-    setSelectedContent(content);
-    setSelectedImages(images.filter(Boolean).slice(0, 4));
-    setVideoUrl(null);
-    setError(null);
-    setScript('');
-    setTtsBase64('');
-  }
-
-  function buildConfig() {
+    if (!selectedContent || selectedContent.multi) return;
     const isProducto = selectedContent?.type === 'producto';
     const rental = selectedContent?.rental;
     const storeText = isProducto
@@ -221,30 +240,200 @@ export default function CanvasReelGenerator() {
           ? priceLabel
           : (rental ? 'Precio · Compra o alquiler en la tienda' : 'Precio y formas de pago en la tienda'))
       : '';
-    const textLines = [customSubtitle || storeText].filter(Boolean);
+    const sharedTitle = customMainText || selectedContent?.name || selectedContent?.sitio || 'Sin título';
+    const sharedSub   = [customSubtitle || storeText].filter(Boolean).join(' · ');
+    setClips((prev) => prev.map((c) => ({ ...c, title: sharedTitle, subtitle: sharedSub })));
+  }, [customMainText, customSubtitle, showPrice, priceLabel, selectedContent]);
+
+  // Mantiene selectedClipId apuntando a un clip real (primero disponible si el
+  // anterior ya no existe tras un rebuild) — no pausa el preview por sí solo.
+  useEffect(() => {
+    if (clips.length === 0) { setSelectedClipId(null); return; }
+    if (!clips.some((c) => c.id === selectedClipId)) setSelectedClipId(clips[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clips]);
+
+  // Carga las imágenes de los clips y les inyecta el <img> ya cargado — keyeado
+  // por el SET de URLs (no por `clips` completo) para no relanzar la carga en
+  // cada reorder/ajuste de duración/texto, y mergeado por URL para que
+  // reordenar o repetir una misma URL (caso de éxito) no rompa nada.
+  const imageUrlsKey = useMemo(
+    () => [...new Set(clips.map((c) => c.imageUrl).filter(Boolean))].sort().join('|'),
+    [clips]
+  );
+  useEffect(() => {
+    const urls = imageUrlsKey ? imageUrlsKey.split('|') : [];
+    if (urls.length === 0) return;
+    let cancelled = false;
+    canvasReelService.loadImages(urls).then((imgs) => {
+      if (cancelled) return;
+      const map = {};
+      urls.forEach((u, i) => { if (imgs[i]) map[u] = imgs[i]; });
+      setClips((prev) => prev.map((c) => (map[c.imageUrl] ? { ...c, img: map[c.imageUrl] } : c)));
+    });
+    return () => { cancelled = true; };
+  }, [imageUrlsKey]);
+
+  // Preview canvas — se saltea mientras se está scrubbeando/editando en pausa
+  // (ahí el frame se pinta a mano vía drawFrameAt, ver mutateClips/handleScrub).
+  useEffect(() => {
+    if (!canvasRef.current || !selectedContent || isScrubbing) return;
+    canvasReelService.startPreview(canvasRef.current, buildConfig());
+    return () => canvasReelService.stopPreview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedContent, textEffect, duration, clips, bgTheme, showPrice, priceLabel, isScrubbing]);
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function selectContent(content, images = []) {
+    setSelectedContent(content);
+    setClips(buildDefaultClips(images.filter(Boolean).slice(0, 4), null, null, content?.name || content?.sitio, '', duration));
+    setSelectedClipId(null);
+    setIsScrubbing(false);
+    setVideoUrl(null);
+    setError(null);
+    setScript('');
+    setTtsBase64('');
+  }
+
+  function buildConfig(clipsOverride) {
     const bg = BG_THEMES.find((t) => t.id === bgTheme)?.colors || BG_THEMES[0].colors;
     return {
-      title:       customMainText || selectedContent?.name || selectedContent?.sitio || 'Sin título',
-      subtitle:    textLines.join(' · '),
-      // Modo multi-producto: un título/subtítulo por imagen, se reanima al cambiar de slide
-      titles:      selectedContent?.multi ? selectedContent.titles : undefined,
-      subtitles:   selectedContent?.multi ? selectedContent.subtitles : undefined,
+      clips: clipsOverride || clips,
       textEffect,
-      duration,
       musicUrl,
       ttsBase64:   voiceEnabled ? ttsBase64 : '',
       voiceVolume,
       musicVolume,
       contentType: selectedContent?.type || 'default',
       bgColors:    bg,
-      thumbnailIndex: 0,
     };
   }
 
+  // Punto único de mutación de `clips`: si está pausado editando (isScrubbing),
+  // repinta el frame estático de una con el resultado — si no, el efecto de
+  // preview de arriba lo toma solo en el próximo render.
+  function mutateClips(updaterFn) {
+    setClips((prev) => {
+      const next = updaterFn(prev);
+      if (isScrubbing && canvasRef.current) {
+        canvasReelService.drawFrameAt(canvasRef.current, buildConfig(next), currentTime);
+      }
+      return next;
+    });
+  }
+
+  function updateClip(clipId, patch) {
+    mutateClips((prev) => prev.map((c) => (c.id === clipId ? { ...c, ...patch } : c)));
+  }
+
+  function handleReorderClips(fromIdx, toIdx) {
+    if (fromIdx === toIdx) return;
+    mutateClips((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
+      return next;
+    });
+  }
+
+  // Ripple-trim: cambiar la duración de un clip le resta lo mismo al siguiente,
+  // así la duración total del reel no se mueve por accidente al ajustar uno.
+  function handleResizeClipDuration(clipId, rawDuration) {
+    mutateClips((prev) => {
+      const idx = prev.findIndex((c) => c.id === clipId);
+      if (idx < 0) return prev;
+      const clamped = Math.max(MIN_CLIP_DURATION, rawDuration);
+      const nextIdx = idx + 1;
+      if (nextIdx >= prev.length) {
+        return prev.map((c, i) => (i === idx ? { ...c, duration: clamped } : c));
+      }
+      const delta = clamped - prev[idx].duration;
+      const neighborClamped = Math.max(MIN_CLIP_DURATION, prev[nextIdx].duration - delta);
+      const actualDelta = prev[nextIdx].duration - neighborClamped;
+      return prev.map((c, i) => {
+        if (i === idx) return { ...c, duration: prev[idx].duration + actualDelta };
+        if (i === nextIdx) return { ...c, duration: neighborClamped };
+        return c;
+      });
+    });
+  }
+
+  // Duración global (15/30s): reescala todos los clips proporcionalmente en vez
+  // de ser un campo primario — preserva las proporciones relativas ya ajustadas.
+  function handleSetDuration(newTotal) {
+    setDuration(newTotal);
+    mutateClips((prev) => {
+      if (prev.length === 0) return prev;
+      const oldTotal = prev.reduce((a, c) => a + c.duration, 0) || newTotal;
+      const k = newTotal / oldTotal;
+      return prev.map((c) => ({ ...c, duration: Math.max(MIN_CLIP_DURATION, c.duration * k) }));
+    });
+  }
+
+  // ── Timeline: selección, scrub y pausa para edición ─────────────────────────
+  function handleSelectClipFromTimeline(clipId) {
+    setSelectedClipId(clipId);
+    const idx = clips.findIndex((c) => c.id === clipId);
+    if (idx < 0) return;
+    const offset = clips.slice(0, idx).reduce((a, c) => a + c.duration, 0);
+    setIsScrubbing(true);
+    canvasReelService.stopPreview();
+    setCurrentTime(offset);
+    if (canvasRef.current) canvasReelService.drawFrameAt(canvasRef.current, buildConfig(), offset);
+  }
+
+  function handleScrubStart() {
+    setIsScrubbing(true);
+    canvasReelService.stopPreview();
+  }
+
+  function handleScrub(time) {
+    setCurrentTime(time);
+    if (canvasRef.current) canvasReelService.drawFrameAt(canvasRef.current, buildConfig(), time);
+  }
+
+  function handleResumePreview() {
+    setIsScrubbing(false);
+  }
+
+  // ── Overlay de texto arrastrable sobre el preview ──────────────────────────
+  function handleTextPointerDown(e) {
+    if (!selectedClip) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    textDragRef.current = {
+      startX: e.clientX, startY: e.clientY,
+      startTextX: selectedClip.textX ?? 0.5, startTextY: selectedClip.textY ?? 0.5,
+    };
+  }
+  function handleTextPointerMove(e) {
+    if (!textDragRef.current || !selectedClip || !previewWrapperRef.current) return;
+    const rect = previewWrapperRef.current.getBoundingClientRect();
+    const dx = (e.clientX - textDragRef.current.startX) / rect.width;
+    const dy = (e.clientY - textDragRef.current.startY) / rect.height;
+    const nx = Math.min(0.95, Math.max(0.05, textDragRef.current.startTextX + dx));
+    const ny = Math.min(0.95, Math.max(0.05, textDragRef.current.startTextY + dy));
+    updateClip(selectedClip.id, { textX: nx, textY: ny });
+  }
+  function handleTextPointerUp() {
+    textDragRef.current = null;
+  }
+
   const toggleImage = (url) =>
-    setSelectedImages((prev) =>
-      prev.includes(url) ? prev.filter((u) => u !== url) : prev.length < 4 ? [...prev, url] : prev
-    );
+    mutateClips((prev) => {
+      const exists = prev.some((c) => c.imageUrl === url);
+      if (exists) return prev.filter((c) => c.imageUrl !== url);
+      if (prev.length >= 4) return prev;
+      return [...prev, {
+        id: `clip-manual-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        imageUrl: url,
+        img: null,
+        duration: prev[0]?.duration || duration,
+        title: prev[0]?.title || selectedContent?.name || 'Sin título',
+        subtitle: prev[0]?.subtitle || '',
+        textX: 0.5, textY: 0.5, textScale: 1,
+        transitionIn: prev.length === 0 ? 'cut' : 'crossfade',
+      }];
+    });
 
   const availableImages = (() => {
     if (!selectedContent) return [];
@@ -286,8 +475,8 @@ export default function CanvasReelGenerator() {
 
   // Caso de éxito: arma 4 slides (problema → solución → impacto → CTA) a partir
   // de los datos reales del proyecto (descripcionCorta/funcionalidades/impacto en
-  // Firestore) en vez de un slide único genérico. Reusa el motor de "titles" por
-  // imagen que ya usa el modo multi-producto, repitiendo la misma captura 4 veces.
+  // Firestore) en vez de un slide único genérico. Reusa el mismo constructor de
+  // clips que el modo multi-producto, repitiendo la misma captura 4 veces.
   const canCaseStudy = activeTab === 'proyecto' && selectedContent && !selectedContent.multi
     && (selectedContent.descripcionCorta || selectedContent.impacto || selectedContent.funcionalidades);
 
@@ -317,14 +506,16 @@ export default function CanvasReelGenerator() {
       setTtsBase64('');
 
       const slides = data.slides || [];
-      const shot = selectedImages[0];
+      const shot = clips[0]?.imageUrl;
       setSelectedContent((prev) => ({
         ...prev,
         multi: true,
         titles: slides.map((s) => s.title || ''),
         subtitles: slides.map((s) => s.subtitle || ''),
       }));
-      if (shot && slides.length > 0) setSelectedImages(Array(slides.length).fill(shot));
+      if (shot && slides.length > 0) {
+        setClips(buildDefaultClips(Array(slides.length).fill(shot), slides.map((s) => s.title), slides.map((s) => s.subtitle), null, null, duration));
+      }
     } catch (e) {
       setScriptError(e.message);
     } finally {
@@ -413,7 +604,7 @@ export default function CanvasReelGenerator() {
 
   // ── PASO 5: Grabar ────────────────────────────────────────────────────────
   const handleRecord = async () => {
-    if (!selectedContent || isRecording || isUploading) return;
+    if (!selectedContent || clips.length === 0 || isRecording || isUploading) return;
     setError(null);
     setVideoUrl(null);
     setIsRecording(true);
@@ -421,7 +612,7 @@ export default function CanvasReelGenerator() {
     canvasReelService.stopPreview();
 
     try {
-      const blob = await canvasReelService.record(buildConfig(), loadedImages, setRecordProgress);
+      const blob = await canvasReelService.record(buildConfig(), setRecordProgress);
       setIsRecording(false);
       setIsUploading(true);
 
@@ -453,7 +644,7 @@ export default function CanvasReelGenerator() {
           videoUrl:   mp4Url,
           productId,
           text:       script || productName,
-          subtitle:   cfg.subtitle,
+          subtitle:   cfg.clips?.[0]?.subtitle || '',
           aiProvider: 'gemini',
           useAI:      true,
           type:       'reel',
@@ -467,8 +658,9 @@ export default function CanvasReelGenerator() {
     } finally {
       setIsRecording(false);
       setIsUploading(false);
+      setIsScrubbing(false);
       if (canvasRef.current && selectedContent)
-        canvasReelService.startPreview(canvasRef.current, buildConfig(), loadedImages);
+        canvasReelService.startPreview(canvasRef.current, buildConfig());
     }
   };
 
@@ -558,18 +750,18 @@ export default function CanvasReelGenerator() {
             {/* Imágenes */}
             {availableImages.length > 0 && (
               <div>
-                <p className="text-xs text-gray-500 mb-1">Imágenes ({selectedImages.length}/4)</p>
+                <p className="text-xs text-gray-500 mb-1">Imágenes ({clips.length}/4)</p>
                 <div className="flex gap-2 flex-wrap">
                   {availableImages.map((url) => (
                     <button key={url} onClick={() => toggleImage(url)}
                       className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
-                        selectedImages.includes(url)
+                        clips.some((c) => c.imageUrl === url)
                           ? 'border-purple-500 scale-105'
                           : 'border-gray-300 dark:border-gray-600 opacity-60 hover:opacity-100'
                       }`}
                     >
                       <img src={url} alt="" className="w-full h-full object-cover" crossOrigin="anonymous" />
-                      {selectedImages.includes(url) && (
+                      {clips.some((c) => c.imageUrl === url) && (
                         <div className="absolute inset-0 bg-purple-500/20 flex items-center justify-center">
                           <span className="text-white text-xs font-bold">✓</span>
                         </div>
@@ -821,12 +1013,28 @@ export default function CanvasReelGenerator() {
               </div>
             </div>
 
+            {/* Tamaño del texto — por clip seleccionado */}
+            {selectedClip && (
+              <div>
+                <p className="text-xs text-gray-500 mb-1.5">
+                  Tamaño del título <span className="text-gray-600">(clip seleccionado)</span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <input type="range" min="0.5" max="2" step="0.05" value={selectedClip.textScale ?? 1}
+                    onChange={(e) => updateClip(selectedClip.id, { textScale: parseFloat(e.target.value) })}
+                    className="flex-1 accent-purple-500"
+                  />
+                  <span className="text-xs text-gray-400 w-10 text-right">{(selectedClip.textScale ?? 1).toFixed(2)}×</span>
+                </div>
+              </div>
+            )}
+
             {/* Duración */}
             <div>
-              <p className="text-xs text-gray-500 mb-1.5">Duración</p>
+              <p className="text-xs text-gray-500 mb-1.5">Duración total</p>
               <div className="flex gap-2">
                 {[15, 30].map((d) => (
-                  <button key={d} onClick={() => setDuration(d)}
+                  <button key={d} onClick={() => handleSetDuration(d)}
                     className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
                       duration === d
                         ? 'bg-purple-600 text-white'
@@ -834,6 +1042,7 @@ export default function CanvasReelGenerator() {
                     }`}
                   >{d}s</button>
                 ))}
+                <span className="text-xs text-gray-500 self-center ml-2">Actual: {totalDuration.toFixed(1)}s</span>
               </div>
             </div>
 
@@ -858,7 +1067,7 @@ export default function CanvasReelGenerator() {
           <section className="space-y-3">
             <h3 className="text-sm font-bold text-purple-400 uppercase tracking-wide">Paso 5 — Grabar</h3>
 
-            <button onClick={handleRecord} disabled={!selectedContent || busy}
+            <button onClick={handleRecord} disabled={!selectedContent || clips.length === 0 || busy}
               className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold disabled:opacity-50 transition-all hover:from-purple-700 hover:to-blue-700"
             >{busyLabel}</button>
 
@@ -891,15 +1100,76 @@ export default function CanvasReelGenerator() {
           </section>
         </div>
 
-        {/* ── Columna derecha: Preview ── */}
+        {/* ── Columna derecha: Preview + Timeline ── */}
         <div className="flex flex-col items-center gap-3 lg:sticky lg:top-4">
           <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Preview 9:16</p>
-          <canvas
-            ref={canvasRef}
-            width={270}
-            height={480}
-            className="rounded-xl shadow-xl border border-gray-300 dark:border-gray-600 bg-black"
-          />
+
+          <div ref={previewWrapperRef} className="relative" style={{ width: 270, height: 480 }}>
+            <canvas
+              ref={canvasRef}
+              width={270}
+              height={480}
+              className="rounded-xl shadow-xl border border-gray-300 dark:border-gray-600 bg-black"
+            />
+            {/* Overlay de texto arrastrable — solo visible/activo con el preview
+                pausado en un clip (isScrubbing), para no pelear contra el loop */}
+            {isScrubbing && selectedClip && (
+              <div
+                onPointerDown={handleTextPointerDown}
+                onPointerMove={handleTextPointerMove}
+                onPointerUp={handleTextPointerUp}
+                title="Arrastrá para mover el título"
+                className="absolute w-24 h-10 border-2 border-dashed border-purple-400 bg-purple-500/10 rounded cursor-move flex items-center justify-center"
+                style={{
+                  left: `${(selectedClip.textX ?? 0.5) * 100}%`,
+                  top: `${(selectedClip.textY ?? 0.5) * 100}%`,
+                  transform: 'translate(-50%, -50%)',
+                  touchAction: 'none',
+                }}
+              >
+                <span className="text-[9px] text-purple-200 font-semibold pointer-events-none">Título</span>
+              </div>
+            )}
+          </div>
+
+          {isScrubbing && (
+            <button onClick={handleResumePreview}
+              className="text-xs px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-full transition-colors"
+            >▶ Reanudar preview</button>
+          )}
+
+          {clips.length > 0 && (
+            <div className="w-full max-w-xs space-y-2">
+              <ReelTimeline
+                clips={clips}
+                selectedClipId={selectedClipId}
+                currentTime={currentTime}
+                totalDuration={totalDuration}
+                onSelectClip={handleSelectClipFromTimeline}
+                onReorder={handleReorderClips}
+                onResizeDuration={handleResizeClipDuration}
+                onScrubStart={handleScrubStart}
+                onScrub={handleScrub}
+                onScrubEnd={() => {}}
+              />
+
+              {selectedClip && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-gray-500 shrink-0">Transición de entrada</span>
+                  <select
+                    value={selectedClip.transitionIn || 'cut'}
+                    onChange={(e) => updateClip(selectedClip.id, { transitionIn: e.target.value })}
+                    className="flex-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1"
+                  >
+                    {CLIP_TRANSITIONS.map((t) => (
+                      <option key={t.id} value={t.id}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+
           <p className="text-xs text-gray-400 text-center max-w-xs">
             El preview corre en tiempo real. La grabación renderiza a 1080×1920.
           </p>

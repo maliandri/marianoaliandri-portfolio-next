@@ -20,6 +20,13 @@ export const TEXT_EFFECTS = [
   { id: 'particles',  label: 'Partículas' },
 ];
 
+export const CLIP_TRANSITIONS = [
+  { id: 'cut',       label: 'Corte' },
+  { id: 'crossfade', label: 'Crossfade' },
+  { id: 'slide',     label: 'Slide' },
+  { id: 'zoom',      label: 'Zoom' },
+];
+
 // CTA por tipo de contenido
 const CTA_TEXT = {
   producto:   'Consultá disponibilidad',
@@ -27,6 +34,15 @@ const CTA_TEXT = {
   proyecto:   'Ver proyecto en vivo',
   default:    'marianoaliandri.com.ar',
 };
+
+// Ventana de transición entre clips, en segundos — clampeada a como mucho el
+// 40% del clip más corto de los dos para que no se coman entre sí.
+const TRANSITION_SEC = 0.5;
+const MIN_CLIP_DURATION = 0.75;
+
+function totalDurationOf(clips) {
+  return (clips || []).reduce((a, c) => a + (c.duration || 0), 0);
+}
 
 class CanvasReelService {
   constructor() {
@@ -109,13 +125,13 @@ class CanvasReelService {
   // Zona inferior 80–100% : CTA + progress bar
 
   drawFrame(ctx, W, H, elapsed, config) {
-    const { images = [], duration, title, subtitle, textEffect, contentType = 'default' } = config;
-    const validImgs = images.filter(Boolean);
+    const { clips = [], textEffect, contentType = 'default' } = config;
     const topH      = H * 0.20;
     const midH      = H * 0.60;
     const botH      = H * 0.20;
     const midY      = topH;
     const botY      = topH + midH;
+    const totalDuration = totalDurationOf(clips) || 1;
 
     // ── 1. Fondo base con colores configurables ─────────────────────────────
     if (config.bgColors && config.bgColors.length >= 2) {
@@ -131,37 +147,33 @@ class CanvasReelService {
     // ── 2. Miniatura producto (derecha superior) ───────────────────────────
     if (config.thumbnailImage) {
       this._drawThumbnail(ctx, config.thumbnailImage, W, H);
-    } else if (config.images && config.images.length > 0) {
-      this._drawThumbnail(ctx, config.images[0], W, H);
+    } else if (clips[0]?.img) {
+      this._drawThumbnail(ctx, clips[0].img, W, H);
     }
 
-    // ── 3. Imagen de fondo (cover, zona central) ─────────────────────────────
-    // idx/imgDur quedan disponibles fuera del if para el texto por-slide (modo
-    // multi-producto): cada imagen puede traer su propio título/subtítulo.
-    const imgDur = validImgs.length > 0 ? duration / validImgs.length : duration;
-    let idx = 0;
-    if (validImgs.length > 0) {
-      idx = Math.floor(elapsed / imgDur) % validImgs.length;
-      const next     = (idx + 1) % validImgs.length;
-      const localP   = (elapsed % imgDur) / imgDur;
-      const crossStart = 0.75;
+    // ── 3. Resolver el clip activo por duraciones acumuladas (cada clip puede
+    // durar distinto — ya no es un reparto parejo del total). localElapsed se
+    // resetea solo en cada borde de clip: así el texto se reanima por slide.
+    let idx = 0, acc = 0;
+    for (let i = 0; i < clips.length; i++) {
+      acc += clips[i].duration || 0;
+      if (elapsed < acc || i === clips.length - 1) { idx = i; break; }
+    }
+    const activeClip    = clips[idx];
+    const clipStart     = acc - (activeClip?.duration || 0);
+    const localElapsed  = elapsed - clipStart;
+    const localProgress = activeClip?.duration ? Math.min(1, Math.max(0, localElapsed / activeClip.duration)) : 0;
+    const prevClip      = idx > 0 ? clips[idx - 1] : null;
 
-      // Recortar contexto a zona central para el crossfade
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(0, midY, W, midH);
-      ctx.clip();
-
-      if (localP > crossStart) {
-        const crossAlpha = (localP - crossStart) / (1 - crossStart);
-        this._drawCoverInZone(ctx, validImgs[idx],  W, midH, midY, 1, localP);
-        this._drawCoverInZone(ctx, validImgs[next], W, midH, midY, crossAlpha, 0);
-      } else {
-        this._drawCoverInZone(ctx, validImgs[idx], W, midH, midY, 1, localP);
-      }
-      ctx.restore();
+    // ── 4. Imagen de fondo + transición (zona central) ──────────────────────
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, midY, W, midH);
+    ctx.clip();
+    if (activeClip) {
+      this._drawClipTransition(ctx, activeClip, prevClip, W, midH, midY, localElapsed, localProgress);
     } else {
-      // Gradiente animado fallback
+      // Gradiente animado fallback (sin clips todavía)
       const hue  = (elapsed * 15) % 360;
       const grad = ctx.createLinearGradient(0, midY, W, midY + midH);
       grad.addColorStop(0, `hsl(${hue}, 70%, 18%)`);
@@ -169,12 +181,13 @@ class CanvasReelService {
       ctx.fillStyle = grad;
       ctx.fillRect(0, midY, W, midH);
     }
+    ctx.restore();
 
-    // ── 3. Overlay sobre imagen ──────────────────────────────────────────────
+    // ── Overlay sobre imagen ──────────────────────────────────────────────
     ctx.fillStyle = 'rgba(0,0,0,0.50)';
     ctx.fillRect(0, midY, W, midH);
 
-    // ── 4. Zona superior: gradiente oscuro + branding ────────────────────────
+    // ── 5. Zona superior: gradiente oscuro + branding ────────────────────────
     const topGrad = ctx.createLinearGradient(0, 0, 0, topH);
     topGrad.addColorStop(0, 'rgba(0,0,0,0.85)');
     topGrad.addColorStop(1, 'rgba(0,0,0,0.10)');
@@ -194,23 +207,16 @@ class CanvasReelService {
     ctx.fillText('marianoaliandri.com.ar', W / 2, topH * 0.6);
     ctx.restore();
 
-    // ── 5. Texto principal (zona central, clipeado para no pisar CTA) ─────────
-    // Modo multi-producto: config.titles trae un título por imagen — cada vez que
-    // cambia la imagen, el texto se reanima desde cero (elapsed local a esa slide)
-    // en vez de mostrar siempre el mismo título estático de punta a punta.
-    const perSlide     = Array.isArray(config.titles) && config.titles.length > 0;
-    const activeTitle  = perSlide ? (config.titles[idx] ?? title) : title;
-    const activeSub    = perSlide ? (config.subtitles?.[idx] ?? '') : subtitle;
-    const textElapsed  = perSlide ? (elapsed % imgDur) : elapsed;
+    // ── 6. Texto principal — posición libre por clip (no más zona fija) ─────
+    if (activeClip) {
+      this._drawText(
+        ctx, W, H, localElapsed,
+        activeClip.title || '', activeClip.subtitle || '', textEffect,
+        activeClip.textX ?? 0.5, activeClip.textY ?? 0.5, activeClip.textScale ?? 1
+      );
+    }
 
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, midY, W, midH);
-    ctx.clip();
-    this._drawText(ctx, W, H, midY, midH, textElapsed, activeTitle, activeSub, textEffect, duration);
-    ctx.restore();
-
-    // ── 6. Zona inferior: fondo oscuro + CTA ─────────────────────────────────
+    // ── 7. Zona inferior: fondo oscuro + CTA ─────────────────────────────────
     const botGrad = ctx.createLinearGradient(0, botY, 0, H);
     botGrad.addColorStop(0, 'rgba(0,0,0,0.15)');
     botGrad.addColorStop(1, 'rgba(0,0,0,0.90)');
@@ -228,7 +234,7 @@ class CanvasReelService {
     ctx.fillText(cta, W / 2, botY + botH * 0.45);
     ctx.restore();
 
-    // ── 7. Barra de progreso ─────────────────────────────────────────────────
+    // ── 8. Barra de progreso ─────────────────────────────────────────────────
     const barH = Math.max(6, H * 0.005);
     const barY = H - barH;
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
@@ -237,16 +243,59 @@ class CanvasReelService {
     pg.addColorStop(0, '#a855f7');
     pg.addColorStop(1, '#3b82f6');
     ctx.fillStyle = pg;
-    ctx.fillRect(0, barY, W * Math.min(elapsed / duration, 1), barH);
+    ctx.fillRect(0, barY, W * Math.min(elapsed / totalDuration, 1), barH);
+  }
+
+  // Decide y dibuja la transición del clip ENTRANTE (activeClip) respecto al
+  // saliente (prevClip). Si no hay clip previo, es corte, o ya pasó la ventana
+  // de transición, dibuja solo el clip activo (comportamiento normal).
+  _drawClipTransition(ctx, activeClip, prevClip, W, midH, midY, localElapsed, localProgress) {
+    const type = activeClip.transitionIn || 'cut';
+    const windowCap = Math.min(
+      TRANSITION_SEC,
+      (activeClip.duration || TRANSITION_SEC) * 0.4,
+      prevClip ? (prevClip.duration || TRANSITION_SEC) * 0.4 : TRANSITION_SEC
+    );
+
+    if (!prevClip || type === 'cut' || localElapsed >= windowCap || windowCap <= 0) {
+      this._drawCoverInZone(ctx, activeClip.img, W, midH, midY, 1, localProgress);
+      return;
+    }
+
+    const t = localElapsed / windowCap;
+
+    if (type === 'slide') {
+      ctx.save();
+      ctx.translate(-W * t, 0);
+      this._drawCoverInZone(ctx, prevClip.img, W, midH, midY, 1, 1);
+      ctx.restore();
+      ctx.save();
+      ctx.translate(W * (1 - t), 0);
+      this._drawCoverInZone(ctx, activeClip.img, W, midH, midY, 1, localProgress);
+      ctx.restore();
+      return;
+    }
+
+    if (type === 'zoom') {
+      this._drawCoverInZone(ctx, prevClip.img, W, midH, midY, 1 - t * 0.5, 1);
+      const scaleBoost = 0.85 + t * 0.15; // entra achicado y llega a tamaño normal
+      this._drawCoverInZone(ctx, activeClip.img, W, midH, midY, t, localProgress, scaleBoost);
+      return;
+    }
+
+    // crossfade (default para cualquier otro valor)
+    this._drawCoverInZone(ctx, prevClip.img, W, midH, midY, 1, 1);
+    this._drawCoverInZone(ctx, activeClip.img, W, midH, midY, t, localProgress);
   }
 
   // Dibuja la imagen COMPLETA dentro de la zona (contain, sin recortar) — clave
   // para capturas de sitios web (horizontales) en un reel vertical: con "cover"
   // se veía solo una tira vertical del centro. Deja franjas del fondo a los
   // costados/arriba-abajo si el aspect ratio no coincide (el gradiente ya está
-  // pintado detrás). `progress` (0..1, tiempo de ESTA imagen en pantalla) agrega
-  // un Ken Burns sutil: zoom continuo 1.0→1.06 hacia el centro.
-  _drawCoverInZone(ctx, img, W, zoneH, zoneY, alpha, progress = 0) {
+  // pintado detrás). `progress` (0..1, tiempo de ESTE clip en pantalla) agrega
+  // un Ken Burns sutil: zoom continuo 1.0→1.06 hacia el centro. `extraScale`
+  // multiplica ese zoom (lo usa la transición "zoom" para el efecto de entrada).
+  _drawCoverInZone(ctx, img, W, zoneH, zoneY, alpha, progress = 0, extraScale = 1) {
     if (!img) return;
     const imgRatio  = img.width / img.height;
     const zoneRatio = W / zoneH;
@@ -263,7 +312,7 @@ class CanvasReelService {
 
     // Ken Burns sobre el destino (el caller ya clipea a la zona, así que el
     // desborde del zoom se recorta solo).
-    const zoom = 1 + Math.max(0, Math.min(1, progress)) * 0.06;
+    const zoom = (1 + Math.max(0, Math.min(1, progress)) * 0.06) * extraScale;
     const zdw = dw * zoom;
     const zdh = dh * zoom;
     const zdx = dx - (zdw - dw) / 2;
@@ -275,12 +324,18 @@ class CanvasReelService {
     ctx.restore();
   }
 
-  _drawText(ctx, W, H, midY, midH, elapsed, title, subtitle, effect, duration) {
-    const maxW   = W - 80;
-    const base   = Math.max(58, W * 0.085);
-    const subBase= Math.max(34, W * 0.052);
-    const textCY = midY + midH * 0.5;
+  // Posición libre: textX/textY son fracciones 0..1 del canvas COMPLETO
+  // (0.5/0.5 = comportamiento de siempre, centrado). textScale multiplica los
+  // tamaños de fuente. Ya no hay clip a una zona fija — el texto puede ir a
+  // cualquier parte del canvas (el caller decide si clipea o no).
+  _drawText(ctx, W, H, elapsed, title, subtitle, effect, textX = 0.5, textY = 0.5, textScale = 1) {
+    const textCX = W * textX;
+    const textCY = H * textY;
     const pad    = W * 0.04;
+    const edgeMaxW = 2 * Math.min(textCX, W - textCX) - pad;
+    const maxW   = Math.max(120, Math.min(W - 80, edgeMaxW));
+    const base   = Math.max(58, W * 0.085) * textScale;
+    const subBase= Math.max(34, W * 0.052) * textScale;
 
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,0.9)';
@@ -298,7 +353,7 @@ class CanvasReelService {
     const pillPad = pad * 0.6;
     const pillW   = Math.min(maxW + pillPad * 2, W - 40);
     const pillH   = totalTitleH + pillPad * 2;
-    const pillX   = (W - pillW) / 2;
+    const pillX   = textCX - pillW / 2;
     const pillY   = textCY - totalTitleH / 2 - pillPad;
 
     switch (effect) {
@@ -309,7 +364,7 @@ class CanvasReelService {
         const visLines  = this.wrapText(ctx, visText || ' ', maxW);
         this._drawPill(ctx, pillX, pillY, pillW, pillH);
         ctx.fillStyle = '#fff';
-        visLines.forEach((l, i) => ctx.fillText(l, W / 2, textCY - totalTitleH / 2 + tSize + i * lineH));
+        visLines.forEach((l, i) => ctx.fillText(l, textCX, textCY - totalTitleH / 2 + tSize + i * lineH));
         break;
       }
 
@@ -319,7 +374,7 @@ class CanvasReelService {
         ctx.globalAlpha = a;
         this._drawPill(ctx, pillX, pillY + dy, pillW, pillH);
         ctx.fillStyle = '#fff';
-        lines.forEach((l, i) => ctx.fillText(l, W / 2, textCY - totalTitleH / 2 + tSize + i * lineH + dy));
+        lines.forEach((l, i) => ctx.fillText(l, textCX, textCY - totalTitleH / 2 + tSize + i * lineH + dy));
         ctx.globalAlpha = 1;
         break;
       }
@@ -329,7 +384,7 @@ class CanvasReelService {
         const sc = 0.75 + a * 0.25;
         ctx.globalAlpha = a;
         ctx.save();
-        ctx.translate(W / 2, textCY);
+        ctx.translate(textCX, textCY);
         ctx.scale(sc, sc);
         this._drawPill(ctx, -(pillW / 2), -totalTitleH / 2 - pillPad, pillW, pillH);
         ctx.fillStyle = '#fff';
@@ -341,7 +396,6 @@ class CanvasReelService {
 
       case 'highlight': {
         this._drawPill(ctx, pillX, pillY, pillW, pillH);
-        const allWords   = title.split(' ');
         const wordProg   = elapsed * 2;
         ctx.font         = `900 ${tSize}px Montserrat, sans-serif`;
         // Reconstruir líneas con highlight por palabra
@@ -350,7 +404,7 @@ class CanvasReelService {
           const lWords = line.split(' ');
           const lWidths = lWords.map((w) => ctx.measureText(w + ' ').width);
           const lTotal  = lWidths.reduce((a, b) => a + b, 0);
-          let x = W / 2 - lTotal / 2;
+          let x = textCX - lTotal / 2;
           ctx.textAlign = 'left';
           lWords.forEach((w, wi) => {
             ctx.fillStyle = wordCount < wordProg ? '#a855f7' : '#fff';
@@ -368,7 +422,7 @@ class CanvasReelService {
         this._drawPill(ctx, pillX, pillY, pillW, pillH);
         const drawGlitchLines = (color, ox, oy) => {
           ctx.fillStyle = color;
-          lines.forEach((l, i) => ctx.fillText(l, W / 2 + ox, textCY - totalTitleH / 2 + tSize + i * lineH + oy));
+          lines.forEach((l, i) => ctx.fillText(l, textCX + ox, textCY - totalTitleH / 2 + tSize + i * lineH + oy));
         };
         drawGlitchLines('rgba(255,0,80,0.55)',  g, -2);
         drawGlitchLines('rgba(0,200,255,0.55)', -g,  2);
@@ -381,7 +435,7 @@ class CanvasReelService {
         for (let i = 0; i < 24; i++) {
           const angle = (i / 24) * Math.PI * 2 + elapsed * 1.8;
           const r     = (55 + Math.sin(elapsed * 3 + i) * 25) * (W / 270);
-          const px    = W / 2 + Math.cos(angle) * r;
+          const px    = textCX + Math.cos(angle) * r;
           const py    = textCY + Math.sin(angle) * r * 0.22;
           const pa    = 0.2 + Math.sin(elapsed * 5 + i) * 0.2;
           ctx.beginPath();
@@ -391,14 +445,14 @@ class CanvasReelService {
         }
         this._drawPill(ctx, pillX, pillY, pillW, pillH);
         ctx.fillStyle = '#fff';
-        lines.forEach((l, i) => ctx.fillText(l, W / 2, textCY - totalTitleH / 2 + tSize + i * lineH));
+        lines.forEach((l, i) => ctx.fillText(l, textCX, textCY - totalTitleH / 2 + tSize + i * lineH));
         break;
       }
 
       default: {
         this._drawPill(ctx, pillX, pillY, pillW, pillH);
         ctx.fillStyle = '#fff';
-        lines.forEach((l, i) => ctx.fillText(l, W / 2, textCY - totalTitleH / 2 + tSize + i * lineH));
+        lines.forEach((l, i) => ctx.fillText(l, textCX, textCY - totalTitleH / 2 + tSize + i * lineH));
       }
     }
 
@@ -412,7 +466,7 @@ class CanvasReelService {
       const subLineH = sSize * 1.3;
       let subY = textCY + totalTitleH / 2 + sSize * 1.8;
       subLines.forEach((line) => {
-        ctx.fillText(line, W / 2, subY);
+        ctx.fillText(line, textCX, subY);
         subY += subLineH;
       });
     }
@@ -499,14 +553,17 @@ class CanvasReelService {
 
   // ── Preview (loop en canvas pequeño) ──────────────────────────────────────
 
-  startPreview(canvas, config, images) {
+  // `resumeSeconds` deja retomar el loop desde donde quedó el scrubber del
+  // timeline, en vez de siempre arrancar desde 0.
+  startPreview(canvas, config, resumeSeconds = 0) {
     this.stopPreview();
-    const ctx        = canvas.getContext('2d');
-    this.startTime   = performance.now();
+    const ctx  = canvas.getContext('2d');
+    const totalDuration = totalDurationOf(config.clips) || 15;
+    this.startTime = performance.now() - resumeSeconds * 1000;
 
     const loop = (now) => {
-      const elapsed = ((now - this.startTime) / 1000) % (config.duration || 15);
-      this.drawFrame(ctx, canvas.width, canvas.height, elapsed, { ...config, images: images || [] });
+      const elapsed = ((now - this.startTime) / 1000) % totalDuration;
+      this.drawFrame(ctx, canvas.width, canvas.height, elapsed, config);
       this.animationId = requestAnimationFrame(loop);
     };
     this.animationId = requestAnimationFrame(loop);
@@ -517,6 +574,13 @@ class CanvasReelService {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
     }
+  }
+
+  // Renderiza UN frame estático en un tiempo exacto — lo usa el scrubber del
+  // timeline mientras el loop de preview está pausado.
+  drawFrameAt(canvas, config, elapsedSeconds) {
+    const ctx = canvas.getContext('2d');
+    this.drawFrame(ctx, canvas.width, canvas.height, elapsedSeconds, config);
   }
 
   // ── Audio helpers ─────────────────────────────────────────────────────────
@@ -614,11 +678,12 @@ class CanvasReelService {
 
   // ── Grabación ─────────────────────────────────────────────────────────────
 
-  async record(config, images, onProgress) {
+  async record(config, onProgress) {
     const canvas  = document.createElement('canvas');
     canvas.width  = 1080;
     canvas.height = 1920;
     const ctx     = canvas.getContext('2d');
+    const totalDuration = totalDurationOf(config.clips) || 15;
 
     let audioSetup = null;
     if (config.musicUrl || config.ttsBase64) {
@@ -651,13 +716,13 @@ class CanvasReelService {
       const t0 = performance.now();
       const renderLoop = (now) => {
         const elapsed = (now - t0) / 1000;
-        if (elapsed >= config.duration) {
+        if (elapsed >= totalDuration) {
           onProgress?.(1);
           recorder.stop();
           return;
         }
-        onProgress?.(elapsed / config.duration);
-        this.drawFrame(ctx, 1080, 1920, elapsed, { ...config, images: images || [] });
+        onProgress?.(elapsed / totalDuration);
+        this.drawFrame(ctx, 1080, 1920, elapsed, config);
         requestAnimationFrame(renderLoop);
       };
       requestAnimationFrame(renderLoop);
@@ -665,5 +730,6 @@ class CanvasReelService {
   }
 }
 
+export { MIN_CLIP_DURATION };
 export const canvasReelService = new CanvasReelService();
 export default canvasReelService;
