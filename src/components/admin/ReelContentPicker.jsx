@@ -16,7 +16,7 @@ const CATEGORIES = [
 export default function ReelContentPicker({
   activeCategory, onActiveCategoryChange,
   products, techItems, projects, tools,
-  tray, onToggleItem,
+  tray, onToggleItem, maxItems = 10,
   onUploadImage, onUploadVideo, uploadingMedia,
 }) {
   const [projectsLoading] = useState(false);
@@ -26,7 +26,7 @@ export default function ReelContentPicker({
   const isInTray = (sourceCategory, sourceId) =>
     tray.some((t) => t.sourceCategory === sourceCategory && t.sourceId === sourceId);
 
-  const trayFull = tray.length >= 4;
+  const trayFull = tray.length >= maxItems;
 
   function handleImageFile(e) {
     const file = e.target.files?.[0];
@@ -149,7 +149,7 @@ export default function ReelContentPicker({
           className="flex-1 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-40"
         >{uploadingMedia === 'video' ? 'Subiendo…' : '🎬 Subir video'}</button>
       </div>
-      {trayFull && <p className="text-[10px] text-amber-500">Máximo 4 items en el reel — sacá uno para agregar otro.</p>}
+      {trayFull && <p className="text-[10px] text-amber-500">Máximo {maxItems} items en el reel — sacá uno para agregar otro.</p>}
     </div>
   );
 }

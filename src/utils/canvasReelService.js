@@ -27,6 +27,17 @@ export const CLIP_TRANSITIONS = [
   { id: 'zoom',      label: 'Zoom' },
 ];
 
+// Fuentes disponibles para el texto de cada clip — se cargan vía Google Fonts
+// (ver CanvasReelGenerator, que inyecta el <link> y espera a document.fonts).
+export const FONT_FAMILIES = [
+  { id: 'montserrat', label: 'Montserrat',       css: '"Montserrat", sans-serif',      google: 'Montserrat:wght@400;600;700;900' },
+  { id: 'poppins',    label: 'Poppins',          css: '"Poppins", sans-serif',         google: 'Poppins:wght@400;600;900' },
+  { id: 'playfair',   label: 'Playfair (serif)', css: '"Playfair Display", serif',     google: 'Playfair+Display:wght@700;900' },
+  { id: 'bebas',      label: 'Bebas Neue',       css: '"Bebas Neue", sans-serif',      google: 'Bebas+Neue' },
+  { id: 'jetbrains',  label: 'Mono',             css: '"JetBrains Mono", monospace',   google: 'JetBrains+Mono:wght@400;700' },
+];
+const DEFAULT_FONT = FONT_FAMILIES[0].css;
+
 // CTA por tipo de contenido
 const CTA_TEXT = {
   producto:    'Consultá disponibilidad',
@@ -130,10 +141,10 @@ class CanvasReelService {
     return lines;
   }
 
-  adaptiveFontSize(ctx, text, maxWidth, base, min = 28) {
+  adaptiveFontSize(ctx, text, maxWidth, base, min = 28, fontFamily = DEFAULT_FONT) {
     let size = base;
     while (size > min) {
-      ctx.font = `900 ${size}px Montserrat, sans-serif`;
+      ctx.font = `900 ${size}px ${fontFamily}`;
       if (ctx.measureText(text).width <= maxWidth) break;
       size -= 4;
     }
@@ -149,7 +160,7 @@ class CanvasReelService {
   // (grabación real, videos mudos pero tapeados a Web Audio vía config.videoGains) |
   // 'static' (frame único del scrubber, todo pausado).
   drawFrame(ctx, W, H, elapsed, config, { mode = 'preview' } = {}) {
-    const { clips = [], textEffect, contentType = 'default' } = config;
+    const { clips = [], contentType = 'default' } = config;
     const topH      = H * 0.20;
     const midH      = H * 0.60;
     const botH      = H * 0.20;
@@ -157,16 +168,19 @@ class CanvasReelService {
     const botY      = topH + midH;
     const totalDuration = totalDurationOf(clips) || 1;
 
-    // ── 1. Fondo base con colores configurables ─────────────────────────────
+    // ── 1. Fondo base — degradado de 2 (bitono) o 3 (tritono) colores ───────
     if (config.bgColors && config.bgColors.length >= 2) {
       const grad = ctx.createLinearGradient(0, 0, W, H);
-      grad.addColorStop(0, config.bgColors[0]);
-      grad.addColorStop(1, config.bgColors[1]);
+      const stops = config.bgColors;
+      stops.forEach((c, i) => grad.addColorStop(i / (stops.length - 1), c));
       ctx.fillStyle = grad;
     } else {
       ctx.fillStyle = '#000';
     }
     ctx.fillRect(0, 0, W, H);
+
+    // Grano/textura fílmica — sutil, opcional (config.grainIntensity 0..1)
+    if (config.grainIntensity > 0) this._applyGrain(ctx, W, H, config.grainIntensity);
 
     // ── 2. Resolver el clip activo por duraciones acumuladas (cada clip puede
     // durar distinto — ya no es un reparto parejo del total). localElapsed se
@@ -200,7 +214,7 @@ class CanvasReelService {
     ctx.rect(0, midY, W, midH);
     ctx.clip();
     if (activeClip) {
-      this._drawClipTransition(ctx, activeClip, prevClip, W, midH, midY, localElapsed, localProgress);
+      this._drawClipTransition(ctx, activeClip, prevClip, W, midH, midY, localElapsed, localProgress, config.blurAmount || 0);
     } else {
       // Gradiente animado fallback (sin clips todavía)
       const hue  = (elapsed * 15) % 360;
@@ -240,8 +254,9 @@ class CanvasReelService {
     if (activeClip) {
       this._drawText(
         ctx, W, H, localElapsed,
-        activeClip.title || '', activeClip.subtitle || '', textEffect,
-        activeClip.textX ?? 0.5, activeClip.textY ?? 0.5, activeClip.textScale ?? 1
+        activeClip.title || '', activeClip.subtitle || '', activeClip.textEffect || 'slideup',
+        activeClip.textX ?? 0.5, activeClip.textY ?? 0.5, activeClip.textScale ?? 1,
+        activeClip.fontFamily || DEFAULT_FONT
       );
     }
 
@@ -324,7 +339,7 @@ class CanvasReelService {
   // saliente (prevClip). Si no hay clip previo, es corte, o ya pasó la ventana
   // de transición, dibuja solo el clip activo (comportamiento normal). Funciona
   // igual para imagen o video — ambos se dibujan vía _mediaOf/drawImage.
-  _drawClipTransition(ctx, activeClip, prevClip, W, midH, midY, localElapsed, localProgress) {
+  _drawClipTransition(ctx, activeClip, prevClip, W, midH, midY, localElapsed, localProgress, blurPx = 0) {
     const activeMedia = this._mediaOf(activeClip);
     const prevMedia   = this._mediaOf(prevClip);
     const type = activeClip.transitionIn || 'cut';
@@ -335,7 +350,7 @@ class CanvasReelService {
     );
 
     if (!prevClip || type === 'cut' || localElapsed >= windowCap || windowCap <= 0) {
-      this._drawCoverInZone(ctx, activeMedia, W, midH, midY, 1, localProgress);
+      this._drawCoverInZone(ctx, activeMedia, W, midH, midY, 1, localProgress, 1, blurPx);
       return;
     }
 
@@ -344,25 +359,25 @@ class CanvasReelService {
     if (type === 'slide') {
       ctx.save();
       ctx.translate(-W * t, 0);
-      this._drawCoverInZone(ctx, prevMedia, W, midH, midY, 1, 1);
+      this._drawCoverInZone(ctx, prevMedia, W, midH, midY, 1, 1, 1, blurPx);
       ctx.restore();
       ctx.save();
       ctx.translate(W * (1 - t), 0);
-      this._drawCoverInZone(ctx, activeMedia, W, midH, midY, 1, localProgress);
+      this._drawCoverInZone(ctx, activeMedia, W, midH, midY, 1, localProgress, 1, blurPx);
       ctx.restore();
       return;
     }
 
     if (type === 'zoom') {
-      this._drawCoverInZone(ctx, prevMedia, W, midH, midY, 1 - t * 0.5, 1);
+      this._drawCoverInZone(ctx, prevMedia, W, midH, midY, 1 - t * 0.5, 1, 1, blurPx);
       const scaleBoost = 0.85 + t * 0.15; // entra achicado y llega a tamaño normal
-      this._drawCoverInZone(ctx, activeMedia, W, midH, midY, t, localProgress, scaleBoost);
+      this._drawCoverInZone(ctx, activeMedia, W, midH, midY, t, localProgress, scaleBoost, blurPx);
       return;
     }
 
     // crossfade (default para cualquier otro valor)
-    this._drawCoverInZone(ctx, prevMedia, W, midH, midY, 1, 1);
-    this._drawCoverInZone(ctx, activeMedia, W, midH, midY, t, localProgress);
+    this._drawCoverInZone(ctx, prevMedia, W, midH, midY, 1, 1, 1, blurPx);
+    this._drawCoverInZone(ctx, activeMedia, W, midH, midY, t, localProgress, 1, blurPx);
   }
 
   // Dibuja el media (imagen O video) COMPLETO dentro de la zona (contain, sin
@@ -373,7 +388,7 @@ class CanvasReelService {
   // ESTE clip en pantalla) agrega un Ken Burns sutil: zoom continuo 1.0→1.06
   // hacia el centro. `extraScale` multiplica ese zoom (lo usa la transición
   // "zoom" para el efecto de entrada).
-  _drawCoverInZone(ctx, media, W, zoneH, zoneY, alpha, progress = 0, extraScale = 1) {
+  _drawCoverInZone(ctx, media, W, zoneH, zoneY, alpha, progress = 0, extraScale = 1, blurPx = 0) {
     if (!media) return;
     const { w: mw, h: mh } = this._mediaSize(media);
     if (!mw || !mh) return; // video sin metadata cargada todavía — se saltea este frame
@@ -400,9 +415,40 @@ class CanvasReelService {
 
     ctx.save();
     ctx.globalAlpha = alpha;
+    if (blurPx > 0) ctx.filter = `blur(${blurPx}px)`;
     try {
       ctx.drawImage(media, 0, 0, mw, mh, zdx, zdy, zdw, zdh);
     } catch { /* video en un estado no dibujable este frame puntual — se saltea */ }
+    ctx.filter = 'none';
+    ctx.restore();
+  }
+
+  // Overlay de grano/textura fílmica — un tile de ruido chico generado UNA vez
+  // (cachea en la instancia) y repetido con blend "overlay", en vez de dibujar
+  // ruido pixel a pixel en cada frame (carísimo a 1080x1920/60fps).
+  _applyGrain(ctx, W, H, intensity) {
+    if (!this._grainCanvas) {
+      const size = 128;
+      const g = document.createElement('canvas');
+      g.width = size; g.height = size;
+      const gctx = g.getContext('2d');
+      const imageData = gctx.createImageData(size, size);
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        const v = Math.floor(Math.random() * 255);
+        imageData.data[i] = v;
+        imageData.data[i + 1] = v;
+        imageData.data[i + 2] = v;
+        imageData.data[i + 3] = 255;
+      }
+      gctx.putImageData(imageData, 0, 0);
+      this._grainCanvas = g;
+    }
+    const pattern = ctx.createPattern(this._grainCanvas, 'repeat');
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, intensity)) * 0.35;
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, W, H);
     ctx.restore();
   }
 
@@ -410,7 +456,7 @@ class CanvasReelService {
   // (0.5/0.5 = comportamiento de siempre, centrado). textScale multiplica los
   // tamaños de fuente. Ya no hay clip a una zona fija — el texto puede ir a
   // cualquier parte del canvas (el caller decide si clipea o no).
-  _drawText(ctx, W, H, elapsed, title, subtitle, effect, textX = 0.5, textY = 0.5, textScale = 1) {
+  _drawText(ctx, W, H, elapsed, title, subtitle, effect, textX = 0.5, textY = 0.5, textScale = 1, fontFamily = DEFAULT_FONT) {
     const textCX = W * textX;
     const textCY = H * textY;
     const pad    = W * 0.04;
@@ -425,8 +471,8 @@ class CanvasReelService {
     ctx.textAlign   = 'center';
 
     // Tamaño adaptativo
-    const tSize = this.adaptiveFontSize(ctx, title, maxW, base);
-    ctx.font    = `900 ${tSize}px Montserrat, sans-serif`;
+    const tSize = this.adaptiveFontSize(ctx, title, maxW, base, 28, fontFamily);
+    ctx.font    = `900 ${tSize}px ${fontFamily}`;
     const lines = this.wrapText(ctx, title, maxW);
     const lineH = tSize * 1.2;
     const totalTitleH = lines.length * lineH;
@@ -479,7 +525,7 @@ class CanvasReelService {
       case 'highlight': {
         this._drawPill(ctx, pillX, pillY, pillW, pillH);
         const wordProg   = elapsed * 2;
-        ctx.font         = `900 ${tSize}px Montserrat, sans-serif`;
+        ctx.font         = `900 ${tSize}px ${fontFamily}`;
         // Reconstruir líneas con highlight por palabra
         let wordCount    = 0;
         lines.forEach((line, li) => {
@@ -541,7 +587,7 @@ class CanvasReelService {
     // Subtítulo (con wrap)
     if (subtitle) {
       const sSize = Math.max(24, subBase * 0.75);
-      ctx.font      = `600 ${sSize}px Montserrat, sans-serif`;
+      ctx.font      = `600 ${sSize}px ${fontFamily}`;
       ctx.fillStyle = 'rgba(255,255,255,0.82)';
       ctx.shadowBlur = 8;
       const subLines = this.wrapText(ctx, subtitle, maxW);

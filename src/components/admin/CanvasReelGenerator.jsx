@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { canvasReelService, TEXT_EFFECTS, MIN_CLIP_DURATION } from '../../utils/canvasReelService';
+import { canvasReelService, MIN_CLIP_DURATION, FONT_FAMILIES } from '../../utils/canvasReelService';
 import ReelTimeline from './ReelTimeline';
 import ReelContentPicker from './ReelContentPicker';
 import ReelClipProperties from './ReelClipProperties';
@@ -47,13 +47,14 @@ const MOODS = [
   { id: 'tech',          label: '💻 Tech' },
 ];
 
-const TRAY_MAX = 4;
+const TRAY_MAX = 10; // más de 4 partes — límite generoso, cuidando que el timeline siga siendo usable
 
 // Construye clips[] a partir de una lista de fuentes {url, type} — punto único
 // de entrada para todo lo que termina en el timeline (bandeja de 1 o varios
 // items, y el modo "caso de éxito" que repite una misma imagen con títulos
 // distintos). `perTitles`/`perSubs` (si vienen) le dan a cada clip su propio
-// texto; si no, todos comparten `sharedTitle`/`sharedSub`.
+// texto; si no, todos comparten `sharedTitle`/`sharedSub`. Cada clip es
+// independiente: texto, duración, fuente y efecto de entrada propios.
 function buildDefaultClips(sources, perTitles, perSubs, sharedTitle, sharedSub, totalDuration) {
   const list = (sources || []).filter((s) => s && s.url);
   if (list.length === 0) return [];
@@ -69,9 +70,12 @@ function buildDefaultClips(sources, perTitles, perSubs, sharedTitle, sharedSub, 
     duration: each,
     title: perTitles ? (perTitles[i] || '') : (sharedTitle || 'Sin título'),
     subtitle: perSubs ? (perSubs[i] || '') : (sharedSub || ''),
+    titleManuallyEdited: false, // true una vez que se edita a mano — evita que el sync global lo pise
     textX: 0.5,
     textY: 0.5,
     textScale: 1,
+    textEffect: 'slideup',
+    fontFamily: FONT_FAMILIES[0].css,
     transitionIn: i === 0 ? 'cut' : 'crossfade',
   }));
 }
@@ -128,9 +132,12 @@ export default function CanvasReelGenerator() {
   const [musicVolume, setMusicVolume] = useState(0.25);
   const [previewRef, setPreviewRef]   = useState(null);
 
-  // ── Visual (paso 4) — ajustes globales del reel (lo por-clip vive en ReelClipProperties) ──
-  const [bgTheme, setBgTheme]         = useState('neon');
-  const [textEffect, setTextEffect]   = useState('slideup');
+  // ── Visual (paso 4) — ajustes globales del reel (el resto es por-clip, ver
+  // ReelClipProperties: texto, fuente, efecto de entrada, duración, transición) ──
+  const [bgColors, setBgColors]       = useState(BG_THEMES[0].colors);
+  const [bgMode, setBgMode]           = useState('duo'); // 'duo' (2 colores) | 'tri' (3 colores)
+  const [grainIntensity, setGrainIntensity] = useState(0);
+  const [blurAmount, setBlurAmount]   = useState(0);
   const [duration, setDuration]       = useState(30);
   const [customMainText, setCustomMainText] = useState('');
   const [customSubtitle, setCustomSubtitle] = useState('');
@@ -162,6 +169,29 @@ export default function CanvasReelGenerator() {
       .then((d) => setProjects(Array.isArray(d) ? d : d?.proyectos || []))
       .catch(() => {});
   }, []);
+
+  // Carga las fuentes disponibles vía Google Fonts (una sola vez) — el motor
+  // de canvas usa lo que esté cargado en la página vía CSS/@font-face.
+  useEffect(() => {
+    const families = FONT_FAMILIES.map((f) => `family=${f.google}`).join('&');
+    const href = `https://fonts.googleapis.com/css2?${families}&display=swap`;
+    if (document.querySelector(`link[href="${href}"]`)) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  }, []);
+
+  // Bitono (2 colores) / Tritono (3 colores) para el fondo — al cambiar de
+  // modo agrega o recorta el color que falte/sobra sin perder los ya elegidos.
+  function handleSetBgMode(mode) {
+    setBgMode(mode);
+    setBgColors((prev) => {
+      if (mode === 'tri' && prev.length < 3) return [...prev, '#0f0f1a'];
+      if (mode === 'duo' && prev.length > 2) return prev.slice(0, 2);
+      return prev;
+    });
+  }
 
   // ── Bandeja: agregar / sacar / tildar ───────────────────────────────────────
   function isInTray(sourceCategory, sourceId) {
@@ -299,7 +329,8 @@ export default function CanvasReelGenerator() {
       : '';
     const sharedTitle = customMainText || selectedContent?.name || selectedContent?.sitio || 'Sin título';
     const sharedSub   = [customSubtitle || storeText].filter(Boolean).join(' · ');
-    setClips((prev) => prev.map((c) => ({ ...c, title: sharedTitle, subtitle: sharedSub })));
+    // No pisa clips que el usuario ya editó a mano en ReelClipProperties.
+    setClips((prev) => prev.map((c) => (c.titleManuallyEdited ? c : { ...c, title: sharedTitle, subtitle: sharedSub })));
   }, [customMainText, customSubtitle, showPrice, priceLabel, selectedContent]);
 
   // Mantiene selectedClipId apuntando a un clip real.
@@ -377,19 +408,19 @@ export default function CanvasReelGenerator() {
     canvasReelService.startPreview(canvasRef.current, buildConfig());
     return () => canvasReelService.stopPreview();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedContent, textEffect, duration, clips, bgTheme, showPrice, priceLabel, isScrubbing]);
+  }, [selectedContent, duration, clips, bgColors, grainIntensity, blurAmount, showPrice, priceLabel, isScrubbing]);
 
   function buildConfig(clipsOverride) {
-    const bg = BG_THEMES.find((t) => t.id === bgTheme)?.colors || BG_THEMES[0].colors;
     return {
       clips: clipsOverride || clips,
-      textEffect,
       musicUrl,
       ttsBase64:   voiceEnabled ? ttsBase64 : '',
       voiceVolume,
       musicVolume,
       contentType: selectedContent?.type || 'default',
-      bgColors:    bg,
+      bgColors,
+      grainIntensity,
+      blurAmount,
     };
   }
 
@@ -831,6 +862,7 @@ export default function CanvasReelGenerator() {
                 tools={TOOLS}
                 tray={tray}
                 onToggleItem={handleToggleItem}
+                maxItems={TRAY_MAX}
                 onUploadImage={handleUploadImage}
                 onUploadVideo={handleUploadVideo}
                 uploadingMedia={uploadingMedia}
@@ -1015,38 +1047,61 @@ export default function CanvasReelGenerator() {
           {stepTab === 'visual' && (
             <div className="space-y-3">
               <div>
-                <p className="text-xs text-gray-500 mb-1.5">Fondo brillante</p>
-                <div className="grid grid-cols-5 gap-1.5">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs text-gray-500">Fondo — presets rápidos</p>
+                  <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+                    {[['duo', 'Bitono'], ['tri', 'Tritono']].map(([id, label]) => (
+                      <button key={id} onClick={() => handleSetBgMode(id)}
+                        className={`px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
+                          bgMode === id ? 'bg-purple-600 text-white' : 'text-gray-500 dark:text-gray-400'
+                        }`}
+                      >{label}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-5 gap-1.5 mb-2">
                   {BG_THEMES.map((theme) => (
-                    <button key={theme.id} onClick={() => setBgTheme(theme.id)}
-                      className={`relative h-9 rounded-lg transition-all ${
-                        bgTheme === theme.id
-                          ? 'ring-4 ring-white ring-offset-2 ring-offset-gray-900 scale-105 shadow-xl'
-                          : 'opacity-70 hover:opacity-100 hover:scale-105'
-                      }`}
+                    <button key={theme.id}
+                      onClick={() => { setBgColors(bgMode === 'tri' ? [...theme.colors, bgColors[2] || '#0f0f1a'] : theme.colors); }}
+                      className="relative h-9 rounded-lg transition-all opacity-80 hover:opacity-100 hover:scale-105"
                       style={{ background: `linear-gradient(135deg, ${theme.colors[0]} 0%, ${theme.colors[1]} 100%)` }}
-                    >
-                      {bgTheme === theme.id && <span className="absolute inset-0 flex items-center justify-center text-white text-xs font-bold drop-shadow">✓</span>}
-                      <span className="sr-only">{theme.label}</span>
-                    </button>
+                      title={theme.label}
+                    ><span className="sr-only">{theme.label}</span></button>
                   ))}
+                </div>
+                {/* Colores custom — 2 (bitono) o 3 (tritono) según el modo */}
+                <div className="flex items-center gap-2">
+                  {bgColors.map((c, i) => (
+                    <input key={i} type="color" value={c}
+                      onChange={(e) => setBgColors((prev) => prev.map((x, idx) => (idx === i ? e.target.value : x)))}
+                      className="w-9 h-9 rounded cursor-pointer border border-gray-300 dark:border-gray-600 bg-transparent"
+                    />
+                  ))}
+                  <div className="flex-1 h-9 rounded-lg" style={{ background: `linear-gradient(135deg, ${bgColors.join(', ')})` }} />
                 </div>
               </div>
 
               <div>
-                <p className="text-xs text-gray-500 mb-1.5">Efecto de texto</p>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {TEXT_EFFECTS.map((e) => (
-                    <button key={e.id} onClick={() => setTextEffect(e.id)}
-                      className={`py-1.5 rounded text-xs font-medium transition-colors ${
-                        textEffect === e.id
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                      }`}
-                    >{e.label}</button>
-                  ))}
+                <p className="text-xs text-gray-500 mb-1.5">Grano (textura fílmica)</p>
+                <div className="flex items-center gap-2">
+                  <input type="range" min="0" max="1" step="0.05" value={grainIntensity}
+                    onChange={(e) => setGrainIntensity(parseFloat(e.target.value))} className="flex-1 accent-purple-500" />
+                  <span className="text-xs text-gray-400 w-9 text-right">{Math.round(grainIntensity * 100)}%</span>
                 </div>
               </div>
+
+              <div>
+                <p className="text-xs text-gray-500 mb-1.5">Difuminado del fondo (blur)</p>
+                <div className="flex items-center gap-2">
+                  <input type="range" min="0" max="20" step="1" value={blurAmount}
+                    onChange={(e) => setBlurAmount(parseInt(e.target.value, 10))} className="flex-1 accent-purple-500" />
+                  <span className="text-xs text-gray-400 w-9 text-right">{blurAmount}px</span>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-gray-600">
+                Texto, fuente, efecto de entrada y transición ahora se configuran por clip — seleccioná uno en el timeline y editalo en el panel de arriba.
+              </p>
 
               <div>
                 <p className="text-xs text-gray-500 mb-1.5">Duración total</p>
