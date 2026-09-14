@@ -153,6 +153,7 @@ export default function CanvasReelGenerator() {
   const canvasRef        = useRef(null);
   const previewWrapperRef = useRef(null);
   const textDragRef      = useRef(null);
+  const trayDragRef      = useRef(null);
   const videoElsRef      = useRef(new Map()); // id de clip -> <video> de preview, para liberar los que ya no están
   const exchangeService  = new ExchangeService();
 
@@ -501,6 +502,35 @@ export default function CanvasReelGenerator() {
     if (clip) handleSelectClipFromTimeline(clip.id);
   }
 
+  // Arrastrar una miniatura de la bandeja reordena el clip correspondiente —
+  // reusa handleReorderClips (mismo mecanismo que arrastrar en el timeline),
+  // así la bandeja y el timeline nunca quedan desincronizados.
+  function handleTrayPointerDown(clipIdx) {
+    return (e) => {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      trayDragRef.current = { fromClipIdx: clipIdx };
+    };
+  }
+  function handleTrayPointerMove(e) {
+    if (!trayDragRef.current) return;
+    // El listener está en el contenedor (no en cada botón), así que
+    // e.currentTarget YA es el contenedor de todas las miniaturas.
+    const blocks = e.currentTarget.querySelectorAll('[data-tray-idx]');
+    for (const el of blocks) {
+      const r = el.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) continue;
+      const overIdx = Number(el.dataset.trayIdx);
+      const from = trayDragRef.current.fromClipIdx;
+      if (overIdx === from) break;
+      handleReorderClips(from, overIdx);
+      trayDragRef.current.fromClipIdx = overIdx;
+      break;
+    }
+  }
+  function handleTrayPointerUp() {
+    trayDragRef.current = null;
+  }
+
   function handleScrubStart() {
     setIsScrubbing(true);
     canvasReelService.stopPreview();
@@ -816,15 +846,21 @@ export default function CanvasReelGenerator() {
                 Vacía — elegí productos, tecnologías, proyectos, herramientas o subí tu propia imagen/video en la pestaña &quot;Contenido&quot;.
               </p>
             ) : (
-              <div className="flex gap-2 flex-wrap">
-                {tray.map((t) => {
-                  const clipForThis = clips.find((c) => c.trayId === t.trayId);
-                  const isSelected = clipForThis && clipForThis.id === selectedClipId;
+              <div className="flex gap-2 flex-wrap" onPointerMove={handleTrayPointerMove} onPointerUp={handleTrayPointerUp}>
+                {/* Orden derivado de `clips` (no de `tray`) — así la bandeja
+                    siempre refleja el orden real del reel, sea que se haya
+                    reordenado acá o en el timeline. */}
+                {clips.map((clip, idx) => {
+                  const t = tray.find((x) => x.trayId === clip.trayId);
+                  if (!t) return null;
+                  const isSelected = clip.id === selectedClipId;
                   return (
-                    <button key={t.trayId} type="button"
+                    <button key={t.trayId} type="button" data-tray-idx={idx}
+                      onPointerDown={handleTrayPointerDown(idx)}
                       onClick={() => handleSelectClipFromTray(t.trayId)}
-                      title="Seleccionar este clip para editarlo"
-                      className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                      title="Arrastrar para reordenar — click para editar"
+                      style={{ touchAction: 'none' }}
+                      className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all cursor-grab active:cursor-grabbing ${
                         isSelected ? 'border-white ring-2 ring-purple-400 scale-105' : 'border-purple-500 hover:border-purple-300'
                       }`}
                     >
@@ -834,8 +870,10 @@ export default function CanvasReelGenerator() {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={t.mediaUrl} alt="" className="w-full h-full object-cover" crossOrigin="anonymous" />
                       )}
+                      <span className="absolute top-0 left-0.5 text-[8px] text-white/80 font-bold">{idx + 1}</span>
                       <span
                         role="button" tabIndex={0}
+                        onPointerDown={(e) => e.stopPropagation()}
                         onClick={(e) => { e.stopPropagation(); removeFromTray(t.trayId); }}
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); removeFromTray(t.trayId); } }}
                         className="absolute top-0 right-0 w-4 h-4 bg-black/70 hover:bg-red-600 text-white text-[10px] flex items-center justify-center rounded-bl cursor-pointer"
