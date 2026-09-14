@@ -61,6 +61,7 @@ function buildDefaultClips(sources, perTitles, perSubs, sharedTitle, sharedSub, 
   const each = totalDuration / list.length;
   return list.map((src, i) => ({
     id: `clip-${i}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    trayId: src.trayId || null, // liga el clip a su miniatura de la bandeja, aunque se reordene en el timeline
     type: src.type === 'video' ? 'video' : 'image',
     imageUrl: src.type === 'video' ? null : src.url,
     img: null,
@@ -279,7 +280,7 @@ export default function CanvasReelGenerator() {
   // pisa texto sin tocar duración/posición/transición ya ajustadas a mano).
   useEffect(() => {
     if (tray.length === 0) { setClips([]); return; }
-    const sources = tray.map((t) => ({ url: t.mediaUrl, type: t.mediaType }));
+    const sources = tray.map((t) => ({ url: t.mediaUrl, type: t.mediaType, trayId: t.trayId }));
     const isMulti = tray.length > 1;
     const perTitles = isMulti ? tray.map((t) => t.name) : null;
     const perSubs   = isMulti ? tray.map((t) => t.subtitleHint || '') : null;
@@ -490,6 +491,14 @@ export default function CanvasReelGenerator() {
     canvasReelService.stopPreview();
     setCurrentTime(offset);
     if (canvasRef.current) canvasReelService.drawFrameAt(canvasRef.current, buildConfig(), offset);
+  }
+
+  // Clickear una miniatura de la bandeja selecciona su clip correspondiente —
+  // se busca por trayId (no por índice) porque reordenar en el timeline puede
+  // dejar el orden de los clips distinto al orden de la bandeja.
+  function handleSelectClipFromTray(trayId) {
+    const clip = clips.find((c) => c.trayId === trayId);
+    if (clip) handleSelectClipFromTimeline(clip.id);
   }
 
   function handleScrubStart() {
@@ -808,20 +817,33 @@ export default function CanvasReelGenerator() {
               </p>
             ) : (
               <div className="flex gap-2 flex-wrap">
-                {tray.map((t) => (
-                  <div key={t.trayId} className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-purple-500">
-                    {t.mediaType === 'video' ? (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600 text-white text-lg">▶</div>
-                    ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={t.mediaUrl} alt="" className="w-full h-full object-cover" crossOrigin="anonymous" />
-                    )}
-                    <button onClick={() => removeFromTray(t.trayId)}
-                      className="absolute top-0 right-0 w-4 h-4 bg-black/70 hover:bg-red-600 text-white text-[10px] flex items-center justify-center rounded-bl"
-                    >✕</button>
-                    <span className="absolute bottom-0 inset-x-0 text-[8px] text-white bg-black/60 px-1 truncate">{t.name}</span>
-                  </div>
-                ))}
+                {tray.map((t) => {
+                  const clipForThis = clips.find((c) => c.trayId === t.trayId);
+                  const isSelected = clipForThis && clipForThis.id === selectedClipId;
+                  return (
+                    <button key={t.trayId} type="button"
+                      onClick={() => handleSelectClipFromTray(t.trayId)}
+                      title="Seleccionar este clip para editarlo"
+                      className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                        isSelected ? 'border-white ring-2 ring-purple-400 scale-105' : 'border-purple-500 hover:border-purple-300'
+                      }`}
+                    >
+                      {t.mediaType === 'video' ? (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600 text-white text-lg">▶</div>
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={t.mediaUrl} alt="" className="w-full h-full object-cover" crossOrigin="anonymous" />
+                      )}
+                      <span
+                        role="button" tabIndex={0}
+                        onClick={(e) => { e.stopPropagation(); removeFromTray(t.trayId); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); removeFromTray(t.trayId); } }}
+                        className="absolute top-0 right-0 w-4 h-4 bg-black/70 hover:bg-red-600 text-white text-[10px] flex items-center justify-center rounded-bl cursor-pointer"
+                      >✕</span>
+                      <span className="absolute bottom-0 inset-x-0 text-[8px] text-white bg-black/60 px-1 truncate">{t.name}</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
