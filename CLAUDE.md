@@ -177,7 +177,7 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 # Email outreach
 RESEND_API_KEY                      ← Para /api/auditorias/send-biz-email
                                        From: notificaciones@marianoaliandri.com.ar (DKIM verificado)
-                                       Reply-To: marianoaliandri@gmail.com
+                                       Reply-To: yo@marianoaliandri.com.ar
 
 # Terceros
 PEXELS_API_KEY
@@ -351,7 +351,9 @@ de las serverless functions. Luego se envia solo el videoUrl al servidor via
 Resend (`RESEND_API_KEY`) envia emails de prospeccion a negocios auditados.
 Dominio `marianoaliandri.com.ar` verificado con DKIM + SPF en Resend.
 **NO activar "Enable Receiving"** en Resend (agrega MX record que rompe Zoho Mail).
-Reply-to siempre apunta a `marianoaliandri@gmail.com`.
+Reply-to siempre apunta a `yo@marianoaliandri.com.ar`.
+El HTML del email incluye un botón "Escribime por WhatsApp" (`wa.me/5492995414422`,
+mensaje pre-cargado) ademas del screenshot del sitio y el badge de Score SEO.
 
 ---
 
