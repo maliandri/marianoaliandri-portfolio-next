@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useProyectos } from '@/hooks/useProyectos';
@@ -72,6 +73,9 @@ function ScreenshotImage({ src, fallbackSrc, domain }) {
 function ProyectoCard({ proyecto, index }) {
   const tag = getTag(proyecto);
   const domainClean = proyecto.domain.replace(/^sc-domain:/, '');
+  // Sin barra final: el dominio tiene puntos, Next.js lo trata como path
+  // tipo archivo y redirige a sacarla igual (ver commit de la página nueva).
+  const detailHref = `/proyectos/${domainClean}`;
 
   return (
     <motion.div
@@ -81,42 +85,46 @@ function ProyectoCard({ proyecto, index }) {
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: index * 0.08 }}
     >
-      {/* Screenshot with tag */}
-      <div className="relative">
-        <ScreenshotImage src={proyecto.screenshotUrl} fallbackSrc={proyecto.screenshotFallbackUrl} domain={domainClean} />
-        <span className="absolute top-3 right-3 bg-black/70 border border-white/10 text-white text-xs font-medium px-2.5 py-1 rounded-full backdrop-blur-sm">
-          {tag}
-        </span>
-      </div>
-
-      <div className="p-5">
-        {/* Name + description */}
-        <h3 className="font-bold text-white text-base truncate">
-          {proyecto.descripcionCorta?.split('·')[0]?.trim() || domainClean}
-        </h3>
-        <p className="text-gray-500 text-sm mt-0.5 truncate">
-          {proyecto.descripcionCorta || domainClean}
-        </p>
-
-        {/* GSC Metrics */}
-        <div className="flex items-center gap-5 mt-4">
-          <div className="flex flex-col items-start">
-            <span className="text-white font-bold text-sm">{formatNum(proyecto.clicks)}</span>
-            <span className="text-gray-600 text-xs">Clicks</span>
-          </div>
-          <div className="flex flex-col items-start">
-            <span className="text-white font-bold text-sm">{formatNum(proyecto.impressions)}</span>
-            <span className="text-gray-600 text-xs">Impresiones</span>
-          </div>
-          {proyecto.position && (
-            <div className="flex flex-col items-start">
-              <span className="text-white font-bold text-sm">{Number(proyecto.position).toFixed(1)}</span>
-              <span className="text-gray-600 text-xs">Posición</span>
-            </div>
-          )}
+      <Link href={detailHref} className="block">
+        {/* Screenshot with tag */}
+        <div className="relative">
+          <ScreenshotImage src={proyecto.screenshotUrl} fallbackSrc={proyecto.screenshotFallbackUrl} domain={domainClean} />
+          <span className="absolute top-3 right-3 bg-black/70 border border-white/10 text-white text-xs font-medium px-2.5 py-1 rounded-full backdrop-blur-sm">
+            {tag}
+          </span>
         </div>
 
-        {/* Domain + link */}
+        <div className="px-5 pt-5">
+          {/* Name + description */}
+          <h3 className="font-bold text-white text-base truncate">
+            {proyecto.descripcionCorta?.split('·')[0]?.trim() || domainClean}
+          </h3>
+          <p className="text-gray-500 text-sm mt-0.5 truncate">
+            {proyecto.descripcionCorta || domainClean}
+          </p>
+
+          {/* GSC Metrics */}
+          <div className="flex items-center gap-5 mt-4">
+            <div className="flex flex-col items-start">
+              <span className="text-white font-bold text-sm">{formatNum(proyecto.clicks)}</span>
+              <span className="text-gray-600 text-xs">Clicks</span>
+            </div>
+            <div className="flex flex-col items-start">
+              <span className="text-white font-bold text-sm">{formatNum(proyecto.impressions)}</span>
+              <span className="text-gray-600 text-xs">Impresiones</span>
+            </div>
+            {proyecto.position && (
+              <div className="flex flex-col items-start">
+                <span className="text-white font-bold text-sm">{Number(proyecto.position).toFixed(1)}</span>
+                <span className="text-gray-600 text-xs">Posición</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </Link>
+
+      {/* Domain + external link — fuera del Link de arriba: un <a> no puede anidarse dentro de otro <a> */}
+      <div className="px-5 pb-5">
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
           <span className="text-gray-600 text-xs truncate">{domainClean}</span>
           <a
