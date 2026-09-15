@@ -6,7 +6,7 @@
 
 /* Theme config (Tailwind v4) */
 @theme inline {
-  --font-sans: 'Inter', sans-serif;
+  --font-sans: var(--font-inter), sans-serif;
   --color-accent-primary: #4c01f9;
   --color-accent-secondary: #8e2de2;
 }
@@ -50,7 +50,7 @@
 /* Estilos globales */
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-inter), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;

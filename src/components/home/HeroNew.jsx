@@ -24,17 +24,14 @@ export default function HeroNew() {
         <span className="text-sm text-indigo-300 font-medium">Disponible para nuevos proyectos</span>
       </motion.div>
 
-      {/* Headline */}
-      <motion.h1
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
-        className="text-5xl md:text-7xl font-black text-white leading-[1.05] max-w-4xl mb-6 tracking-tight"
-      >
+      {/* Headline: sin animación de opacidad — es el elemento LCP, debe pintarse
+          de inmediato en vez de esperar a que Framer Motion hidrate (ver auditoría
+          PageSpeed Insights, LCP mobile 8.3s -> "element render delay" 1935ms) */}
+      <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.05] max-w-4xl mb-6 tracking-tight">
         Sitios web que aparecen en{' '}
         <span className="text-indigo-400">Google</span>{' '}
         y generan clientes
-      </motion.h1>
+      </h1>
 
       {/* Subtitle */}
       <motion.p

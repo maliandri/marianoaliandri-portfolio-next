@@ -1,5 +1,13 @@
 import './globals.css';
+import { Inter } from 'next/font/google';
 import { Providers } from './providers';
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '600', '700'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata = {
   metadataBase: new URL('https://marianoaliandri.com.ar'),
@@ -44,7 +52,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning className={inter.variable}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         {/* Favicon dinámico: cambia el emoji según el día de la semana */}
@@ -53,13 +61,10 @@ export default function RootLayout({ children }) {
             __html: `(function(){var e=['😴','😊','😄','🥳','😎','🤩','😁'];var d=new Date().getDay();var em=e[d];var svg='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">'+em+'</text></svg>';document.querySelectorAll('link[rel="icon"],link[rel="shortcut icon"]').forEach(function(l){l.remove();});var n=document.createElement('link');n.rel='icon';n.href=svg;document.head.appendChild(n);})();`,
           }}
         />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://marianoaliandri-3b135.firebaseapp.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://www.googleapis.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://firestore.googleapis.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
         {/* Script síncrono: aplica dark mode ANTES de que React hidrate — evita flash */}
         <script
           dangerouslySetInnerHTML={{
