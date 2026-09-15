@@ -90,6 +90,7 @@ export async function GET(request) {
           stack: fs.stack || '',
           funcionalidades: fs.funcionalidades || '',
           impacto: fs.impacto || '',
+          media: fs.media || [],
           orden: fs.orden ?? 99,
           visible: fs.visible !== false,
           clicks: stats.clicks,
