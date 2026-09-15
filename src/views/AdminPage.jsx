@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { db, firebaseQA } from '../utils/firebaseservice';
+import cloudinaryService from '../utils/cloudinaryService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import SocialMediaDashboard from '../components/social/SocialMediaDashboard';
 import SocialPublisher from '../components/admin/SocialPublisher';
@@ -995,6 +996,7 @@ function AdminProyectosPanel({ db }) {
   const [captureResult, setCaptureResult] = useState(null);
   const [recapturing, setRecapturing] = useState(null); // domain en curso, o null
   const [lightbox, setLightbox] = useState(null); // domain abierto en el visor, o null
+  const [uploadingMedia, setUploadingMedia] = useState(null); // domain en curso, o null
 
   const loadProyectos = () =>
     fetch('/api/proyectos?all=1')
@@ -1060,6 +1062,65 @@ function AdminProyectosPanel({ db }) {
       alert('❌ Error: ' + err.message);
     } finally {
       setSaving(null);
+    }
+  };
+
+  const handleMediaUpload = async (domain, file) => {
+    setUploadingMedia(domain);
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const isVideo = file.type.startsWith('video/');
+      const url = isVideo
+        ? await cloudinaryService.uploadBase64Video(base64, `proyectos-media/${domain}`)
+        : await cloudinaryService.uploadBase64Image(base64, `proyectos-media/${domain}`);
+
+      const res = await fetch('/api/proyectos/media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain, url, type: isVideo ? 'video' : 'image' }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Error guardando el medio');
+      await loadProyectos();
+    } catch (err) {
+      alert('❌ Error subiendo archivo: ' + err.message);
+    } finally {
+      setUploadingMedia(null);
+    }
+  };
+
+  const handleTogglePublicable = async (domain, mediaId, publicable) => {
+    try {
+      const res = await fetch('/api/proyectos/media', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain, mediaId, publicable }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Error actualizando');
+      await loadProyectos();
+    } catch (err) {
+      alert('❌ Error: ' + err.message);
+    }
+  };
+
+  const handleDownloadMedia = async (url, filename) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      alert('❌ Error descargando: ' + err.message);
     }
   };
 
@@ -1253,6 +1314,55 @@ function AdminProyectosPanel({ db }) {
                     placeholder="→ 97/100 de salud SEO en Ahrefs, indexado en GSC con presencia en búsquedas de..."
                     className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Fotos y videos</label>
+                  <div className="flex items-center gap-2 mb-3">
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      disabled={uploadingMedia === p.domain}
+                      onChange={ev => {
+                        const file = ev.target.files?.[0];
+                        if (file) handleMediaUpload(p.domain, file);
+                        ev.target.value = '';
+                      }}
+                      className="text-xs text-gray-500 dark:text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 file:cursor-pointer"
+                    />
+                    {uploadingMedia === p.domain && <span className="text-xs text-indigo-500">Subiendo...</span>}
+                  </div>
+                  {p.media?.length > 0 && (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                      {p.media.map(m => (
+                        <div key={m.id} className="rounded-lg border border-gray-200 dark:border-neutral-700 overflow-hidden">
+                          {m.type === 'video' ? (
+                            <video src={m.url} muted className="w-full h-20 object-cover bg-black" />
+                          ) : (
+                            <img src={m.url} alt="" className="w-full h-20 object-cover" />
+                          )}
+                          <div className="p-1.5 space-y-1">
+                            <label className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400">
+                              <input
+                                type="checkbox"
+                                checked={m.publicable}
+                                onChange={ev => handleTogglePublicable(p.domain, m.id, ev.target.checked)}
+                                className="w-3 h-3"
+                              />
+                              Publicable
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadMedia(m.url, `${p.domain}-${m.id}.${m.type === 'video' ? 'mp4' : 'jpg'}`)}
+                              className="w-full text-[10px] px-1.5 py-1 rounded bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-700"
+                            >
+                              Descargar
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-4 pt-1">
