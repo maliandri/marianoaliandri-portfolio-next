@@ -51,3 +51,6 @@ PLAYSTORE-BLOQUEOS.md
 
 # config local de Claude Code (por maquina, no del proyecto)
 .claude/settings.local.json
+
+# scratch de subagent-driven-development (ledgers, briefs, reviews por plan)
+.superpowers/
