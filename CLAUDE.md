@@ -204,6 +204,13 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 ## Funcionalidades activas
 
 - **Home**: Hero animado con editor de codigo en vivo, carrusel de servicios, skills, Proyectos Realizados (grid dinamico con GSC), contacto
+- **Detalle de proyecto** (`/proyectos/[domain]` — sin barra final, ver seccion de trailingSlash):
+  pagina publica por sitio del portfolio (server component, `force-dynamic`, lee GSC + Firestore
+  directo). Muestra stack, funcionalidades, impacto, stats de GSC y una galeria de fotos/videos
+  (`proyectos/{domain}.media`, solo los items con `publicable: true`). Se sube contenido a esa
+  galeria desde el admin (tab Proyectos → "Fotos y videos"), via `/api/proyectos/media`
+  (POST crea, PATCH togglea `publicable`) reusando `cloudinaryService.js`. Cada card de
+  `ProyectosGrid.jsx` en el home linkea a esta pagina.
 - **Tienda** (`/tienda`):
   - Grid de servicios con toggle global **Compra / Alquiler** en el header de la tienda
   - Carrito + checkout con MercadoPago
@@ -364,6 +371,21 @@ mensaje pre-cargado) ademas del screenshot del sitio y el badge de Score SEO.
   POST al seguir el redirect → quedan como Failed con body `Redirecting...`. **Regla: toda URL de
   webhook registrada en un servicio externo (Resend, MercadoPago, Make.com) DEBE terminar en `/`.**
   Ya paso con Resend (`/api/resend-webhook/`). Aplica igual a `/api/subscription-webhook/`.
+
+- **`trailingSlash: true` + segmentos dinamicos con punto (dominios)**: Next.js trata cualquier
+  segmento de ruta que contenga un punto (ej. `marianoaliandri.com.ar`) como si fuera un archivo,
+  y hace lo **opuesto** al resto del sitio: en vez de agregar la barra final, la saca con un 308.
+  Pasa en `/proyectos/[domain]/page.jsx` — el canonical, el schema breadcrumb y los links desde
+  `ProyectosGrid.jsx` apuntan a `/proyectos/{domain}` **sin** barra final a proposito. Si se agrega
+  otra ruta dinamica cuyo parametro pueda contener un punto, aplica la misma regla.
+
+- **NO usar una cuenta de servicio de Google para escribir en Google Drive personal**: las cuentas
+  de servicio no tienen cuota de almacenamiento propia — pueden *leer* una carpeta que se les
+  comparta (`drive.files.get` funciona) pero **no pueden crear/actualizar archivos** ahi salvo que
+  sea una Shared Drive de Google Workspace (Mariano tiene Gmail personal, no Workspace). Se
+  confirmo con una llamada real y se abandono el intento — ver
+  `docs/superpowers/specs/2026-09-15-drive-screenshot-sync-design.md`. La alternativa real (si se
+  necesita algo asi) es OAuth delegado a la cuenta real del usuario, no una cuenta de servicio.
 
 - **Buscador de Keywords / Analitica — enforcement server-side**: el limite de busquedas se
   aplica en `/api/keyword-explorer` (verifica idToken con `src/lib/authServer.js` + consume cuota
