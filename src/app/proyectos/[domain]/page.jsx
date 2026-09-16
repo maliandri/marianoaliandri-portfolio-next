@@ -44,6 +44,10 @@ async function getProyecto(domain) {
   const db = getDb();
   const fsDoc = db ? (await db.collection('proyectos').doc(domain).get()).data() || {} : {};
 
+  // Mismo criterio que /api/proyectos: oculto explícitamente (ej. proyecto
+  // inactivo) no debe tener página de detalle pública tampoco.
+  if (fsDoc.visible === false) return null;
+
   return {
     domain: site.domain,
     url: site.url,
