@@ -162,7 +162,7 @@ export default async function ProyectoDetailPage({ params }) {
               {p.media.map(m => (
                 <div key={m.id} className="rounded-xl overflow-hidden border border-white/10">
                   {m.type === 'video' ? (
-                    <video src={m.url} controls className="w-full h-40 object-cover bg-black" />
+                    <video src={m.url} controls className="w-full h-40 object-contain bg-black" />
                   ) : (
                     <img src={m.url} alt={nombre} className="w-full h-40 object-cover" />
                   )}
