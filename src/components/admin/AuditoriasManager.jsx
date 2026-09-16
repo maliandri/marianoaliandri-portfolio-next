@@ -425,6 +425,7 @@ function SendEmailButton({ neg, auditoriaId, alreadySent, onSent }) {
   const [emailText, setEmailText]         = useState('');
   const [screenshotUrl, setScreenshotUrl] = useState(null);
   const [source, setSource]               = useState(null); // 'gemini' | 'template' | 'edited'
+  const [extraServices, setExtraServices] = useState([]);
   const [errorMsg, setErrorMsg]           = useState('');
 
   const payload = {
@@ -455,6 +456,7 @@ function SendEmailButton({ neg, auditoriaId, alreadySent, onSent }) {
       setEmailText(data.emailText || '');
       setScreenshotUrl(data.screenshotUrl || null);
       setSource(data.source || null);
+      setExtraServices(data.extraServices || []);
       setOpen(true);
     } catch (e) {
       setErrorMsg(e.message);
@@ -535,6 +537,19 @@ function SendEmailButton({ neg, auditoriaId, alreadySent, onSent }) {
               disabled={!!busy}
               className="w-full text-sm bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl p-3 text-gray-700 dark:text-gray-200 leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-400/50 resize-y disabled:opacity-60"
             />
+
+            {extraServices.length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs font-medium text-gray-500 mb-1">También se incluyen estos links (según el rubro)</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {extraServices.map(s => (
+                    <span key={s.label} className="text-[11px] px-2 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                      {s.icon} {s.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {screenshotUrl && (
               <div className="mt-3">

@@ -2,11 +2,60 @@ export const dynamic = 'force-dynamic';
 import { Resend } from 'resend';
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { RUBROS } from '@/data/rubros';
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 const SITE_URL   = 'https://marianoaliandri.com.ar';
 const WHATSAPP         = '5492995414422';       // número para wa.me
 const WHATSAPP_DISPLAY = '+54 299 541-4422';    // formato legible
+
+// Servicios más allá del SEO, elegidos según la categoría del rubro (src/data/rubros.js).
+// Todos los links apuntan a páginas reales del sitio — nunca a proyectos de otros clientes.
+const EXTRA_SERVICES_BY_CAT = {
+  'Gastronomía': [
+    { icon: '🤖', label: 'Atención con IA 24/7', desc: 'Un asistente que responde consultas y toma pedidos aunque el local esté cerrado.', href: `${SITE_URL}/tienda/website-chatbot-ia` },
+    { icon: '🛒', label: 'Pedidos online con stock', desc: 'Menú y pedidos con pago integrado, sincronizado con lo que tenés disponible.', href: `${SITE_URL}/tienda/ecommerce-basic` },
+  ],
+  'Comercios': [
+    { icon: '📦', label: 'Tienda online con stock en tiempo real', desc: 'Vender y controlar el inventario desde un mismo panel, sin depender de un programador.', href: `${SITE_URL}/tienda/ecommerce-basic` },
+    { icon: '🤖', label: 'Atención con IA 24/7', desc: 'Responde consultas y busca productos por el cliente, incluso fuera de horario.', href: `${SITE_URL}/tienda/website-chatbot-ia` },
+  ],
+  'Salud & Belleza': [
+    { icon: '🤖', label: 'Turnos y consultas con IA 24/7', desc: 'Un asistente que atiende y deriva a WhatsApp cuando hace falta.', href: `${SITE_URL}/tienda/website-chatbot-ia` },
+    { icon: '🧩', label: 'Sistema de gestión a medida', desc: 'Turnos, clientes e historial organizados en un panel propio.', href: `${SITE_URL}/tienda/custom-development` },
+  ],
+  'Serv. Profesionales': [
+    { icon: '📝', label: 'Presupuestos automáticos', desc: 'Tu cliente arma su pedido y recibe una cotización al instante, sin llamarte primero.', href: `${SITE_URL}/presupuesto` },
+    { icon: '🧩', label: 'Backend a medida', desc: 'Un sistema propio para manejar el día a día del negocio.', href: `${SITE_URL}/tienda/custom-development` },
+  ],
+  'Automotor': [
+    { icon: '📝', label: 'Presupuestos automáticos', desc: 'Cotización al instante para tus clientes, sin coordinarlo por teléfono.', href: `${SITE_URL}/presupuesto` },
+    { icon: '🤖', label: 'Atención con IA 24/7', desc: 'Responde consultas y turnos aunque el local esté cerrado.', href: `${SITE_URL}/tienda/website-chatbot-ia` },
+  ],
+  'Hogar & Oficios': [
+    { icon: '📝', label: 'Presupuestos automáticos', desc: 'El cliente pide su cotización desde la web y la recibe al instante.', href: `${SITE_URL}/presupuesto` },
+    { icon: '🧩', label: 'Seguimiento de trabajos por etapas', desc: 'Un sistema propio para organizar pedidos, equipo y avances.', href: `${SITE_URL}/tienda/custom-development` },
+  ],
+  'Educación': [
+    { icon: '🧩', label: 'Backend a medida', desc: 'Inscripciones, pagos y comunicación en un sistema propio.', href: `${SITE_URL}/tienda/custom-development` },
+    { icon: '🤖', label: 'Atención con IA 24/7', desc: 'Responde consultas de familias y alumnos fuera de horario.', href: `${SITE_URL}/tienda/website-chatbot-ia` },
+  ],
+  'Alojamiento': [
+    { icon: '📝', label: 'Reservas y presupuestos automáticos', desc: 'El huésped consulta disponibilidad y recibe una cotización al instante.', href: `${SITE_URL}/presupuesto` },
+    { icon: '🤖', label: 'Atención con IA 24/7', desc: 'Responde consultas de reserva a cualquier hora.', href: `${SITE_URL}/tienda/website-chatbot-ia` },
+  ],
+};
+
+const DEFAULT_EXTRA_SERVICES = [
+  { icon: '🧩', label: 'Backend a medida', desc: 'Un sistema propio conectado a tu web, hecho a la medida de tu negocio.', href: `${SITE_URL}/tienda/custom-development` },
+  { icon: '🤖', label: 'Atención con IA 24/7', desc: 'Un asistente que responde consultas y capta clientes fuera de horario.', href: `${SITE_URL}/tienda/website-chatbot-ia` },
+];
+
+// Elige qué 2 servicios "más allá del SEO" mostrar, según la categoría del rubro (neg.tipo).
+function getExtraServices(tipoLabel) {
+  const rubro = RUBROS.find(r => r.label === tipoLabel);
+  return EXTRA_SERVICES_BY_CAT[rubro?.cat] || DEFAULT_EXTRA_SERVICES;
+}
 
 async function callGemini(prompt) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -129,9 +178,12 @@ Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre pár
     // Screenshot del sitio web de la empresa (reusar el del preview si vino)
     const screenshotUrl = providedShot !== undefined ? providedShot : await getScreenshot(siteUrl);
 
+    // Servicios "más allá del SEO" — según el rubro del negocio, links reales del sitio
+    const extraServices = getExtraServices(tipo);
+
     // Modo preview: devolver el texto + screenshot sin enviar nada
     if (preview) {
-      return Response.json({ success: true, preview: true, emailText, screenshotUrl, source });
+      return Response.json({ success: true, preview: true, emailText, screenshotUrl, source, extraServices });
     }
 
     // Construir HTML del email
@@ -139,6 +191,16 @@ Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre pár
       .split('\n')
       .map(l => `<p style="margin:0 0 14px;color:#374151;line-height:1.7;font-size:15px">${l || '&nbsp;'}</p>`)
       .join('');
+
+    const extraServicesHtml = `
+      <div style="margin:24px 0 4px">
+        <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em">Más allá del SEO, también podemos ayudarte con</p>
+        ${extraServices.map(s => `
+        <a href="${s.href}" target="_blank" style="display:block;text-decoration:none;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:8px">
+          <p style="margin:0;font-size:14px;font-weight:700;color:#4f46e5">${s.icon} ${s.label}</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#6b7280;line-height:1.5">${s.desc}</p>
+        </a>`).join('')}
+      </div>`;
 
     const screenshotHtml = screenshotUrl
       ? `<div style="margin:28px 0 8px">
@@ -171,6 +233,7 @@ Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre pár
     <!-- Body -->
     <div style="padding:32px 36px">
       ${bodyLines}
+      ${extraServicesHtml}
       ${screenshotHtml}
       <div style="margin:28px 0 4px;text-align:center">
         <a href="${waLink}" target="_blank" style="display:inline-block;background:#22c55e;color:#ffffff;padding:14px 34px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">💬 Escribime por WhatsApp</a>
@@ -212,6 +275,7 @@ Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre pár
           nombre, email, siteUrl, ciudad: ciudad || null, tipo: tipo || null,
           seoScore: seoScore ?? null, auditoriaId: auditoriaId || null,
           subject, body: emailText, screenshotUrl: screenshotUrl || null,
+          extraServices: extraServices.map(s => s.label),
           source: source || null, resendId,
           status: 'sent',
           createdAt: FieldValue.serverTimestamp(),
@@ -221,7 +285,7 @@ Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre pár
       console.error('[send-biz-email] no se pudo guardar el registro:', logErr.message);
     }
 
-    return Response.json({ success: true, emailId: resendId, emailText, source });
+    return Response.json({ success: true, emailId: resendId, emailText, source, extraServices });
   } catch (e) {
     console.error('[send-biz-email] ERROR:', e.message, e.stack);
     return Response.json({ error: e.message }, { status: 500 });
