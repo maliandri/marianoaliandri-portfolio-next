@@ -53,7 +53,7 @@ export default async function NoticiaDetailPage({ params }) {
   return (
     <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20 px-4 md:px-6">
       <div className="max-w-3xl mx-auto">
-        <Link href="/noticias" className="text-xs text-gray-600 hover:text-gray-400 transition-colors mb-6 inline-block">
+        <Link href="/noticias/" className="text-xs text-gray-600 hover:text-gray-400 transition-colors mb-6 inline-block">
           ← Todas las noticias
         </Link>
 
@@ -91,7 +91,7 @@ export default async function NoticiaDetailPage({ params }) {
             <p className="text-gray-500 text-sm mt-1">Hablemos. Primera consulta sin cargo.</p>
           </div>
           <Link
-            href="/presupuesto"
+            href="/presupuesto/"
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
           >
             Pedir presupuesto <span aria-hidden>→</span>
