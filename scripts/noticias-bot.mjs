@@ -8,6 +8,8 @@ import { XMLParser } from 'fast-xml-parser';
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 const SITE_URL = 'https://marianoaliandri.com.ar';
+const MAX_ITEM_AGE_MS = 48 * 60 * 60 * 1000; // 48 horas — el bot corre cada hora, no tiene sentido publicar algo más viejo
+const MAX_ITEMS_PER_RUN = 5;
 
 function initAdmin() {
   if (admin.apps.length) return;
@@ -74,10 +76,16 @@ async function fetchGoogleNewsRss(query) {
   const parsed = new XMLParser().parse(xml);
   const rawItems = parsed?.rss?.channel?.item;
   const items = Array.isArray(rawItems) ? rawItems : (rawItems ? [rawItems] : []);
+  const now = Date.now();
   return items
     .map(it => ({ title: String(it.title || '').trim(), link: String(it.link || '').trim(), pubDate: it.pubDate || null }))
     .filter(it => it.title && it.link)
-    .reverse(); // Google trae lo más nuevo primero; procesamos más viejo primero.
+    .filter(it => {
+      const t = it.pubDate ? Date.parse(it.pubDate) : NaN;
+      return !Number.isNaN(t) && (now - t) < MAX_ITEM_AGE_MS;
+    })
+    // Google News RSS /search viene ordenado por relevancia, no por fecha — se ordena acá.
+    .sort((a, b) => Date.parse(a.pubDate) - Date.parse(b.pubDate));
 }
 
 async function generateContent(item, topic) {
@@ -113,6 +121,8 @@ Escribí, en español rioplatense (vos, no tú), un JSON con exactamente estas 3
     throw new Error('Gemini no devolvió JSON válido');
   }
   if (!parsed.title || !parsed.body || !parsed.caption) throw new Error('JSON de Gemini incompleto (falta title, body o caption)');
+  if (parsed.caption.length > 2000) throw new Error('Caption de Gemini demasiado larga (posible alucinación)');
+  if (/https?:\/\/|www\./i.test(parsed.caption)) throw new Error('Caption de Gemini incluye un link — se descarta (rompe el requisito de post sin preview card)');
   return parsed;
 }
 
@@ -242,9 +252,10 @@ async function main() {
 
   let publishedCount = 0;
   let errorCount = 0;
+  let attempted = 0;
 
   for (const topic of topics) {
-    if (remaining <= 0) break;
+    if (remaining <= 0 || attempted >= MAX_ITEMS_PER_RUN) break;
     console.log(`\n— Tópico: ${topic.label} —`);
 
     let items;
@@ -257,10 +268,11 @@ async function main() {
     console.log(`  ${items.length} item(s) en el RSS.`);
 
     for (const item of items) {
-      if (remaining <= 0) break;
+      if (remaining <= 0 || attempted >= MAX_ITEMS_PER_RUN) break;
       const sourceUrlHash = hashUrl(item.link);
       if (await alreadyPublished(db, sourceUrlHash)) continue;
 
+      attempted++;
       try {
         const content = await generateContent(item, topic);
         await publishNoticia({ db, topic, item, content, sourceUrlHash });

@@ -268,6 +268,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   5. Grabacion: canvas 1080x1920 → WebM → Cloudinary (transformacion f_mp4,vc_h264,ac_aac) → Make.com webhook
   - Subtitle muestra CTA a la tienda (no precios) para productos
   - Mezcla de audio: voz volumen 1.0 + musica volumen 0.25 via Web Audio API
+- **Bot de noticias** (GitHub Actions, no Vercel): cada hora (cron `7 * * * *` UTC = minuto 7, hora ART+3) un script autocontenido (`scripts/noticias-bot.mjs`) busca noticias nuevas de los tópicos activos (`noticias_topics`) vía Google News RSS, las redacta con Gemini, sube un screenshot (Microlink → Cloudinary) y publica en `/noticias` + al mismo webhook de Make (`type: 'noticia'`) para salir en Facebook/LinkedIn/Instagram como post nativo sin link. Corre 100% fuera de Vercel — no consume Function Invocations ni toca ninguna ruta `/api/` del sitio. Interruptor general + tope diario opcional desde el admin (tab "Noticias (Bot)", `noticias_config/settings`). Filtra artículos de más de 48h y limita cada corrida a 5 intentos como máximo, para no saturar la cuota de Gemini que comparten las demás rutas del sitio.
 - **Auth**: Firebase Auth (Google login)
 - **Likes + Visitas**: Contadores en Firestore, anonimos con localStorage
 - **AI Chatbot**: Integrado en header (Gemini 2.5 Flash)
@@ -291,6 +292,9 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 | `proyectos` | Descripcion y orden de proyectos GSC | Admin tab Proyectos |
 | `entitlements` | Plan y cuota de busquedas de keywords por usuario | **Solo Admin SDK** (server) |
 | `likes` / `visitas` | Contadores anonimos | Client-side |
+| `noticias` | Notas publicadas por el bot (título, cuerpo, caption, imagen, estado) | Solo `scripts/noticias-bot.mjs` (GitHub Actions) |
+| `noticias_topics` | Tópicos a seguir (activo/inactivo) | Admin (tab Noticias) |
+| `noticias_config` | Interruptor on/off + tope diario opcional del bot | Admin (tab Noticias) |
 
 **IMPORTANTE `entitlements/{uid}`**: el cliente NO puede escribirla (regla `write: if false`).
 El plan y el contador de busquedas solo los escribe el Admin SDK desde el server. Esto evita que
@@ -444,6 +448,8 @@ mensaje pre-cargado) ademas del screenshot del sitio y el badge de Score SEO.
   El payload del reel incluye `metadata.videoUrl` (MP4 Cloudinary) para compatibilidad
   con los modulos de Instagram/LinkedIn en Make.com que mapean ese campo.
   `type: 'reel'` es lo que routea al modulo de Instagram Reels en el Router de Make.
+
+- **Bot de noticias — contrato con Make**: el payload que manda `scripts/noticias-bot.mjs` al webhook de Make usa `type: 'noticia'` — necesita su propia rama en el Router (igual patrón que `type: 'reel'` y `zone_analysis`), configurada a mano en Make, no en código. El script vive en `scripts/`, corre en GitHub Actions con sus propios secrets (duplicados de los de Vercel, cargados aparte en GitHub → Settings → Secrets) — **nunca** llama a rutas `/api/` del sitio. Si se cambian los nombres de variables de entorno que lee el script (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`, `GEMINI_API_KEY`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_UPLOAD_PRESET`, `MAKE_WEBHOOK_URL`), hay que actualizar `.github/workflows/noticias-bot.yml` y los secrets de GitHub en el mismo cambio.
 
 - **Modelo Gemini**: usar `gemini-2.5-flash` en todas las rutas. `gemini-2.0-flash`
   ya no esta disponible para nuevos usuarios.

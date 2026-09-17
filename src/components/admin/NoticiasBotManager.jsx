@@ -204,11 +204,25 @@ export default function NoticiasBotManager() {
                 {log.map(n => (
                   <tr key={n.id}>
                     <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{n.topicLabel || '—'}</td>
-                    <td className="px-3 py-2 text-gray-900 dark:text-white max-w-[260px] truncate" title={n.title}>{n.title || '—'}</td>
+                    <td className="px-3 py-2 text-gray-900 dark:text-white max-w-[260px] truncate" title={n.title}>
+                      <a href={`/noticias/${n.id}/`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                        {n.title || '—'}
+                      </a>
+                      {n.sourceUrl && (
+                        <>
+                          {' · '}
+                          <a href={n.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline text-[11px]">
+                            fuente
+                          </a>
+                        </>
+                      )}
+                    </td>
                     <td className="px-3 py-2">
                       {n.status === 'published'
-                        ? <span className="text-green-600 dark:text-green-400">✓ Publicada{n.makeError ? ' (Make falló)' : ''}</span>
-                        : <span className="text-red-500">✗ Error</span>}
+                        ? (n.makeError
+                            ? <span className="text-amber-600 dark:text-amber-400" title={`Make falló: ${n.makeError}`}>⚠ Publicada (Make falló)</span>
+                            : <span className="text-green-600 dark:text-green-400">✓ Publicada</span>)
+                        : <span className="text-red-500" title={n.makeError || 'Error'}>✗ Error</span>}
                     </td>
                     <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{formatDate(n.publishedAt)}</td>
                   </tr>
