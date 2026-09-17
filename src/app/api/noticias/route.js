@@ -2,13 +2,18 @@ export const dynamic = 'force-dynamic';
 
 import { getDb } from '@/lib/firebase-admin';
 
-export async function GET() {
+export async function GET(request) {
   try {
     const db = getDb();
     if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });
 
+    // ?public=1 lo usan superficies públicas (ej. NoticiasHome en el home) — solo
+    // noticias publicadas, sin el detalle interno de errores. El admin (sin el
+    // param) sigue viendo todo, incluidas las que fallaron y por qué.
+    const isPublic = new URL(request.url).searchParams.get('public') === '1';
+
     const snap = await db.collection('noticias').orderBy('publishedAt', 'desc').limit(50).get();
-    const noticias = snap.docs.map(d => {
+    let noticias = snap.docs.map(d => {
       const data = d.data();
       return {
         id: d.id,
@@ -21,6 +26,13 @@ export async function GET() {
         publishedAt: data.publishedAt?.toDate?.()?.toISOString() || null,
       };
     });
+
+    if (isPublic) {
+      noticias = noticias
+        .filter(n => n.status === 'published')
+        .map(({ makeError, ...rest }) => rest);
+    }
+
     return Response.json({ noticias });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });

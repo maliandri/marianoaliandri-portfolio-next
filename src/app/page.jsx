@@ -1,4 +1,5 @@
 import HeroNew from '@/components/home/HeroNew';
+import NoticiasHome from '@/components/home/NoticiasHome';
 import ProyectosGrid from '@/components/home/ProyectosGrid';
 import CapabilitiesCarousel from '@/components/home/CapabilitiesCarousel';
 import Contact from '@/components/home/Contact';
@@ -109,6 +110,7 @@ export default function HomePage() {
       />
       <main className="bg-[#0a0a0a]">
         <HeroNew />
+        <NoticiasHome />
         <ProyectosGrid />
         <CapabilitiesCarousel />
         <section id="contact" aria-label="Información de contacto">

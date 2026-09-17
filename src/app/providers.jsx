@@ -28,6 +28,7 @@ const LabsTool = dynamic(() => import('@/components/tools/LabsTool'), { ssr: fal
 
 const TOOL_PATHS = ['/stats', '/ats', '/kpi', '/radarweb', '/labs', '/lead-finder-pro', '/analitica', '/herramientas'];
 const NAV_LINKS = [
+  { label: 'Noticias',    href: '/noticias' },
   { label: 'Proyectos',   href: '/#proyectos' },
   { label: 'Contacto',    href: '/#contact' },
   { label: 'Auditorías',  href: '/auditorias' },
