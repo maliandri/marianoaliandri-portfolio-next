@@ -10,6 +10,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // scripts/ corre fuera de Next (GitHub Actions), no sigue reglas de React/Next.
+    "scripts/**",
   ]),
 ]);
 
