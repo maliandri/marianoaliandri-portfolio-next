@@ -16,6 +16,7 @@ import BudgetManager from '../components/admin/BudgetManager';
 import QuoteBuilder from '../components/admin/QuoteBuilder';
 import BenefitsEditor from '../components/admin/BenefitsEditor';
 import AuditoriasManager from '../components/admin/AuditoriasManager';
+import AuditoriasUnificado from '../components/admin/AuditoriasUnificado';
 import PaymentPlanEditor from '../components/admin/PaymentPlanEditor';
 import StoreExcelManager from '../components/admin/StoreExcelManager';
 import AuditRequestsManager from '../components/admin/AuditRequestsManager';
@@ -933,6 +934,11 @@ export default function AdminPage() {
         {activeTab === 'auditorias' && (
           <div className="p-6">
             <AuditoriasManager />
+          </div>
+        )}
+        {activeTab === 'auditorias-todas' && (
+          <div className="p-6">
+            <AuditoriasUnificado />
           </div>
         )}
         {activeTab === 'style-quiz' && (

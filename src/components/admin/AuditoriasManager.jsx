@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import SendAuditEmailButton from './SendAuditEmailButton';
 
 function ScoreBadge({ score }) {
   if (score == null) return <span className="text-gray-500 text-xs">—</span>;
@@ -416,171 +417,6 @@ ${reportUrl}
   );
 }
 
-function SendEmailButton({ neg, auditoriaId, alreadySent, onSent }) {
-  const [open, setOpen]                   = useState(false);
-  const [busy, setBusy]                   = useState(null); // 'generating' | 'sending' | null
-  const [sentLocal, setSentLocal]         = useState(false);
-  const sent = sentLocal || alreadySent;
-  const setSent = (v) => { setSentLocal(v); if (v && onSent) onSent(neg.email); };
-  const [emailText, setEmailText]         = useState('');
-  const [screenshotUrl, setScreenshotUrl] = useState(null);
-  const [source, setSource]               = useState(null); // 'gemini' | 'template' | 'edited'
-  const [extraServices, setExtraServices] = useState([]);
-  const [errorMsg, setErrorMsg]           = useState('');
-
-  const payload = {
-    auditoriaId,
-    nombre:     neg.nombre,
-    siteUrl:    neg.siteUrl,
-    email:      neg.email,
-    seoScore:   neg.seoScore,
-    hasSitemap: neg.hasSitemap,
-    hasRobots:  neg.hasRobots,
-    metaDesc:   neg.metaDesc,
-    hasOG:      neg.hasOG,
-    ciudad:     neg.ciudad,
-    tipo:       neg.tipo,
-  };
-
-  // Paso 1: generar el texto con Gemini (sin enviar) y abrir el preview
-  const generate = async () => {
-    setBusy('generating'); setErrorMsg('');
-    try {
-      const resp = await fetch('/api/auditorias/send-biz-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, preview: true }),
-      });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || 'Error al generar');
-      setEmailText(data.emailText || '');
-      setScreenshotUrl(data.screenshotUrl || null);
-      setSource(data.source || null);
-      setExtraServices(data.extraServices || []);
-      setOpen(true);
-    } catch (e) {
-      setErrorMsg(e.message);
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  // Paso 2: enviar exactamente el texto que se ve (editado)
-  const send = async () => {
-    setBusy('sending'); setErrorMsg('');
-    try {
-      const resp = await fetch('/api/auditorias/send-biz-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, emailText, screenshotUrl }),
-      });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || 'Error al enviar');
-      setSent(true);
-      setOpen(false);
-    } catch (e) {
-      setErrorMsg(e.message);
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  if (!neg.email) return <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>;
-
-  return (
-    <div className="flex items-center gap-1.5 min-w-[180px]">
-      <span className="text-xs text-green-600 dark:text-green-400 truncate max-w-[120px]" title={neg.email}>
-        {neg.email}
-      </span>
-      <button
-        onClick={generate}
-        disabled={busy === 'generating' || sent}
-        title={sent ? 'Enviado' : `Generar email para ${neg.email}`}
-        className={`shrink-0 px-2 py-0.5 rounded text-xs font-medium transition-colors
-          ${sent               ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 cursor-default'
-          : busy === 'generating' ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-wait'
-          : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50'}`}>
-        {sent ? '✓ Enviado' : busy === 'generating' && !open ? '⏳ Generando…' : '✉ Generar'}
-      </button>
-      {!open && errorMsg && (
-        <span className="text-[10px] text-red-500 max-w-[130px] truncate" title={errorMsg}>{errorMsg}</span>
-      )}
-
-      {/* Modal de preview */}
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => !busy && setOpen(false)}
-        >
-          <div
-            className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 w-full max-w-lg max-h-[85vh] overflow-y-auto p-5 text-left"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">Preview del email</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Para <strong>{neg.nombre}</strong> · {neg.email}</p>
-              </div>
-              <button onClick={() => setOpen(false)} disabled={!!busy}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none disabled:opacity-40">✕</button>
-            </div>
-
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-medium text-gray-500">Cuerpo del email (podés editarlo)</label>
-              {source === 'gemini'   && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">✨ IA (Gemini)</span>}
-              {source === 'template' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" title="Gemini no disponible — se usó una plantilla">✍️ Plantilla</span>}
-            </div>
-            <textarea
-              value={emailText}
-              onChange={e => setEmailText(e.target.value)}
-              rows={10}
-              disabled={!!busy}
-              className="w-full text-sm bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl p-3 text-gray-700 dark:text-gray-200 leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-400/50 resize-y disabled:opacity-60"
-            />
-
-            {extraServices.length > 0 && (
-              <div className="mt-3">
-                <p className="text-xs font-medium text-gray-500 mb-1">También se incluyen estos links (según el rubro)</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {extraServices.map(s => (
-                    <span key={s.label} className="text-[11px] px-2 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                      {s.icon} {s.label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {screenshotUrl && (
-              <div className="mt-3">
-                <p className="text-xs font-medium text-gray-500 mb-1">Captura del sitio que se adjunta</p>
-                <img src={screenshotUrl} alt="" className="w-full rounded-xl border border-gray-200 dark:border-neutral-800" />
-              </div>
-            )}
-
-            {errorMsg && <p className="mt-3 text-xs text-red-500">{errorMsg}</p>}
-
-            <div className="flex items-center justify-end gap-2 mt-4">
-              <button onClick={generate} disabled={!!busy}
-                className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-xl transition-colors disabled:opacity-40">
-                {busy === 'generating' ? '↻ Regenerando…' : '↻ Regenerar'}
-              </button>
-              <button onClick={() => setOpen(false)} disabled={!!busy}
-                className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-xl transition-colors disabled:opacity-40">
-                Cancelar
-              </button>
-              <button onClick={send} disabled={!!busy || !emailText.trim()}
-                className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50">
-                {busy === 'sending' ? 'Enviando…' : `✉ Enviar a ${neg.email}`}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function GenerateDMButton({ neg }) {
   const [open, setOpen]     = useState(false);
   const [busy, setBusy]     = useState(false);
@@ -702,18 +538,26 @@ function GenerateDMButton({ neg }) {
 }
 
 function AuditoriaDetail({ id }) {
-  const [data, setData]     = useState(null);
+  const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
-  const [sentSet, setSentSet] = useState(() => new Set()); // emails ya enviados
+  const [emailCounts, setEmailCounts] = useState({}); // email(lowercase) -> { count, lastSentAt }
   const [bulk, setBulk]     = useState(null); // { total, done, ok, fail, current, running, log }
 
-  const markSent = useCallback((email) => {
+  // Suma un envío recién hecho al contador en memoria, sin esperar a refrescar.
+  const bumpSent = useCallback((email) => {
     if (!email) return;
-    setSentSet(prev => {
-      const next = new Set(prev);
-      next.add(email);
-      return next;
-    });
+    const key = email.toLowerCase();
+    setEmailCounts(prev => ({
+      ...prev,
+      [key]: { count: (prev[key]?.count || 0) + 1, lastSentAt: new Date().toISOString() },
+    }));
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/auditorias/email-counts')
+      .then(r => r.json())
+      .then(d => setEmailCounts(d && typeof d === 'object' ? d : {}))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -734,9 +578,11 @@ function AuditoriaDetail({ id }) {
   const withEmailList = results.filter(r => r.email);
   const withEmail = withEmailList.length;
 
-  // Envío masivo: recorre secuencialmente los negocios con email que no fueron enviados
+  const sentCountFor = (email) => emailCounts[(email || '').toLowerCase()]?.count || 0;
+
+  // Envío masivo: recorre secuencialmente los negocios con email que todavía no recibieron nada
   const sendAll = async () => {
-    const pending = withEmailList.filter(r => !sentSet.has(r.email));
+    const pending = withEmailList.filter(r => sentCountFor(r.email) === 0);
     if (!pending.length) return;
     if (!confirm(`¿Enviar el email de análisis SEO a ${pending.length} negocio${pending.length !== 1 ? 's' : ''}?\nCada uno se genera con Gemini y se envía por separado. Puede tardar un poco.`)) return;
 
@@ -759,7 +605,7 @@ function AuditoriaDetail({ id }) {
         const d = await resp.json();
         if (!resp.ok || d.error) throw new Error(d.error || 'Error');
         ok++;
-        markSent(neg.email);
+        bumpSent(neg.email);
         setBulk(b => ({ ...b, ok, log: [...b.log, { email: neg.email, nombre: neg.nombre, ok: true }] }));
       } catch (e) {
         fail++;
@@ -769,7 +615,8 @@ function AuditoriaDetail({ id }) {
     setBulk(b => ({ ...b, done: pending.length, current: '', running: false }));
   };
 
-  const pendingCount = withEmailList.filter(r => !sentSet.has(r.email)).length;
+  const pendingCount = withEmailList.filter(r => sentCountFor(r.email) === 0).length;
+  const sentTotal    = withEmailList.filter(r => sentCountFor(r.email) > 0).length;
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700">
@@ -787,7 +634,7 @@ function AuditoriaDetail({ id }) {
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-xs text-green-700 dark:text-green-400">
               ✉ <strong>{withEmail}</strong> empresa{withEmail !== 1 ? 's' : ''} con email
-              {sentSet.size > 0 && <> · <strong>{sentSet.size}</strong> enviado{sentSet.size !== 1 ? 's' : ''}</>}
+              {sentTotal > 0 && <> · <strong>{sentTotal}</strong> con al menos un envío</>}
               {' '}— enviá uno a uno o a todos de una vez (Gemini genera cada texto).
             </p>
             <button
@@ -866,7 +713,13 @@ function AuditoriaDetail({ id }) {
                   {neg.rating ? `★ ${neg.rating}` : '—'}
                 </td>
                 <td className="px-3 py-2">
-                  <SendEmailButton neg={neg} auditoriaId={id} alreadySent={sentSet.has(neg.email)} onSent={markSent} />
+                  <SendAuditEmailButton
+                    neg={neg}
+                    auditoriaId={id}
+                    sentCount={sentCountFor(neg.email)}
+                    lastSentAt={emailCounts[(neg.email || '').toLowerCase()]?.lastSentAt || null}
+                    onSent={bumpSent}
+                  />
                 </td>
                 <td className="px-3 py-2">
                   <GenerateDMButton neg={neg} />
