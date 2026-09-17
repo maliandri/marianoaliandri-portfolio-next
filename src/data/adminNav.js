@@ -30,6 +30,7 @@ export const ADMIN_NAV_DEFAULT = [
     ]},
     { id: 'linkedin', label: 'LinkedIn', icon: '💼' },
     { id: 'cron', label: 'Cron Social', icon: '⏰' },
+    { id: 'noticias-bot', label: 'Noticias (Bot)', icon: '📰' },
   ]},
   { id: 'marketing', label: 'Marketing', icon: '🎯', items: [
     { id: 'leads', label: 'Lead Finder', icon: '🎯' },
