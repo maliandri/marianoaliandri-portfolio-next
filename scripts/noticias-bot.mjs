@@ -15,6 +15,11 @@ const GROQ_MODEL = 'openai/gpt-oss-120b';
 const SITE_URL = 'https://marianoaliandri.com.ar';
 const MAX_ITEM_AGE_MS = 48 * 60 * 60 * 1000; // 48 horas — el bot corre cada hora, no tiene sentido publicar algo más viejo
 const MAX_ITEMS_PER_RUN = 5;
+// Sin este tope, un tópico con mucho volumen de RSS (ej. "inteligencia artificial",
+// 80-90 items por corrida) agota todo MAX_ITEMS_PER_RUN antes de que el loop llegue
+// a los demás tópicos activos — en la práctica el bot terminaba publicando SIEMPRE
+// del mismo tópico. Esto obliga a rotar entre todos los tópicos activos cada corrida.
+const MAX_ITEMS_PER_TOPIC = 2;
 
 function initAdmin() {
   if (admin.apps.length) return;
@@ -330,12 +335,14 @@ async function main() {
     }
     console.log(`  ${items.length} item(s) en el RSS.`);
 
+    let attemptedForTopic = 0;
     for (const item of items) {
-      if (remaining <= 0 || attempted >= MAX_ITEMS_PER_RUN) break;
+      if (remaining <= 0 || attempted >= MAX_ITEMS_PER_RUN || attemptedForTopic >= MAX_ITEMS_PER_TOPIC) break;
       const sourceUrlHash = hashUrl(item.link);
       if (await alreadyPublished(db, sourceUrlHash)) continue;
 
       attempted++;
+      attemptedForTopic++;
 
       // La imagen va primero: si no conseguimos ninguna, descartamos la
       // noticia sin gastar cuota de Gemini (compartida con el resto del sitio).
