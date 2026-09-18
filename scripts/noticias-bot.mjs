@@ -228,8 +228,11 @@ async function publishNoticia({ db, topic, item, content, sourceUrlHash, screens
     publishedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
+  const noticiaUrl = `${SITE_URL}/noticias/${docRef.id}/`;
+  const postText = `${content.body}\n\nLeé la nota completa: ${noticiaUrl}`;
+
   try {
-    await sendToMake(content.caption, imageUrl);
+    await sendToMake(postText, imageUrl);
     console.log(`  ✓ "${content.title}" — publicada y enviada a Make`);
   } catch (e) {
     await docRef.update({ makeError: e.message });
