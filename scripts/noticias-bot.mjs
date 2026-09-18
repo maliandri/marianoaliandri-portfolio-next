@@ -8,7 +8,10 @@ import { XMLParser } from 'fast-xml-parser';
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+// Groq deprecó llama-3.3-70b-versatile para free/developer tier el 2026-06-17.
+// openai/gpt-oss-120b es el reemplazo recomendado por Groq con perfil de cuota
+// gratis similar (1.000 req/día). Verificado en vivo tras el 404 del modelo viejo.
+const GROQ_MODEL = 'openai/gpt-oss-120b';
 const SITE_URL = 'https://marianoaliandri.com.ar';
 const MAX_ITEM_AGE_MS = 48 * 60 * 60 * 1000; // 48 horas — el bot corre cada hora, no tiene sentido publicar algo más viejo
 const MAX_ITEMS_PER_RUN = 5;
