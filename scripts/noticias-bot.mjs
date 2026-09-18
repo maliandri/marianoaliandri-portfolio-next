@@ -149,6 +149,25 @@ async function getScreenshot(url) {
   }
 }
 
+// Fallback liviano cuando getScreenshot() falla: en vez de renderizar la
+// página entera (lento, y muchos sitios de noticias bloquean o tardan),
+// esto solo lee el <meta og:image> del artículo — casi todos los medios ya
+// la tienen para sus propias previews de WhatsApp/Facebook.
+async function getMetaImage(url) {
+  try {
+    const apiUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=false&meta=true`;
+    const resp = await fetch(apiUrl, { signal: AbortSignal.timeout(15000) });
+    const data = await resp.json();
+    return data?.data?.image?.url || null;
+  } catch {
+    return null;
+  }
+}
+
+async function getImageUrl(url) {
+  return (await getScreenshot(url)) || (await getMetaImage(url));
+}
+
 async function uploadToCloudinary(imageUrl) {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET;
@@ -185,20 +204,7 @@ async function sendToMake(text, imageUrl) {
   if (!resp.ok) throw new Error(`Make ${resp.status}`);
 }
 
-async function publishNoticia({ db, topic, item, content, sourceUrlHash }) {
-  const screenshotUrl = await getScreenshot(item.link);
-  if (!screenshotUrl) {
-    await db.collection('noticias').add({
-      topicId: topic.id, topicLabel: topic.label,
-      title: content.title, body: content.body, caption: content.caption,
-      sourceUrl: item.link, sourceUrlHash, sourceTitle: item.title,
-      imageUrl: null, status: 'error', makeError: 'No se pudo obtener el screenshot (Microlink)',
-      publishedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-    console.log(`  ✗ "${content.title}" — sin imagen, guardada como error`);
-    return;
-  }
-
+async function publishNoticia({ db, topic, item, content, sourceUrlHash, screenshotUrl }) {
   let imageUrl;
   try {
     imageUrl = await uploadToCloudinary(screenshotUrl);
@@ -273,9 +279,26 @@ async function main() {
       if (await alreadyPublished(db, sourceUrlHash)) continue;
 
       attempted++;
+
+      // La imagen va primero: si no conseguimos ninguna, descartamos la
+      // noticia sin gastar cuota de Gemini (compartida con el resto del sitio).
+      const screenshotUrl = await getImageUrl(item.link);
+      if (!screenshotUrl) {
+        errorCount++;
+        await db.collection('noticias').add({
+          topicId: topic.id, topicLabel: topic.label,
+          title: item.title, body: null, caption: null,
+          sourceUrl: item.link, sourceUrlHash, sourceTitle: item.title,
+          imageUrl: null, status: 'error', makeError: 'No se pudo obtener imagen (Microlink)',
+          publishedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        console.log(`  ✗ "${item.title}" — sin imagen, descartada antes de generar contenido`);
+        continue;
+      }
+
       try {
         const content = await generateContent(item, topic);
-        await publishNoticia({ db, topic, item, content, sourceUrlHash });
+        await publishNoticia({ db, topic, item, content, sourceUrlHash, screenshotUrl });
         publishedCount++;
         remaining--;
       } catch (e) {
