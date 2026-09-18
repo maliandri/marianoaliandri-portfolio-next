@@ -7,6 +7,8 @@ import crypto from 'node:crypto';
 import { XMLParser } from 'fast-xml-parser';
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 const SITE_URL = 'https://marianoaliandri.com.ar';
 const MAX_ITEM_AGE_MS = 48 * 60 * 60 * 1000; // 48 horas — el bot corre cada hora, no tiene sentido publicar algo más viejo
 const MAX_ITEMS_PER_RUN = 5;
@@ -88,11 +90,8 @@ async function fetchGoogleNewsRss(query) {
     .sort((a, b) => Date.parse(a.pubDate) - Date.parse(b.pubDate));
 }
 
-async function generateContent(item, topic) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY no configurada');
-
-  const prompt = `Sos el redactor del canal de noticias de Mariano Aliandri (${SITE_URL}), desarrollador Full Stack y analista de datos de Neuquén, Argentina.
+function buildPrompt(item, topic) {
+  return `Sos el redactor del canal de noticias de Mariano Aliandri (${SITE_URL}), desarrollador Full Stack y analista de datos de Neuquén, Argentina.
 
 Tenés este titular real como disparador:
 Título: ${item.title}
@@ -100,8 +99,37 @@ Fuente: ${item.link}
 Tópico que seguís: ${topic.label}
 
 Escribí, en español rioplatense (vos, no tú), un JSON con exactamente estas 3 claves, sin texto extra antes ni después ni bloques de código:
-{"title": "título propio para la nota, no copies el original tal cual", "body": "2 a 4 párrafos (separados por \\n) explicando la noticia y por qué importa, tono cercano y profesional, sin inventar datos que no estén en el titular", "caption": "1 a 2 oraciones cortas para un post de red social, SIN incluir ningún link ni URL"}`;
+{"title": "título propio para la nota, no copies el original tal cual", "body": "2 a 4 párrafos (separados por \\n) explicando la noticia y por qué importa, tono cercano y profesional, sin inventar datos que no estén en el titular", "caption": "1 a 2 oraciones cortas para un post de red social, SIN incluir ningún link ni URL"}
 
+IMPORTANTE sobre "body": tiene que contar la noticia COMPLETA — qué pasó, quién, cuándo,
+por qué importa. Nada de escribir un gancho vacío tipo "te contamos los detalles" o
+"enterate qué pasó" que obligue a entrar al link para saber de qué se trata. El link a la
+nota completa se agrega aparte, después del body, como algo opcional para quien quiera
+profundizar — no como la única forma de enterarse. Lo mismo aplica a "caption": tiene que
+resumir la noticia en sí, no ser un cliffhanger.`;
+}
+
+function parseAndValidateContent(rawText, providerLabel) {
+  if (!rawText) throw new Error(`${providerLabel} no generó texto (posible bloqueo de contenido)`);
+
+  const clean = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+  let parsed;
+  try {
+    parsed = JSON.parse(clean);
+  } catch {
+    throw new Error(`${providerLabel} no devolvió JSON válido`);
+  }
+  if (!parsed.title || !parsed.body || !parsed.caption) throw new Error(`JSON de ${providerLabel} incompleto (falta title, body o caption)`);
+  if (parsed.caption.length > 2000) throw new Error(`Caption de ${providerLabel} demasiado larga (posible alucinación)`);
+  if (/https?:\/\/|www\./i.test(parsed.caption)) throw new Error(`Caption de ${providerLabel} incluye un link — se descarta (rompe el requisito de post sin preview card)`);
+  return parsed;
+}
+
+async function generateContentGemini(item, topic) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY no configurada');
+
+  const prompt = buildPrompt(item, topic);
   const resp = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -111,19 +139,42 @@ Escribí, en español rioplatense (vos, no tú), un JSON con exactamente estas 3
   if (!resp.ok || data?.error) throw new Error(`Gemini ${resp.status}: ${data?.error?.message || 'error desconocido'}`);
 
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-  if (!text) throw new Error('Gemini no generó texto (posible bloqueo de contenido)');
+  return parseAndValidateContent(text, 'Gemini');
+}
 
-  const clean = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
-  let parsed;
+// Fallback cuando falla Gemini (cuota compartida con el resto del sitio, ver comentario
+// en main()). Groq tiene free tier sin tarjeta y sin relación con la cuota de Google.
+async function generateContentGroq(item, topic) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY no configurada');
+
+  const prompt = buildPrompt(item, topic);
+  const resp = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+    }),
+  });
+  const data = await resp.json();
+  if (!resp.ok || data?.error) throw new Error(`Groq ${resp.status}: ${data?.error?.message || 'error desconocido'}`);
+
+  const text = data?.choices?.[0]?.message?.content?.trim();
+  return parseAndValidateContent(text, 'Groq');
+}
+
+async function generateContent(item, topic) {
   try {
-    parsed = JSON.parse(clean);
-  } catch {
-    throw new Error('Gemini no devolvió JSON válido');
+    const content = await generateContentGemini(item, topic);
+    return { ...content, provider: 'gemini' };
+  } catch (e) {
+    if (!process.env.GROQ_API_KEY) throw e;
+    console.warn(`  Gemini falló ("${e.message}"), reintentando con Groq...`);
+    const content = await generateContentGroq(item, topic);
+    return { ...content, provider: 'groq' };
   }
-  if (!parsed.title || !parsed.body || !parsed.caption) throw new Error('JSON de Gemini incompleto (falta title, body o caption)');
-  if (parsed.caption.length > 2000) throw new Error('Caption de Gemini demasiado larga (posible alucinación)');
-  if (/https?:\/\/|www\./i.test(parsed.caption)) throw new Error('Caption de Gemini incluye un link — se descarta (rompe el requisito de post sin preview card)');
-  return parsed;
 }
 
 // Mismo patrón que src/app/api/auditorias/send-biz-email/route.js — duplicado

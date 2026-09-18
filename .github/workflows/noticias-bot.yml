@@ -1,8 +1,11 @@
 name: Bot de noticias
 
 on:
-  schedule:
-    - cron: '7 * * * *'
+  # Sin trigger `schedule`: el cron nativo de GitHub Actions demostró ser
+  # poco confiable en este repo (se salteaba varias horas seguidas). El
+  # scheduling real lo hace un cronjob externo (cron-job.org) pegándole
+  # a la API de despacho de este workflow (POST .../dispatches) una vez
+  # por hora — documentado en CLAUDE.md, sección "Bot de noticias".
   workflow_dispatch: {}
 
 concurrency:
@@ -25,6 +28,7 @@ jobs:
           FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
           FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
           CLOUDINARY_UPLOAD_PRESET: ${{ secrets.CLOUDINARY_UPLOAD_PRESET }}
           MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
