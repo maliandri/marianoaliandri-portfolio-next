@@ -268,6 +268,15 @@ async function uploadToCloudinary(imageUrl) {
   return data.secure_url;
 }
 
+// Instagram rechaza por URL formatos como WebP (error 9007 "Media ID is not
+// available", que además apaga el escenario de Make y acumula la cola) y
+// proporciones fuera de 4:5–1.91:1. Cloudinary conserva el formato original al
+// subir, así que pedimos la versión JPG 1080x1080 solo para lo que va a Make;
+// el `imageUrl` guardado en Firestore para el sitio queda intacto.
+export function toInstagramSafeUrl(url) {
+  return url.replace('/image/upload/', '/image/upload/c_fill,g_auto,w_1080,h_1080,f_jpg,q_auto/');
+}
+
 async function sendToMake(text, imageUrl) {
   const webhookUrl = process.env.MAKE_WEBHOOK_URL;
   if (!webhookUrl) throw new Error('MAKE_WEBHOOK_URL no configurada');
@@ -314,7 +323,7 @@ async function publishNoticia({ db, topic, item, content, sourceUrlHash, screens
   const postText = `${content.body}\n\nLeé la nota completa: ${noticiaUrl}`;
 
   try {
-    await sendToMake(postText, imageUrl);
+    await sendToMake(postText, toInstagramSafeUrl(imageUrl));
     console.log(`  ✓ "${content.title}" — publicada y enviada a Make`);
   } catch (e) {
     await docRef.update({ makeError: e.message });

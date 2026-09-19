@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isWithinSchedule, nowArgentina } from './noticias-bot.mjs';
+import { isWithinSchedule, nowArgentina, toInstagramSafeUrl } from './noticias-bot.mjs';
 
 // Enero de 1970: 1=jue, 2=vie, 3=sab, 4=dom, 5=lun, 6=mar, 7=mie.
 // Se usan estas fechas fijas para tener un getUTCDay() conocido sin ambigüedad.
@@ -54,5 +54,19 @@ describe('isWithinSchedule', () => {
   it('día habilitado sin startHour/endHour permite todo el día', () => {
     const schedule = { ...FULL_WEEK, mar: { enabled: true, startHour: null, endHour: null } };
     expect(isWithinSchedule(schedule, arNowFor(2, 2))).toBe(true); // martes 2am
+  });
+});
+
+describe('toInstagramSafeUrl', () => {
+  const base = 'https://res.cloudinary.com/dlshym1te/image/upload/v1789776136/zy8z9vid0sbfzjjje3nz';
+
+  it('fuerza JPG 1080x1080 aunque la imagen subida sea WebP', () => {
+    expect(toInstagramSafeUrl(`${base}.webp`)).toBe(
+      'https://res.cloudinary.com/dlshym1te/image/upload/c_fill,g_auto,w_1080,h_1080,f_jpg,q_auto/v1789776136/zy8z9vid0sbfzjjje3nz.webp',
+    );
+  });
+
+  it('funciona igual con PNG', () => {
+    expect(toInstagramSafeUrl(`${base}.png`)).toContain('/image/upload/c_fill,g_auto,w_1080,h_1080,f_jpg,q_auto/v1789776136/');
   });
 });
