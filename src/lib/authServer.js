@@ -1,7 +1,7 @@
 import admin, { getDb } from '@/lib/firebase-admin';
 
 // Verifica el idToken de Firebase que llega en el header Authorization: Bearer <token>.
-// Devuelve { uid, email } o null si no hay token válido.
+// Devuelve { uid, email, emailVerified } o null si no hay token válido.
 // Reutilizado por las rutas protegidas (keyword-explorer, me, subscribe).
 export async function getUserFromRequest(request) {
   try {
@@ -14,7 +14,7 @@ export async function getUserFromRequest(request) {
     // getDb() reintenta la init del Admin SDK si falló en cold start.
     if (!getDb()) return null;
     const decoded = await admin.auth().verifyIdToken(token);
-    return { uid: decoded.uid, email: decoded.email || null };
+    return { uid: decoded.uid, email: decoded.email || null, emailVerified: decoded.email_verified === true };
   } catch (e) {
     console.error('[authServer] verifyIdToken failed:', e.message);
     return null;

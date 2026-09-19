@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import TopicCard from './TopicCard';
+import { useAuthUser } from '@/hooks/useAuthUser';
+
+const ADMIN_EMAIL_HINT = 'yo@marianoaliandri.com.ar';
 
 const DAYS = [
   ['lun', 'Lunes'], ['mar', 'Martes'], ['mie', 'Miércoles'], ['jue', 'Jueves'],
@@ -29,6 +32,7 @@ function HourSelect({ value, onChange, disabled }) {
 }
 
 export default function NoticiasBotManager() {
+  const { user, loading: authLoading, getIdToken, login } = useAuthUser();
   const [topics, setTopics]     = useState([]);
   const [config, setConfig]     = useState({ active: true, dailyCap: null, schedule: null });
   const [scheduleDraft, setScheduleDraft] = useState(ALL_DAYS_UNRESTRICTED);
@@ -40,15 +44,27 @@ export default function NoticiasBotManager() {
   const [busy, setBusy]         = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Las rutas /api/noticias/topics y /config exigen el idToken de Firebase del admin.
+  const authFetch = useCallback(async (url, options = {}) => {
+    const token = await getIdToken();
+    return fetch(url, {
+      ...options,
+      headers: { ...options.headers, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+  }, [getIdToken]);
+
   const load = useCallback(async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       const [tRes, cRes, lRes] = await Promise.all([
-        fetch('/api/noticias/topics'),
-        fetch('/api/noticias/config'),
+        authFetch('/api/noticias/topics'),
+        authFetch('/api/noticias/config'),
         fetch('/api/noticias'),
       ]);
       const [tData, cData, lData] = await Promise.all([tRes.json(), cRes.json(), lRes.json()]);
+      if (!tRes.ok) throw new Error(tData.error || 'No se pudieron cargar los tópicos');
+      if (!cRes.ok) throw new Error(cData.error || 'No se pudo cargar la configuración');
       setTopics(tData.topics || []);
       setConfig({ active: cData.active !== false, dailyCap: cData.dailyCap ?? null, schedule: cData.schedule ?? null });
       setScheduleDraft(cData.schedule || ALL_DAYS_UNRESTRICTED);
@@ -59,14 +75,18 @@ export default function NoticiasBotManager() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [authFetch]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
+    load();
+  }, [load, user, authLoading]);
 
   const toggleActive = async () => {
     setBusy(true); setErrorMsg('');
     try {
-      const res = await fetch('/api/noticias/config', {
+      const res = await authFetch('/api/noticias/config', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active: !config.active }),
@@ -85,7 +105,7 @@ export default function NoticiasBotManager() {
     setBusy(true); setErrorMsg('');
     try {
       const dailyCap = capInput.trim() === '' ? null : Number(capInput);
-      const res = await fetch('/api/noticias/config', {
+      const res = await authFetch('/api/noticias/config', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dailyCap }),
@@ -103,7 +123,7 @@ export default function NoticiasBotManager() {
   const saveSchedule = async () => {
     setBusy(true); setErrorMsg('');
     try {
-      const res = await fetch('/api/noticias/config', {
+      const res = await authFetch('/api/noticias/config', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ schedule: scheduleDraft }),
@@ -122,7 +142,7 @@ export default function NoticiasBotManager() {
     if (!newLabel.trim()) return;
     setBusy(true); setErrorMsg('');
     try {
-      const res = await fetch('/api/noticias/topics', {
+      const res = await authFetch('/api/noticias/topics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ label: newLabel.trim(), query: newQuery.trim() || undefined }),
@@ -141,7 +161,7 @@ export default function NoticiasBotManager() {
   const toggleTopic = async (id, activo) => {
     setBusy(true); setErrorMsg('');
     try {
-      const res = await fetch('/api/noticias/topics', {
+      const res = await authFetch('/api/noticias/topics', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, activo }),
@@ -159,7 +179,7 @@ export default function NoticiasBotManager() {
   const saveTone = async (id, toneInstructions) => {
     setBusy(true); setErrorMsg('');
     try {
-      const res = await fetch('/api/noticias/topics', {
+      const res = await authFetch('/api/noticias/topics', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, toneInstructions }),
@@ -184,7 +204,7 @@ export default function NoticiasBotManager() {
 
     setBusy(true); setErrorMsg('');
     try {
-      const res = await fetch('/api/noticias/topics', {
+      const res = await authFetch('/api/noticias/topics', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: topic.id }),
@@ -199,7 +219,20 @@ export default function NoticiasBotManager() {
     }
   };
 
-  if (loading) return <div className="p-6 text-sm text-gray-400 animate-pulse">Cargando...</div>;
+  if (authLoading || (user && loading)) return <div className="p-6 text-sm text-gray-400 animate-pulse">Cargando...</div>;
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-between gap-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl px-4 py-3">
+        <p className="text-sm text-amber-700 dark:text-amber-400">
+          ⚠️ Iniciá sesión con <strong>{ADMIN_EMAIL_HINT}</strong> para administrar el bot de noticias.
+        </p>
+        <button onClick={login} className="shrink-0 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors">
+          Iniciar sesión con Google
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

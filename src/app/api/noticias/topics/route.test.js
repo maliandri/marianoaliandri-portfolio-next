@@ -1,13 +1,79 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/lib/firebase-admin', () => ({ getDb: vi.fn() }));
+// Se mockea solo la verificación del idToken; requireAdmin (lib/adminAuth.js) corre real.
+vi.mock('@/lib/authServer', () => ({ getUserFromRequest: vi.fn() }));
 
 import { getDb } from '@/lib/firebase-admin';
-import { PATCH, DELETE } from './route.js';
+import { getUserFromRequest } from '@/lib/authServer';
+import { GET, POST, PATCH, DELETE } from './route.js';
+
+const ADMIN = { uid: 'admin-uid', email: 'admin@example.com', emailVerified: true };
+const OTHER = { uid: 'other-uid', email: 'otro@example.com', emailVerified: true };
 
 function makeRequest(body) {
   return { json: async () => body };
 }
+
+beforeEach(() => {
+  process.env.ADMIN_EMAIL = 'admin@example.com';
+  getUserFromRequest.mockResolvedValue(ADMIN);
+});
+
+describe('autenticación de /api/noticias/topics', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const handlers = [
+    ['GET', () => GET(makeRequest())],
+    ['POST', () => POST(makeRequest({ label: 'x' }))],
+    ['PATCH', () => PATCH(makeRequest({ id: 't1', activo: false }))],
+    ['DELETE', () => DELETE(makeRequest({ id: 't1' }))],
+  ];
+
+  describe.each(handlers)('%s', (_name, call) => {
+    it('401 sin token válido, sin tocar Firestore', async () => {
+      getUserFromRequest.mockResolvedValue(null);
+      const res = await call();
+      expect(res.status).toBe(401);
+      expect(getDb).not.toHaveBeenCalled();
+    });
+
+    it('403 con usuario que no es admin, sin tocar Firestore', async () => {
+      getUserFromRequest.mockResolvedValue(OTHER);
+      const res = await call();
+      expect(res.status).toBe(403);
+      expect(getDb).not.toHaveBeenCalled();
+    });
+
+    it('403 si el email del admin no está verificado', async () => {
+      getUserFromRequest.mockResolvedValue({ ...ADMIN, emailVerified: false });
+      const res = await call();
+      expect(res.status).toBe(403);
+    });
+
+    it('403 si ADMIN_EMAIL no está seteada (falla cerrado)', async () => {
+      delete process.env.ADMIN_EMAIL;
+      const res = await call();
+      expect(res.status).toBe(403);
+    });
+  });
+
+  it('GET con admin devuelve la lista de tópicos', async () => {
+    getDb.mockReturnValue({
+      collection: () => ({
+        orderBy: () => ({
+          async get() {
+            return { docs: [{ id: 't1', data: () => ({ label: 'SEO', toneInstructions: 'directo' }) }] };
+          },
+        }),
+      }),
+    });
+    const res = await GET(makeRequest());
+    const data = await res.json();
+    expect(res.status).toBe(200);
+    expect(data.topics[0]).toMatchObject({ id: 't1', toneInstructions: 'directo' });
+  });
+});
 
 // Firestore fake en memoria — mismo espíritu que el de
 // src/app/api/lead-finder-pro/run/route.test.js, pero con lo que esta ruta

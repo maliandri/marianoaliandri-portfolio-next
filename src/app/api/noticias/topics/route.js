@@ -2,8 +2,12 @@ export const dynamic = 'force-dynamic';
 
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { requireAdmin } from '@/lib/adminAuth';
 
-export async function GET() {
+export async function GET(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
+
   try {
     const db = getDb();
     if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });
@@ -27,6 +31,9 @@ export async function GET() {
 }
 
 export async function POST(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
+
   try {
     const { label, query } = await request.json();
     if (!label || !label.trim()) {
@@ -53,6 +60,9 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
+
   try {
     const { id, activo, toneInstructions } = await request.json();
     if (!id) {
@@ -83,6 +93,9 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
+
   try {
     const { id } = await request.json();
     if (!id) {

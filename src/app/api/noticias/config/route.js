@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { getDb } from '@/lib/firebase-admin';
+import { requireAdmin } from '@/lib/adminAuth';
 
 const SCHEDULE_DAYS = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
 
@@ -16,7 +17,10 @@ function isValidSchedule(schedule) {
 
 const DEFAULTS = { active: true, dailyCap: null, schedule: null };
 
-export async function GET() {
+export async function GET(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
+
   try {
     const db = getDb();
     if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });
@@ -36,6 +40,9 @@ export async function GET() {
 }
 
 export async function PATCH(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
+
   try {
     const body = await request.json();
     const update = {};

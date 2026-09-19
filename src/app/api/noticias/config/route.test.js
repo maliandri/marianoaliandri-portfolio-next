@@ -1,13 +1,61 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/lib/firebase-admin', () => ({ getDb: vi.fn() }));
+// Se mockea solo la verificación del idToken; requireAdmin (lib/adminAuth.js) corre real.
+vi.mock('@/lib/authServer', () => ({ getUserFromRequest: vi.fn() }));
 
 import { getDb } from '@/lib/firebase-admin';
-import { PATCH } from './route.js';
+import { getUserFromRequest } from '@/lib/authServer';
+import { GET, PATCH } from './route.js';
+
+const ADMIN = { uid: 'admin-uid', email: 'admin@example.com', emailVerified: true };
+const OTHER = { uid: 'other-uid', email: 'otro@example.com', emailVerified: true };
 
 function makeRequest(body) {
   return { json: async () => body };
 }
+
+beforeEach(() => {
+  process.env.ADMIN_EMAIL = 'admin@example.com';
+  getUserFromRequest.mockResolvedValue(ADMIN);
+});
+
+describe('autenticación de /api/noticias/config', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const handlers = [
+    ['GET', () => GET(makeRequest())],
+    ['PATCH', () => PATCH(makeRequest({ active: false }))],
+  ];
+
+  describe.each(handlers)('%s', (_name, call) => {
+    it('401 sin token válido, sin tocar Firestore', async () => {
+      getUserFromRequest.mockResolvedValue(null);
+      const res = await call();
+      expect(res.status).toBe(401);
+      expect(getDb).not.toHaveBeenCalled();
+    });
+
+    it('403 con usuario que no es admin, sin tocar Firestore', async () => {
+      getUserFromRequest.mockResolvedValue(OTHER);
+      const res = await call();
+      expect(res.status).toBe(403);
+      expect(getDb).not.toHaveBeenCalled();
+    });
+  });
+
+  it('GET con admin devuelve la config', async () => {
+    getDb.mockReturnValue({
+      collection: () => ({
+        doc: () => ({ async get() { return { exists: true, data: () => ({ active: false, dailyCap: 3 }) }; } }),
+      }),
+    });
+    const res = await GET(makeRequest());
+    const data = await res.json();
+    expect(res.status).toBe(200);
+    expect(data).toMatchObject({ active: false, dailyCap: 3 });
+  });
+});
 
 function createFakeConfigDb(initial = {}) {
   const state = { settings: { ...initial } };
