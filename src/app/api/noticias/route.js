@@ -17,6 +17,7 @@ export async function GET(request) {
       const data = d.data();
       return {
         id: d.id,
+        topicId: data.topicId || null,
         topicLabel: data.topicLabel || null,
         title: data.title || null,
         sourceUrl: data.sourceUrl || null,
