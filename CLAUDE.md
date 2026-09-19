@@ -467,6 +467,30 @@ mensaje pre-cargado) ademas del screenshot del sitio y el badge de Score SEO.
 
 ---
 
+## Tests y CI (desde 2026-09-19)
+
+- **Vitest** (`vitest.config.mjs`, alias `@` → `src/`). Correr local: `npm test`
+  (= `vitest run`). Los archivos de test viven junto al código que prueban
+  (`*.test.js`), no en una carpeta `__tests__` separada.
+- Cobertura actual, enfocada en los flujos de plata (el resto del repo sigue sin tests):
+  - `src/lib/mpWebhook.test.js` — firma HMAC de webhooks de MercadoPago (función pura,
+    sin mocks).
+  - `src/app/api/lead-finder-pro/run/route.test.js` — gate de créditos (401 sin auth,
+    acciones gratis sin tocar Firestore, 402 sin plan, descuento de crédito, caché de
+    auditorías ya hechas). Usa un Firestore fake en memoria (`createFakeDb`, colecciones/
+    docs por path string) en vez de mockear cada llamada — reusar ese patrón para el
+    próximo test de un flujo con transacciones de Firestore.
+- **`.github/workflows/ci.yml`**: corre en cada push/PR a `main` — `npm test` +
+  `npm run build`. `npm run build` pasa sin ninguna env var seteada (firebase-admin.js
+  tolera credenciales ausentes en build time, ver seccion de abajo), así que el workflow
+  no necesita secrets. Si el build alguna vez empieza a requerir una env var real,
+  agregarla como secret de GitHub igual que se hizo para `scripts/noticias-bot.mjs`.
+- **Pendiente** (no implementado todavía): tests de `/api/subscribe` y
+  `/api/payment-webhook`/`/api/subscription-webhook` end-to-end (hoy solo está probada
+  la validación de firma, no el flujo completo de acreditación).
+
+---
+
 ## Oracle Cloud VM — OpenWA (WhatsApp gateway)
 
 ### VM Oracle Cloud Always Free
