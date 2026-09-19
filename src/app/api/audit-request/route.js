@@ -4,10 +4,9 @@ import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request) {
   try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const db = getDb();
     if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });
 
