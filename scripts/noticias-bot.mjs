@@ -54,10 +54,30 @@ function startOfTodayArgentina() {
   return new Date(startAR + arOffsetMs);
 }
 
+// Devuelve un Date cuyos getters UTC (getUTCDay, getUTCHours) leen como hora de pared
+// en Argentina — mismo truco de offset que startOfTodayArgentina().
+export function nowArgentina(date = new Date()) {
+  const arOffsetMs = 3 * 60 * 60 * 1000;
+  return new Date(date.getTime() - arOffsetMs);
+}
+
+const SCHEDULE_DAY_KEYS = ['dom', 'lun', 'mar', 'mie', 'jue', 'vie', 'sab']; // getUTCDay(): 0=domingo
+
+// Función pura: dado el schedule configurado (o null) y el momento actual ya ajustado a
+// hora Argentina (nowArgentina()), decide si el bot puede publicar ahora.
+export function isWithinSchedule(schedule, arNow) {
+  if (!schedule) return true;
+  const day = schedule[SCHEDULE_DAY_KEYS[arNow.getUTCDay()]];
+  if (!day || !day.enabled) return false;
+  if (day.startHour == null || day.endHour == null) return true;
+  const hour = arNow.getUTCHours();
+  return hour >= day.startHour && hour < day.endHour;
+}
+
 async function fetchConfig(db) {
   const doc = await db.collection('noticias_config').doc('settings').get();
   const data = doc.data() || {};
-  return { active: data.active !== false, dailyCap: data.dailyCap ?? null };
+  return { active: data.active !== false, dailyCap: data.dailyCap ?? null, schedule: data.schedule ?? null };
 }
 
 async function fetchActiveTopics(db) {
@@ -309,6 +329,11 @@ async function main() {
     return;
   }
 
+  if (!isWithinSchedule(config.schedule, nowArgentina())) {
+    console.log('Fuera del horario configurado. Nada para hacer.');
+    return;
+  }
+
   let remaining = config.dailyCap != null ? config.dailyCap - await countPublishedToday(db) : Infinity;
   if (remaining <= 0) {
     console.log(`Tope diario (${config.dailyCap}) ya alcanzado hoy. Nada para hacer.`);
@@ -375,7 +400,9 @@ async function main() {
   console.log(`\nListo. Publicadas: ${publishedCount}. Errores: ${errorCount}.`);
 }
 
-main().catch(e => {
-  console.error('Error fatal:', e);
-  process.exitCode = 1;
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch(e => {
+    console.error('Error fatal:', e);
+    process.exitCode = 1;
+  });
+}
