@@ -1,15 +1,37 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import TopicCard from './TopicCard';
 
-function formatDate(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const DAYS = [
+  ['lun', 'Lunes'], ['mar', 'Martes'], ['mie', 'Miércoles'], ['jue', 'Jueves'],
+  ['vie', 'Viernes'], ['sab', 'Sábado'], ['dom', 'Domingo'],
+];
+
+const ALL_DAYS_UNRESTRICTED = Object.fromEntries(
+  DAYS.map(([key]) => [key, { enabled: true, startHour: null, endHour: null }])
+);
+
+function HourSelect({ value, onChange, disabled }) {
+  return (
+    <select
+      value={value ?? ''}
+      onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))}
+      disabled={disabled}
+      className="text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-1.5 py-1 disabled:opacity-50"
+    >
+      <option value="">--</option>
+      {Array.from({ length: 25 }, (_, h) => (
+        <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+      ))}
+    </select>
+  );
 }
 
 export default function NoticiasBotManager() {
   const [topics, setTopics]     = useState([]);
-  const [config, setConfig]     = useState({ active: true, dailyCap: null });
+  const [config, setConfig]     = useState({ active: true, dailyCap: null, schedule: null });
+  const [scheduleDraft, setScheduleDraft] = useState(ALL_DAYS_UNRESTRICTED);
   const [log, setLog]           = useState([]);
   const [loading, setLoading]   = useState(true);
   const [newLabel, setNewLabel] = useState('');
@@ -28,7 +50,8 @@ export default function NoticiasBotManager() {
       ]);
       const [tData, cData, lData] = await Promise.all([tRes.json(), cRes.json(), lRes.json()]);
       setTopics(tData.topics || []);
-      setConfig({ active: cData.active !== false, dailyCap: cData.dailyCap ?? null });
+      setConfig({ active: cData.active !== false, dailyCap: cData.dailyCap ?? null, schedule: cData.schedule ?? null });
+      setScheduleDraft(cData.schedule || ALL_DAYS_UNRESTRICTED);
       setCapInput(cData.dailyCap != null ? String(cData.dailyCap) : '');
       setLog(lData.noticias || []);
     } catch (e) {
@@ -77,6 +100,24 @@ export default function NoticiasBotManager() {
     }
   };
 
+  const saveSchedule = async () => {
+    setBusy(true); setErrorMsg('');
+    try {
+      const res = await fetch('/api/noticias/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schedule: scheduleDraft }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setConfig(c => ({ ...c, schedule: data.schedule }));
+    } catch (e) {
+      setErrorMsg(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const addTopic = async () => {
     if (!newLabel.trim()) return;
     setBusy(true); setErrorMsg('');
@@ -104,6 +145,49 @@ export default function NoticiasBotManager() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, activo }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await load();
+    } catch (e) {
+      setErrorMsg(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveTone = async (id, toneInstructions) => {
+    setBusy(true); setErrorMsg('');
+    try {
+      const res = await fetch('/api/noticias/topics', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, toneInstructions }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await load();
+    } catch (e) {
+      setErrorMsg(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteTopic = async (topic) => {
+    const topicNotes = log.filter(n => n.topicId === topic.id);
+    const ok = window.confirm(
+      `Vas a borrar el tópico "${topic.label}" y sus ${topicNotes.length} notas publicadas en el sitio. ` +
+      `No se puede deshacer. Los posts que ya se publicaron en Facebook/LinkedIn/Instagram no se borran — esto solo afecta tu sitio.`
+    );
+    if (!ok) return;
+
+    setBusy(true); setErrorMsg('');
+    try {
+      const res = await fetch('/api/noticias/topics', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: topic.id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -149,7 +233,48 @@ export default function NoticiasBotManager() {
         </div>
       </div>
 
-      {/* Tópicos */}
+      {/* Horario de publicación */}
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Horario de publicación</p>
+        <div className="space-y-1.5">
+          {DAYS.map(([key, dayLabel]) => {
+            const day = scheduleDraft[key];
+            return (
+              <div key={key} className="flex items-center gap-3 text-xs bg-gray-50 dark:bg-gray-800/40 rounded-lg px-3 py-2">
+                <label className="flex items-center gap-1.5 w-24 shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={day.enabled}
+                    onChange={e => setScheduleDraft(s => ({ ...s, [key]: { ...s[key], enabled: e.target.checked } }))}
+                  />
+                  <span className={day.enabled ? 'text-gray-900 dark:text-white' : 'text-gray-400'}>{dayLabel}</span>
+                </label>
+                <span className="text-gray-400">desde</span>
+                <HourSelect
+                  value={day.startHour}
+                  disabled={!day.enabled}
+                  onChange={v => setScheduleDraft(s => ({ ...s, [key]: { ...s[key], startHour: v } }))}
+                />
+                <span className="text-gray-400">hasta</span>
+                <HourSelect
+                  value={day.endHour}
+                  disabled={!day.enabled}
+                  onChange={v => setScheduleDraft(s => ({ ...s, [key]: { ...s[key], endHour: v } }))}
+                />
+              </div>
+            );
+          })}
+        </div>
+        <button onClick={saveSchedule} disabled={busy}
+          className="mt-2 text-xs px-2.5 py-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 disabled:opacity-50">
+          Guardar horario
+        </button>
+        <p className="text-[11px] text-gray-400 mt-1">
+          "--" en desde/hasta = sin restricción de hora ese día. Un día sin tildar = no publica nada ese día.
+        </p>
+      </div>
+
+      {/* Agregar tópico */}
       <div>
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Tópicos a seguir</p>
         <div className="flex flex-wrap gap-2 mb-3">
@@ -168,69 +293,22 @@ export default function NoticiasBotManager() {
             + Agregar
           </button>
         </div>
-        <div className="space-y-1.5">
+
+        {/* Tópicos, uno por tarjeta */}
+        <div className="space-y-2">
           {topics.length === 0 && <p className="text-xs text-gray-400">Sin tópicos todavía.</p>}
           {topics.map(t => (
-            <div key={t.id} className="flex items-center justify-between gap-3 text-xs bg-gray-50 dark:bg-gray-800/40 rounded-lg px-3 py-2">
-              <div className="min-w-0">
-                <span className="font-medium text-gray-900 dark:text-white">{t.label}</span>
-                {t.query !== t.label && <span className="text-gray-400 ml-2">({t.query})</span>}
-              </div>
-              <label className="flex items-center gap-1.5 shrink-0">
-                <input type="checkbox" checked={t.activo} disabled={busy} onChange={e => toggleTopic(t.id, e.target.checked)} />
-                <span className={t.activo ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}>{t.activo ? 'Activo' : 'Inactivo'}</span>
-              </label>
-            </div>
+            <TopicCard
+              key={t.id}
+              topic={t}
+              notes={log.filter(n => n.topicId === t.id && n.status === 'published')}
+              busy={busy}
+              onToggleActivo={toggleTopic}
+              onSaveTone={saveTone}
+              onDelete={deleteTopic}
+            />
           ))}
         </div>
-      </div>
-
-      {/* Log */}
-      <div>
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Últimas publicaciones</p>
-        {log.length === 0 ? (
-          <p className="text-xs text-gray-400">Todavía no publicó nada.</p>
-        ) : (
-          <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-xl">
-            <table className="min-w-full text-xs">
-              <thead className="bg-gray-50 dark:bg-gray-900">
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  {['Tópico', 'Título', 'Estado', 'Fecha'].map(h => (
-                    <th key={h} className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                {log.map(n => (
-                  <tr key={n.id}>
-                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{n.topicLabel || '—'}</td>
-                    <td className="px-3 py-2 text-gray-900 dark:text-white max-w-[260px] truncate" title={n.title}>
-                      <a href={`/noticias/${n.id}/`} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                        {n.title || '—'}
-                      </a>
-                      {n.sourceUrl && (
-                        <>
-                          {' · '}
-                          <a href={n.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline text-[11px]">
-                            fuente
-                          </a>
-                        </>
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {n.status === 'published'
-                        ? (n.makeError
-                            ? <span className="text-amber-600 dark:text-amber-400" title={`Make falló: ${n.makeError}`}>⚠ Publicada (Make falló)</span>
-                            : <span className="text-green-600 dark:text-green-400">✓ Publicada</span>)
-                        : <span className="text-red-500" title={n.makeError || 'Error'}>✗ Error</span>}
-                    </td>
-                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{formatDate(n.publishedAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </div>
   );
