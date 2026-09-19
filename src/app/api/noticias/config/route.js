@@ -2,7 +2,19 @@ export const dynamic = 'force-dynamic';
 
 import { getDb } from '@/lib/firebase-admin';
 
-const DEFAULTS = { active: true, dailyCap: null };
+const SCHEDULE_DAYS = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
+
+function isValidSchedule(schedule) {
+  if (schedule === null) return true;
+  if (typeof schedule !== 'object') return false;
+  const hourOk = (v) => v === null || (Number.isInteger(v) && v >= 0 && v <= 24);
+  return SCHEDULE_DAYS.every(day => {
+    const entry = schedule[day];
+    return !!entry && typeof entry.enabled === 'boolean' && hourOk(entry.startHour) && hourOk(entry.endHour);
+  });
+}
+
+const DEFAULTS = { active: true, dailyCap: null, schedule: null };
 
 export async function GET() {
   try {
@@ -16,6 +28,7 @@ export async function GET() {
     return Response.json({
       active: data.active !== false,
       dailyCap: data.dailyCap ?? null,
+      schedule: data.schedule ?? null,
     });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });
@@ -36,6 +49,14 @@ export async function PATCH(request) {
       }
       update.dailyCap = body.dailyCap;
     }
+    if ('schedule' in body) {
+      if (!isValidSchedule(body.schedule)) {
+        return Response.json({
+          error: 'schedule inválido — debe tener las 7 claves de día (lun..dom) con { enabled, startHour, endHour }, o ser null',
+        }, { status: 400 });
+      }
+      update.schedule = body.schedule;
+    }
     if (!Object.keys(update).length) {
       return Response.json({ error: 'Nada para actualizar (active o dailyCap)' }, { status: 400 });
     }
@@ -47,7 +68,12 @@ export async function PATCH(request) {
 
     const doc = await db.collection('noticias_config').doc('settings').get();
     const data = doc.data();
-    return Response.json({ success: true, active: data.active !== false, dailyCap: data.dailyCap ?? null });
+    return Response.json({
+      success: true,
+      active: data.active !== false,
+      dailyCap: data.dailyCap ?? null,
+      schedule: data.schedule ?? null,
+    });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });
   }
