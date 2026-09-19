@@ -16,6 +16,7 @@ export async function GET() {
         label: data.label,
         query: data.query || data.label,
         activo: data.activo !== false,
+        toneInstructions: data.toneInstructions ?? null,
         createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
       };
     });
