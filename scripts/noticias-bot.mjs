@@ -134,7 +134,10 @@ por qué importa. Nada de escribir un gancho vacío tipo "te contamos los detall
 "enterate qué pasó" que obligue a entrar al link para saber de qué se trata. El link a la
 nota completa se agrega aparte, después del body, como algo opcional para quien quiera
 profundizar — no como la única forma de enterarse. Lo mismo aplica a "caption": tiene que
-resumir la noticia en sí, no ser un cliffhanger.`;
+resumir la noticia en sí, no ser un cliffhanger.` +
+    (topic.toneInstructions && topic.toneInstructions.trim()
+      ? `\n\nTONO ESPECÍFICO PARA ESTE TÓPICO (seguilo estrictamente, tiene prioridad sobre el tono por default de arriba):\n${topic.toneInstructions.trim()}`
+      : '');
 }
 
 function parseAndValidateContent(rawText, providerLabel) {
