@@ -1,110 +1,114 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
+import LanguageSwitch from '@/components/leadfinderpro/LanguageSwitch';
 
 export default function LeadFinderProPrivacyPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 pb-12 px-4">
       <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
-        <Link href="/lead-finder-pro" className="text-indigo-600 dark:text-indigo-400 hover:underline text-sm mb-6 inline-block">
-          &larr; Volver a Lead Finder Pro
-        </Link>
+        <div className="flex items-center justify-between mb-6">
+          <Link href="/lead-finder-pro" className="text-indigo-600 dark:text-indigo-400 hover:underline text-sm inline-block">
+            &larr; Volver a Lead Finder Pro
+          </Link>
+          <LanguageSwitch />
+        </div>
 
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-          Privacy Policy — Lead Finder Pro
+          Política de Privacidad — Lead Finder Pro
         </h1>
 
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
-          Last updated: September 2026
+          Última actualización: septiembre de 2026
         </p>
 
         <div className="space-y-6 text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">1. What is Lead Finder Pro</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">1. Qué es Lead Finder Pro</h2>
             <p>
-              Lead Finder Pro (available at marianoaliandri.com.ar/lead-finder-pro and as an
-              Android app) is a tool for developers and agencies to audit local businesses
-              (website presence, SEO score, contact info) sourced from Google Maps / Google
-              Places, for lead-generation purposes.
+              Lead Finder Pro (disponible en marianoaliandri.com.ar/lead-finder-pro y como app de
+              Android) es una herramienta para developers y agencias que audita negocios locales
+              (presencia de sitio web, score SEO, datos de contacto) obtenidos de Google Maps /
+              Google Places, con fines de prospección de clientes.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">2. Data we collect about you (the account holder)</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">2. Datos que recopilamos sobre vos (el titular de la cuenta)</h2>
             <ul className="list-disc ml-6 space-y-1">
-              <li>Basic profile info (name, email, photo) via Firebase Authentication (Google sign-in)</li>
-              <li>Your plan and credit/quota usage, to enforce your subscription limits</li>
-              <li>Your search and audit history within the tool</li>
-              <li>Payment status from our payment processor (MercadoPago on the web, Google Play Billing
-                inside the Android app) — we never see or store your card details ourselves</li>
+              <li>Datos básicos de perfil (nombre, email, foto) vía Firebase Authentication (login con Google)</li>
+              <li>Tu plan y el uso de tus créditos/cuota, para aplicar los límites de tu suscripción</li>
+              <li>Tu historial de búsquedas y auditorías dentro de la herramienta</li>
+              <li>Estado de pago de nuestro procesador de pagos (MercadoPago en la web, Google Play
+                Billing dentro de la app de Android) — nunca vemos ni almacenamos los datos de tu tarjeta</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">3. Data about third-party businesses (not you)</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">3. Datos sobre negocios de terceros (no sobre vos)</h2>
             <p>
-              When you run an audit, Lead Finder Pro retrieves publicly available business
-              information from the Google Places API (business name, address, phone, rating,
-              opening hours) and, where publicly listed, the business&apos;s own website/email. This
-              is <strong>not personal data about you</strong> — it is business contact data you
-              are looking up for prospecting purposes, and it is your responsibility to use it in
-              compliance with applicable marketing/anti-spam laws in the businesses&apos; country.
+              Cuando corrés una auditoría, Lead Finder Pro obtiene información pública de negocios
+              desde la API de Google Places (nombre del negocio, dirección, teléfono, rating,
+              horarios) y, cuando está publicado, el sitio web/email propio del negocio. Esto{' '}
+              <strong>no son datos personales tuyos</strong> — son datos de contacto de negocios
+              que estás consultando con fines de prospección, y es tu responsabilidad usarlos
+              cumpliendo las leyes de marketing/anti-spam aplicables en el país de esos negocios.
             </p>
             <p className="mt-2">
-              We keep a per-account cache of businesses you&apos;ve already audited (so you are not
-              charged a credit twice for the same business). This cache is scoped to your account
-              only, in Firestore collection <code>leadfinder_client_audits</code>.
+              Mantenemos un caché por cuenta de los negocios que ya auditaste (para no cobrarte dos
+              veces el crédito por el mismo negocio). Este caché está acotado a tu cuenta
+              únicamente, en la colección de Firestore <code>leadfinder_client_audits</code>.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">4. How we use your data</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">4. Cómo usamos tus datos</h2>
             <ul className="list-disc ml-6 space-y-1">
-              <li>To authenticate you and enforce your plan&apos;s quota</li>
-              <li>To show you your own audit history</li>
-              <li>To process and verify your subscription/credit purchases</li>
-              <li>To respond to support requests</li>
+              <li>Para autenticarte y aplicar el límite de cuota de tu plan</li>
+              <li>Para mostrarte tu propio historial de auditorías</li>
+              <li>Para procesar y verificar tus compras de suscripción/créditos</li>
+              <li>Para responder pedidos de soporte</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">5. Third-party services we use</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">5. Servicios de terceros que usamos</h2>
             <ul className="list-disc ml-6 space-y-1">
-              <li><strong>Firebase (Auth + Firestore)</strong> — authentication and data storage</li>
-              <li><strong>Google Places API</strong> — sourcing business data for audits</li>
-              <li><strong>MercadoPago</strong> — payment processing on the website</li>
-              <li><strong>Google Play Billing</strong> — payment processing inside the Android app</li>
-              <li><strong>Google Gemini</strong> — generates outreach email drafts on request (no personal
-                data used to train third-party models)</li>
+              <li><strong>Firebase (Auth + Firestore)</strong> — autenticación y almacenamiento de datos</li>
+              <li><strong>Google Places API</strong> — fuente de los datos de negocios para las auditorías</li>
+              <li><strong>MercadoPago</strong> — procesamiento de pagos en el sitio web</li>
+              <li><strong>Google Play Billing</strong> — procesamiento de pagos dentro de la app de Android</li>
+              <li><strong>Google Gemini</strong> — genera borradores de email de prospección a pedido (sin usar
+                datos personales para entrenar modelos de terceros)</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">6. Your rights</h2>
-            <p>You can request, at any time, by emailing us:</p>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">6. Tus derechos</h2>
+            <p>Podés solicitar en cualquier momento, escribiéndonos por email:</p>
             <ul className="list-disc ml-6 mt-2 space-y-1">
-              <li>Access to the data we hold about your account</li>
-              <li>Deletion of your account and all associated data (entitlements, audit history)</li>
-              <li>Deletion of a specific business record you looked up, from your personal history</li>
+              <li>Acceso a los datos que tenemos sobre tu cuenta</li>
+              <li>Eliminación de tu cuenta y todos los datos asociados (entitlements, historial de auditorías)</li>
+              <li>Eliminación de un negocio puntual que consultaste, de tu historial personal</li>
             </ul>
-            <p className="mt-2">We respond within 7 business days and confirm once deletion is complete.</p>
+            <p className="mt-2">Respondemos dentro de 7 días hábiles y confirmamos cuando la eliminación esté completa.</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">7. International use</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">7. Uso internacional</h2>
             <p>
-              Lead Finder Pro can be used to audit businesses in any country. Data is stored in
-              Google Cloud Platform (Firestore) infrastructure. If you are located in the European
-              Union, you may exercise GDPR rights (access, rectification, erasure) using the
-              contact below — this applies to your own account data; requests regarding a
-              third-party business&apos;s listed data should generally be directed to Google (as the
-              source of that public data) or to the business itself.
+              Lead Finder Pro se puede usar para auditar negocios de cualquier país. Los datos se
+              almacenan en infraestructura de Google Cloud Platform (Firestore). Si estás en la
+              Unión Europea, podés ejercer tus derechos GDPR (acceso, rectificación, eliminación)
+              usando el contacto de abajo — esto aplica a los datos de tu propia cuenta; los
+              pedidos sobre los datos publicados de un negocio de terceros deberían dirigirse
+              generalmente a Google (como fuente de ese dato público) o al negocio en sí.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">8. Contact</h2>
-            <p>Questions about this policy or a data request:</p>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">8. Contacto</h2>
+            <p>Consultas sobre esta política o un pedido de datos:</p>
             <p className="mt-2 font-semibold">yo@marianoaliandri.com.ar</p>
           </section>
         </div>

@@ -1,10 +1,16 @@
 import LeadFinderProPrivacyPage from '@/views/LeadFinderProPrivacyPage';
 
 export const metadata = {
-  title: 'Privacy Policy — Lead Finder Pro',
-  description: 'Privacy policy for Lead Finder Pro: what data we collect, how business audit data is sourced, and your rights.',
+  title: 'Política de Privacidad — Lead Finder Pro',
+  description: 'Política de privacidad de Lead Finder Pro: qué datos recopilamos, cómo se obtienen los datos de auditoría de negocios y tus derechos.',
   robots: { index: true, follow: true },
-  alternates: { canonical: 'https://marianoaliandri.com.ar/lead-finder-pro/privacy/' },
+  alternates: {
+    canonical: 'https://marianoaliandri.com.ar/lead-finder-pro/privacy/',
+    languages: {
+      'es-AR': 'https://marianoaliandri.com.ar/lead-finder-pro/privacy/',
+      'en': 'https://marianoaliandri.com.ar/en/lead-finder-pro/privacy/',
+    },
+  },
 };
 
 export default function LeadFinderProPrivacyRoute() {

@@ -1,122 +1,129 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
+import LanguageSwitch from '@/components/leadfinderpro/LanguageSwitch';
 
 export default function LeadFinderProTermsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 pb-12 px-4">
       <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
-        <Link href="/lead-finder-pro" className="text-indigo-600 dark:text-indigo-400 hover:underline text-sm mb-6 inline-block">
-          &larr; Volver a Lead Finder Pro
-        </Link>
+        <div className="flex items-center justify-between mb-6">
+          <Link href="/lead-finder-pro" className="text-indigo-600 dark:text-indigo-400 hover:underline text-sm inline-block">
+            &larr; Volver a Lead Finder Pro
+          </Link>
+          <LanguageSwitch />
+        </div>
 
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-          Terms of Service — Lead Finder Pro
+          Términos de Servicio — Lead Finder Pro
         </h1>
 
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
-          Last updated: September 2026
+          Última actualización: septiembre de 2026
         </p>
 
         <div className="space-y-6 text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">1. Acceptance</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">1. Aceptación</h2>
             <p>
-              By creating an account or using Lead Finder Pro (web at marianoaliandri.com.ar/lead-finder-pro
-              or the Android app), you agree to these Terms. Provider: Mariano Aliandri, Neuquén,
-              Argentina. Contact: yo@marianoaliandri.com.ar.
+              Al crear una cuenta o usar Lead Finder Pro (en marianoaliandri.com.ar/lead-finder-pro
+              o la app de Android), aceptás estos Términos. Proveedor: Mariano Aliandri, Neuquén,
+              Argentina. Contacto: yo@marianoaliandri.com.ar.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">2. The service</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">2. El servicio</h2>
             <p>
-              Lead Finder Pro lets you search local businesses by location and audit them
-              (website presence, SEO score, contact info) using data sourced from Google Places.
-              Browsing/searching is free; each full audit consumes one credit from your plan.
+              Lead Finder Pro te permite buscar negocios locales por zona y auditarlos (presencia
+              de sitio web, score SEO, datos de contacto) usando datos de Google Places. Buscar y
+              explorar es gratis; cada auditoría completa consume un crédito de tu plan.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">3. Acceptable use</h2>
-            <p>You agree not to:</p>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">3. Uso aceptable</h2>
+            <p>Te comprometés a no:</p>
             <ul className="list-disc ml-6 mt-2 space-y-1">
-              <li>Use the audited business data to send unsolicited bulk messages in violation
-                of applicable anti-spam laws in the recipient&apos;s country</li>
-              <li>Resell or redistribute raw audit data as a standalone dataset/database</li>
-              <li>Attempt to bypass credit limits, scrape the service itself, or automate
-                requests outside the intended UI/API usage</li>
-              <li>Use the service for any unlawful purpose</li>
+              <li>Usar los datos de negocios auditados para enviar mensajes masivos no solicitados
+                en violación de las leyes anti-spam aplicables en el país del destinatario</li>
+              <li>Revender o redistribuir los datos crudos de auditoría como un dataset/base de
+                datos independiente</li>
+              <li>Intentar evadir los límites de crédito, scrapear el servicio en sí, o automatizar
+                pedidos fuera del uso previsto de la UI/API</li>
+              <li>Usar el servicio para cualquier propósito ilícito</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">4. Plans, credits and billing</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">4. Planes, créditos y facturación</h2>
             <ul className="list-disc ml-6 space-y-1">
-              <li>Free, subscription (monthly credit renewal) and one-time credit-pack plans are
-                available; current pricing is shown in the app</li>
-              <li>On the website, payment is processed by MercadoPago; inside the Android app,
-                payment is processed by Google Play Billing. We never store your card details</li>
-              <li>Subscriptions renew automatically each month unless cancelled before the renewal
-                date, via the payment processor used (MercadoPago account or Google Play subscriptions)</li>
-              <li>Unused credits from one-time purchases do not expire; monthly subscription
-                credits reset each billing period and do not roll over</li>
-              <li>Refunds are handled case-by-case by contacting us, and are otherwise subject to
-                the refund policy of the payment processor used (MercadoPago or Google Play)</li>
+              <li>Hay planes gratuitos, de suscripción (renovación mensual de créditos) y de pack de
+                créditos de pago único; los precios vigentes se muestran en la app</li>
+              <li>En el sitio web, el pago lo procesa MercadoPago; dentro de la app de Android, lo
+                procesa Google Play Billing. Nunca almacenamos los datos de tu tarjeta</li>
+              <li>Las suscripciones se renuevan automáticamente cada mes salvo que se cancelen antes
+                de la fecha de renovación, a través del procesador de pago usado (cuenta de
+                MercadoPago o suscripciones de Google Play)</li>
+              <li>Los créditos no usados de compras de pago único no expiran; los créditos de
+                suscripción mensual se reinician cada período de facturación y no se acumulan</li>
+              <li>Los reembolsos se evalúan caso por caso contactándonos, y están sujetos además a
+                la política de reembolso del procesador de pago usado (MercadoPago o Google Play)</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">5. Data accuracy</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">5. Precisión de los datos</h2>
             <p>
-              Business data comes from Google Places and automated SEO checks. We do not
-              guarantee its accuracy, completeness, or that a business&apos;s contact details are
-              current. Verify before using it commercially.
+              Los datos de negocios provienen de Google Places y de chequeos automáticos de SEO.
+              No garantizamos su precisión, integridad, ni que los datos de contacto de un negocio
+              estén actualizados. Verificalos antes de usarlos comercialmente.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">6. Availability and changes</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">6. Disponibilidad y cambios</h2>
             <p>
-              The service is provided &quot;as is&quot;. We may modify, suspend or discontinue
-              features, or adjust plan pricing/credit limits, at any time; material changes to
-              paid plans will not retroactively reduce credits you already purchased.
+              El servicio se ofrece &quot;tal cual&quot;. Podemos modificar, suspender o discontinuar
+              funcionalidades, o ajustar precios/límites de crédito de los planes, en cualquier
+              momento; los cambios importantes a planes pagos no reducirán retroactivamente los
+              créditos que ya compraste.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">7. Limitation of liability</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">7. Limitación de responsabilidad</h2>
             <p>
-              We are not liable for indirect or consequential damages arising from use of the
-              service, or from decisions made based on the audit data provided.
+              No somos responsables por daños indirectos o consecuentes derivados del uso del
+              servicio, ni de decisiones tomadas en base a los datos de auditoría provistos.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">8. Termination</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">8. Terminación</h2>
             <p>
-              We may suspend or terminate accounts that violate Section 3 (Acceptable use). You
-              may close your account at any time by contacting us.
+              Podemos suspender o dar de baja cuentas que violen la Sección 3 (Uso aceptable). Podés
+              cerrar tu cuenta en cualquier momento contactándonos.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">9. Privacy</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">9. Privacidad</h2>
             <p>
-              Data handling is described in our{' '}
+              El tratamiento de datos está descripto en nuestra{' '}
               <Link href="/lead-finder-pro/privacy" className="text-indigo-600 dark:text-indigo-400 hover:underline">
-                Privacy Policy
-              </Link>, which forms part of these Terms.
+                Política de Privacidad
+              </Link>, que forma parte de estos Términos.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">10. Governing law</h2>
-            <p>These Terms are governed by the laws of Argentina, venue Neuquén, Argentina.</p>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">10. Ley aplicable</h2>
+            <p>Estos Términos se rigen por las leyes de Argentina, jurisdicción Neuquén, Argentina.</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">11. Contact</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">11. Contacto</h2>
             <p className="font-semibold">yo@marianoaliandri.com.ar</p>
           </section>
         </div>

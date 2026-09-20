@@ -1,10 +1,17 @@
 import Link from 'next/link';
 import PlansSection from '@/components/leadfinderpro/PlansSection';
+import LanguageSwitch from '@/components/leadfinderpro/LanguageSwitch';
 
 export const metadata = {
   title: 'Lead Finder Pro — Negocios sin sitio o con SEO débil',
   description: 'Herramienta para devs y agencias: auditá negocios locales por localidad, provincia o todo el país. Mapa, score SEO y datos de contacto en un solo lugar.',
-  alternates: { canonical: 'https://marianoaliandri.com.ar/lead-finder-pro/' },
+  alternates: {
+    canonical: 'https://marianoaliandri.com.ar/lead-finder-pro/',
+    languages: {
+      'es-AR': 'https://marianoaliandri.com.ar/lead-finder-pro/',
+      'en': 'https://marianoaliandri.com.ar/en/lead-finder-pro/',
+    },
+  },
   openGraph: {
     title: 'Lead Finder Pro — Encontrá negocios sin sitio o con SEO débil',
     description: 'Auditá negocios locales por localidad, provincia o todo el país: si tienen sitio, score SEO, teléfono, horarios y rating.',
@@ -43,6 +50,9 @@ export default function LeadFinderProLanding() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
       <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20 px-4">
+      <div className="max-w-4xl mx-auto flex justify-end mb-4">
+        <LanguageSwitch />
+      </div>
       <div className="max-w-4xl mx-auto text-center mb-14">
         <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-3">Para devs y agencias</p>
         <h1 className="text-4xl md:text-5xl font-black text-white leading-tight mb-5">
@@ -50,7 +60,7 @@ export default function LeadFinderProLanding() {
         </h1>
         <p className="text-gray-400 text-base max-w-xl mx-auto mb-8">
           En vez de salir a golpear puertas a ciegas, elegís una zona — localidad, provincia o todo
-          el país — y un rubro, y te devolvemos la lista completa de negocios reales de Google Maps:
+          el país — y qué tipo de negocio buscás, y te devolvemos la lista completa de negocios reales de Google Maps:
           si tienen sitio web o no (los que no tienen son el lead más caliente), score SEO de 0 a 100,
           teléfono, horarios y rating listos para armar tu lista de contacto, con mapa y tabla ordenable
           para priorizar por zona o por qué tan débil está su presencia digital. Es la misma herramienta
@@ -81,7 +91,7 @@ export default function LeadFinderProLanding() {
           <div>
             <p className="text-white font-semibold text-sm mb-1.5">🔍 Buscar y explorar — sin límite</p>
             <p className="text-gray-500 text-sm">
-              Recorré el mapa, cambiá de rubro o de zona las veces que quieras. Ver los negocios de tu búsqueda no gasta nada de tu plan.
+              Recorré el mapa, cambiá el término de búsqueda o la zona las veces que quieras. Ver los negocios de tu búsqueda no gasta nada de tu plan.
             </p>
           </div>
           <div>

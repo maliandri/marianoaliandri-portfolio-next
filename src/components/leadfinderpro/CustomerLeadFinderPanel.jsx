@@ -1,11 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { RUBROS, CATEGORIAS_RUBROS, DEFAULT_TIPOS } from '@/data/rubros';
 import { useAuthUser } from '@/hooks/useAuthUser';
+import { lfpT } from '@/data/i18n/leadFinderPro';
 
-const TIPOS = RUBROS;
-const CATEGORIAS = CATEGORIAS_RUBROS;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // Separa "Ciudad, País" en sus dos partes. Sin coma, se manda solo la ciudad
@@ -30,12 +28,12 @@ function ScoreBadge({ score }) {
   return <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${cls}`}>{score}</span>;
 }
 
-export default function CustomerLeadFinderPanel() {
+export default function CustomerLeadFinderPanel({ lang = 'es' }) {
+  const t = lfpT(lang).panel;
   const { getIdToken } = useAuthUser();
 
   const [ciudades, setCiudades]       = useState([]);
   const [zonaInput, setZonaInput]     = useState('');
-  const [tipos, setTipos]             = useState(DEFAULT_TIPOS);
   const [terminos, setTerminos]       = useState([]);
   const [terminoInput, setTerminoInput] = useState('');
   const [radioKm, setRadioKm]         = useState(10);
@@ -112,51 +110,11 @@ export default function CustomerLeadFinderPanel() {
           lat = geo.lat; lon = geo.lon;
         } catch (e) {
           if (stopRef.current) throw e;
-          setError(`No se pudo ubicar "${ciudad}": ${e.message}`);
+          setError(t.locateError(ciudad, e.message));
           continue;
         }
 
-        for (const tipo of tipos) {
-          if (cancelRef.current) break;
-          setProgress(prev => ({ ...prev, tipoActual: tipo }));
-          try {
-            let places = [];
-            let pageToken = null;
-            let page = 0;
-            do {
-              if (cancelRef.current) break;
-              const res = await callFn('searchNearby', { lat, lon, type: tipo, radiusM, pageToken });
-              places.push(...(res.places || []));
-              pageToken = res.nextPageToken || null;
-              page++;
-              if (pageToken && page < 3) await sleep(1500);
-            } while (pageToken && page < 3 && !cancelRef.current);
-
-            for (const place of places) {
-              if (seenIds.has(place.id)) continue;
-              seenIds.add(place.id);
-              const neg = {
-                id: place.id,
-                nombre: place.displayName?.text || 'Sin nombre',
-                tipo, ciudad,
-                lat: place.location?.latitude ?? null,
-                lon: place.location?.longitude ?? null,
-                previewRating: place.rating ? Number(place.rating).toFixed(1) : null,
-                hasWebsite: null, siteUrl: null, seoScore: null,
-                hasSitemap: null, hasRobots: null, metaDesc: null, hasOG: null,
-                phone: null, openingHours: null, rating: null, ratingCount: null,
-                auditError: false,
-              };
-              allResults.push(neg);
-              setResults(prev => [...prev, neg]);
-            }
-            setProgress(prev => ({ ...prev, encontrados: allResults.length }));
-          } catch (e) {
-            if (stopRef.current) throw e;
-          }
-        }
-
-        // Términos de búsqueda libre (texto en Maps), además de los rubros por categoría
+        // Búsqueda por texto libre en Maps — única forma de buscar (sin categorías fijas)
         for (const term of terminos) {
           if (cancelRef.current) break;
           setProgress(prev => ({ ...prev, tipoActual: `"${term}"` }));
@@ -178,7 +136,7 @@ export default function CustomerLeadFinderPanel() {
               seenIds.add(place.id);
               const neg = {
                 id: place.id,
-                nombre: place.displayName?.text || 'Sin nombre',
+                nombre: place.displayName?.text || t.noName,
                 tipo: term, ciudad,
                 lat: place.location?.latitude ?? null,
                 lon: place.location?.longitude ?? null,
@@ -204,7 +162,7 @@ export default function CustomerLeadFinderPanel() {
       setPhase(stopRef.current ? 'idle' : 'error');
       if (!stopRef.current) setError(e.message);
     }
-  }, [ciudades, tipos, terminos, radioKm, callFn]);
+  }, [ciudades, terminos, radioKm, callFn, t]);
 
   // Guarda esta búsqueda (config + resultados) en el historial del cliente, para
   // poder volver a verla despues sin relanzarla.
@@ -214,7 +172,7 @@ export default function CustomerLeadFinderPanel() {
       await fetch('/api/lead-finder-pro/searches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}) },
-        body: JSON.stringify({ ciudades, tipos, terminos, radioKm, results: allResults }),
+        body: JSON.stringify({ ciudades, terminos, radioKm, results: allResults }),
       });
       loadHistory();
     } catch { /* no bloquea la búsqueda si esto falla */ }
@@ -244,7 +202,6 @@ export default function CustomerLeadFinderPanel() {
       if (data.results) {
         setResults(data.results);
         setCiudades(data.ciudades || []);
-        setTipos(data.tipos || []);
         setTerminos(data.terminos || []);
         setRadioKm(data.radioKm || 10);
         setPhase('done');
@@ -326,13 +283,12 @@ export default function CustomerLeadFinderPanel() {
   };
 
   const exportCSV = () => {
-    const headers = ['Nombre','Ciudad','Tipo','Teléfono','Sitio Web','SEO Score','Rating','Reseñas','Horarios'];
     const rows = results.map(r => [
       r.nombre, r.ciudad, r.tipo, r.phone || '', r.siteUrl || '', r.seoScore ?? '',
       r.rating ?? '', r.ratingCount ?? '', (r.openingHours || []).join(' | '),
     ]);
     const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const csv = [headers, ...rows].map(row => row.map(esc).join(',')).join('\n');
+    const csv = [t.csvHeaders, ...rows].map(row => row.map(esc).join(',')).join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -345,10 +301,10 @@ export default function CustomerLeadFinderPanel() {
     return (
       <div className="bg-[#111] border border-amber-500/30 rounded-2xl p-8 text-center">
         <p className="text-3xl mb-3">🔒</p>
-        <h3 className="text-white font-bold text-lg mb-2">No tenés un plan activo</h3>
-        <p className="text-gray-400 text-sm mb-5">Elegí un plan para poder auditar negocios (buscar y explorar seguía siendo gratis).</p>
-        <a href="/lead-finder-pro#planes" className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm">
-          Ver planes →
+        <h3 className="text-white font-bold text-lg mb-2">{t.blockedTitle}</h3>
+        <p className="text-gray-400 text-sm mb-5">{t.blockedDesc}</p>
+        <a href={lang === 'en' ? '/en/lead-finder-pro#planes' : '/lead-finder-pro#planes'} className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm">
+          {t.blockedCta}
         </a>
       </div>
     );
@@ -360,10 +316,8 @@ export default function CustomerLeadFinderPanel() {
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl px-5 py-4 flex items-start gap-3">
           <span className="text-xl">⏳</span>
           <div>
-            <p className="text-amber-300 font-semibold text-sm">Cuota diaria de auditorías agotada</p>
-            <p className="text-gray-400 text-xs mt-0.5">
-              Se llegó al límite diario de auditorías de Google Places. Se restablece solo (no es un problema de tu cuenta ni de tu plan) — probá auditar de nuevo más tarde.
-            </p>
+            <p className="text-amber-300 font-semibold text-sm">{t.quotaTitle}</p>
+            <p className="text-gray-400 text-xs mt-0.5">{t.quotaDesc}</p>
           </div>
         </div>
       )}
@@ -372,7 +326,7 @@ export default function CustomerLeadFinderPanel() {
       {history.length > 0 && (
         <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden">
           <button onClick={() => setShowHistory(v => !v)} className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors">
-            <span className="text-white font-semibold text-sm">🕘 Búsquedas anteriores ({history.length})</span>
+            <span className="text-white font-semibold text-sm">{t.historyToggle(history.length)}</span>
             <span className="text-gray-500 text-xs">{showHistory ? '▲' : '▼'}</span>
           </button>
           {showHistory && (
@@ -380,15 +334,15 @@ export default function CustomerLeadFinderPanel() {
               {history.map(h => (
                 <div key={h.id} className="flex items-center justify-between gap-3 px-5 py-3">
                   <div className="min-w-0">
-                    <p className="text-white text-sm truncate">{(h.ciudades || []).join(', ') || 'Sin localidad'}</p>
+                    <p className="text-white text-sm truncate">{(h.ciudades || []).join(', ') || t.noLocation}</p>
                     <p className="text-gray-500 text-xs">
-                      {h.resultCount} negocios · {h.createdAt ? new Date(h.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                      {h.resultCount} · {h.createdAt ? new Date(h.createdAt).toLocaleDateString(t.locale, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button onClick={() => openSaved(h.id)} disabled={loadingSavedId === h.id}
                       className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors">
-                      {loadingSavedId === h.id ? '⏳' : 'Ver'}
+                      {loadingSavedId === h.id ? '⏳' : t.historyView}
                     </button>
                     <button onClick={() => deleteSaved(h.id)} className="px-2 py-1.5 text-gray-500 hover:text-red-400 text-xs transition-colors">🗑️</button>
                   </div>
@@ -402,7 +356,7 @@ export default function CustomerLeadFinderPanel() {
       {/* Config */}
       <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden">
         <button onClick={() => setShowConfig(v => !v)} className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors">
-          <span className="text-white font-semibold text-sm">Buscar negocios</span>
+          <span className="text-white font-semibold text-sm">{t.sectionHeader}</span>
           <span className="text-gray-500 text-xs">{showConfig ? '▲' : '▼'}</span>
         </button>
 
@@ -410,7 +364,7 @@ export default function CustomerLeadFinderPanel() {
           <div className="p-5 space-y-4 border-t border-white/10">
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-2">
-                Localidad <span className="text-gray-600 font-normal">(cualquier país — ej. &quot;Neuquén, Argentina&quot; o &quot;Miami, USA&quot;)</span>
+                {t.zonaLabel} <span className="text-gray-600 font-normal">{t.zonaHint}</span>
               </label>
               {ciudades.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-2">
@@ -436,7 +390,7 @@ export default function CustomerLeadFinderPanel() {
                     }
                   }}
                   disabled={isRunning}
-                  placeholder="Ciudad, País… (Enter)"
+                  placeholder={t.zonaPlaceholder}
                   className="flex-1 px-3 py-2 bg-[#0a0a0a] border border-white/10 rounded-lg text-white text-sm placeholder-gray-600"
                 />
                 <button
@@ -448,21 +402,21 @@ export default function CustomerLeadFinderPanel() {
                   disabled={isRunning || !zonaInput.trim()}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-lg text-sm font-medium transition-colors"
                 >
-                  + Agregar
+                  {t.addBtn}
                 </button>
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-2">
-                Términos de búsqueda <span className="text-gray-600 font-normal">(opcional — buscá por texto en Maps)</span>
+                {t.terminosLabel} <span className="text-gray-600 font-normal">{t.terminosHint}</span>
               </label>
               {terminos.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-2">
-                  {terminos.map(t => (
-                    <span key={t} className="flex items-center gap-1 px-2.5 py-1 bg-blue-500/10 text-blue-300 rounded-full text-xs">
-                      🔎 {t}
-                      <button onClick={() => setTerminos(prev => prev.filter(x => x !== t))} className="ml-0.5 text-blue-400 hover:text-red-400">×</button>
+                  {terminos.map(term => (
+                    <span key={term} className="flex items-center gap-1 px-2.5 py-1 bg-blue-500/10 text-blue-300 rounded-full text-xs">
+                      🔎 {term}
+                      <button onClick={() => setTerminos(prev => prev.filter(x => x !== term))} className="ml-0.5 text-blue-400 hover:text-red-400">×</button>
                     </span>
                   ))}
                 </div>
@@ -481,7 +435,7 @@ export default function CustomerLeadFinderPanel() {
                     }
                   }}
                   disabled={isRunning}
-                  placeholder='Ej: "gomería", "estudio contable"… (Enter)'
+                  placeholder={t.terminosPlaceholder}
                   className="flex-1 px-3 py-2 bg-[#0a0a0a] border border-white/10 rounded-lg text-white text-sm placeholder-gray-600"
                 />
                 <button
@@ -493,72 +447,40 @@ export default function CustomerLeadFinderPanel() {
                   disabled={isRunning || !terminoInput.trim()}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-lg text-sm font-medium transition-colors"
                 >
-                  + Agregar
+                  {t.addBtn}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-2">Radio (km)</label>
+              <label className="block text-xs font-medium text-gray-400 mb-2">{t.radioLabel}</label>
               <input type="number" min={1} max={30} value={radioKm} disabled={isRunning}
                 onChange={e => setRadioKm(parseInt(e.target.value) || 1)}
                 className="w-28 px-3 py-2 bg-[#0a0a0a] border border-white/10 rounded-lg text-white text-sm" />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium text-gray-400">Rubros ({tipos.length} seleccionados)</label>
-                <div className="flex gap-2">
-                  <button onClick={() => setTipos(TIPOS.map(t => t.id))} disabled={isRunning} className="text-xs px-2 py-1 bg-white/5 text-gray-400 rounded hover:bg-white/10">Todos</button>
-                  <button onClick={() => setTipos(DEFAULT_TIPOS)} disabled={isRunning} className="text-xs px-2 py-1 bg-white/5 text-gray-400 rounded hover:bg-white/10">Default</button>
-                </div>
-              </div>
-              <div className="space-y-2.5">
-                {CATEGORIAS.map(cat => (
-                  <div key={cat}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-600 mb-1">{cat}</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                      {TIPOS.filter(t => t.cat === cat).map(tipo => {
-                        const checked = tipos.includes(tipo.id);
-                        return (
-                          <label key={tipo.id} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-xs cursor-pointer transition-colors ${
-                            checked ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300' : 'border-white/10 text-gray-400 hover:border-white/20'
-                          } ${isRunning ? 'opacity-50' : ''}`}>
-                            <input type="checkbox" checked={checked} disabled={isRunning}
-                              onChange={e => setTipos(prev => e.target.checked ? [...prev, tipo.id] : prev.filter(t => t !== tipo.id))}
-                              className="accent-indigo-500 w-3 h-3" />
-                            {tipo.label}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         )}
 
         <div className="flex flex-wrap items-center gap-3 px-5 py-4 bg-white/[0.02] border-t border-white/10">
           {!isRunning ? (
-            <button onClick={startSearch} disabled={!ciudades.length || (!tipos.length && !terminos.length)}
+            <button onClick={startSearch} disabled={!ciudades.length || !terminos.length}
               className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl font-semibold text-sm transition-colors">
-              🔍 Buscar
+              {t.searchBtn}
             </button>
           ) : (
             <button onClick={stopSearch} className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl font-semibold text-sm transition-colors">
-              ⏹ Detener
+              {t.stopBtn}
             </button>
           )}
           {results.length > 0 && (
             <button onClick={exportCSV} className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-medium transition-colors">
-              ⬇ CSV
+              {t.csvBtn}
             </button>
           )}
           {pending > 0 && !isRunning && (
             <button onClick={auditAll} disabled={auditingAll}
               className="px-4 py-2.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors">
-              {auditingAll ? '⏳ Auditando...' : `✅ Auditar ${pending} sin auditar`}
+              {auditingAll ? t.auditingAllBtn : t.auditAllBtn(pending)}
             </button>
           )}
           {error && <span className="text-xs text-red-400 ml-auto">{error}</span>}
@@ -568,7 +490,7 @@ export default function CustomerLeadFinderPanel() {
       {/* Progress */}
       {isRunning && (
         <div className="bg-[#111] border border-white/10 rounded-2xl p-4 text-xs text-gray-400">
-          📍 {progress.ciudadActual} · {progress.tipoActual} · {progress.encontrados} encontrados
+          📍 {progress.ciudadActual} · {progress.tipoActual} · {progress.encontrados} {t.progressFound}
         </div>
       )}
 
@@ -576,10 +498,10 @@ export default function CustomerLeadFinderPanel() {
       {results.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { value: results.length, label: 'Encontrados', color: 'text-white' },
-            { value: withSite, label: 'Con sitio', color: 'text-green-400' },
-            { value: withoutSite, label: 'Sin sitio (lead caliente)', color: 'text-purple-400' },
-            { value: pending, label: 'Sin auditar', color: 'text-gray-400' },
+            { value: results.length, label: t.statsFound, color: 'text-white' },
+            { value: withSite, label: t.statsWithSite, color: 'text-green-400' },
+            { value: withoutSite, label: t.statsWithoutSite, color: 'text-purple-400' },
+            { value: pending, label: t.statsPending, color: 'text-gray-400' },
           ].map(s => (
             <div key={s.label} className="bg-[#111] border border-white/10 rounded-xl p-4 text-center">
               <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
@@ -596,7 +518,7 @@ export default function CustomerLeadFinderPanel() {
             <table className="min-w-full text-sm">
               <thead className="bg-white/[0.02] sticky top-0">
                 <tr>
-                  {['Nombre','Ciudad','Tipo','Sitio','SEO','Tel.','★','Acción','Maps'].map((h, i) => (
+                  {t.tableHeaders.map((h, i) => (
                     <th key={i} className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -610,7 +532,7 @@ export default function CustomerLeadFinderPanel() {
                     <td className="px-3 py-2.5 max-w-[150px]">
                       {neg.hasWebsite === null ? <span className="text-gray-600 text-xs">—</span>
                         : neg.hasWebsite ? <a href={neg.siteUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 text-xs truncate block">{shortUrl(neg.siteUrl)}</a>
-                        : <span className="text-purple-400 text-xs font-medium">Sin sitio 🔥</span>}
+                        : <span className="text-purple-400 text-xs font-medium">{t.noSite}</span>}
                     </td>
                     <td className="px-3 py-2.5 text-center"><ScoreBadge score={neg.seoScore} /></td>
                     <td className="px-3 py-2.5 text-xs text-gray-400 whitespace-nowrap">{neg.phone || '—'}</td>
@@ -619,11 +541,11 @@ export default function CustomerLeadFinderPanel() {
                       {neg.hasWebsite === null && !neg.auditError && (
                         <button onClick={() => auditOne(neg)} disabled={auditingId === neg.id || auditingAll}
                           className="px-2.5 py-1 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors whitespace-nowrap">
-                          {auditingId === neg.id ? '⏳' : '✅ Auditar'}
+                          {auditingId === neg.id ? t.auditingBtn : t.auditBtn}
                         </button>
                       )}
                       {neg.auditError && (
-                        <button onClick={() => auditOne(neg)} className="px-2.5 py-1 bg-red-600/20 text-red-400 rounded-lg text-xs">⚠ Reintentar</button>
+                        <button onClick={() => auditOne(neg)} className="px-2.5 py-1 bg-red-600/20 text-red-400 rounded-lg text-xs">{t.retryBtn}</button>
                       )}
                     </td>
                     <td className="px-3 py-2.5">
