@@ -167,7 +167,7 @@ export default function LeadFinderProDemoPageEn() {
         lang="en"
       >
         <div className="max-w-6xl mx-auto px-4">
-          <ClientNavShell />
+          <ClientNavShell lang="en" />
         </div>
         <DemoReportEn />
       </AuthGate>

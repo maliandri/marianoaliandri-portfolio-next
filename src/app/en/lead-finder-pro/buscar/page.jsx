@@ -26,7 +26,7 @@ export default function LeadFinderProBuscarPageEn() {
           subtitle="Sign up for free to access the tool."
           lang="en"
         >
-          <ClientNavShell />
+          <ClientNavShell lang="en" />
           <CustomerLeadFinderPanel lang="en" />
         </AuthGate>
       </div>
