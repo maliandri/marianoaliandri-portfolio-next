@@ -7,7 +7,10 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export default function TopicCard({ topic, notes, busy, onToggleActivo, onToggleFoto, onSaveTone, onDelete }) {
+const SELECT_CLASS =
+  'text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1.5 text-gray-900 dark:text-white disabled:opacity-50';
+
+export default function TopicCard({ topic, notes, busy, onToggleActivo, onToggleFoto, onUpdate, onSaveTone, onDelete }) {
   const [expanded, setExpanded] = useState(false);
   const [toneDraft, setToneDraft] = useState(topic.toneInstructions || '');
 
@@ -42,6 +45,41 @@ export default function TopicCard({ topic, notes, busy, onToggleActivo, onToggle
 
       {expanded && (
         <div className="p-4 space-y-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5 block">
+                Dónde se publica
+              </label>
+              <select
+                value={topic.destino || 'fb_ig'}
+                disabled={busy}
+                onChange={e => onUpdate(topic.id, { destino: e.target.value })}
+                className={`${SELECT_CLASS} w-full`}
+              >
+                <option value="fb_ig">Facebook + Instagram</option>
+                <option value="linkedin">Solo LinkedIn</option>
+                <option value="todas">Facebook + Instagram + LinkedIn</option>
+              </select>
+              <p className="text-xs text-gray-400 mt-1">Siempre se publica también en el sitio (/noticias).</p>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5 block">
+                Notas por corrida
+              </label>
+              <select
+                value={topic.maxPorCorrida ?? 2}
+                disabled={busy}
+                onChange={e => onUpdate(topic.id, { maxPorCorrida: Number(e.target.value) })}
+                className={`${SELECT_CLASS} w-full`}
+              >
+                <option value={1}>1 nota</option>
+                <option value={2}>2 notas</option>
+                <option value={3}>3 notas</option>
+              </select>
+              <p className="text-xs text-gray-400 mt-1">Máximo de este tópico cada vez que corre el bot (cada hora).</p>
+            </div>
+          </div>
+
           <div>
             <label className="flex items-start gap-2 text-xs cursor-pointer">
               <input

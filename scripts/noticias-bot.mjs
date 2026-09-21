@@ -22,6 +22,16 @@ const MAX_ITEMS_PER_RUN = 5;
 // del mismo tópico. Esto obliga a rotar entre todos los tópicos activos cada corrida.
 const MAX_ITEMS_PER_TOPIC = 2;
 
+// Tope de notas de ESTE tópico por corrida (`maxPorCorrida`, se elige en el admin).
+// Sin valor (tópicos viejos) o inválido usa MAX_ITEMS_PER_TOPIC; nunca más que
+// MAX_ITEMS_PER_RUN. Mismo criterio que normalizeMaxPorCorrida() en
+// src/app/api/noticias/topics/route.js.
+export function itemsPerRunFor(topic) {
+  const n = topic?.maxPorCorrida;
+  if (!Number.isInteger(n) || n < 1) return MAX_ITEMS_PER_TOPIC;
+  return Math.min(n, MAX_ITEMS_PER_RUN);
+}
+
 function initAdmin() {
   if (admin.apps.length) return;
   admin.initializeApp({
@@ -329,7 +339,22 @@ export async function waitForImage(url, { fetchImpl = fetch, retries = 6, delayM
   return false;
 }
 
-async function sendToMake(text, imageUrl) {
+// Dónde se publica cada nota según el `destino` del tópico (se elige en el admin):
+// 'fb_ig' = Facebook + Instagram (default y lo que hacían todos los tópicos hasta ahora),
+// 'linkedin' = SOLO LinkedIn (ej. trabajo remoto, sitios de empleo), 'todas' = las tres.
+// Siempre se publica además en el sitio (/noticias). Un valor desconocido cae en 'fb_ig'.
+// Mismos valores que DESTINOS en src/app/api/noticias/topics/route.js.
+const DESTINOS = {
+  fb_ig: { facebook: true, instagram: true, linkedin: false },
+  linkedin: { facebook: false, instagram: false, linkedin: true },
+  todas: { facebook: true, instagram: true, linkedin: true },
+};
+
+export function networksFor(destino) {
+  return { ...(DESTINOS[destino] ?? DESTINOS.fb_ig) };
+}
+
+async function sendToMake(text, imageUrl, networks) {
   const webhookUrl = process.env.MAKE_WEBHOOK_URL;
   if (!webhookUrl) throw new Error('MAKE_WEBHOOK_URL no configurada');
 
@@ -338,7 +363,7 @@ async function sendToMake(text, imageUrl) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       text,
-      networks: { facebook: true, linkedin: true, instagram: true },
+      networks,
       type: 'noticia',
       useAI: false,
       imageUrl,
@@ -367,7 +392,8 @@ async function publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng
     topicId: topic.id, topicLabel: topic.label,
     title: content.title, body: content.body, caption: content.caption,
     sourceUrl: item.link, sourceUrlHash, sourceTitle: item.title,
-    imageUrl, imageMode: usedPhoto ? 'foto' : 'marca', status: 'published', makeError: null,
+    imageUrl, imageMode: usedPhoto ? 'foto' : 'marca', destino: topic.destino || 'fb_ig',
+    status: 'published', makeError: null,
     publishedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
@@ -382,7 +408,7 @@ async function publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng
   }
 
   try {
-    await sendToMake(postText, makeImageUrl);
+    await sendToMake(postText, makeImageUrl, networksFor(topic.destino));
     console.log(`  ✓ "${content.title}" — publicada y enviada a Make`);
   } catch (e) {
     await docRef.update({ makeError: e.message });
@@ -432,8 +458,9 @@ async function main() {
     console.log(`  ${items.length} item(s) en el RSS.`);
 
     let attemptedForTopic = 0;
+    const topicLimit = itemsPerRunFor(topic);
     for (const item of items) {
-      if (remaining <= 0 || attempted >= MAX_ITEMS_PER_RUN || attemptedForTopic >= MAX_ITEMS_PER_TOPIC) break;
+      if (remaining <= 0 || attempted >= MAX_ITEMS_PER_RUN || attemptedForTopic >= topicLimit) break;
       const sourceUrlHash = hashUrl(item.link);
       if (await alreadyPublished(db, sourceUrlHash)) continue;
 

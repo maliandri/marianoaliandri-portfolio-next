@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isWithinSchedule, nowArgentina, toInstagramSafeUrl, waitForImage, fetchPhotoDataUri, fitBody, MAX_BODY_CHARS } from './noticias-bot.mjs';
+import { isWithinSchedule, nowArgentina, toInstagramSafeUrl, waitForImage, fetchPhotoDataUri, fitBody, MAX_BODY_CHARS, networksFor, itemsPerRunFor } from './noticias-bot.mjs';
 
 // Enero de 1970: 1=jue, 2=vie, 3=sab, 4=dom, 5=lun, 6=mar, 7=mie.
 // Se usan estas fechas fijas para tener un getUTCDay() conocido sin ambigüedad.
@@ -70,6 +70,50 @@ describe('toInstagramSafeUrl', () => {
     expect(toInstagramSafeUrl(`${base}.png`)).toContain('/image/upload/f_jpg,q_auto/v1789776136/');
     // sin recorte: la tarjeta ya sale en 4:5 y c_fill la deformaría
     expect(toInstagramSafeUrl(`${base}.png`)).not.toContain('c_fill');
+  });
+});
+
+describe('itemsPerRunFor', () => {
+  it('usa el tope del tópico cuando es un entero válido', () => {
+    expect(itemsPerRunFor({ maxPorCorrida: 1 })).toBe(1);
+    expect(itemsPerRunFor({ maxPorCorrida: 3 })).toBe(3);
+  });
+
+  it('sin valor (tópicos viejos) usa el default de 2', () => {
+    expect(itemsPerRunFor({})).toBe(2);
+    expect(itemsPerRunFor(undefined)).toBe(2);
+  });
+
+  it('valores inválidos caen en el default y nunca superan el máximo de la corrida (5)', () => {
+    expect(itemsPerRunFor({ maxPorCorrida: 0 })).toBe(2);
+    expect(itemsPerRunFor({ maxPorCorrida: -3 })).toBe(2);
+    expect(itemsPerRunFor({ maxPorCorrida: 1.5 })).toBe(2);
+    expect(itemsPerRunFor({ maxPorCorrida: 'x' })).toBe(2);
+    expect(itemsPerRunFor({ maxPorCorrida: 50 })).toBe(5);
+  });
+});
+
+describe('networksFor', () => {
+  it('fb_ig publica en Facebook e Instagram, sin LinkedIn', () => {
+    expect(networksFor('fb_ig')).toEqual({ facebook: true, instagram: true, linkedin: false });
+  });
+
+  it('linkedin publica SOLO en LinkedIn', () => {
+    expect(networksFor('linkedin')).toEqual({ facebook: false, instagram: false, linkedin: true });
+  });
+
+  it('todas publica en las tres', () => {
+    expect(networksFor('todas')).toEqual({ facebook: true, instagram: true, linkedin: true });
+  });
+
+  it('un tópico viejo (sin destino) o con un valor raro cae en Facebook + Instagram, como hasta ahora', () => {
+    expect(networksFor(undefined)).toEqual({ facebook: true, instagram: true, linkedin: false });
+    expect(networksFor('twitter')).toEqual({ facebook: true, instagram: true, linkedin: false });
+  });
+
+  it('devuelve una copia: modificarla no altera las próximas notas', () => {
+    networksFor('linkedin').linkedin = false;
+    expect(networksFor('linkedin').linkedin).toBe(true);
   });
 });
 

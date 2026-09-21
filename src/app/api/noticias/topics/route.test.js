@@ -94,6 +94,49 @@ describe('autenticación de /api/noticias/topics', () => {
     expect(data.topics[0].usarFoto).toBe(true);
     expect(data.topics[1].usarFoto).toBe(false);
   });
+
+  it('GET: destino es fb_ig por default y respeta el guardado', async () => {
+    getDb.mockReturnValue({
+      collection: () => ({
+        orderBy: () => ({
+          async get() {
+            return {
+              docs: [
+                { id: 't1', data: () => ({ label: 'viejo' }) },
+                { id: 't2', data: () => ({ label: 'trabajo remoto', destino: 'linkedin' }) },
+              ],
+            };
+          },
+        }),
+      }),
+    });
+    const res = await GET(makeRequest());
+    const data = await res.json();
+    expect(data.topics[0].destino).toBe('fb_ig');
+    expect(data.topics[1].destino).toBe('linkedin');
+  });
+
+  it('GET: maxPorCorrida es 2 por default y respeta el guardado', async () => {
+    getDb.mockReturnValue({
+      collection: () => ({
+        orderBy: () => ({
+          async get() {
+            return {
+              docs: [
+                { id: 't1', data: () => ({ label: 'viejo' }) },
+                { id: 't2', data: () => ({ label: 'de a una', maxPorCorrida: 1 }) },
+                { id: 't3', data: () => ({ label: 'dato roto', maxPorCorrida: 99 }) },
+              ],
+            };
+          },
+        }),
+      }),
+    });
+    const res = await GET(makeRequest());
+    const data = await res.json();
+    // 99 (dato cargado a mano, fuera de rango) se limita a 5, igual que hace el bot
+    expect(data.topics.map(t => t.maxPorCorrida)).toEqual([2, 1, 5]);
+  });
 });
 
 // Firestore fake en memoria — mismo espíritu que el de
@@ -175,6 +218,40 @@ describe('PATCH /api/noticias/topics', () => {
     const res = await PATCH(makeRequest({ id: 't1', usarFoto: false }));
     expect(res.status).toBe(200);
     expect(state.topics.t1.usarFoto).toBe(false);
+  });
+
+  it('actualiza destino con un valor válido', async () => {
+    const { db, state } = createFakeDb({ t1: { label: 'trabajo remoto', activo: true } });
+    getDb.mockReturnValue(db);
+    for (const destino of ['fb_ig', 'linkedin', 'todas']) {
+      const res = await PATCH(makeRequest({ id: 't1', destino }));
+      expect(res.status).toBe(200);
+      expect(state.topics.t1.destino).toBe(destino);
+    }
+  });
+
+  it('actualiza maxPorCorrida con un entero de 1 a 5', async () => {
+    const { db, state } = createFakeDb({ t1: { label: 'SEO', activo: true } });
+    getDb.mockReturnValue(db);
+    for (const n of [1, 2, 5]) {
+      const res = await PATCH(makeRequest({ id: 't1', maxPorCorrida: n }));
+      expect(res.status).toBe(200);
+      expect(state.topics.t1.maxPorCorrida).toBe(n);
+    }
+  });
+
+  it.each([0, 6, 1.5, '2', null])('rechaza maxPorCorrida inválido (%s)', async (bad) => {
+    const { db } = createFakeDb({ t1: { label: 'SEO' } });
+    getDb.mockReturnValue(db);
+    const res = await PATCH(makeRequest({ id: 't1', maxPorCorrida: bad }));
+    expect(res.status).toBe(400);
+  });
+
+  it('rechaza un destino que no existe', async () => {
+    const { db } = createFakeDb({ t1: { label: 'SEO' } });
+    getDb.mockReturnValue(db);
+    const res = await PATCH(makeRequest({ id: 't1', destino: 'twitter' }));
+    expect(res.status).toBe(400);
   });
 
   it('rechaza usarFoto que no sea boolean', async () => {

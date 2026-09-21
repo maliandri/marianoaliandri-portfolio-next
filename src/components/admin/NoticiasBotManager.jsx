@@ -194,6 +194,25 @@ export default function NoticiasBotManager() {
     }
   };
 
+  // Cambia uno o varios campos del tópico (destino, maxPorCorrida, ...).
+  const updateTopic = async (id, patch) => {
+    setBusy(true); setErrorMsg('');
+    try {
+      const res = await authFetch('/api/noticias/topics', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...patch }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await load();
+    } catch (e) {
+      setErrorMsg(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const saveTone = async (id, toneInstructions) => {
     setBusy(true); setErrorMsg('');
     try {
@@ -356,6 +375,7 @@ export default function NoticiasBotManager() {
               busy={busy}
               onToggleActivo={toggleTopic}
               onToggleFoto={toggleFoto}
+              onUpdate={updateTopic}
               onSaveTone={saveTone}
               onDelete={deleteTopic}
             />
