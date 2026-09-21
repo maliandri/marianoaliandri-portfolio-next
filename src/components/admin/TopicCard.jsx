@@ -7,7 +7,7 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export default function TopicCard({ topic, notes, busy, onToggleActivo, onSaveTone, onDelete }) {
+export default function TopicCard({ topic, notes, busy, onToggleActivo, onToggleFoto, onSaveTone, onDelete }) {
   const [expanded, setExpanded] = useState(false);
   const [toneDraft, setToneDraft] = useState(topic.toneInstructions || '');
 
@@ -42,6 +42,25 @@ export default function TopicCard({ topic, notes, busy, onToggleActivo, onSaveTo
 
       {expanded && (
         <div className="p-4 space-y-4 border-t border-gray-200 dark:border-gray-700">
+          <div>
+            <label className="flex items-start gap-2 text-xs cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={topic.usarFoto !== false}
+                disabled={busy}
+                onChange={e => onToggleFoto(topic.id, e.target.checked)}
+              />
+              <span>
+                <span className="font-semibold text-gray-900 dark:text-white">Usar la foto del artículo en la imagen</span>
+                <span className="block text-gray-400 mt-0.5">
+                  Activado: la tarjeta lleva la foto de la nota de fondo (si el artículo no tiene una buena, usa el fondo de marca).
+                  Desactivado: siempre fondo de marca con el titular.
+                </span>
+              </span>
+            </label>
+          </div>
+
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5 block">
               Tono de este tópico

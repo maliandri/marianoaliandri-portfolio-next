@@ -21,6 +21,8 @@ export async function GET(request) {
         query: data.query || data.label,
         activo: data.activo !== false,
         toneInstructions: data.toneInstructions ?? null,
+        // Tópicos creados antes de este campo no lo tienen: por default usan la foto del artículo.
+        usarFoto: data.usarFoto !== false,
         createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
       };
     });
@@ -64,15 +66,18 @@ export async function PATCH(request) {
   if (auth.response) return auth.response;
 
   try {
-    const { id, activo, toneInstructions } = await request.json();
+    const { id, activo, toneInstructions, usarFoto } = await request.json();
     if (!id) {
       return Response.json({ error: 'id es requerido' }, { status: 400 });
     }
-    if (activo === undefined && toneInstructions === undefined) {
-      return Response.json({ error: 'Nada para actualizar (activo o toneInstructions)' }, { status: 400 });
+    if (activo === undefined && toneInstructions === undefined && usarFoto === undefined) {
+      return Response.json({ error: 'Nada para actualizar (activo, toneInstructions o usarFoto)' }, { status: 400 });
     }
     if (activo !== undefined && typeof activo !== 'boolean') {
       return Response.json({ error: 'activo debe ser boolean' }, { status: 400 });
+    }
+    if (usarFoto !== undefined && typeof usarFoto !== 'boolean') {
+      return Response.json({ error: 'usarFoto debe ser boolean' }, { status: 400 });
     }
     if (toneInstructions !== undefined && typeof toneInstructions !== 'string') {
       return Response.json({ error: 'toneInstructions debe ser string' }, { status: 400 });
@@ -83,6 +88,7 @@ export async function PATCH(request) {
 
     const update = {};
     if (activo !== undefined) update.activo = activo;
+    if (usarFoto !== undefined) update.usarFoto = usarFoto;
     if (toneInstructions !== undefined) update.toneInstructions = toneInstructions.trim() || null;
 
     await db.collection('noticias_topics').doc(id).update(update);

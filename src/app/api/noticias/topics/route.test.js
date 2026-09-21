@@ -73,6 +73,27 @@ describe('autenticación de /api/noticias/topics', () => {
     expect(res.status).toBe(200);
     expect(data.topics[0]).toMatchObject({ id: 't1', toneInstructions: 'directo' });
   });
+
+  it('GET: usarFoto es true por default (tópicos viejos sin el campo) y respeta false', async () => {
+    getDb.mockReturnValue({
+      collection: () => ({
+        orderBy: () => ({
+          async get() {
+            return {
+              docs: [
+                { id: 't1', data: () => ({ label: 'viejo' }) },
+                { id: 't2', data: () => ({ label: 'sin foto', usarFoto: false }) },
+              ],
+            };
+          },
+        }),
+      }),
+    });
+    const res = await GET(makeRequest());
+    const data = await res.json();
+    expect(data.topics[0].usarFoto).toBe(true);
+    expect(data.topics[1].usarFoto).toBe(false);
+  });
 });
 
 // Firestore fake en memoria — mismo espíritu que el de
@@ -148,7 +169,22 @@ describe('PATCH /api/noticias/topics', () => {
     expect(state.topics.t1.activo).toBe(false);
   });
 
-  it('rechaza si no manda ni activo ni toneInstructions', async () => {
+  it('actualiza usarFoto', async () => {
+    const { db, state } = createFakeDb({ t1: { label: 'SEO', activo: true } });
+    getDb.mockReturnValue(db);
+    const res = await PATCH(makeRequest({ id: 't1', usarFoto: false }));
+    expect(res.status).toBe(200);
+    expect(state.topics.t1.usarFoto).toBe(false);
+  });
+
+  it('rechaza usarFoto que no sea boolean', async () => {
+    const { db } = createFakeDb({ t1: { label: 'SEO' } });
+    getDb.mockReturnValue(db);
+    const res = await PATCH(makeRequest({ id: 't1', usarFoto: 'no' }));
+    expect(res.status).toBe(400);
+  });
+
+  it('rechaza si no manda ni activo ni toneInstructions ni usarFoto', async () => {
     const { db } = createFakeDb({ t1: { label: 'SEO' } });
     getDb.mockReturnValue(db);
     const res = await PATCH(makeRequest({ id: 't1' }));

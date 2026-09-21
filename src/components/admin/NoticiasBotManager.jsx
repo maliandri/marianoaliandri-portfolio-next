@@ -176,6 +176,24 @@ export default function NoticiasBotManager() {
     }
   };
 
+  const toggleFoto = async (id, usarFoto) => {
+    setBusy(true); setErrorMsg('');
+    try {
+      const res = await authFetch('/api/noticias/topics', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, usarFoto }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await load();
+    } catch (e) {
+      setErrorMsg(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const saveTone = async (id, toneInstructions) => {
     setBusy(true); setErrorMsg('');
     try {
@@ -337,6 +355,7 @@ export default function NoticiasBotManager() {
               notes={log.filter(n => n.topicId === t.id && n.status === 'published')}
               busy={busy}
               onToggleActivo={toggleTopic}
+              onToggleFoto={toggleFoto}
               onSaveTone={saveTone}
               onDelete={deleteTopic}
             />

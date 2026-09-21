@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isWithinSchedule, nowArgentina, toInstagramSafeUrl, waitForImage } from './noticias-bot.mjs';
+import { isWithinSchedule, nowArgentina, toInstagramSafeUrl, waitForImage, fetchPhotoDataUri } from './noticias-bot.mjs';
 
 // Enero de 1970: 1=jue, 2=vie, 3=sab, 4=dom, 5=lun, 6=mar, 7=mie.
 // Se usan estas fechas fijas para tener un getUTCDay() conocido sin ambigüedad.
@@ -60,14 +60,66 @@ describe('isWithinSchedule', () => {
 describe('toInstagramSafeUrl', () => {
   const base = 'https://res.cloudinary.com/dlshym1te/image/upload/v1789776136/zy8z9vid0sbfzjjje3nz';
 
-  it('fuerza JPG 1080x1080 aunque la imagen subida sea WebP', () => {
+  it('fuerza JPG (sin recortar) aunque la imagen subida sea WebP', () => {
     expect(toInstagramSafeUrl(`${base}.webp`)).toBe(
-      'https://res.cloudinary.com/dlshym1te/image/upload/c_fill,g_auto,w_1080,h_1080,f_jpg,q_auto/v1789776136/zy8z9vid0sbfzjjje3nz.webp',
+      'https://res.cloudinary.com/dlshym1te/image/upload/f_jpg,q_auto/v1789776136/zy8z9vid0sbfzjjje3nz.webp',
     );
   });
 
   it('funciona igual con PNG', () => {
-    expect(toInstagramSafeUrl(`${base}.png`)).toContain('/image/upload/c_fill,g_auto,w_1080,h_1080,f_jpg,q_auto/v1789776136/');
+    expect(toInstagramSafeUrl(`${base}.png`)).toContain('/image/upload/f_jpg,q_auto/v1789776136/');
+    // sin recorte: la tarjeta ya sale en 4:5 y c_fill la deformaría
+    expect(toInstagramSafeUrl(`${base}.png`)).not.toContain('c_fill');
+  });
+});
+
+describe('fetchPhotoDataUri', () => {
+  const okResponse = (type, bytes = [1, 2, 3, 4]) => ({
+    ok: true,
+    headers: { get: () => type },
+    arrayBuffer: async () => new Uint8Array(bytes).buffer,
+  });
+  const photo = { url: 'https://medio.com/foto.jpg', width: 1200, height: 630 };
+
+  it('devuelve un data URI base64 para un JPEG válido', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(okResponse('image/jpeg'));
+    await expect(fetchPhotoDataUri(photo, { fetchImpl })).resolves.toBe('data:image/jpeg;base64,AQIDBA==');
+  });
+
+  it('descarga con User-Agent de navegador y sin Accept (algunos diarios dan 403 o AVIF si no)', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(okResponse('image/jpeg'));
+    await fetchPhotoDataUri(photo, { fetchImpl });
+    const { headers } = fetchImpl.mock.calls[0][1];
+    expect(headers['User-Agent']).toMatch(/^Mozilla\/5\.0/);
+    expect(headers.Accept).toBeUndefined();
+  });
+
+  it('ignora el charset del content-type', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(okResponse('image/png; charset=binary'));
+    await expect(fetchPhotoDataUri(photo, { fetchImpl })).resolves.toMatch(/^data:image\/png;base64,/);
+  });
+
+  it('devuelve null sin foto, o si es más angosta que 600px (sin siquiera descargarla)', async () => {
+    const fetchImpl = vi.fn();
+    await expect(fetchPhotoDataUri(null, { fetchImpl })).resolves.toBeNull();
+    await expect(fetchPhotoDataUri({ url: 'https://x/y.jpg', width: 300 }, { fetchImpl })).resolves.toBeNull();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('acepta una foto sin dimensiones conocidas', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(okResponse('image/jpeg'));
+    await expect(fetchPhotoDataUri({ url: 'https://x/y.jpg' }, { fetchImpl })).resolves.toMatch(/^data:image\/jpeg/);
+  });
+
+  it('devuelve null si no es imagen, la respuesta falla, o hay error de red', async () => {
+    await expect(fetchPhotoDataUri(photo, { fetchImpl: vi.fn().mockResolvedValue(okResponse('text/html')) })).resolves.toBeNull();
+    await expect(fetchPhotoDataUri(photo, { fetchImpl: vi.fn().mockResolvedValue({ ok: false, headers: { get: () => 'image/jpeg' } }) })).resolves.toBeNull();
+    await expect(fetchPhotoDataUri(photo, { fetchImpl: vi.fn().mockRejectedValue(new Error('timeout')) })).resolves.toBeNull();
+  });
+
+  it('devuelve null si la foto está vacía', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(okResponse('image/jpeg', []));
+    await expect(fetchPhotoDataUri(photo, { fetchImpl })).resolves.toBeNull();
   });
 });
 

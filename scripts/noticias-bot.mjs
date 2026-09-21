@@ -5,6 +5,7 @@
 import admin from 'firebase-admin';
 import crypto from 'node:crypto';
 import { XMLParser } from 'fast-xml-parser';
+import { renderNoticiaCard } from './noticiaCard.mjs';
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -108,7 +109,13 @@ async function fetchGoogleNewsRss(query) {
   const items = Array.isArray(rawItems) ? rawItems : (rawItems ? [rawItems] : []);
   const now = Date.now();
   return items
-    .map(it => ({ title: String(it.title || '').trim(), link: String(it.link || '').trim(), pubDate: it.pubDate || null }))
+    .map(it => ({
+      title: String(it.title || '').trim(),
+      link: String(it.link || '').trim(),
+      pubDate: it.pubDate || null,
+      // <source url="...">Nombre del medio</source>; sin atributos parseados llega como texto
+      source: String((typeof it.source === 'object' ? it.source?.['#text'] : it.source) || '').trim(),
+    }))
     .filter(it => it.title && it.link)
     .filter(it => {
       const t = it.pubDate ? Date.parse(it.pubDate) : NaN;
@@ -208,55 +215,60 @@ async function generateContent(item, topic) {
   }
 }
 
-// Mismo patrón que src/app/api/auditorias/send-biz-email/route.js — duplicado
-// acá porque este script no puede importar de src/ (ver nota al principio del
-// archivo).
-//
-// Nota: a diferencia del route.js original (que agrega `&embed=screenshot.url`),
-// acá se omite ese parámetro a propósito. `embed=<campo>` le pide a Microlink
-// que devuelva el binario de la imagen directo (content-type: image/png) en
-// vez del JSON — con `embed` puesto, `resp.json()` siempre tira (parseo de
-// PNG como JSON) y esta función termina devolviendo `null` siempre, sea cual
-// sea la URL. Verificado en vivo contra la API real. Sin `embed`, la API
-// devuelve JSON normal con `data.screenshot.url` (un link público a
-// iad.microlink.io), que es justamente lo que esta función necesita devolver.
-async function getScreenshot(url) {
-  try {
-    const apiUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false`;
-    const resp = await fetch(apiUrl, { signal: AbortSignal.timeout(15000) });
-    const data = await resp.json();
-    return data?.data?.screenshot?.url || null;
-  } catch {
-    return null;
-  }
-}
-
-// Fallback liviano cuando getScreenshot() falla: en vez de renderizar la
-// página entera (lento, y muchos sitios de noticias bloquean o tardan),
-// esto solo lee el <meta og:image> del artículo — casi todos los medios ya
-// la tienen para sus propias previews de WhatsApp/Facebook.
-async function getMetaImage(url) {
+// Foto principal del artículo (og:image) vía Microlink en modo meta: liviano, no
+// renderiza la página entera. Devuelve { url, width, height } o null.
+// (Antes se sacaba una captura de pantalla de la página, pero salía recortada y con
+// menús/banners de cookies: ilegible. Ahora la imagen es una tarjeta hecha por
+// scripts/noticiaCard.mjs, con la foto —si el tópico la usa— solo de fondo.)
+async function getArticlePhoto(url) {
   try {
     const apiUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=false&meta=true`;
     const resp = await fetch(apiUrl, { signal: AbortSignal.timeout(15000) });
     const data = await resp.json();
-    return data?.data?.image?.url || null;
+    const img = data?.data?.image;
+    if (!img?.url) return null;
+    return { url: img.url, width: img.width ?? null, height: img.height ?? null };
   } catch {
     return null;
   }
 }
 
-async function getImageUrl(url) {
-  return (await getScreenshot(url)) || (await getMetaImage(url));
+const MIN_PHOTO_WIDTH = 600; // más chica que esto, estirada a 1080 se ve pixelada: mejor el fondo de marca
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+// Varios diarios (ej. Ámbito) responden 403 a un fetch sin User-Agent de navegador.
+// No se manda `Accept` a propósito: con image/avif en el Accept algunos servidores
+// devuelven AVIF, que satori no sabe dibujar.
+const PHOTO_FETCH_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+};
+
+// Descarga la foto y la deja como data URI (lo que necesita satori). Devuelve null si
+// no sirve (muy chica, formato raro, muy pesada, error de red): la tarjeta usa entonces
+// el fondo de marca.
+export async function fetchPhotoDataUri(photo, { fetchImpl = fetch } = {}) {
+  if (!photo?.url) return null;
+  if (photo.width != null && photo.width < MIN_PHOTO_WIDTH) return null;
+  try {
+    const resp = await fetchImpl(photo.url, { signal: AbortSignal.timeout(15000), headers: PHOTO_FETCH_HEADERS });
+    if (!resp.ok) return null;
+    const type = (resp.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(type)) return null;
+    const buf = Buffer.from(await resp.arrayBuffer());
+    if (buf.length === 0 || buf.length > MAX_PHOTO_BYTES) return null;
+    return `data:${type};base64,${buf.toString('base64')}`;
+  } catch {
+    return null;
+  }
 }
 
-async function uploadToCloudinary(imageUrl) {
+// Sube el PNG de la tarjeta (multipart, sin pasar por URL).
+async function uploadToCloudinary(png) {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET;
   if (!cloudName || !uploadPreset) throw new Error('CLOUDINARY_CLOUD_NAME o CLOUDINARY_UPLOAD_PRESET no configurados');
 
-  const form = new URLSearchParams();
-  form.set('file', imageUrl);
+  const form = new FormData();
+  form.set('file', new Blob([png], { type: 'image/png' }), 'noticia.png');
   form.set('upload_preset', uploadPreset);
 
   const resp = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
@@ -271,13 +283,14 @@ async function uploadToCloudinary(imageUrl) {
 // Instagram rechaza por URL formatos como WebP (error 9007 "Media ID is not
 // available", que además apaga el escenario de Make y acumula la cola) y
 // proporciones fuera de 4:5–1.91:1. Cloudinary conserva el formato original al
-// subir, así que pedimos la versión JPG 1080x1080 solo para lo que va a Make;
+// subir (acá siempre el PNG de la tarjeta, ya en 1080x1350 = 4:5, sin recorte), así
+// que pedimos la versión JPG solo para lo que va a Make;
 // el `imageUrl` guardado en Firestore para el sitio queda intacto.
 export function toInstagramSafeUrl(url) {
-  return url.replace('/image/upload/', '/image/upload/c_fill,g_auto,w_1080,h_1080,f_jpg,q_auto/');
+  return url.replace('/image/upload/', '/image/upload/f_jpg,q_auto/');
 }
 
-// Cloudinary genera la transformación (JPG 1080x1080) la primera vez que alguien
+// Cloudinary genera la transformación (JPG) la primera vez que alguien
 // la pide. Si Make se la pide a Instagram justo después de subir la imagen,
 // Instagram puede recibir algo que todavía no es un JPG y falla con 9004/9007,
 // lo que además apaga el escenario de Make. Por eso el bot "calienta" la URL
@@ -313,10 +326,10 @@ async function sendToMake(text, imageUrl) {
   if (!resp.ok) throw new Error(`Make ${resp.status}`);
 }
 
-async function publishNoticia({ db, topic, item, content, sourceUrlHash, screenshotUrl }) {
+async function publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng, usedPhoto }) {
   let imageUrl;
   try {
-    imageUrl = await uploadToCloudinary(screenshotUrl);
+    imageUrl = await uploadToCloudinary(cardPng);
   } catch (e) {
     await db.collection('noticias').add({
       topicId: topic.id, topicLabel: topic.label,
@@ -333,7 +346,7 @@ async function publishNoticia({ db, topic, item, content, sourceUrlHash, screens
     topicId: topic.id, topicLabel: topic.label,
     title: content.title, body: content.body, caption: content.caption,
     sourceUrl: item.link, sourceUrlHash, sourceTitle: item.title,
-    imageUrl, status: 'published', makeError: null,
+    imageUrl, imageMode: usedPhoto ? 'foto' : 'marca', status: 'published', makeError: null,
     publishedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
@@ -406,25 +419,17 @@ async function main() {
       attempted++;
       attemptedForTopic++;
 
-      // La imagen va primero: si no conseguimos ninguna, descartamos la
-      // noticia sin gastar cuota de Gemini (compartida con el resto del sitio).
-      const screenshotUrl = await getImageUrl(item.link);
-      if (!screenshotUrl) {
-        errorCount++;
-        await db.collection('noticias').add({
-          topicId: topic.id, topicLabel: topic.label,
-          title: item.title, body: null, caption: null,
-          sourceUrl: item.link, sourceUrlHash, sourceTitle: item.title,
-          imageUrl: null, status: 'error', makeError: 'No se pudo obtener imagen (Microlink)',
-          publishedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-        console.log(`  ✗ "${item.title}" — sin imagen, descartada antes de generar contenido`);
-        continue;
-      }
-
       try {
+        // Con la tarjeta la imagen ya no es un filtro: siempre hay una (la foto del
+        // artículo de fondo si el tópico la usa y hay una buena, o el fondo de marca).
+        // Por eso primero se genera el texto y después la tarjeta, que lleva el titular.
         const content = await generateContent(item, topic);
-        await publishNoticia({ db, topic, item, content, sourceUrlHash, screenshotUrl });
+        const photoDataUri = topic.usarFoto === false ? null : await fetchPhotoDataUri(await getArticlePhoto(item.link));
+        const { png: cardPng, usedPhoto } = await renderNoticiaCard({
+          title: content.title, topicLabel: topic.label, topicId: topic.id, source: item.source, photoDataUri,
+        });
+        console.log(`  Tarjeta: fondo de ${usedPhoto ? 'foto del artículo' : 'marca'}.`);
+        await publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng, usedPhoto });
         publishedCount++;
         remaining--;
       } catch (e) {
