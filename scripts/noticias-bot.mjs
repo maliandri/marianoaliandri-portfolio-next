@@ -125,6 +125,26 @@ async function fetchGoogleNewsRss(query) {
     .sort((a, b) => Date.parse(a.pubDate) - Date.parse(b.pubDate));
 }
 
+// Las notas salen en máximo 500 caracteres (decisión del usuario, 2026-09-21). Además
+// Instagram rechaza captions de más de 2.200 (error 36004, que deja esa nota sin
+// publicar en IG): con este tope nunca se acerca, aun sumando el "\n\nLeé la nota
+// completa: URL" (~90) que va aparte. Facebook, Instagram y el sitio comparten el body.
+export const MAX_BODY_CHARS = 500;
+
+// Recorta el body al máximo cortando, en orden de preferencia, en un cierre de
+// párrafo, en un fin de oración o en un espacio (con "…"), sin dejar frases a medias.
+export function fitBody(body, max = MAX_BODY_CHARS) {
+  const text = String(body ?? '').trim();
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const para = cut.lastIndexOf('\n');
+  if (para >= max * 0.5) return cut.slice(0, para).trim();
+  const sentence = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));
+  if (sentence >= max * 0.5) return cut.slice(0, sentence + 1).trim();
+  const space = cut.lastIndexOf(' ');
+  return `${cut.slice(0, space > 0 ? space : max).trim()}…`;
+}
+
 function buildPrompt(item, topic) {
   return `Sos el redactor del canal de noticias de Mariano Aliandri (${SITE_URL}), desarrollador Full Stack y analista de datos de Neuquén, Argentina.
 
@@ -134,7 +154,7 @@ Fuente: ${item.link}
 Tópico que seguís: ${topic.label}
 
 Escribí, en español rioplatense (vos, no tú), un JSON con exactamente estas 3 claves, sin texto extra antes ni después ni bloques de código:
-{"title": "título propio para la nota, no copies el original tal cual", "body": "2 a 4 párrafos (separados por \\n) explicando la noticia y por qué importa, tono cercano y profesional, sin inventar datos que no estén en el titular", "caption": "1 a 2 oraciones cortas para un post de red social, SIN incluir ningún link ni URL"}
+{"title": "título propio para la nota, no copies el original tal cual", "body": "1 o 2 párrafos cortos (separados por \\n) que cuenten la noticia completa (qué pasó, quién, cuándo, por qué importa), en total NO más de 450 caracteres contando espacios, tono cercano y profesional, sin inventar datos que no estén en el titular", "caption": "1 a 2 oraciones cortas para un post de red social, SIN incluir ningún link ni URL"}
 
 IMPORTANTE sobre "body": tiene que contar la noticia COMPLETA — qué pasó, quién, cuándo,
 por qué importa. Nada de escribir un gancho vacío tipo "te contamos los detalles" o
@@ -158,6 +178,7 @@ function parseAndValidateContent(rawText, providerLabel) {
     throw new Error(`${providerLabel} no devolvió JSON válido`);
   }
   if (!parsed.title || !parsed.body || !parsed.caption) throw new Error(`JSON de ${providerLabel} incompleto (falta title, body o caption)`);
+  parsed.body = fitBody(parsed.body); // el prompt lo pide corto, pero no hay garantía (Groq/Gemini se pasan)
   if (parsed.caption.length > 2000) throw new Error(`Caption de ${providerLabel} demasiado larga (posible alucinación)`);
   if (/https?:\/\/|www\./i.test(parsed.caption)) throw new Error(`Caption de ${providerLabel} incluye un link — se descarta (rompe el requisito de post sin preview card)`);
   return parsed;

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isWithinSchedule, nowArgentina, toInstagramSafeUrl, waitForImage, fetchPhotoDataUri } from './noticias-bot.mjs';
+import { isWithinSchedule, nowArgentina, toInstagramSafeUrl, waitForImage, fetchPhotoDataUri, fitBody, MAX_BODY_CHARS } from './noticias-bot.mjs';
 
 // Enero de 1970: 1=jue, 2=vie, 3=sab, 4=dom, 5=lun, 6=mar, 7=mie.
 // Se usan estas fechas fijas para tener un getUTCDay() conocido sin ambigüedad.
@@ -70,6 +70,48 @@ describe('toInstagramSafeUrl', () => {
     expect(toInstagramSafeUrl(`${base}.png`)).toContain('/image/upload/f_jpg,q_auto/v1789776136/');
     // sin recorte: la tarjeta ya sale en 4:5 y c_fill la deformaría
     expect(toInstagramSafeUrl(`${base}.png`)).not.toContain('c_fill');
+  });
+});
+
+describe('fitBody', () => {
+  it('el tope de las notas es de 500 caracteres', () => {
+    expect(MAX_BODY_CHARS).toBe(500);
+    expect(fitBody('palabra. '.repeat(200)).length).toBeLessThanOrEqual(500);
+  });
+
+  it('deja intacto un body que entra', () => {
+    expect(fitBody('Un párrafo.\nOtro párrafo.')).toBe('Un párrafo.\nOtro párrafo.');
+  });
+
+  it('el texto que va a Make (body + link) queda por debajo del límite de 2200 de Instagram', () => {
+    const long = ('Una oración de relleno bastante larga para probar. '.repeat(10) + '\n').repeat(8);
+    const out = fitBody(long);
+    const enviado = `${out}\n\nLeé la nota completa: https://marianoaliandri.com.ar/noticias/${'x'.repeat(20)}/`;
+    expect(out.length).toBeLessThanOrEqual(MAX_BODY_CHARS);
+    expect(enviado.length).toBeLessThan(2200);
+  });
+
+  it('prefiere cortar en un límite de párrafo', () => {
+    const p1 = 'a'.repeat(60) + '.';
+    const p2 = 'b'.repeat(60) + '.';
+    expect(fitBody(`${p1}\n${p2}\n${'c'.repeat(200)}`, 150)).toBe(`${p1}\n${p2}`);
+  });
+
+  it('si no hay párrafo cerca, corta en un fin de oración', () => {
+    const s = 'Primera oración completa. Segunda oración completa. ' + 'x'.repeat(200);
+    expect(fitBody(s, 80)).toBe('Primera oración completa. Segunda oración completa.');
+  });
+
+  it('sin puntuación, corta en espacio y agrega puntos suspensivos', () => {
+    const out = fitBody('palabra '.repeat(50), 60);
+    expect(out.endsWith('…')).toBe(true);
+    expect(out.length).toBeLessThanOrEqual(61);
+    expect(out).not.toMatch(/\s…$/);
+  });
+
+  it('tolera null/undefined', () => {
+    expect(fitBody(null)).toBe('');
+    expect(fitBody(undefined)).toBe('');
   });
 });
 
