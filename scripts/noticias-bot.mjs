@@ -277,6 +277,24 @@ export function toInstagramSafeUrl(url) {
   return url.replace('/image/upload/', '/image/upload/c_fill,g_auto,w_1080,h_1080,f_jpg,q_auto/');
 }
 
+// Cloudinary genera la transformación (JPG 1080x1080) la primera vez que alguien
+// la pide. Si Make se la pide a Instagram justo después de subir la imagen,
+// Instagram puede recibir algo que todavía no es un JPG y falla con 9004/9007,
+// lo que además apaga el escenario de Make. Por eso el bot "calienta" la URL
+// (la pide y espera una respuesta image/*) antes de avisarle a Make.
+export async function waitForImage(url, { fetchImpl = fetch, retries = 6, delayMs = 2000 } = {}) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const resp = await fetchImpl(url, { signal: AbortSignal.timeout(15000) });
+      if (resp.ok && (resp.headers.get('content-type') || '').startsWith('image/')) return true;
+    } catch {
+      // error de red: se reintenta igual
+    }
+    if (i < retries - 1) await new Promise(r => setTimeout(r, delayMs));
+  }
+  return false;
+}
+
 async function sendToMake(text, imageUrl) {
   const webhookUrl = process.env.MAKE_WEBHOOK_URL;
   if (!webhookUrl) throw new Error('MAKE_WEBHOOK_URL no configurada');
@@ -322,8 +340,15 @@ async function publishNoticia({ db, topic, item, content, sourceUrlHash, screens
   const noticiaUrl = `${SITE_URL}/noticias/${docRef.id}/`;
   const postText = `${content.body}\n\nLeé la nota completa: ${noticiaUrl}`;
 
+  const makeImageUrl = toInstagramSafeUrl(imageUrl);
+  if (!(await waitForImage(makeImageUrl))) {
+    await docRef.update({ makeError: 'Imagen para Instagram no estuvo lista, no se envió a Make' });
+    console.log(`  ⚠ "${content.title}" — publicada en el sitio, pero la imagen no estuvo lista: no se envió a Make`);
+    return;
+  }
+
   try {
-    await sendToMake(postText, toInstagramSafeUrl(imageUrl));
+    await sendToMake(postText, makeImageUrl);
     console.log(`  ✓ "${content.title}" — publicada y enviada a Make`);
   } catch (e) {
     await docRef.update({ makeError: e.message });

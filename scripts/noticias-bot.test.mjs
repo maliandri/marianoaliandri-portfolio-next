@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { isWithinSchedule, nowArgentina, toInstagramSafeUrl } from './noticias-bot.mjs';
+import { describe, it, expect, vi } from 'vitest';
+import { isWithinSchedule, nowArgentina, toInstagramSafeUrl, waitForImage } from './noticias-bot.mjs';
 
 // Enero de 1970: 1=jue, 2=vie, 3=sab, 4=dom, 5=lun, 6=mar, 7=mie.
 // Se usan estas fechas fijas para tener un getUTCDay() conocido sin ambigüedad.
@@ -68,5 +68,34 @@ describe('toInstagramSafeUrl', () => {
 
   it('funciona igual con PNG', () => {
     expect(toInstagramSafeUrl(`${base}.png`)).toContain('/image/upload/c_fill,g_auto,w_1080,h_1080,f_jpg,q_auto/v1789776136/');
+  });
+});
+
+describe('waitForImage', () => {
+  const img = { ok: true, status: 200, headers: { get: () => 'image/jpeg' } };
+  const notReady = { ok: false, status: 423, headers: { get: () => 'text/plain' } };
+  const html = { ok: true, status: 200, headers: { get: () => 'text/html' } };
+
+  it('devuelve true apenas la URL responde con una imagen', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(img);
+    expect(await waitForImage('https://x/a.jpg', { fetchImpl, delayMs: 0 })).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('reintenta mientras Cloudinary todavía genera la transformación', async () => {
+    const fetchImpl = vi.fn().mockResolvedValueOnce(notReady).mockResolvedValueOnce(html).mockResolvedValueOnce(img);
+    expect(await waitForImage('https://x/a.jpg', { fetchImpl, delayMs: 0 })).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it('reintenta si el fetch tira un error de red', async () => {
+    const fetchImpl = vi.fn().mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce(img);
+    expect(await waitForImage('https://x/a.jpg', { fetchImpl, delayMs: 0 })).toBe(true);
+  });
+
+  it('devuelve false si nunca responde una imagen', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(notReady);
+    expect(await waitForImage('https://x/a.jpg', { fetchImpl, retries: 3, delayMs: 0 })).toBe(false);
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 });
