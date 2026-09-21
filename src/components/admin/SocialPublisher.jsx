@@ -30,7 +30,7 @@ const TEMA_LOGO = {
 const CATEGORIAS = [
   {
     id: 'pagos',
-    label: '💳 Pagos',
+    label: 'Pagos',
     temas: [
       'Integración de MercadoPago Checkout',
       'Suscripciones y pagos recurrentes con MercadoPago',
@@ -39,7 +39,7 @@ const CATEGORIAS = [
   },
   {
     id: 'storage',
-    label: '🗄️ Storage',
+    label: 'Storage',
     temas: [
       'Gestión de imágenes y video con Cloudinary',
       'CDN y optimización de medios',
@@ -47,7 +47,7 @@ const CATEGORIAS = [
   },
   {
     id: 'ia',
-    label: '🤖 IA',
+    label: 'IA',
     temas: [
       'Chatbots inteligentes con Gemini AI',
       'Automatización con IA para negocios',
@@ -56,7 +56,7 @@ const CATEGORIAS = [
   },
   {
     id: 'database',
-    label: '🗃️ Base de Datos',
+    label: 'Base de Datos',
     temas: [
       'Firebase Firestore para apps en tiempo real',
       'MongoDB Atlas para proyectos escalables',
@@ -65,7 +65,7 @@ const CATEGORIAS = [
   },
   {
     id: 'email',
-    label: '📧 Email',
+    label: 'Email',
     temas: [
       'Email transaccional con Resend',
       'Notificaciones automáticas por email',
@@ -73,7 +73,7 @@ const CATEGORIAS = [
   },
   {
     id: 'hosting',
-    label: '🚀 Hosting & Deploy',
+    label: 'Hosting & Deploy',
     temas: [
       'Deploy en Vercel para proyectos Next.js',
       'Netlify con Serverless Functions',
@@ -82,7 +82,7 @@ const CATEGORIAS = [
   },
   {
     id: 'automatizacion',
-    label: '⚡ Automatización',
+    label: 'Automatización',
     temas: [
       'Flujos automáticos con Make.com',
       'Webhooks e integraciones entre servicios',
@@ -90,7 +90,7 @@ const CATEGORIAS = [
   },
   {
     id: 'video',
-    label: '🎬 Video',
+    label: 'Video',
     temas: [
       'Generación y edición de video con Shotstack',
       'Thumbnails dinámicos con Microlink API',
@@ -191,18 +191,18 @@ export default function SocialPublisher() {
     >
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-          📢 Publicar en Redes Sociales
+        <h2 className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
+          Publicar en redes sociales
         </h2>
-        <p className="text-gray-400 text-sm mt-1">
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
           Elegí el tema, la red y el tono — Make.com genera y publica automáticamente
         </p>
       </div>
 
       {/* 1. Red Social */}
-      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-        <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-          <span className="bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">1</span>
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
+          <span className="bg-indigo-600 text-white text-[11px] rounded-full w-5 h-5 flex items-center justify-center font-bold">1</span>
           Red Social
         </h3>
         <div className="flex gap-2 flex-wrap">
@@ -216,10 +216,9 @@ export default function SocialPublisher() {
               className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
                 selectedRed === r.id
                   ? 'text-white shadow-lg'
-                  : 'border-gray-600 text-gray-300 bg-gray-700/50 hover:border-gray-500'
+                  : 'border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/40 hover:border-gray-300 dark:hover:border-gray-500'
               }`}
             >
-              <span>{r.icon}</span>
               {r.label}
             </motion.button>
           ))}
@@ -227,9 +226,9 @@ export default function SocialPublisher() {
       </div>
 
       {/* 2. Categoría */}
-      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-        <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-          <span className="bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">2</span>
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
+          <span className="bg-indigo-600 text-white text-[11px] rounded-full w-5 h-5 flex items-center justify-center font-bold">2</span>
           Categoría
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -239,8 +238,8 @@ export default function SocialPublisher() {
               onClick={() => handleCategoriaChange(cat.id)}
               className={`px-3 py-2 rounded-lg text-xs font-medium text-left transition-all ${
                 selectedCategoria === cat.id
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               {cat.label}
@@ -257,11 +256,11 @@ export default function SocialPublisher() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="bg-gray-800 rounded-xl p-5 border border-gray-700 overflow-hidden"
+            className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5 overflow-hidden"
           >
-            <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-              <span className="bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">3</span>
-              Tema — <span className="text-gray-400 font-normal">{categoriaActual.label}</span>
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
+              <span className="bg-indigo-600 text-white text-[11px] rounded-full w-5 h-5 flex items-center justify-center font-bold">3</span>
+              Tema — <span className="text-gray-500 dark:text-gray-400 font-normal normal-case tracking-normal">{categoriaActual.label}</span>
             </h3>
             <div className="space-y-2">
               {categoriaActual.temas.map(tema => (
@@ -270,11 +269,11 @@ export default function SocialPublisher() {
                   onClick={() => handleTemaChange(tema)}
                   className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all border ${
                     selectedTema === tema
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
-                      : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-gray-500 hover:bg-gray-700'
+                      ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-white'
+                      : 'border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-gray-800/40 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500'
                   }`}
                 >
-                  {selectedTema === tema && <span className="mr-2 text-purple-400">✓</span>}
+                  {selectedTema === tema && <span className="mr-2 text-indigo-600 dark:text-indigo-400">✓</span>}
                   {tema}
                 </button>
               ))}
@@ -284,9 +283,9 @@ export default function SocialPublisher() {
       </AnimatePresence>
 
       {/* 4. Tono */}
-      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-        <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-          <span className="bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
+          <span className="bg-indigo-600 text-white text-[11px] rounded-full w-5 h-5 flex items-center justify-center font-bold">
             {categoriaActual ? '4' : '3'}
           </span>
           Tono
@@ -298,8 +297,8 @@ export default function SocialPublisher() {
               onClick={() => setSelectedTono(t.id)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 selectedTono === t.id
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               {t.label}
@@ -309,14 +308,14 @@ export default function SocialPublisher() {
       </div>
 
       {/* 5. Imagen */}
-      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-        <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-          <span className="bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
+          <span className="bg-indigo-600 text-white text-[11px] rounded-full w-5 h-5 flex items-center justify-center font-bold">
             {categoriaActual ? '5' : '4'}
           </span>
           Imagen
           {imageUrl && TEMA_LOGO[selectedTema] && SERVICE_LOGOS[TEMA_LOGO[selectedTema]] === imageUrl && (
-            <span className="text-xs text-purple-400 font-normal">— logo auto-detectado</span>
+            <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-normal normal-case tracking-normal">— logo auto-detectado</span>
           )}
         </h3>
 
@@ -328,7 +327,7 @@ export default function SocialPublisher() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="mb-3 flex items-center justify-center bg-gray-900 rounded-xl p-6 border border-gray-700"
+              className="mb-3 flex items-center justify-center bg-gray-50 dark:bg-gray-800/40 rounded-xl p-6 border border-gray-200 dark:border-neutral-800"
             >
               <img
                 src={imageUrl}
@@ -345,14 +344,14 @@ export default function SocialPublisher() {
           value={imageUrl}
           onChange={e => setImageUrl(e.target.value)}
           placeholder="URL override — o dejá el logo auto-detectado"
-          className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500 placeholder-gray-500"
+          className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500 placeholder-gray-400 dark:placeholder-gray-500"
         />
         {imageUrl && (
           <button
             onClick={() => setImageUrl('')}
-            className="mt-2 text-xs text-gray-500 hover:text-red-400 transition-colors"
+            className="mt-2 text-xs text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
           >
-            ✕ Quitar imagen
+            Quitar imagen
           </button>
         )}
       </div>
@@ -362,12 +361,12 @@ export default function SocialPublisher() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-gray-700/50 rounded-xl p-4 border border-gray-600 text-sm text-gray-300 space-y-1"
+          className="bg-gray-50 dark:bg-gray-800/40 rounded-xl p-4 border border-gray-200 dark:border-neutral-800 text-sm text-gray-700 dark:text-gray-300 space-y-1"
         >
-          <p><span className="text-gray-500">Red:</span> <span style={{ color: redActual?.color }}>{redActual?.icon} {redActual?.label}</span></p>
+          <p><span className="text-gray-500">Red:</span> <span style={{ color: redActual?.color }}>{redActual?.label}</span></p>
           <p><span className="text-gray-500">Tema:</span> {selectedTema}</p>
           <p><span className="text-gray-500">Tono:</span> <span className="capitalize">{selectedTono}</span></p>
-          <p><span className="text-gray-500">Imagen:</span> {imageUrl ? <span className="text-green-400">✓ URL cargada</span> : <span className="text-yellow-400">⚠ Sin imagen</span>}</p>
+          <p><span className="text-gray-500">Imagen:</span> {imageUrl ? <span className="text-green-600 dark:text-green-400">URL cargada</span> : <span className="text-amber-600 dark:text-amber-400">Sin imagen</span>}</p>
         </motion.div>
       )}
 
@@ -377,7 +376,7 @@ export default function SocialPublisher() {
         whileTap={canSend ? { scale: 0.98 } : {}}
         onClick={handleSend}
         disabled={!canSend}
-        className="w-full py-4 rounded-xl font-bold text-white text-base transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        className="w-full py-3.5 rounded-lg font-semibold text-white text-base transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         style={{
           background: canSend
             ? `linear-gradient(135deg, ${redActual?.color}, #7c3aed)`
@@ -409,9 +408,9 @@ export default function SocialPublisher() {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="flex items-center justify-center gap-2 text-green-300"
+              className="flex items-center justify-center gap-2 text-green-200"
             >
-              ✅ Enviado — Make.com está procesando
+              Enviado — Make.com está procesando
             </motion.span>
           )}
           {status === STATUS.error && (
@@ -422,7 +421,7 @@ export default function SocialPublisher() {
               exit={{ opacity: 0 }}
               className="flex items-center justify-center gap-2 text-red-300"
             >
-              ❌ {errorMsg || 'Error al enviar'}
+              {errorMsg || 'Error al enviar'}
             </motion.span>
           )}
           {status === STATUS.idle && (
@@ -433,7 +432,7 @@ export default function SocialPublisher() {
               exit={{ opacity: 0 }}
               className="flex items-center justify-center gap-2"
             >
-              🚀 Enviar a Make.com
+              Enviar a Make.com
             </motion.span>
           )}
         </AnimatePresence>

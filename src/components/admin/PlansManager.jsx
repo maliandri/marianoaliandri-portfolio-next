@@ -118,7 +118,7 @@ export default function PlansManager() {
       anaRef.current?.reload();
       setImportMsg({
         type: errors.length ? 'warn' : 'ok',
-        text: `✅ ${created} creados, ${updated} actualizados${skipped ? `, ${skipped} sin cambios` : ''}${errors.length ? ` — ⚠ errores: ${errors.join(' · ')}` : ''}`,
+        text: `${created} creados, ${updated} actualizados${skipped ? `, ${skipped} sin cambios` : ''}${errors.length ? ` — errores: ${errors.join(' · ')}` : ''}`,
       });
     } catch (err) {
       setImportMsg({ type: 'error', text: 'Error leyendo el Excel: ' + err.message });
@@ -130,13 +130,13 @@ export default function PlansManager() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center bg-gray-100 dark:bg-neutral-800 rounded-xl p-1 w-fit">
-        {[['uso', '📊 Uso de Google Places'], ['planes', '💳 Planes']].map(([s, label]) => (
+      <div className="flex gap-1 border-b border-gray-200 dark:border-neutral-800">
+        {[['uso', 'Uso de Google Places'], ['planes', 'Planes']].map(([s, label]) => (
           <button
             key={s}
             onClick={() => setSection(s)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              section === s ? 'bg-indigo-600 text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            className={`px-4 py-2 -mb-px text-sm font-semibold border-b-2 transition-colors ${
+              section === s ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
             {label}
@@ -154,19 +154,19 @@ export default function PlansManager() {
               e importá de vuelta para actualizar (o cargar planes nuevos de Lead Finder Pro).
             </p>
             <div className="flex items-center gap-2">
-              <button onClick={exportExcel} className="px-4 py-2 bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors">
-                ⬇ Exportar Excel
+              <button onClick={exportExcel} className="px-4 py-2 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">
+                Exportar Excel
               </button>
               <button onClick={() => fileInputRef.current?.click()} disabled={importing}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors">
-                {importing ? 'Importando...' : '⬆ Importar Excel'}
+                {importing ? 'Importando...' : 'Importar Excel'}
               </button>
               <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImportFile} className="hidden" />
             </div>
           </div>
 
           {importMsg && (
-            <div className={`px-4 py-3 rounded-xl text-sm ${
+            <div className={`px-4 py-3 rounded-xl text-sm font-medium ${
               importMsg.type === 'ok' ? 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400'
               : importMsg.type === 'warn' ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400'
               : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
@@ -176,12 +176,12 @@ export default function PlansManager() {
           )}
 
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">🎯 Lead Finder Pro</h3>
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3">Lead Finder Pro</h3>
             <LeadFinderPlansManager ref={lfpRef} />
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">📊 Analítica</h3>
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3">Analítica</h3>
             <AnaliticaPlansEditor ref={anaRef} />
           </div>
         </div>

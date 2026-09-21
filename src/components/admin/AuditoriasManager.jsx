@@ -5,11 +5,11 @@ import SendAuditEmailButton from './SendAuditEmailButton';
 
 function ScoreBadge({ score }) {
   if (score == null) return <span className="text-gray-500 text-xs">—</span>;
-  const cls = score >= 70 ? 'bg-green-500/15 text-green-400 border-green-500/30'
-            : score >= 40 ? 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'
-                          : 'bg-red-500/15 text-red-400 border-red-500/30';
+  const cls = score >= 70 ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400 border-transparent'
+            : score >= 40 ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border-transparent'
+                          : 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400 border-transparent';
   return (
-    <span className={`inline-block text-xs font-bold px-2 py-0.5 rounded-full border ${cls}`}>
+    <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full border ${cls}`}>
       {score}
     </span>
   );
@@ -197,18 +197,32 @@ ${reportUrl}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Auditorías publicadas</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Auditorías publicadas</h2>
           <p className="text-sm text-gray-500 mt-0.5">{auditorias.length} reporte{auditorias.length !== 1 ? 's' : ''} publicado{auditorias.length !== 1 ? 's' : ''}</p>
         </div>
         <button onClick={load}
-          className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-          ↻ Recargar
+          className="px-4 py-2 text-sm border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">
+          Recargar
         </button>
       </div>
 
+      {auditorias.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {[
+            { label: 'Reportes', value: auditorias.length },
+            { label: 'Sitios analizados', value: auditorias.reduce((s, a) => s + (a.stats?.total || 0), 0) },
+            { label: 'Con SEO débil', value: auditorias.reduce((s, a) => s + (a.stats?.lowSeoCount || 0), 0) },
+          ].map(k => (
+            <div key={k.label} className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">{k.label}</p>
+              <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mt-1">{k.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {auditorias.length === 0 ? (
         <div className="text-center py-20 text-gray-500">
-          <p className="text-4xl mb-3">📊</p>
           <p>No hay auditorías publicadas todavía.</p>
           <p className="text-xs mt-1">Publicá una desde el Lead Finder.</p>
         </div>
@@ -216,7 +230,7 @@ ${reportUrl}
         <div className="space-y-3">
           {auditorias.map(a => (
             <div key={a.id}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+              className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
 
               {/* Row principal */}
               <div className="flex items-center gap-4 px-5 py-4">
@@ -231,25 +245,25 @@ ${reportUrl}
                       className={`text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 transition-colors ${
                         a.isDemoCase
                           ? 'bg-indigo-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
                       }`}
                     >
-                      ⭐ Demo
+                      Demo
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-1.5">
                     {(a.config?.ciudades || []).map(c => (
-                      <span key={c} className="text-xs bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">
-                        📍 {c}
+                      <span key={c} className="text-[11px] font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 px-2 py-0.5 rounded-full">
+                        {c}
                       </span>
                     ))}
                     {a.config?.radioKm && (
-                      <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 px-2 py-0.5 rounded-full">
+                      <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full">
                         {a.config.radioKm} km
                       </span>
                     )}
                     {(a.config?.tiposLabels || []).slice(0, 5).map(t => (
-                      <span key={t} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 px-2 py-0.5 rounded-full">
+                      <span key={t} className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full">
                         {t}
                       </span>
                     ))}
@@ -280,28 +294,28 @@ ${reportUrl}
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => setExpanded(prev => prev === a.id ? null : a.id)}
-                    className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                    {expanded === a.id ? '▲ Menos' : '▼ Más'}
+                    className="px-3 py-1.5 text-xs border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">
+                    {expanded === a.id ? 'Menos' : 'Más'}
                   </button>
                   <a href={`/auditorias/${a.id}`} target="_blank" rel="noopener noreferrer"
                     className="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                    Ver →
+                    Ver
                   </a>
                   <button
                     onClick={() => openEdit(a.id)}
-                    className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                    ✏️ Editar
+                    className="px-3 py-1.5 text-xs border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">
+                    Editar
                   </button>
                   <button
                     onClick={() => openPublish(a)}
-                    className="px-3 py-1.5 text-xs bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 border border-pink-200 dark:border-pink-800 rounded-lg hover:bg-pink-100 dark:hover:bg-pink-900/40 transition-colors">
-                    📣 Publicar
+                    className="px-3 py-1.5 text-xs border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">
+                    Publicar
                   </button>
                   <button
                     onClick={() => handleDelete(a.id, a.title)}
                     disabled={deleting === a.id}
-                    className="px-3 py-1.5 text-xs bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors disabled:opacity-40">
-                    {deleting === a.id ? '...' : '🗑 Eliminar'}
+                    className="px-3 py-1.5 text-xs text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors disabled:opacity-40">
+                    {deleting === a.id ? '...' : 'Eliminar'}
                   </button>
                 </div>
               </div>
@@ -318,7 +332,7 @@ ${reportUrl}
       {/* Modal de edición */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !savingEdit && setEditing(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-start justify-between mb-3">
               <h3 className="font-semibold text-gray-900 dark:text-white">Editar auditoría</h3>
               <button onClick={() => setEditing(null)} disabled={savingEdit}
@@ -329,21 +343,21 @@ ${reportUrl}
               <p className="text-sm text-gray-500 animate-pulse py-8 text-center">Cargando…</p>
             ) : (
               <>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Título</label>
+                <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Título</label>
                 <input
                   value={editing.title}
                   onChange={e => setEditing(ed => ({ ...ed, title: e.target.value }))}
                   disabled={savingEdit}
-                  className="w-full mb-4 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full mb-4 px-3 py-2 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-neutral-700 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
 
-                <label className="block text-xs font-medium text-gray-500 mb-1">Descripción del reporte</label>
+                <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Descripción del reporte</label>
                 <textarea
                   value={editing.summary}
                   onChange={e => setEditing(ed => ({ ...ed, summary: e.target.value }))}
                   rows={7}
                   disabled={savingEdit}
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-neutral-700 rounded-lg text-gray-700 dark:text-gray-200 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <p className="text-[11px] text-gray-400 mt-1">Se muestra como “Análisis” en la página pública del reporte.</p>
 
@@ -351,7 +365,7 @@ ${reportUrl}
 
                 <div className="flex justify-end gap-2 mt-4">
                   <button onClick={() => setEditing(null)} disabled={savingEdit}
-                    className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-40">
+                    className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg transition-colors disabled:opacity-40">
                     Cancelar
                   </button>
                   <button onClick={saveEdit} disabled={savingEdit || !editing.title.trim()}
@@ -368,7 +382,7 @@ ${reportUrl}
       {/* Modal de publicación en redes (Make.com) */}
       {pub && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !pubSending && setPub(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-start justify-between mb-3">
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white">Publicar en redes</h3>
@@ -378,21 +392,21 @@ ${reportUrl}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none disabled:opacity-40">✕</button>
             </div>
 
-            <label className="block text-xs font-medium text-gray-500 mb-1.5">Redes</label>
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1.5">Redes</label>
             <div className="flex gap-2 mb-4">
-              {[['instagram', '📷 Instagram'], ['facebook', '📘 Facebook'], ['linkedin', '💼 LinkedIn']].map(([k, label]) => (
+              {[['instagram', 'Instagram'], ['facebook', 'Facebook'], ['linkedin', 'LinkedIn']].map(([k, label]) => (
                 <button key={k} onClick={() => setPubNets(n => ({ ...n, [k]: !n[k] }))} disabled={pubSending}
                   className={`px-3 py-2 text-xs rounded-lg border transition-colors ${pubNets[k]
                     ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600'}`}>
+                    : 'bg-gray-50 dark:bg-gray-800/40 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-neutral-700'}`}>
                   {label}
                 </button>
               ))}
             </div>
 
-            <label className="block text-xs font-medium text-gray-500 mb-1">Texto de la publicación</label>
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Texto de la publicación</label>
             <textarea value={pubCaption} onChange={e => setPubCaption(e.target.value)} rows={9} disabled={pubSending}
-              className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-neutral-700 rounded-lg text-gray-700 dark:text-gray-200 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             <p className="text-[11px] text-gray-400 mt-1">
               Gemini (en Make) pule este texto. El <b>link al reporte</b> se agrega automáticamente al final (campo <code>link</code>).
               La imagen es una captura del reporte (mapa + tabla) vía Microlink.
@@ -402,12 +416,12 @@ ${reportUrl}
 
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => setPub(null)} disabled={pubSending}
-                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-40">
+                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg transition-colors disabled:opacity-40">
                 Cancelar
               </button>
               <button onClick={sendPublish} disabled={pubSending || !pubCaption.trim() || !Object.values(pubNets).some(Boolean)}
-                className="px-5 py-2 text-sm bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50">
-                {pubSending ? 'Enviando…' : '📣 Publicar'}
+                className="px-5 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50">
+                {pubSending ? 'Enviando…' : 'Publicar'}
               </button>
             </div>
           </div>
@@ -471,10 +485,10 @@ function GenerateDMButton({ neg }) {
         onClick={generate}
         disabled={busy}
         title={`Generar DM de Instagram para ${neg.nombre}`}
-        className={`shrink-0 px-2 py-0.5 rounded text-xs font-medium transition-colors
-          ${busy ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-wait'
-                 : 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 hover:bg-pink-200 dark:hover:bg-pink-900/50'}`}>
-        {busy && !open ? '⏳ Generando…' : '📷 Generar DM'}
+        className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors
+          ${busy ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-wait'
+                 : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-500/20'}`}>
+        {busy && !open ? 'Generando…' : 'Generar DM'}
       </button>
       {!open && errorMsg && (
         <span className="text-[10px] text-red-500 max-w-[130px] truncate" title={errorMsg}>{errorMsg}</span>
@@ -500,15 +514,15 @@ function GenerateDMButton({ neg }) {
 
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-medium text-gray-500">Mensaje (podés editarlo)</label>
-              {source === 'gemini'   && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">✨ IA (Gemini)</span>}
-              {source === 'template' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" title="Gemini no disponible — se usó una plantilla">✍️ Plantilla</span>}
+              {source === 'gemini'   && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400">IA (Gemini)</span>}
+              {source === 'template' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400" title="Gemini no disponible — se usó una plantilla">Plantilla</span>}
             </div>
             <textarea
               value={dmText}
               onChange={e => setDmText(e.target.value)}
               rows={5}
               disabled={busy}
-              className="w-full text-sm bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl p-3 text-gray-700 dark:text-gray-200 leading-relaxed focus:outline-none focus:ring-2 focus:ring-pink-400/50 resize-y disabled:opacity-60"
+              className="w-full text-sm bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl p-3 text-gray-700 dark:text-gray-200 leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-400/50 resize-y disabled:opacity-60"
             />
 
             <p className="text-[11px] text-gray-400 mt-2">
@@ -521,13 +535,13 @@ function GenerateDMButton({ neg }) {
             <div className="flex items-center justify-end gap-2 mt-4">
               <button onClick={generate} disabled={busy}
                 className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-xl transition-colors disabled:opacity-40">
-                {busy ? '↻ Regenerando…' : '↻ Regenerar'}
+                {busy ? 'Regenerando…' : 'Regenerar'}
               </button>
               <button onClick={copy} disabled={busy || !dmText.trim()}
-                className={`px-4 py-2 text-sm rounded-xl transition-colors disabled:opacity-50 ${
-                  copied ? 'bg-green-600 text-white' : 'bg-pink-600 text-white hover:bg-pink-700'
+                className={`px-4 py-2 text-sm rounded-lg transition-colors disabled:opacity-50 ${
+                  copied ? 'bg-green-600 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700'
                 }`}>
-                {copied ? '✓ Copiado' : '📋 Copiar mensaje'}
+                {copied ? 'Copiado' : 'Copiar mensaje'}
               </button>
             </div>
           </div>
@@ -568,7 +582,7 @@ function AuditoriaDetail({ id }) {
   }, [id]);
 
   if (loading) return (
-    <div className="border-t border-gray-200 dark:border-gray-700 px-5 py-4 text-xs text-gray-400 animate-pulse">
+    <div className="border-t border-gray-200 dark:border-neutral-800 px-5 py-4 text-xs text-gray-400 animate-pulse">
       Cargando detalle...
     </div>
   );
@@ -619,33 +633,33 @@ function AuditoriaDetail({ id }) {
   const sentTotal    = withEmailList.filter(r => sentCountFor(r.email) > 0).length;
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700">
+    <div className="border-t border-gray-200 dark:border-neutral-800">
       {/* Resumen Gemini */}
       {data.summary && (
-        <div className="px-5 py-4 bg-indigo-50/50 dark:bg-indigo-900/10 border-b border-gray-200 dark:border-gray-700">
-          <p className="text-xs font-semibold text-indigo-500 uppercase tracking-widest mb-2">Análisis Gemini</p>
+        <div className="px-5 py-4 bg-gray-50 dark:bg-gray-800/40 border-b border-gray-200 dark:border-neutral-800">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Análisis Gemini</p>
           <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{data.summary}</p>
         </div>
       )}
 
       {/* Info emails + envío masivo */}
       {withEmail > 0 && (
-        <div className="px-5 py-3 bg-green-50/50 dark:bg-green-900/10 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-5 py-3 bg-gray-50 dark:bg-gray-800/40 border-b border-gray-200 dark:border-neutral-800">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-xs text-green-700 dark:text-green-400">
-              ✉ <strong>{withEmail}</strong> empresa{withEmail !== 1 ? 's' : ''} con email
+              <strong>{withEmail}</strong> empresa{withEmail !== 1 ? 's' : ''} con email
               {sentTotal > 0 && <> · <strong>{sentTotal}</strong> con al menos un envío</>}
               {' '}— enviá uno a uno o a todos de una vez (Gemini genera cada texto).
             </p>
             <button
               onClick={sendAll}
               disabled={bulk?.running || pendingCount === 0}
-              className="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              className="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
               {bulk?.running
                 ? `Enviando… ${bulk.done}/${bulk.total}`
                 : pendingCount === 0
-                  ? '✓ Todos enviados'
-                  : `✉ Enviar a todos (${pendingCount})`}
+                  ? 'Todos enviados'
+                  : `Enviar a todos (${pendingCount})`}
             </button>
           </div>
 
@@ -677,23 +691,23 @@ function AuditoriaDetail({ id }) {
       {/* Tabla */}
       <div className="overflow-x-auto" style={{ maxHeight: '420px' }}>
         <table className="min-w-full text-xs">
-          <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
-            <tr className="border-b border-gray-200 dark:border-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-800/40 sticky top-0 z-10">
+            <tr className="border-b border-gray-200 dark:border-neutral-800">
               {['Negocio', 'Ciudad', 'Sitio web', 'Score', 'Sitemap', 'Robots', 'Meta', 'OG', '★', 'Email', 'DM'].map(h => (
-                <th key={h} className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{h}</th>
+                <th key={h} className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+          <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
             {results.map((neg, i) => (
-              <tr key={neg.id || i} className={`hover:bg-gray-50 dark:hover:bg-gray-700/20 ${neg.email ? 'bg-green-50/30 dark:bg-green-900/5' : ''}`}>
+              <tr key={neg.id || i} className={`hover:bg-gray-50 dark:hover:bg-neutral-800/40 ${neg.email ? 'bg-green-50/30 dark:bg-green-900/5' : ''}`}>
                 <td className="px-3 py-2 font-medium text-gray-900 dark:text-white max-w-[150px] truncate" title={neg.nombre}>
                   {neg.nombre}
                 </td>
                 <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{neg.ciudad || '—'}</td>
                 <td className="px-3 py-2 max-w-[150px]">
                   <a href={neg.siteUrl} target="_blank" rel="noopener noreferrer"
-                    className="text-indigo-500 hover:underline truncate block" title={neg.siteUrl}>
+                    className="text-indigo-600 dark:text-indigo-400 hover:underline truncate block" title={neg.siteUrl}>
                     {(neg.siteUrl || '').replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '').substring(0, 30)}
                   </a>
                 </td>
@@ -730,7 +744,7 @@ function AuditoriaDetail({ id }) {
         </table>
       </div>
 
-      <div className="px-5 py-3 text-xs text-gray-400 border-t border-gray-200 dark:border-gray-700">
+      <div className="px-5 py-3 text-xs text-gray-400 border-t border-gray-200 dark:border-neutral-800">
         {results.length} sitios · {withEmail} con email · ordenados por Score SEO ascendente
       </div>
     </div>

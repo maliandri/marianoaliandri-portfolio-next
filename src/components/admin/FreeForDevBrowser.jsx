@@ -80,7 +80,7 @@ export default function FreeForDevBrowser() {
   if (error) {
     return (
       <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm">
-        ❌ {error}
+        {error}
       </div>
     );
   }
@@ -91,7 +91,7 @@ export default function FreeForDevBrowser() {
       <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-5">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Free for Dev</h3>
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Free for Dev</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {data.total} recursos · {data.categories.length} categorías · fuente:{' '}
               <a href={data.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">
@@ -101,9 +101,9 @@ export default function FreeForDevBrowser() {
           </div>
           <button
             onClick={load}
-            className="px-3 py-2 rounded-xl border border-gray-300 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 text-sm font-medium transition-colors"
+            className="px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 text-sm font-medium transition-colors"
           >
-            🔄 Actualizar
+            Actualizar
           </button>
         </div>
         <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2">
@@ -116,7 +116,7 @@ export default function FreeForDevBrowser() {
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="Buscar por nombre, categoría o descripción…"
-          className="mt-4 w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="mt-4 w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
         {debouncedQuery && (
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{resultCount} resultados para “{debouncedQuery}”</p>

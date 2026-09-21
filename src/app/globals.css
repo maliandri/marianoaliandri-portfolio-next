@@ -1,4 +1,5 @@
 /* Importa Tailwind v4 */
+/* Panel admin: ver el bloque ".admin-theme" al final de este archivo */
 @import "tailwindcss";
 
 /* Configurar dark mode basado en clase .dark (Tailwind v4) */
@@ -709,4 +710,20 @@ html {
 /* Tiles OSM estándar (gratis, sin API key) invertidas a modo oscuro para mapas del admin/auditorías */
 .map-tiles-dark {
   filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+}
+
+/* PANEL ADMIN - paleta navy (rediseno 2026-09-21). Tailwind 4 arma sus utilidades con estas
+   variables, asi que redefinirlas dentro de .admin-theme recolorea todo el panel en modo
+   oscuro sin tocar cada componente. */
+.dark .admin-theme {
+  --color-neutral-950: #0b0f17;
+  --color-gray-950: #0b0f17;
+  --color-neutral-900: #111827;
+  --color-gray-900: #111827;
+  --color-neutral-800: #243350;
+  --color-gray-800: #172033;
+  --color-neutral-700: #2f4062;
+  --color-gray-700: #243350;
+  --color-gray-500: #8391ad;
+  --color-gray-400: #93a1bd;
 }

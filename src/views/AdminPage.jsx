@@ -32,6 +32,10 @@ import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAna
 import { ADMIN_NAV_DEFAULT } from '../data/adminNav';
 import NavConfigEditor from '../components/admin/NavConfigEditor';
 import KeywordExplorer from '../components/audit/KeywordExplorer';
+import AdminIcon from '../components/admin/AdminIcon';
+import { Plus_Jakarta_Sans } from 'next/font/google';
+
+const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], display: 'swap' });
 
 // Navegación de 3 niveles (estilo almamod): 1º sidebar (secciones) · 2º pestañas arriba
 // (items de la sección) · 3º pestañas abajo (sub-items, solo si el item tiene "children").
@@ -68,8 +72,8 @@ const NAVY_SOFT = '#1a2340';
 const ACCENT = '#2d4a8a';
 const CREAM = '#f8f7f5';
 const BORDER_CREAM = '#e2ddd7';
-const CUT = 'rounded-[0_0_16px_0]';
-const CUT_SM = 'rounded-[0_0_8px_0]';
+const CUT = 'rounded-2xl';
+const CUT_SM = 'rounded-lg';
 
 // Sub-tab controlado desde el nivel 3 de navegación (barra de pestañas del panel)
 function PresupuestosTab({ sub, onOpenNuevo }) {
@@ -81,7 +85,7 @@ function PresupuestosTab({ sub, onOpenNuevo }) {
   };
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="space-y-5">
       {sub === 'solicitudes' && <BudgetManager onOpenInBuilder={handleOpenInBuilder} />}
       {sub === 'nuevo'       && <QuoteBuilder key={editBudget?.id || 'new'} initialData={editBudget} />}
       {sub === 'beneficios'  && <BenefitsEditor />}
@@ -536,42 +540,53 @@ export default function AdminPage() {
 
   // Admin Dashboard
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950 md:flex">
+    <div className={`admin-theme ${jakarta.className} min-h-screen bg-gray-50 dark:bg-neutral-950 md:flex`}>
       {/* Sidebar navy, colapsable en desktop, drawer en mobile (estilo almamod) */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 shrink-0 overflow-y-auto p-3 transition-[transform,width] duration-200 md:sticky md:top-0 md:h-screen md:translate-x-0 ${navOpen ? 'translate-x-0' : '-translate-x-full'} ${collapsed ? 'md:w-16' : 'md:w-60'} w-64`}
-        style={{ background: NAVY }}
+        className={`fixed inset-y-0 left-0 z-40 shrink-0 overflow-y-auto p-3 bg-white dark:bg-[#111827] border-r border-gray-200 dark:border-[#243350] transition-[transform,width] duration-200 md:sticky md:top-0 md:h-screen md:translate-x-0 ${navOpen ? 'translate-x-0' : '-translate-x-full'} ${collapsed ? 'md:w-16' : 'md:w-60'} w-64`}
+        
       >
-        <div className="flex items-center justify-between px-1 pb-3 mb-2 border-b border-white/10">
+        <div className="flex items-center justify-between px-1 pb-3 mb-2 border-b border-gray-200 dark:border-[#243350]">
           {!collapsed && (
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-white truncate">Admin</p>
-              <p className="text-[11px] text-white/40 truncate">{username}</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white truncate">Panel interno</p>
+              <p className="text-[11px] text-gray-500 truncate">{username}</p>
             </div>
           )}
           <button
             onClick={toggleCollapsed}
             aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
-            className={`hidden md:flex items-center justify-center w-7 h-7 ${CUT_SM} text-white/60 hover:text-white hover:bg-white/10 transition-colors shrink-0`}
+            className={`hidden md:flex items-center justify-center w-7 h-7 ${CUT_SM} text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#172033] transition-colors shrink-0`}
           >
             {collapsed ? '»' : '«'}
           </button>
         </div>
-        {/* Nivel 1: secciones. Clickear una sección lleva a su primer item (nivel 2). */}
+        {/* Secciones con sus items (niveles 1 y 2 juntos); los sub-items van como pestañas en el encabezado. */}
         <nav className="space-y-0.5">
           {navTree.map(group => (
-            <button
-              key={group.id}
-              onClick={() => goToTab(group.items[0].id)}
-              title={collapsed ? group.label : undefined}
-              className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 ${CUT_SM} text-sm font-medium text-left transition-colors ${collapsed ? 'justify-center' : ''}`}
-              style={activeGroup === group.id
-                ? { background: ACCENT, color: '#fff' }
-                : { color: 'rgba(255,255,255,0.65)' }}
-            >
-              <span className="text-base shrink-0">{group.icon}</span>
-              {!collapsed && group.label}
-            </button>
+            <div key={group.id}>
+              {collapsed
+                ? <div className="my-2 border-t border-gray-200 dark:border-[#243350]" />
+                : <p className="px-2.5 pt-4 pb-1.5 text-[10.5px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">{group.label}</p>}
+              {group.items.map(it => {
+                const isActive = it.id === activeTab;
+                return (
+                  <button
+                    key={group.id + it.id}
+                    onClick={() => goToTab(it.id)}
+                    title={collapsed ? it.label : undefined}
+                    className={`w-full flex items-center gap-2.5 px-2.5 min-h-[34px] rounded-lg text-[13px] text-left transition-colors ${collapsed ? 'justify-center' : ''} ${isActive
+                      ? 'bg-indigo-50 dark:bg-[#232a5c] text-gray-900 dark:text-white font-semibold'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#172033] font-medium'}`}
+                  >
+                    <span className={`shrink-0 flex ${isActive ? 'text-indigo-600 dark:text-indigo-400' : ''}`}>
+                      <AdminIcon id={it.id} fallback={it.icon} />
+                    </span>
+                    {!collapsed && <span className="truncate">{it.label}</span>}
+                  </button>
+                );
+              })}
+            </div>
           ))}
         </nav>
       </aside>
@@ -587,10 +602,10 @@ export default function AdminPage() {
 
       {/* Columna principal */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-20 bg-white/90 dark:bg-neutral-900/90 backdrop-blur border-b border-gray-200 dark:border-neutral-800">
-          <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+        {/* Header: título de la pantalla + acciones; los sub-items del tab activo van como pestañas */}
+        <header className="sticky top-0 z-20 bg-white/90 dark:bg-[#0b0f17]/90 backdrop-blur border-b border-gray-200 dark:border-[#243350]">
+          <div className="px-4 sm:px-8 py-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={() => setNavOpen(v => !v)}
                 aria-label="Menú"
@@ -600,64 +615,41 @@ export default function AdminPage() {
                 <span className={`block h-0.5 w-5 bg-current transition-opacity ${navOpen ? 'opacity-0' : ''}`} />
                 <span className={`block h-0.5 w-5 bg-current transition-transform ${navOpen ? '-translate-y-[5px] -rotate-45' : ''}`} />
               </button>
-              <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {navTree.find(g => g.id === activeGroup)?.label || 'Panel'}
-              </h1>
+              <div className="min-w-0">
+                <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">
+                  {findNavLocation(navTree, activeTab)?.item.label || 'Panel'}
+                </h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {navTree.find(g => g.id === activeGroup)?.label || ''}
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => router.push('/')}
-                className={`px-3 py-2 border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 ${CUT_SM} hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors text-sm font-medium`}
+                className={`px-3 py-2 border border-gray-300 dark:border-[#243350] text-gray-700 dark:text-gray-300 ${CUT_SM} hover:bg-gray-50 dark:hover:bg-[#172033] transition-colors text-sm font-medium`}
               >
-                🌐 <span className="hidden sm:inline">Ver sitio</span>
+                Ver sitio
               </button>
               <button
                 onClick={handleLogout}
                 className={`px-3 py-2 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 ${CUT_SM} hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-sm font-medium`}
               >
-                🚪 <span className="hidden sm:inline">Salir</span>
+                Salir
               </button>
             </div>
           </div>
 
-          {/* Nivel 2: pestañas de los items de la sección activa (estilo "pestañas de navegador") */}
-          {(() => {
-            const group = navTree.find(g => g.id === activeGroup);
-            if (!group) return null;
-            return (
-              <div className="px-4 sm:px-6 lg:px-8 flex items-end gap-0 overflow-x-auto">
-                {group.items.map((it, idx) => {
-                  const isActive = it.id === activeTab;
-                  return (
-                    <button
-                      key={it.id}
-                      onClick={() => goToTab(it.id)}
-                      style={idx > 0 ? { marginLeft: '-8px' } : undefined}
-                      className={`relative px-4 py-2 text-sm font-medium whitespace-nowrap rounded-t-xl transition-colors ${
-                        isActive
-                          ? 'bg-gray-50 dark:bg-neutral-950 text-gray-900 dark:text-white z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]'
-                          : 'bg-gray-100/70 dark:bg-neutral-900/60 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800/80 z-0'
-                      }`}
-                    >
-                      <span className="mr-1.5">{it.icon}</span>{it.label}
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })()}
-
-          {/* Nivel 3: sub-pestañas del item activo, solo si tiene children */}
           {TAB_MAP[activeTab]?.children && (
-            <div className="px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap gap-1.5 bg-gray-50 dark:bg-neutral-950 border-t border-gray-100 dark:border-neutral-900">
+            <div className="px-4 sm:px-8 flex gap-1 overflow-x-auto">
               {TAB_MAP[activeTab].children.map(child => (
                 <button
                   key={child.id}
                   onClick={() => setActiveSubTab(child.id)}
-                  className={`px-3 py-1.5 ${CUT_SM} text-xs font-medium transition-colors ${
+                  className={`px-3.5 py-2.5 text-sm whitespace-nowrap -mb-px border-b-2 transition-colors ${
                     activeSubTab === child.id
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                      ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium'
                   }`}
                 >
                   {child.label}
@@ -668,7 +660,7 @@ export default function AdminPage() {
         </header>
 
         {/* Content */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
+        <main className="flex-1 px-4 sm:px-8 py-6">
         {loading && (
           <div className="flex justify-center py-12">
             <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
@@ -677,52 +669,29 @@ export default function AdminPage() {
 
         {!loading && activeTab === 'dashboard' && (
           <div className="space-y-6">
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Órdenes</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{stats.totalOrders}</p>
-                  </div>
-                  <div className="text-4xl">📦</div>
-                </div>
+            {/* KPIs */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Total órdenes</p>
+                <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mt-2">{stats.totalOrders}</p>
               </div>
-
-              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Análisis CV</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{stats.cvAnalysis}</p>
-                  </div>
-                  <div className="text-4xl">📄</div>
-                </div>
+              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Análisis CV</p>
+                <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mt-2">{stats.cvAnalysis}</p>
               </div>
-
-              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Tienda</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{stats.storeOrders}</p>
-                  </div>
-                  <div className="text-4xl">🛍️</div>
-                </div>
+              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Tienda</p>
+                <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mt-2">{stats.storeOrders}</p>
               </div>
-
-              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Revenue Total</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{formatARS(stats.totalRevenue)}</p>
-                  </div>
-                  <div className="text-4xl">💰</div>
-                </div>
+              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Revenue total</p>
+                <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mt-2">{formatARS(stats.totalRevenue)}</p>
               </div>
             </div>
 
             {/* Recent Orders */}
-            <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Órdenes Recientes</h2>
+            <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+              <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">Órdenes recientes</h2>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead>
@@ -764,18 +733,18 @@ export default function AdminPage() {
         )}
 
         {!loading && activeTab === 'orders' && (
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Todas las Órdenes ({orders.length})</h2>
-            <div className="space-y-4">
+          <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">Todas las órdenes ({orders.length})</h2>
+            <div className="space-y-3">
               {orders.map(order => (
-                <div key={order.id} className="border border-gray-200 dark:border-neutral-800 rounded-lg p-4">
+                <div key={order.id} className="bg-gray-50 dark:bg-gray-800/40 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <span className="font-mono text-sm text-gray-500 dark:text-gray-400">#{order.id.slice(-12)}</span>
-                      <span className={`ml-3 px-2 py-1 rounded-full text-xs ${
+                      <span className={`ml-3 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
                         order.type === 'cv_analysis'
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-                          : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+                          : 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400'
                       }`}>
                         {order.type === 'cv_analysis' ? 'CV Analysis' : 'Tienda'}
                       </span>
@@ -797,9 +766,9 @@ export default function AdminPage() {
                   {order.type === 'cv_analysis' && (
                     <button
                       onClick={() => resendCVEmail(order)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm font-medium"
                     >
-                      📧 Reenviar Email
+                      Reenviar email
                     </button>
                   )}
                 </div>
@@ -812,38 +781,38 @@ export default function AdminPage() {
           <>
           <StoreExcelManager />
           <PaymentPlanEditor />
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
+          <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Productos de la Tienda ({products.length})</h2>
+              <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Productos de la tienda ({products.length})</h2>
               <div className="flex flex-wrap items-center gap-3">
                 {/* Toggle Grid / Lista */}
                 <div className="flex items-center gap-1 bg-gray-100 dark:bg-neutral-800 rounded-lg p-1">
                   <button
                     onClick={() => setProductsView('grid')}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${productsView === 'grid' ? 'bg-white dark:bg-neutral-700 text-purple-700 dark:text-purple-300 shadow' : 'text-gray-500 dark:text-gray-400'}`}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${productsView === 'grid' ? 'bg-white dark:bg-neutral-700 text-indigo-600 dark:text-indigo-400 shadow' : 'text-gray-500 dark:text-gray-400'}`}
                   >
-                    ▦ Grid
+                    Grid
                   </button>
                   <button
                     onClick={() => setProductsView('list')}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${productsView === 'list' ? 'bg-white dark:bg-neutral-700 text-purple-700 dark:text-purple-300 shadow' : 'text-gray-500 dark:text-gray-400'}`}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${productsView === 'list' ? 'bg-white dark:bg-neutral-700 text-indigo-600 dark:text-indigo-400 shadow' : 'text-gray-500 dark:text-gray-400'}`}
                   >
-                    ☰ Lista
+                    Lista
                   </button>
                 </div>
                 <button
                   onClick={updateAllDescriptions}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm font-medium"
                   disabled={loading}
                 >
-                  📝 Actualizar Descripciones
+                  Actualizar descripciones
                 </button>
                 <button
                   onClick={resetProducts}
-                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
+                  className="px-4 py-2 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-lg transition-colors text-sm font-medium"
                   disabled={loading}
                 >
-                  🔄 Resetear Productos (10)
+                  Resetear productos (10)
                 </button>
               </div>
             </div>
@@ -889,7 +858,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'leadfinder-plans' && (
-          <div className="p-6">
+          <div>
             <PlansManager />
           </div>
         )}
@@ -899,13 +868,13 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'nav-config' && (
-          <div className="p-6">
+          <div>
             <NavConfigEditor />
           </div>
         )}
 
         {activeTab === 'rubros-buscados' && (
-          <div className="p-6">
+          <div>
             <KeywordExplorer embedded />
           </div>
         )}
@@ -915,12 +884,12 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'zonas' && (
-          <div className="p-6">
+          <div>
             <ZoneAnalysis />
           </div>
         )}
         {activeTab === 'cron' && (
-          <div className="p-6">
+          <div>
             <CronScheduler />
           </div>
         )}
@@ -928,27 +897,27 @@ export default function AdminPage() {
           <PresupuestosTab sub={activeSubTab} onOpenNuevo={() => setActiveSubTab('nuevo')} />
         )}
         {activeTab === 'suscripciones' && (
-          <div className="p-6">
+          <div>
             <SubscriptionsManager />
           </div>
         )}
         {activeTab === 'auditorias' && (
-          <div className="p-6">
+          <div>
             <AuditoriasManager />
           </div>
         )}
         {activeTab === 'auditorias-todas' && (
-          <div className="p-6">
+          <div>
             <AuditoriasUnificado />
           </div>
         )}
         {activeTab === 'noticias-bot' && (
-          <div className="p-6">
+          <div>
             <NoticiasBotManager />
           </div>
         )}
         {activeTab === 'style-quiz' && (
-          <div className="p-6">
+          <div>
             <StyleQuizManager />
           </div>
         )}
@@ -956,12 +925,12 @@ export default function AdminPage() {
           <AuditRequestsManager />
         )}
         {activeTab === 'emails' && (
-          <div className="p-6">
+          <div>
             <SentEmailsManager />
           </div>
         )}
         {activeTab === 'free-for-dev' && (
-          <div className="p-6">
+          <div>
             <FreeForDevBrowser />
           </div>
         )}
@@ -986,14 +955,14 @@ function GscStatusBadge({ permissionLevel, statsError }) {
     return (
       <span
         title={typeof statsError === 'string' ? statsError : 'Error consultando Search Console'}
-        className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+        className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
       >
-        ⚠ Sin acceso a estadísticas
+        Sin acceso a estadísticas
       </span>
     );
   }
   const info = PERMISSION_INFO[permissionLevel] || { label: permissionLevel || 'desconocido', className: 'bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-gray-400' };
-  return <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${info.className}`}>{info.label}</span>;
+  return <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${info.className}`}>{info.label}</span>;
 }
 
 const SERVICE_ACCOUNT_EMAIL = 'firebase-adminsdk-fbsvc@marianoaliandri-3b135.iam.gserviceaccount.com';
@@ -1141,7 +1110,7 @@ function AdminProyectosPanel({ db }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
           Proyectos — desde Google Search Console
         </h3>
         <div className="flex items-center gap-3">
@@ -1168,7 +1137,7 @@ function AdminProyectosPanel({ db }) {
             disabled={capturing}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-medium rounded-lg transition-colors"
           >
-            {capturing ? '📸 Capturando...' : '📸 Capturar screenshots'}
+            {capturing ? 'Capturando...' : 'Capturar screenshots'}
           </button>
         </div>
       </div>
@@ -1204,8 +1173,8 @@ function AdminProyectosPanel({ db }) {
 
       {/* Resumen general — clicks/impresiones por sitio */}
       {proyectos.length > 0 && (
-        <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-5">
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">Resumen — clicks e impresiones (últimos 28 días)</h4>
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+          <h4 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">Resumen — clicks e impresiones (últimos 28 días)</h4>
           <ResponsiveContainer width="100%" height={Math.max(220, proyectos.length * 42)}>
             <BarChart data={proyectos.map(p => ({ domain: p.domain, clicks: p.clicks, impressions: p.impressions }))} layout="vertical" margin={{ left: 8, right: 16 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="currentColor" className="text-gray-200 dark:text-neutral-800" />
@@ -1253,7 +1222,7 @@ function AdminProyectosPanel({ db }) {
                     <span className="font-semibold text-indigo-600 dark:text-indigo-400">{p.domain}</span>
                     <GscStatusBadge permissionLevel={p.permissionLevel} statsError={p.statsError} />
                     {!e.visible && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-500 dark:bg-neutral-800 dark:text-gray-400">Oculto</span>
+                      <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-gray-100 text-gray-500 dark:bg-neutral-800 dark:text-gray-400">Oculto</span>
                     )}
                   </div>
                   <div className="text-xs text-gray-500 mt-0.5">{p.clicks} clicks · {p.impressions} imp. · orden {e.orden}</div>
@@ -1270,7 +1239,7 @@ function AdminProyectosPanel({ db }) {
                   title="Recapturar screenshot de este sitio"
                   className="text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 disabled:opacity-50 transition-colors"
                 >
-                  {recapturing === p.domain ? '⏳' : '🔄'}
+                  {recapturing === p.domain ? '...' : 'Recapturar'}
                 </button>
                 <button type="button" onClick={() => setExpanded(prev => ({ ...prev, [p.domain]: !prev[p.domain] }))}>
                   <svg className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1285,51 +1254,51 @@ function AdminProyectosPanel({ db }) {
               <div className="px-5 pb-5 space-y-4 border-t border-gray-100 dark:border-neutral-800 pt-4">
 
                 <div>
-                  <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Descripción corta</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1.5">Descripción corta</label>
                   <textarea
                     rows={2}
                     value={e.descripcionCorta}
                     onChange={ev => setField(p.domain, 'descripcionCorta', ev.target.value)}
                     placeholder="→ Sitio de ventas de viviendas modulares que convierte visitas en leads calificados..."
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Stack técnico</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1.5">Stack técnico</label>
                   <textarea
                     rows={2}
                     value={e.stack}
                     onChange={ev => setField(p.domain, 'stack', ev.target.value)}
                     placeholder="→ React 19 + Vite · Tailwind CSS · Framer Motion · Google Gemini · Supabase..."
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Funcionalidades destacadas</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1.5">Funcionalidades destacadas</label>
                   <textarea
                     rows={5}
                     value={e.funcionalidades}
                     onChange={ev => setField(p.domain, 'funcionalidades', ev.target.value)}
                     placeholder={"→ Chatbot de ventas con IA — asesora al cliente y captura leads\n→ Catálogo interactivo con filtros en tiempo real\n→ SEO híbrido SPA + HTML estático"}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Dato de impacto</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1.5">Dato de impacto</label>
                   <textarea
                     rows={2}
                     value={e.impacto}
                     onChange={ev => setField(p.domain, 'impacto', ev.target.value)}
                     placeholder="→ 97/100 de salud SEO en Ahrefs, indexado en GSC con presencia en búsquedas de..."
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Fotos y videos</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1.5">Fotos y videos</label>
                   <div className="flex items-center gap-2 mb-3">
                     <input
                       type="file"
@@ -1366,7 +1335,7 @@ function AdminProyectosPanel({ db }) {
                             <button
                               type="button"
                               onClick={() => handleDownloadMedia(m.url, `${p.domain}-${m.id}.${m.type === 'video' ? 'mp4' : 'jpg'}`)}
-                              className="w-full text-[10px] px-1.5 py-1 rounded bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-700"
+                              className="w-full text-[10px] px-1.5 py-1 rounded border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-neutral-800"
                             >
                               Descargar
                             </button>
@@ -1385,7 +1354,7 @@ function AdminProyectosPanel({ db }) {
                       value={e.orden}
                       min={0}
                       onChange={ev => setField(p.domain, 'orden', ev.target.value)}
-                      className="w-20 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-20 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                   <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-4">
@@ -1438,7 +1407,7 @@ function AdminProyectosPanel({ db }) {
                     disabled={recapturing === p.domain}
                     className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
                   >
-                    {recapturing === p.domain ? '⏳ Recapturando...' : '🔄 Recapturar'}
+                    {recapturing === p.domain ? 'Recapturando...' : 'Recapturar'}
                   </button>
                   <button
                     onClick={() => setLightbox(null)}
@@ -1477,7 +1446,7 @@ function LinkedInPanel() {
   return (
     <div className="space-y-6">
       {/* Estado de conexión */}
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
@@ -1499,7 +1468,7 @@ function LinkedInPanel() {
             <button
               onClick={() => disconnectMutation.mutate()}
               disabled={disconnectMutation.isPending}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
+              className="px-4 py-2 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
             >
               {disconnectMutation.isPending ? 'Desconectando...' : 'Desconectar'}
             </button>
@@ -1507,7 +1476,7 @@ function LinkedInPanel() {
             <button
               onClick={() => connectMutation.mutate()}
               disabled={connectMutation.isPending}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
             >
               {connectMutation.isPending ? 'Conectando...' : 'Conectar LinkedIn'}
             </button>
@@ -1517,8 +1486,8 @@ function LinkedInPanel() {
 
       {/* Perfil */}
       {isConnected && (
-        <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Perfil</h3>
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+          <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">Perfil</h3>
           {profileLoading ? (
             <p className="text-sm text-gray-500 animate-pulse">Cargando perfil...</p>
           ) : profile ? (
@@ -1544,22 +1513,22 @@ function LinkedInPanel() {
 
       {/* Posts */}
       {isConnected && (
-        <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-            Posts Recientes {postsData?.total ? `(${postsData.total})` : ''}
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+          <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">
+            Posts recientes {postsData?.total ? `(${postsData.total})` : ''}
           </h3>
           {postsLoading ? (
             <p className="text-sm text-gray-500 animate-pulse">Cargando posts...</p>
           ) : postsData?.posts?.length > 0 ? (
             <div className="space-y-3">
               {postsData.posts.map((post, i) => (
-                <div key={post.id || i} className="border border-gray-200 dark:border-neutral-800 rounded-lg p-4">
+                <div key={post.id || i} className="bg-gray-50 dark:bg-gray-800/40 rounded-xl p-4">
                   <p className="text-sm text-gray-700 dark:text-gray-300">{post.text || '(Sin texto)'}</p>
                   <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
                     {post.created && (
                       <span>{new Date(post.created).toLocaleDateString('es-AR')}</span>
                     )}
-                    {post.hasMedia && <span>📎 Con media</span>}
+                    {post.hasMedia && <span>Con media</span>}
                     <span className="capitalize">{post.visibility?.toLowerCase()}</span>
                   </div>
                 </div>
@@ -1582,20 +1551,20 @@ function LinkedInPanel() {
 
       {/* Analytics */}
       {isConnected && analyticsData && (
-        <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Analytics</h3>
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+          <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">Analytics</h3>
           {analyticsData.available ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {/* Se llenará cuando Marketing Developer Platform esté aprobada */}
             </div>
           ) : (
-            <div className="text-center py-6 bg-gray-50 dark:bg-neutral-950/50 rounded-lg">
+            <div className="text-center py-6 bg-gray-50 dark:bg-gray-800/40 rounded-xl">
               <p className="text-sm text-gray-500 dark:text-gray-400">{analyticsData.message}</p>
               <a
                 href="https://www.linkedin.com/developers/apps"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                className="inline-block mt-3 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm font-medium"
               >
                 Ir a LinkedIn Developers
               </a>
@@ -1606,8 +1575,8 @@ function LinkedInPanel() {
 
       {/* Info si no está conectado */}
       {!isConnected && !status?.expired && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
-          <h3 className="text-lg font-bold text-blue-800 dark:text-blue-300 mb-2">Como conectar LinkedIn</h3>
+        <div className="bg-blue-50 dark:bg-blue-500/10 rounded-2xl p-5 border border-blue-200 dark:border-blue-500/20">
+          <h3 className="text-[11px] font-bold uppercase tracking-widest text-blue-700 dark:text-blue-300 mb-3">Cómo conectar LinkedIn</h3>
           <ol className="text-sm text-blue-700 dark:text-blue-400 space-y-2 list-decimal list-inside">
             <li>Asegurate de tener la app creada en LinkedIn Developers</li>
             <li>Configura LINKEDIN_CLIENT_ID y LINKEDIN_CLIENT_SECRET en Netlify</li>
@@ -1779,12 +1748,12 @@ function ProductCard({ product, onUpdate, onDelete, formatARS, compact = false }
   // Vista compacta (fila de lista) cuando no se está editando
   if (compact && !editing) {
     return (
-      <div className="flex items-center gap-3 border border-gray-200 dark:border-neutral-800 rounded-lg p-2 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
-        <div className="w-12 h-12 rounded-md overflow-hidden bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/40 dark:to-blue-900/40 flex-shrink-0 flex items-center justify-center">
+      <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors">
+        <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 dark:bg-neutral-800 flex-shrink-0 flex items-center justify-center">
           {images[0] ? (
             <img src={images[0]} alt={product.name} className="w-full h-full object-cover" />
           ) : (
-            <span className="text-lg">🖼️</span>
+            <span className="text-[10px] text-gray-400">—</span>
           )}
         </div>
         <div className="flex-1 min-w-0">
@@ -1797,58 +1766,58 @@ function ProductCard({ product, onUpdate, onDelete, formatARS, compact = false }
           ) : (
             <span className="text-xs text-gray-400">Sin precio</span>
           )}
-          {images.length > 1 && <span className="block text-[10px] text-gray-400">📷 {images.length}</span>}
+          {images.length > 1 && <span className="block text-[10px] text-gray-400">{images.length} fotos</span>}
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
-          <button onClick={() => setEditing(true)} className="px-2.5 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-medium" title="Editar">✏️</button>
-          <button onClick={() => onDelete(product.id)} className="px-2.5 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs font-medium" title="Eliminar">🗑️</button>
+          <button onClick={() => setEditing(true)} className="px-2.5 py-1.5 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-neutral-800 rounded-lg text-xs font-medium" title="Editar">Editar</button>
+          <button onClick={() => onDelete(product.id)} className="px-2.5 py-1.5 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg text-xs font-medium" title="Eliminar">Eliminar</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="border border-gray-200 dark:border-neutral-800 rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+    <div className="bg-gray-50 dark:bg-gray-800/40 rounded-xl p-4">
       {editing ? (
         <div className="space-y-4">
           {/* Título */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1.5">
               Título del Producto
             </label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => handleChange('name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="Ej: Desarrollo Web Premium"
             />
           </div>
 
           {/* Descripción */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1.5">
               Descripción
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
               placeholder="Descripción del producto..."
             />
           </div>
 
           {/* Precio USD (principal) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              💵 Precio (USD) - Principal
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1.5">
+              Precio (USD) - Principal
             </label>
             <input
               type="number"
               value={formData.priceUSD}
               onChange={(e) => handleChange('priceUSD', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="0"
               min="0"
               step="0.01"
@@ -1860,14 +1829,14 @@ function ProductCard({ product, onUpdate, onDelete, formatARS, compact = false }
 
           {/* Precio ARS (opcional - se calcula automáticamente) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              💰 Precio (ARS) - Opcional
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1.5">
+              Precio (ARS) - Opcional
             </label>
             <input
               type="number"
               value={formData.priceARS}
               onChange={(e) => handleChange('priceARS', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="Se calcula automáticamente"
               min="0"
             />
@@ -1878,14 +1847,14 @@ function ProductCard({ product, onUpdate, onDelete, formatARS, compact = false }
 
           {/* Cuota mensual alquiler */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              🏠 Cuota Mensual Alquiler (USD)
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1.5">
+              Cuota mensual alquiler (USD)
             </label>
             <input
               type="number"
               value={formData.rentalMonthly}
               onChange={(e) => handleChange('rentalMonthly', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="0 = sin opción de alquiler"
               min="0"
             />
@@ -1898,13 +1867,13 @@ function ProductCard({ product, onUpdate, onDelete, formatARS, compact = false }
           <div className="flex gap-2">
             <button
               onClick={handleSave}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm font-medium"
             >
-              💾 Guardar Cambios
+              Guardar cambios
             </button>
             <button
               onClick={handleCancel}
-              className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              className="px-4 py-2 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-neutral-800 rounded-lg transition-colors text-sm font-medium"
             >
               Cancelar
             </button>
@@ -1913,11 +1882,11 @@ function ProductCard({ product, onUpdate, onDelete, formatARS, compact = false }
       ) : (
         <div>
           {/* Portada */}
-          <div className="w-full h-36 rounded-lg overflow-hidden bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/40 dark:to-blue-900/40 flex items-center justify-center mb-2">
+          <div className="w-full h-36 rounded-xl overflow-hidden bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mb-2">
             {images[0] ? (
               <img src={images[0]} alt={product.name} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-3xl">🖼️</span>
+              <span className="text-xs text-gray-400">Sin foto</span>
             )}
           </div>
 
@@ -1928,7 +1897,7 @@ function ProductCard({ product, onUpdate, onDelete, formatARS, compact = false }
                 <div key={idx} className="relative group w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-neutral-700">
                   <img src={url} alt="" className="w-full h-full object-cover" />
                   {idx === 0 && (
-                    <span className="absolute bottom-0 inset-x-0 bg-purple-600/80 text-white text-[9px] text-center leading-tight">portada</span>
+                    <span className="absolute bottom-0 inset-x-0 bg-indigo-600/80 text-white text-[9px] text-center leading-tight">portada</span>
                   )}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                     {idx !== 0 && (
@@ -1948,7 +1917,7 @@ function ProductCard({ product, onUpdate, onDelete, formatARS, compact = false }
             {product.description}
           </p>
           {product.ideaDesarrollo && (
-            <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 line-clamp-2">🛠 {product.ideaDesarrollo}</p>
+            <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 line-clamp-2">{product.ideaDesarrollo}</p>
           )}
 
           {/* Acciones de fotos + contenido */}
@@ -1956,31 +1925,31 @@ function ProductCard({ product, onUpdate, onDelete, formatARS, compact = false }
             <button
               onClick={addPexels}
               disabled={aiBusy !== null}
-              className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:opacity-90 transition-opacity text-xs font-medium disabled:opacity-50"
+              className="px-3 py-1.5 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-neutral-800 rounded-lg text-xs font-medium disabled:opacity-50"
             >
-              {aiBusy === 'pexels' ? '🖼 Buscando…' : '🖼 + Foto Pexels'}
+              {aiBusy === 'pexels' ? 'Buscando…' : '+ Foto Pexels'}
             </button>
             <button
               onClick={() => imgFileRef.current?.click()}
               disabled={aiBusy !== null}
-              className="px-3 py-1.5 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 text-xs font-medium disabled:opacity-50"
+              className="px-3 py-1.5 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-neutral-800 rounded-lg text-xs font-medium disabled:opacity-50"
             >
-              {aiBusy === 'upload' ? '⬆ Subiendo…' : '⬆ Subir fotos'}
+              {aiBusy === 'upload' ? 'Subiendo…' : 'Subir fotos'}
             </button>
             <input ref={imgFileRef} type="file" accept="image/*" multiple onChange={(e) => uploadFiles(e.target.files)} className="hidden" />
             <button
               onClick={generateContent}
               disabled={aiBusy !== null}
-              className="px-3 py-1.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity text-xs font-medium disabled:opacity-50"
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-xs font-medium disabled:opacity-50"
             >
-              {aiBusy === 'content' ? '✨ Generando…' : '✨ Generar contenido'}
+              {aiBusy === 'content' ? 'Generando…' : 'Generar contenido'}
             </button>
             {aiMsg && <span className="text-xs text-gray-600 dark:text-gray-300 w-full">{aiMsg}</span>}
           </div>
 
           {/* Preview del contenido generado */}
           {gen && (
-            <div className="mb-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20 p-3 text-sm space-y-2">
+            <div className="mb-3 rounded-xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-3 text-sm space-y-2">
               <p className="text-gray-800 dark:text-gray-200"><strong>Descripción:</strong> {gen.descripcion}</p>
               {gen.ideaDesarrollo && <p className="text-gray-700 dark:text-gray-300"><strong>Idea de desarrollo:</strong> {gen.ideaDesarrollo}</p>}
               {gen.features?.length > 0 && (
@@ -1990,10 +1959,10 @@ function ProductCard({ product, onUpdate, onDelete, formatARS, compact = false }
                 <p className="text-xs text-gray-500">Tags: {gen.tags.join(', ')}</p>
               )}
               <div className="flex gap-2 pt-1">
-                <button onClick={applyContent} className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700">
-                  ✓ Aplicar y guardar
+                <button onClick={applyContent} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700">
+                  Aplicar y guardar
                 </button>
-                <button onClick={() => setGen(null)} className="px-3 py-1.5 bg-gray-400 text-white rounded-lg text-xs hover:bg-gray-500">
+                <button onClick={() => setGen(null)} className="px-3 py-1.5 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-neutral-800 rounded-lg text-xs">
                   Descartar
                 </button>
               </div>
@@ -2003,18 +1972,18 @@ function ProductCard({ product, onUpdate, onDelete, formatARS, compact = false }
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">
               {product.priceUSD && (
-                <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                <span className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
                   USD {product.priceUSD}
                 </span>
               )}
               {product.priceARS && (
-                <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                <span className="text-base font-semibold text-gray-600 dark:text-gray-300">
                   {formatARS(product.priceARS)}
                 </span>
               )}
               {product.rentalMonthly > 0 && (
                 <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                  🏠 Alquiler: USD {product.rentalMonthly}/mes · Seña USD {Math.round(product.priceUSD * 0.35)}
+                  Alquiler: USD {product.rentalMonthly}/mes · Seña USD {Math.round(product.priceUSD * 0.35)}
                 </span>
               )}
               {!product.priceUSD && !product.priceARS && (
@@ -2025,15 +1994,15 @@ function ProductCard({ product, onUpdate, onDelete, formatARS, compact = false }
             <div className="flex gap-2">
               <button
                 onClick={() => setEditing(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                className="px-4 py-2 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-neutral-800 rounded-lg transition-colors text-sm font-medium"
               >
-                ✏️ Editar
+                Editar
               </button>
               <button
                 onClick={() => onDelete(product.id)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                className="px-4 py-2 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors text-sm font-medium"
               >
-                🗑️ Eliminar
+                Eliminar
               </button>
             </div>
           </div>
@@ -2133,15 +2102,25 @@ function AdminUsersPanel({ users, formatDate }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Usuarios Registrados ({localUsers.length})</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Usuarios</p>
+          <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mt-2">{localUsers.length}</p>
+        </div>
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Lead Finder Pro gratis</p>
+          <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mt-2">{compedUids.size}</p>
+        </div>
+      </div>
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+        <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Usuarios registrados ({localUsers.length})</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Al registrarse por primera vez, se les envia automaticamente un email de bienvenida.</p>
 
         {actionResult && (
-          <div className={`mb-4 p-3 rounded-lg text-sm font-medium ${
+          <div className={`mb-4 p-3 rounded-xl text-sm font-medium ${
             actionResult.type === 'success'
-              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+              ? 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400'
+              : 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400'
           }`}>
             {actionResult.msg}
           </div>
@@ -2149,7 +2128,7 @@ function AdminUsersPanel({ users, formatDate }) {
 
         <div className="space-y-3">
           {localUsers.map(user => (
-            <div key={user.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-neutral-800 rounded-lg hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+            <div key={user.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/40 rounded-xl">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 {user.photoURL ? (
                   <img src={user.photoURL} alt="" className="w-10 h-10 rounded-full flex-shrink-0" referrerPolicy="no-referrer" />
@@ -2163,7 +2142,7 @@ function AdminUsersPanel({ users, formatDate }) {
                     {user.displayName || 'Sin nombre'}
                     {compedUids.has(user.id) && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 font-medium">
-                        🎁 Lead Finder Pro gratis
+                        Lead Finder Pro gratis
                       </span>
                     )}
                   </p>
@@ -2178,11 +2157,11 @@ function AdminUsersPanel({ users, formatDate }) {
                   title="Otorgar/revocar acceso gratuito a Lead Finder Pro"
                   className={`px-3 py-1.5 rounded-lg transition-colors text-xs font-medium disabled:opacity-50 ${
                     compedUids.has(user.id)
-                      ? 'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-700'
+                      ? 'border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-neutral-800'
                       : 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20'
                   }`}
                 >
-                  {grantingId === user.id ? '...' : compedUids.has(user.id) ? '🎁 Revocar' : '🎁 Dar acceso gratis'}
+                  {grantingId === user.id ? '...' : compedUids.has(user.id) ? 'Revocar' : 'Dar acceso gratis'}
                 </button>
                 <button
                   onClick={() => resendWelcome(user)}
@@ -2192,12 +2171,12 @@ function AdminUsersPanel({ users, formatDate }) {
                   {sendingId === user.id ? (
                     <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : null}
-                  Reenviar Salutacion
+                  Reenviar salutación
                 </button>
                 <button
                   onClick={() => deleteUser(user)}
                   disabled={deletingId === user.id}
-                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium disabled:opacity-50"
+                  className="px-3 py-1.5 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors text-xs font-medium disabled:opacity-50"
                 >
                   Eliminar
                 </button>
@@ -2286,12 +2265,12 @@ function AdminQuestionsPanel() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Preguntas de Productos
+        <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+          Preguntas de productos
         </h2>
         <button
           onClick={loadQuestions}
-          className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-neutral-800 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+          className="px-3 py-1.5 text-sm border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-neutral-800 rounded-lg transition-colors"
         >
           Actualizar
         </button>
@@ -2308,10 +2287,10 @@ function AdminQuestionsPanel() {
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-full text-[13px] font-semibold transition-colors ${
               filter === f.id
                 ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 dark:bg-neutral-900 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                : 'bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800'
             }`}
           >
             {f.label}
@@ -2327,7 +2306,7 @@ function AdminQuestionsPanel() {
       ) : (
         <div className="space-y-4">
           {filtered.map(q => (
-            <div key={q.id} className={`bg-white dark:bg-neutral-900 rounded-lg border p-4 ${!q.isVisible ? 'opacity-50 border-red-300 dark:border-red-800' : 'border-gray-200 dark:border-neutral-800'}`}>
+            <div key={q.id} className={`bg-white dark:bg-neutral-900 rounded-2xl border p-5 ${!q.isVisible ? 'opacity-50 border-red-300 dark:border-red-500/30' : 'border-gray-200 dark:border-neutral-800'}`}>
               {/* Header */}
               <div className="flex items-start justify-between gap-4 mb-2">
                 <div className="flex items-center gap-2">
@@ -2344,13 +2323,13 @@ function AdminQuestionsPanel() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                  <span className="text-[11px] font-semibold bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full">
                     {q.productName || q.productId}
                   </span>
                   {q.answerText ? (
-                    <span className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">Respondida</span>
+                    <span className="text-[11px] font-semibold bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">Respondida</span>
                   ) : (
-                    <span className="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 px-2 py-0.5 rounded-full">Pendiente</span>
+                    <span className="text-[11px] font-semibold bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full">Pendiente</span>
                   )}
                 </div>
               </div>
@@ -2360,7 +2339,7 @@ function AdminQuestionsPanel() {
 
               {/* Respuesta existente */}
               {q.answerText && (
-                <div className="border-l-4 border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 rounded-r-lg p-3 mb-3">
+                <div className="border-l-4 border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 rounded-r-xl p-3 mb-3">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">{q.answeredBy || 'Mariano Aliandri'}</span>
                     <span className="text-xs text-gray-400">{formatDate(q.answeredAt)}</span>
@@ -2377,7 +2356,7 @@ function AdminQuestionsPanel() {
                     onChange={(e) => setAnswerText(e.target.value)}
                     placeholder="Escribi tu respuesta..."
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
                   />
                   <div className="flex gap-2">
                     <button
@@ -2409,7 +2388,7 @@ function AdminQuestionsPanel() {
                   {q.isVisible && (
                     <button
                       onClick={() => handleHide(q.id)}
-                      className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                      className="px-3 py-1.5 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors text-sm font-medium"
                     >
                       Ocultar
                     </button>

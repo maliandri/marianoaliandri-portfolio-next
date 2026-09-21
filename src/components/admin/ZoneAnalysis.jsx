@@ -225,55 +225,55 @@ function HeatmapPanel({ result, bounds, innerRef }) {
 
 function PeriodoPicker({ label, value, onChange }) {
   return (
-    <div className="bg-gray-700/50 rounded-xl p-4 border border-gray-600 space-y-3">
-      <p className="text-purple-400 font-semibold text-sm">{label}</p>
+    <div className="bg-gray-50 dark:bg-gray-800/40 rounded-xl p-4 border border-gray-200 dark:border-neutral-700 space-y-3">
+      <p className="text-indigo-600 dark:text-indigo-400 font-semibold text-sm">{label}</p>
       <div>
-        <label className="text-gray-400 text-xs mb-1 block">Etiqueta</label>
+        <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1 block">Etiqueta</label>
         <input
           type="text"
           value={value.label}
           onChange={e => onChange({ ...value, label: e.target.value })}
           placeholder="Ej: Enero mañana"
-          className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500"
+          className="w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500"
         />
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-gray-400 text-xs mb-1 block">Desde — fecha</label>
+          <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1 block">Desde — fecha</label>
           <input
             type="date"
             value={value.dateFrom}
             onChange={e => onChange({ ...value, dateFrom: e.target.value })}
-            className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-2 py-2 rounded-lg focus:outline-none focus:border-purple-500"
+            className="w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white text-xs px-2 py-2 rounded-lg focus:outline-none focus:border-indigo-500"
           />
         </div>
         <div>
-          <label className="text-gray-400 text-xs mb-1 block">Desde — hora</label>
+          <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1 block">Desde — hora</label>
           <input
             type="time"
             value={value.timeFrom}
             onChange={e => onChange({ ...value, timeFrom: e.target.value })}
-            className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-2 py-2 rounded-lg focus:outline-none focus:border-purple-500"
+            className="w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white text-xs px-2 py-2 rounded-lg focus:outline-none focus:border-indigo-500"
           />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-gray-400 text-xs mb-1 block">Hasta — fecha</label>
+          <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1 block">Hasta — fecha</label>
           <input
             type="date"
             value={value.dateTo}
             onChange={e => onChange({ ...value, dateTo: e.target.value })}
-            className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-2 py-2 rounded-lg focus:outline-none focus:border-purple-500"
+            className="w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white text-xs px-2 py-2 rounded-lg focus:outline-none focus:border-indigo-500"
           />
         </div>
         <div>
-          <label className="text-gray-400 text-xs mb-1 block">Hasta — hora</label>
+          <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1 block">Hasta — hora</label>
           <input
             type="time"
             value={value.timeTo}
             onChange={e => onChange({ ...value, timeTo: e.target.value })}
-            className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-2 py-2 rounded-lg focus:outline-none focus:border-purple-500"
+            className="w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white text-xs px-2 py-2 rounded-lg focus:outline-none focus:border-indigo-500"
           />
         </div>
       </div>
@@ -614,12 +614,12 @@ export default function ZoneAnalysis() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">🗺️ Análisis de Zona Urbana</h2>
-          <p className="text-gray-400 text-sm mt-1">Tráfico vial + actividad comercial por zona y período</p>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Análisis de Zona Urbana</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Tráfico vial + actividad comercial por zona y período</p>
         </div>
         {step > 1 && (
-          <button onClick={() => { setStep(1); setResult(null); }} className="text-sm text-gray-400 hover:text-white transition-colors">
-            ← Nueva zona
+          <button onClick={() => { setStep(1); setResult(null); }} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">
+            Nueva zona
           </button>
         )}
       </div>
@@ -627,8 +627,8 @@ export default function ZoneAnalysis() {
       {/* Steps indicator */}
       <div className="flex gap-2">
         {[{ n: 1, label: 'Zona' }, { n: 2, label: 'Resultados' }].map(s => (
-          <div key={s.n} className={`flex items-center gap-1 text-xs ${step >= s.n ? 'text-purple-400' : 'text-gray-600'}`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${step >= s.n ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-500'}`}>{s.n}</span>
+          <div key={s.n} className={`flex items-center gap-1 text-xs ${step >= s.n ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-600'}`}>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${step >= s.n ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-neutral-800 text-gray-500'}`}>{s.n}</span>
             <span className="hidden sm:block">{s.label}</span>
             {s.n < 2 && <span className="text-gray-600 mx-1">→</span>}
           </div>
@@ -642,22 +642,22 @@ export default function ZoneAnalysis() {
           {/* PASO 1 — Zona */}
           <AnimatePresence>
             {step <= 3 && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-gray-800 rounded-xl p-5 border border-gray-700 space-y-4">
-                <h3 className="text-white font-semibold text-sm flex items-center gap-2">
-                  <span className="bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">1</span>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800 space-y-4">
+                <h3 className="text-gray-900 dark:text-white font-semibold text-sm flex items-center gap-2">
+                  <span className="bg-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">1</span>
                   Configurar Zona
                 </h3>
 
                 {/* Zona guardada */}
                 {zonasGuardadas.length > 0 && (
                   <div>
-                    <label className="text-gray-400 text-xs mb-1 block">Cargar zona guardada</label>
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1 block">Cargar zona guardada</label>
                     <select
                       onChange={e => {
                         const z = zonasGuardadas.find(z => z.id === e.target.value);
                         if (z) { setTitulo(z.titulo); if (z.bounds) setBounds(z.bounds); setTipos(z.tipos || ['todos']); }
                       }}
-                      className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500"
+                      className="w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500"
                     >
                       <option value="">— Elegir zona guardada —</option>
                       {zonasGuardadas.map(z => <option key={z.id} value={z.id}>{z.titulo}</option>)}
@@ -666,18 +666,18 @@ export default function ZoneAnalysis() {
                 )}
 
                 <div>
-                  <label className="text-gray-400 text-xs mb-1 block">Título de la zona</label>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1 block">Título de la zona</label>
                   <input
                     type="text"
                     value={titulo}
                     onChange={e => setTitulo(e.target.value)}
                     placeholder="Ej: Multitrocha Neuquén"
-                    className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500"
+                    className="w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-gray-400 text-xs mb-1 block">Ubicación central</label>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1 block">Ubicación central</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -685,28 +685,28 @@ export default function ZoneAnalysis() {
                       onChange={e => setAddressInput(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleGeocode()}
                       placeholder="Ej: Av. Argentina 1234, Neuquén"
-                      className="flex-1 bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500 placeholder-gray-500"
+                      className="flex-1 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500 placeholder-gray-500"
                     />
                     <button
                       onClick={handleGeocode}
                       disabled={isGeocoding || !addressInput.trim()}
-                      className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white rounded-lg text-sm transition-all"
+                      className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-lg text-sm transition-all"
                     >
-                      {isGeocoding ? '⏳' : '🔍'}
+                      {isGeocoding ? '…' : 'Buscar'}
                     </button>
                   </div>
-                  {geocodeError && <p className="text-red-400 text-xs mt-1">{geocodeError}</p>}
-                  {bounds && <p className="text-green-400 text-xs mt-1">📍 Centro: {((bounds.north + bounds.south) / 2).toFixed(5)}, {((bounds.east + bounds.west) / 2).toFixed(5)}</p>}
+                  {geocodeError && <p className="text-red-600 dark:text-red-400 text-xs mt-1">{geocodeError}</p>}
+                  {bounds && <p className="text-green-600 dark:text-green-400 text-xs mt-1">Centro: {((bounds.north + bounds.south) / 2).toFixed(5)}, {((bounds.east + bounds.west) / 2).toFixed(5)}</p>}
                 </div>
 
                 {bounds && (() => {
                   const cq = calcCuadras(bounds);
                   return (
-                    <div className="bg-purple-900/30 border border-purple-700 rounded-lg px-3 py-2 text-xs text-purple-300 space-y-1">
+                    <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 rounded-lg px-3 py-2 text-xs text-indigo-700 dark:text-indigo-300 space-y-1">
                       <div className="flex items-center justify-between">
-                        <span>📐 Zona seleccionada · Arrastrá las esquinas para ajustar</span>
+                        <span>Zona seleccionada · Arrastrá las esquinas para ajustar</span>
                         {cq && (
-                          <span className="bg-purple-700/50 text-purple-200 rounded-full px-2 py-0.5 font-semibold text-[10px]">
+                          <span className="bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-200 rounded-full px-2 py-0.5 font-semibold text-[10px]">
                             {cq.cuadrasAncho}×{cq.cuadrasAlto} cua · {cq.metrosAncho}×{cq.metrosAlto}m
                           </span>
                         )}
@@ -719,15 +719,15 @@ export default function ZoneAnalysis() {
                 })()}
 
                 <div>
-                  <label className="text-gray-400 text-xs mb-2 block">Tipos de locales</label>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2 block">Tipos de locales</label>
                   <div className="flex flex-wrap gap-2">
                     {TIPOS.map(t => (
                       <button
                         key={t.id}
                         onClick={() => toggleTipo(t.id)}
-                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${tipos.includes(t.id) ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${tipos.includes(t.id) ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-700'}`}
                       >
-                        {t.emoji} {t.label}
+                        {t.label}
                       </button>
                     ))}
                   </div>
@@ -735,34 +735,33 @@ export default function ZoneAnalysis() {
 
                 {/* Fecha */}
                 <div>
-                  <label className="text-gray-400 text-xs mb-1 block">Día a analizar</label>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1 block">Día a analizar</label>
                   <input
                     type="date"
                     value={fecha}
                     max={yesterday}
                     onChange={e => setFecha(e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500"
+                    className="w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500"
                   />
                   <p className="text-gray-500 text-xs mt-1">Solo fechas pasadas — datos reales de tráfico hora por hora (6:00 a 23:00)</p>
                 </div>
 
                 {/* Mini mapa */}
-                <div ref={mapRef} className="w-full h-48 rounded-xl overflow-hidden border border-gray-600 bg-gray-700" />
+                <div ref={mapRef} className="w-full h-48 rounded-xl overflow-hidden border border-gray-200 dark:border-neutral-700 bg-gray-100 dark:bg-neutral-800" />
 
-                {error && <p className="text-red-400 text-sm">{error}</p>}
+                {error && <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
 
                 <button
                   onClick={handleAnalizar}
                   disabled={isAnalyzing || !titulo.trim() || !bounds}
-                  className="w-full py-3 rounded-xl font-bold text-white text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)' }}
+                  className="w-full py-3 rounded-lg font-bold text-white bg-indigo-600 hover:bg-indigo-700 text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {isAnalyzing ? (
                     <span className="flex items-center justify-center gap-2">
                       <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
                       Analizando 6:00–23:00…
                     </span>
-                  ) : '🔍 Analizar tráfico por hora'}
+                  ) : 'Analizar tráfico por hora'}
                 </button>
               </motion.div>
             )}
@@ -770,16 +769,16 @@ export default function ZoneAnalysis() {
 
           {/* Historial */}
           {historial.length > 0 && (
-            <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-              <h3 className="text-white font-semibold text-sm mb-3">📋 Últimos análisis</h3>
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800">
+              <h3 className="text-gray-900 dark:text-white font-semibold text-sm mb-3">Últimos análisis</h3>
               <div className="space-y-2">
                 {historial.map((item, i) => (
                   <button
                     key={i}
                     onClick={() => loadHistorialItem(item)}
-                    className="w-full text-left px-3 py-2 bg-gray-700/50 hover:bg-gray-700 rounded-lg transition-all"
+                    className="w-full text-left px-3 py-2 bg-gray-50 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg transition-all"
                   >
-                    <p className="text-white text-xs font-medium">{item.zona_titulo}</p>
+                    <p className="text-gray-900 dark:text-white text-xs font-medium">{item.zona_titulo}</p>
                     <p className="text-gray-500 text-xs">{item.fecha} · {item.commercial?.total_places} locales · pico {item.peak_hours?.[0]?.label}</p>
                   </button>
                 ))}
@@ -794,20 +793,20 @@ export default function ZoneAnalysis() {
             {result && (
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                 {/* Mapa estático */}
-                <div className="bg-gray-800 rounded-xl overflow-hidden border border-gray-700">
+                <div className="bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-neutral-800">
                   <div className="px-4 py-3 flex items-center justify-between">
-                    <h3 className="text-white font-semibold text-sm">{result.zona_titulo}</h3>
+                    <h3 className="text-gray-900 dark:text-white font-semibold text-sm">{result.zona_titulo}</h3>
                     {(() => { const cq = calcCuadras(bounds); return cq ? (
-                      <span className="text-xs text-purple-400 bg-purple-900/30 border border-purple-700/50 px-2 py-1 rounded-full">
-                        📐 {cq.cuadrasAncho}×{cq.cuadrasAlto} cuadras · {cq.metrosAncho}×{cq.metrosAlto}m
+                      <span className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-500/10 px-2 py-1 rounded-full">
+                        {cq.cuadrasAncho}×{cq.cuadrasAlto} cuadras · {cq.metrosAncho}×{cq.metrosAlto}m
                       </span>
-                    ) : <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded-full">Zona rectangular</span>; })()}
+                    ) : <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-neutral-800 px-2 py-1 rounded-full">Zona rectangular</span>; })()}
                   </div>
                   <img src={result.map_image_url} alt="Mapa de zona" className="w-full h-52 object-cover" />
                 </div>
 
                 {/* Heatmap panel — capturado como imagen principal para redes */}
-                <div className="bg-gray-800 rounded-xl p-3 border border-gray-700 overflow-x-auto">
+                <div className="bg-white dark:bg-neutral-900 rounded-2xl p-3 border border-gray-200 dark:border-neutral-800 overflow-x-auto">
                   <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-2">Vista heatmap — imagen para publicación</p>
                   <div className="scale-[0.85] origin-top-left" style={{ width: '706px' }}>
                     <HeatmapPanel result={result} bounds={bounds} innerRef={heatmapRef} />
@@ -942,10 +941,10 @@ export default function ZoneAnalysis() {
                 </div>{/* fin resultsRef */}
 
                 {/* Publicar */}
-                <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-                  <button onClick={() => setShowPublish(!showPublish)} className="w-full flex items-center justify-between text-white font-semibold text-sm">
-                    <span>📢 Publicar análisis en redes</span>
-                    <span className="text-gray-400">{showPublish ? '▲' : '▼'}</span>
+                <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800">
+                  <button onClick={() => setShowPublish(!showPublish)} className="w-full flex items-center justify-between text-gray-900 dark:text-white font-semibold text-sm">
+                    <span>Publicar análisis en redes</span>
+                    <span className="text-gray-400">{showPublish ? 'Ocultar' : 'Mostrar'}</span>
                   </button>
 
                   <AnimatePresence>
@@ -954,17 +953,16 @@ export default function ZoneAnalysis() {
 
                         {/* Red social */}
                         <div>
-                          <label className="text-gray-400 text-xs mb-2 block">Red social</label>
+                          <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2 block">Red social</label>
                           <div className="grid grid-cols-4 gap-2">
                             {[
-                              { id: 'Instagram', icon: '📸' },
-                              { id: 'Facebook', icon: '👥' },
-                              { id: 'LinkedIn', icon: '💼' },
-                              { id: 'Todas', icon: '🌐' },
-                            ].map(({ id, icon }) => (
+                              { id: 'Instagram' },
+                              { id: 'Facebook' },
+                              { id: 'LinkedIn' },
+                              { id: 'Todas' },
+                            ].map(({ id }) => (
                               <button key={id} onClick={() => setPubNetwork(id)}
-                                className={`py-2 rounded-lg text-xs font-medium transition-all flex flex-col items-center gap-1 ${pubNetwork === id ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
-                                <span>{icon}</span>
+                                className={`py-2 rounded-lg text-xs font-medium transition-all flex flex-col items-center gap-1 ${pubNetwork === id ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-700'}`}>
                                 <span>{id}</span>
                               </button>
                             ))}
@@ -973,16 +971,15 @@ export default function ZoneAnalysis() {
 
                         {/* Tono */}
                         <div>
-                          <label className="text-gray-400 text-xs mb-2 block">Tono del reporte</label>
+                          <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2 block">Tono del reporte</label>
                           <div className="grid grid-cols-3 gap-2">
                             {[
-                              { id: 'técnico', icon: '📐', desc: 'Datos precisos' },
-                              { id: 'comercial', icon: '💰', desc: 'Oportunidades' },
-                              { id: 'social', icon: '🧑‍🤝‍🧑', desc: 'Vida cotidiana' },
-                            ].map(({ id, icon, desc }) => (
+                              { id: 'técnico', desc: 'Datos precisos' },
+                              { id: 'comercial', desc: 'Oportunidades' },
+                              { id: 'social', desc: 'Vida cotidiana' },
+                            ].map(({ id, desc }) => (
                               <button key={id} onClick={() => { setPubTone(id); setShowPreview(false); }}
-                                className={`py-2 px-2 rounded-lg text-xs font-medium transition-all flex flex-col items-center gap-1 ${pubTone === id ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
-                                <span className="text-base">{icon}</span>
+                                className={`py-2 px-2 rounded-lg text-xs font-medium transition-all flex flex-col items-center gap-1 ${pubTone === id ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-700'}`}>
                                 <span className="capitalize font-semibold">{id}</span>
                                 <span className="opacity-70 text-[10px]">{desc}</span>
                               </button>
@@ -992,7 +989,7 @@ export default function ZoneAnalysis() {
 
                         {/* Contexto */}
                         <div>
-                          <label className="text-gray-400 text-xs mb-1 block">
+                          <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1 block">
                             Contexto para Gemini <span className="text-gray-600">(opcional)</span>
                           </label>
                           <textarea
@@ -1000,14 +997,14 @@ export default function ZoneAnalysis() {
                             onChange={e => { setExtraContext(e.target.value); setShowPreview(false); }}
                             rows={2}
                             placeholder="Ej: Análisis para cliente inmobiliario. Destacar crecimiento comercial de la zona norte."
-                            className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500 resize-none placeholder-gray-500"
+                            className="w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500 resize-none placeholder-gray-500"
                           />
                         </div>
 
                         {/* Medios locales */}
                         <div>
-                          <label className="text-gray-400 text-xs mb-2 block">
-                            📰 Mencionar medios locales <span className="text-gray-600">(opcional)</span>
+                          <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2 block">
+                            Mencionar medios locales <span className="text-gray-600">(opcional)</span>
                           </label>
                           <div className="flex flex-wrap gap-1.5">
                             {MEDIOS_LOCALES.map(({ handle, label }) => {
@@ -1021,7 +1018,7 @@ export default function ZoneAnalysis() {
                                     );
                                     setShowPreview(false);
                                   }}
-                                  className={`px-2 py-1 rounded-full text-[11px] font-medium transition-all ${active ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
+                                  className={`px-2 py-1 rounded-full text-[11px] font-medium transition-all ${active ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-neutral-700'}`}
                                 >
                                   {active ? '✓ ' : ''}{handle}
                                 </button>
@@ -1035,12 +1032,11 @@ export default function ZoneAnalysis() {
                           <button
                             onClick={handleGeneratePreview}
                             disabled={isGeneratingPreview || isCapturing}
-                            className="w-full py-3 rounded-xl font-bold text-white text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                            style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)' }}
+                            className="w-full py-3 rounded-lg font-bold text-white bg-indigo-600 hover:bg-indigo-700 text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                           >
                             {(isGeneratingPreview || isCapturing)
                               ? <><motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Generando preview...</>
-                              : '👁️ Ver preview antes de publicar'}
+                              : 'Ver preview antes de publicar'}
                           </button>
                         )}
 
@@ -1051,16 +1047,16 @@ export default function ZoneAnalysis() {
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: 10 }}
-                              className="space-y-4 border-t border-gray-700 pt-4"
+                              className="space-y-4 border-t border-gray-200 dark:border-neutral-800 pt-4"
                             >
                               <div className="flex items-center justify-between">
-                                <p className="text-white font-semibold text-sm">👁️ Vista Previa</p>
+                                <p className="text-gray-900 dark:text-white font-semibold text-sm">Vista previa</p>
                                 <button
                                   onClick={handleGeneratePreview}
                                   disabled={isGeneratingPreview}
-                                  className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline transition-colors"
                                 >
-                                  ↺ Regenerar
+                                  Regenerar
                                 </button>
                               </div>
 
@@ -1069,12 +1065,12 @@ export default function ZoneAnalysis() {
                                 <div>
                                   <p className="text-gray-500 text-[10px] mb-1 uppercase tracking-wider">Imagen 1 — Heatmap (Instagram)</p>
                                   {heatmapImageUrl
-                                    ? <img src={heatmapImageUrl} alt="Heatmap" className="w-full h-28 object-cover rounded-lg border border-purple-700/50" />
-                                    : <div className="w-full h-28 bg-gray-700 rounded-lg flex items-center justify-center">
+                                    ? <img src={heatmapImageUrl} alt="Heatmap" className="w-full h-28 object-cover rounded-lg border border-gray-200 dark:border-neutral-800" />
+                                    : <div className="w-full h-28 bg-gray-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
                                         {isGeneratingPreview
-                                          ? <span className="text-gray-500 text-xs">📸 Capturando heatmap...</span>
+                                          ? <span className="text-gray-500 text-xs">Capturando heatmap...</span>
                                           : chartCaptureError
-                                            ? <span className="text-red-400 text-[10px] text-center px-2">⚠️ {chartCaptureError}</span>
+                                            ? <span className="text-red-400 text-[10px] text-center px-2">{chartCaptureError}</span>
                                             : <span className="text-gray-500 text-xs">—</span>
                                         }
                                       </div>
@@ -1083,10 +1079,10 @@ export default function ZoneAnalysis() {
                                 <div>
                                   <p className="text-gray-500 text-[10px] mb-1 uppercase tracking-wider">Imagen 2 — Gráfico (LinkedIn/FB)</p>
                                   {chartImageUrl
-                                    ? <img src={chartImageUrl} alt="Gráfico de tráfico" className="w-full h-28 object-cover rounded-lg border border-gray-700" />
-                                    : <div className="w-full h-28 bg-gray-700 rounded-lg flex items-center justify-center">
+                                    ? <img src={chartImageUrl} alt="Gráfico de tráfico" className="w-full h-28 object-cover rounded-lg border border-gray-200 dark:border-neutral-800" />
+                                    : <div className="w-full h-28 bg-gray-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
                                         {isGeneratingPreview
-                                          ? <span className="text-gray-500 text-xs">📸 Capturando gráfico...</span>
+                                          ? <span className="text-gray-500 text-xs">Capturando gráfico...</span>
                                           : <span className="text-gray-500 text-xs">—</span>
                                         }
                                       </div>
@@ -1097,33 +1093,32 @@ export default function ZoneAnalysis() {
                               {/* Caption editable */}
                               <div>
                                 <p className="text-gray-500 text-[10px] mb-1 uppercase tracking-wider">
-                                  Caption generado — <span className="text-purple-400 capitalize">{pubTone}</span> · {pubNetwork}
+                                  Caption generado — <span className="text-indigo-600 dark:text-indigo-400 capitalize">{pubTone}</span> · {pubNetwork}
                                 </p>
                                 {isGeneratingPreview
-                                  ? <div className="bg-gray-700 rounded-lg p-3 text-gray-400 text-xs animate-pulse h-24">Generando con Gemini...</div>
+                                  ? <div className="bg-gray-100 dark:bg-neutral-800 rounded-lg p-3 text-gray-500 dark:text-gray-400 text-xs animate-pulse h-24">Generando con Gemini...</div>
                                   : <textarea
                                       value={previewCaption}
                                       onChange={e => setPreviewCaption(e.target.value)}
                                       rows={7}
-                                      className="w-full bg-gray-700 border border-purple-600/40 text-white text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-purple-500 resize-none"
+                                      className="w-full bg-white dark:bg-neutral-900 border border-indigo-300 dark:border-indigo-500/40 text-gray-900 dark:text-white text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500 resize-none"
                                     />
                                 }
                                 <p className="text-gray-600 text-[10px] mt-1 text-right">{previewCaption.length} / 2000 caracteres</p>
                               </div>
 
                               {/* Status + Publicar */}
-                              {publishStatus === 'success' && <p className="text-green-400 text-sm text-center">✅ Enviado a Make.com correctamente</p>}
-                              {publishStatus === 'error' && <p className="text-red-400 text-sm text-center">❌ Error al publicar. Intentá de nuevo.</p>}
+                              {publishStatus === 'success' && <p className="text-green-600 dark:text-green-400 text-sm text-center">Enviado a Make.com correctamente</p>}
+                              {publishStatus === 'error' && <p className="text-red-600 dark:text-red-400 text-sm text-center">Error al publicar. Intentá de nuevo.</p>}
 
                               <button
                                 onClick={handlePublicar}
                                 disabled={isPublishing || isGeneratingPreview || !previewCaption}
-                                className="w-full py-3 rounded-xl font-bold text-white text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                                style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)' }}
+                                className="w-full py-3 rounded-lg font-bold text-white bg-indigo-600 hover:bg-indigo-700 text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                               >
                                 {isPublishing
                                   ? <><motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Publicando...</>
-                                  : `🚀 Publicar en ${pubNetwork}`}
+                                  : `Publicar en ${pubNetwork}`}
                               </button>
                             </motion.div>
                           )}
@@ -1137,9 +1132,8 @@ export default function ZoneAnalysis() {
             )}
 
             {!result && step < 4 && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-gray-800 rounded-xl p-8 border border-gray-700 border-dashed flex flex-col items-center justify-center gap-3 min-h-64">
-                <span className="text-5xl">🗺️</span>
-                <p className="text-gray-400 text-sm text-center">Configurá la zona y los períodos<br />para ver el análisis aquí</p>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white dark:bg-neutral-900 rounded-2xl p-8 border border-gray-200 dark:border-neutral-800 border-dashed flex flex-col items-center justify-center gap-3 min-h-64">
+                <p className="text-gray-500 dark:text-gray-400 text-sm text-center">Configurá la zona y los períodos<br />para ver el análisis aquí</p>
               </motion.div>
             )}
           </AnimatePresence>

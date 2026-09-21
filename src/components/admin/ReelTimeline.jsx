@@ -89,7 +89,7 @@ export default function ReelTimeline({
         onPointerDown={handleTrackPointerDown}
         onPointerMove={handleTrackPointerMove}
         onPointerUp={handlePointerUp}
-        className="relative bg-[#0a0a0a] border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden cursor-pointer select-none"
+        className="relative bg-[#0a0a0a] border border-gray-200 dark:border-neutral-700 rounded-xl overflow-hidden cursor-pointer select-none"
         style={{ height: TRACK_HEIGHT, touchAction: 'none' }}
       >
         <div className="flex h-full">
@@ -99,7 +99,7 @@ export default function ReelTimeline({
               data-clip-idx={idx}
               onPointerDown={handleBlockPointerDown(idx, clip)}
               className={`relative h-full border-r border-black/40 shrink-0 bg-cover bg-center flex items-center justify-center ${
-                selectedClipId === clip.id ? 'ring-2 ring-purple-400 ring-inset' : ''
+                selectedClipId === clip.id ? 'ring-2 ring-indigo-400 ring-inset' : ''
               }`}
               style={
                 clip.type === 'video'

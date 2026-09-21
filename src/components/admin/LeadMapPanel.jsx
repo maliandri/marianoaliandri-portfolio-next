@@ -126,13 +126,13 @@ function BusinessSheet({ business, onClose, onRetry }) {
 
       <div className="mt-4 flex gap-2">
         <a href={`https://www.google.com/maps/place/?q=place_id:${b.id}`} target="_blank" rel="noopener noreferrer"
-          className="flex-1 text-center px-4 py-3 bg-white/5 hover:bg-white/10 text-gray-200 rounded-xl text-sm font-medium transition-colors">
+          className="flex-1 text-center px-4 py-3 bg-white/5 hover:bg-white/10 text-gray-200 rounded-lg text-sm font-medium transition-colors">
           Ver en Maps
         </a>
         {b.hasWebsite === false && (
           <a href={`https://wa.me/?text=${encodeURIComponent(`Hola! Vi ${b.nombre} y noté que no tiene sitio web. Te puedo ayudar a conseguir clientes online.`)}`}
             target="_blank" rel="noopener noreferrer"
-            className="flex-1 text-center px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-medium transition-colors">
+            className="flex-1 text-center px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
             Contactar
           </a>
         )}
@@ -333,7 +333,7 @@ export default function LeadMapPanel({ onClose }) {
         {!user && (
           <div className="flex items-center justify-between gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2">
             <p className="text-xs text-amber-400">
-              ⚠️ Iniciá sesión con <strong>{ADMIN_EMAIL_HINT}</strong> para poder auditar.
+              Iniciá sesión con <strong>{ADMIN_EMAIL_HINT}</strong> para poder auditar.
             </p>
             <button onClick={login} className="shrink-0 px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors">
               Ingresar
@@ -347,14 +347,14 @@ export default function LeadMapPanel({ onClose }) {
                 ‹
               </button>
             )}
-            <p className="text-sm font-bold text-white truncate">📍 Mapa de Leads</p>
+            <p className="text-sm font-bold text-white truncate">Mapa de Leads</p>
           </div>
           <button
             onClick={locate}
             disabled={locLoading}
             className="shrink-0 text-xs px-3 py-1.5 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 disabled:opacity-50"
           >
-            {locLoading ? 'Ubicando…' : userLocation ? '🔄 Mi ubicación' : '📍 Ubicarme'}
+            {locLoading ? 'Ubicando…' : userLocation ? 'Mi ubicación' : 'Ubicarme'}
           </button>
         </div>
 
@@ -388,7 +388,7 @@ export default function LeadMapPanel({ onClose }) {
             onClick={() => setShowFilters(v => !v)}
             className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-300"
           >
-            🎛️ Rubros ({tipos.length})
+            Rubros ({tipos.length})
           </button>
 
           {!isBusy ? (
@@ -401,7 +401,7 @@ export default function LeadMapPanel({ onClose }) {
             </button>
           ) : (
             <button onClick={stopSearch} className="ml-auto px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors">
-              ⏹ Detener
+              Detener
             </button>
           )}
         </div>
@@ -414,7 +414,7 @@ export default function LeadMapPanel({ onClose }) {
             {phase === 'auditing' && <span className="text-gray-500">auditando…</span>}
             {pending > 0 && phase !== 'auditing' && (
               <button onClick={auditAll} disabled={isBusy || quotaExceeded} className="text-indigo-400 hover:text-indigo-300 disabled:opacity-50">
-                🔍 Auditar {pending} sin revisar
+                Auditar {pending} sin revisar
               </button>
             )}
             {errorCount > 0 && (

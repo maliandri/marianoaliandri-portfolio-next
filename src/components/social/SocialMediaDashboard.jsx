@@ -594,8 +594,8 @@ https://marianoaliandri.com.ar/analitica
       {/* Header - RESPONSIVE */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-            Redes Sociales
+          <h2 className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+            Redes sociales
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Publica via Make.com
@@ -604,9 +604,9 @@ https://marianoaliandri.com.ar/analitica
         <button
           onClick={testConnection}
           disabled={isPublishing}
-          className="w-full sm:w-auto px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 text-sm"
+          className="w-full sm:w-auto px-4 py-2 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 text-sm"
         >
-          🔌 Test Conexión
+          Test de conexión
         </button>
       </div>
 
@@ -616,10 +616,10 @@ https://marianoaliandri.com.ar/analitica
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className={`p-3 sm:p-4 rounded-lg text-sm ${
+          className={`p-3 sm:p-4 rounded-xl text-sm ${
             message.type === 'success'
-              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
-              : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200'
+              ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400'
+              : 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400'
           }`}
         >
           {message.text}
@@ -627,28 +627,28 @@ https://marianoaliandri.com.ar/analitica
       )}
 
       {/* Tabs — solo visibles cuando no viene controlado desde AdminPage */}
-      <div className={`flex gap-1 sm:gap-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1 ${initialTab !== null ? 'hidden' : ''}`}>
+      <div className={`flex gap-1 sm:gap-2 border-b border-gray-200 dark:border-neutral-800 overflow-x-auto ${initialTab !== null ? 'hidden' : ''}`}>
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-shrink-0 px-3 sm:px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 text-sm font-medium transition-colors whitespace-nowrap -mb-px ${
               activeTab === tab.id
                 ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400'
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
           >
-            {tab.icon} <span className="hidden sm:inline">{tab.fullLabel}</span><span className="sm:hidden">{tab.label}</span>
+            <span className="hidden sm:inline">{tab.fullLabel}</span><span className="sm:hidden">{tab.label}</span>
           </button>
         ))}
       </div>
 
       {/* AI Provider Selector - RESPONSIVE */}
-      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-3 sm:p-4 rounded-lg border border-purple-200 dark:border-purple-700">
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              🤖 Motor AI
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+              Motor AI
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
               Selecciona el motor de AI
@@ -659,29 +659,29 @@ https://marianoaliandri.com.ar/analitica
               onClick={() => setAiProvider('groq')}
               className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 aiProvider === 'groq'
-                  ? 'bg-purple-600 text-white shadow-lg'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
-              ⚡ Groq
+              Groq
             </button>
             <button
               onClick={() => setAiProvider('gemini')}
               className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 aiProvider === 'gemini'
-                  ? 'bg-indigo-600 text-white shadow-lg'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
-              🧠 Gemini
+              Gemini
             </button>
           </div>
         </div>
       </div>
 
       {/* Network Selector - RESPONSIVE */}
-      <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 p-4 sm:p-5 rounded-2xl">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3">
           Redes Sociales
         </h3>
         <div className="flex flex-wrap gap-2">
@@ -692,18 +692,18 @@ https://marianoaliandri.com.ar/analitica
               className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 selectedNetworks.includes(network.id)
                   ? `${network.color} text-white`
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
               title={network.info || network.name}
             >
-              {network.icon} {network.name}
+              {network.name}
             </button>
           ))}
         </div>
         {selectedNetworks.includes('facebook') && (
-          <div className="mt-3 p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
-              ℹ️ <strong>FB + IG:</strong> Post en ambas redes automáticamente
+          <div className="mt-3 p-2 sm:p-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl">
+            <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-400">
+              <strong>FB + IG:</strong> Post en ambas redes automáticamente
             </p>
           </div>
         )}
@@ -713,11 +713,11 @@ https://marianoaliandri.com.ar/analitica
       {activeTab === 'custom' && (
         <div className="space-y-4">
           {/* Tipo de contenido: Post o Reel */}
-          <div className="bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20 p-3 sm:p-4 rounded-lg border border-pink-200 dark:border-pink-700">
+          <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-4 sm:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  📝 Tipo de Contenido
+                <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                  Tipo de contenido
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {contentType === 'post' ? 'Publicación con texto e imagen' : 'Video corto para Reels/Shorts'}
@@ -728,21 +728,21 @@ https://marianoaliandri.com.ar/analitica
                   onClick={() => { setContentType('post'); clearVideo(); }}
                   className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     contentType === 'post'
-                      ? 'bg-indigo-600 text-white shadow-lg'
-                      : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                   }`}
                 >
-                  📄 Post
+                  Post
                 </button>
                 <button
                   onClick={() => { setContentType('reel'); setCustomImageUrl(''); }}
                   className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     contentType === 'reel'
-                      ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-lg'
-                      : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                   }`}
                 >
-                  🎬 Reel
+                  Reel
                 </button>
               </div>
             </div>
@@ -751,50 +751,50 @@ https://marianoaliandri.com.ar/analitica
           {/* Templates - RESPONSIVE (solo para posts) */}
           {contentType === 'post' && (
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
               Templates
             </h3>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => useTemplate('service')}
-                className="px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs sm:text-sm hover:bg-indigo-200 dark:hover:bg-indigo-900/50"
+                className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs sm:text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
               >
-                💼 Servicio
+                Servicio
               </button>
               <button
                 onClick={() => useTemplate('tip')}
-                className="px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs sm:text-sm hover:bg-indigo-200 dark:hover:bg-indigo-900/50"
+                className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs sm:text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
               >
-                💡 Tip
+                Tip
               </button>
               <button
                 onClick={() => useTemplate('achievement')}
-                className="px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs sm:text-sm hover:bg-indigo-200 dark:hover:bg-indigo-900/50"
+                className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs sm:text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
               >
-                🎉 Logro
+                Logro
               </button>
               <button
                 onClick={() => useTemplate('leadfinder')}
-                className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg text-xs sm:text-sm hover:bg-purple-200 dark:hover:bg-purple-900/50"
+                className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs sm:text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
               >
-                🎯 Lead Finder Pro
+                Lead Finder Pro
               </button>
               <button
                 onClick={() => useTemplate('analitica')}
-                className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg text-xs sm:text-sm hover:bg-purple-200 dark:hover:bg-purple-900/50"
+                className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs sm:text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
               >
-                📊 Analítica Regional
+                Analítica Regional
               </button>
             </div>
           </div>
           )}
 
           {/* AI Toggle - RESPONSIVE */}
-          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-3 sm:p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+          <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-4 sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
-                  ✨ Modo AI
+                <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                  Modo AI
                 </h3>
                 <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
                   {useAI ? 'AI genera el post' : 'Publica tal cual'}
@@ -803,7 +803,7 @@ https://marianoaliandri.com.ar/analitica
               <button
                 onClick={() => setUseAI(!useAI)}
                 className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors ${
-                  useAI ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'
+                  useAI ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
                 }`}
               >
                 <span
@@ -817,7 +817,7 @@ https://marianoaliandri.com.ar/analitica
 
           {/* Composer */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
               {useAI ? 'Descripción (AI genera contenido)' : 'Texto del Post'}
             </label>
             <textarea
@@ -827,7 +827,7 @@ https://marianoaliandri.com.ar/analitica
               placeholder={useAI
                 ? 'Ej: "Nuevo servicio de consultoría en Power BI"'
                 : 'Escribe tu publicación aquí...'}
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm"
+              className="w-full p-3 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
             />
             <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               {postText.length} caracteres
@@ -837,7 +837,7 @@ https://marianoaliandri.com.ar/analitica
           {/* Imagen (opcional) - Solo para Posts */}
           {contentType === 'post' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
               Imagen (opcional)
             </label>
             <div className="space-y-2">
@@ -845,13 +845,13 @@ https://marianoaliandri.com.ar/analitica
                 type="file"
                 accept="image/*"
                 onChange={(e) => handleFileUpload(e, setCustomImageUrl)}
-                className="w-full text-xs sm:text-sm text-gray-500 dark:text-gray-400 file:mr-2 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-indigo-900/30 file:text-indigo-700 dark:file:text-indigo-300 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-900/50"
+                className="w-full text-xs sm:text-sm text-gray-500 dark:text-gray-400 file:mr-2 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-indigo-500/10 file:text-indigo-700 dark:file:text-indigo-300 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-500/20"
               />
               <div
                 onPaste={(e) => handlePaste(e, setCustomImageUrl)}
-                className="p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800"
+                className="p-3 border-2 border-dashed border-gray-200 dark:border-neutral-700 rounded-xl text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/40"
               >
-                📋 Pega imagen (Ctrl+V)
+                Pegá una imagen (Ctrl+V)
               </div>
               {customImageUrl && (
                 <div className="relative">
@@ -875,15 +875,15 @@ https://marianoaliandri.com.ar/analitica
           {/* Video - Solo para Reels */}
           {contentType === 'reel' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              🎬 Video del Reel
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
+              Video del reel
             </label>
             <div className="space-y-2">
               <input
                 type="file"
                 accept="video/*"
                 onChange={handleVideoUpload}
-                className="w-full text-xs sm:text-sm text-gray-500 dark:text-gray-400 file:mr-2 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-pink-50 dark:file:bg-pink-900/30 file:text-pink-700 dark:file:text-pink-300 hover:file:bg-pink-100 dark:hover:file:bg-pink-900/50"
+                className="w-full text-xs sm:text-sm text-gray-500 dark:text-gray-400 file:mr-2 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-indigo-500/10 file:text-indigo-700 dark:file:text-indigo-300 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-500/20"
               />
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Formatos: MP4, MOV, WebM • Máximo: 100MB • Duración recomendada: 15-60 seg
@@ -914,25 +914,25 @@ https://marianoaliandri.com.ar/analitica
             disabled={isPublishing || !postText.trim()}
             className={`w-full py-3 text-sm sm:text-base ${
               useAI
-                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
-                : 'bg-indigo-600 hover:bg-indigo-700'
-            } text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+                ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+            } text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {isPublishing
-              ? '⏳ Procesando...'
+              ? 'Procesando...'
               : useAI
-                ? '✨ Generar y Publicar'
-                : '🚀 Publicar'}
+                ? 'Generar y publicar'
+                : 'Publicar'}
           </button>
           ) : (
           <button
             onClick={handlePublishCustomReel}
             disabled={isPublishing || !postText.trim() || !videoFile}
-            className="w-full py-3 text-sm sm:text-base bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 text-sm sm:text-base bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPublishing
-              ? '⏳ Subiendo Reel...'
-              : '🎬 Publicar Reel'}
+              ? 'Subiendo reel...'
+              : 'Publicar reel'}
           </button>
           )}
         </div>
@@ -941,7 +941,7 @@ https://marianoaliandri.com.ar/analitica
       {activeTab === 'products' && (
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
               Seleccionar Producto
             </label>
             <select
@@ -950,7 +950,7 @@ https://marianoaliandri.com.ar/analitica
                 const product = products.find(p => p.id === e.target.value);
                 setSelectedProduct(product);
               }}
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+              className="w-full p-3 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
             >
               <option value="">-- Seleccionar --</option>
               {products.map(product => (
@@ -962,8 +962,8 @@ https://marianoaliandri.com.ar/analitica
           </div>
 
           {selectedProduct && (
-            <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm">
+            <div className="bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-neutral-800 p-4 rounded-xl">
+              <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
                 Vista Previa
               </h3>
               <div className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
@@ -983,14 +983,14 @@ ${selectedProduct.description?.substring(0, 100)}...
               disabled={isPublishing || !selectedProduct}
               className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
-              {isPublishing ? '⏳ Publicando...' : '🚀 Publicar Post'}
+              {isPublishing ? 'Publicando...' : 'Publicar post'}
             </button>
             <button
               onClick={handlePublishReel}
               disabled={isPublishing || !selectedProduct}
-              className="flex-1 py-3 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
-              {isPublishing ? '⏳ Generando...' : '🎬 Crear Reel'}
+              {isPublishing ? 'Generando...' : 'Crear reel'}
             </button>
           </div>
         </div>
@@ -999,41 +999,41 @@ ${selectedProduct.description?.substring(0, 100)}...
       {activeTab === 'statistics' && (
         <div className="space-y-4">
           {/* Estadísticas en tiempo real de Firebase */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-4 rounded-lg border border-indigo-200 dark:border-indigo-700">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-              📊 Estadísticas en Tiempo Real
-              {loadingStats && <span className="animate-pulse text-xs text-indigo-500">Cargando...</span>}
-              {statsError && <span className="text-xs text-red-500">Error al cargar</span>}
+          <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-4 sm:p-5">
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
+              Estadísticas en tiempo real
+              {loadingStats && <span className="animate-pulse text-xs text-indigo-500 normal-case tracking-normal">Cargando...</span>}
+              {statsError && <span className="text-xs text-red-600 dark:text-red-400 normal-case tracking-normal">Error al cargar</span>}
             </h3>
 
             {!loadingStats && !firebaseStats && !statsError && (
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 p-3 bg-gray-100 dark:bg-gray-800 rounded">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl">
                 No hay datos de estadísticas disponibles todavía.
               </div>
             )}
 
             {firebaseStats && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                <div className="bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl text-center">
+                  <div className="text-3xl font-extrabold tracking-tight text-indigo-600 dark:text-indigo-400">
                     {firebaseStats.totalVisits?.toLocaleString() || 0}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">Visitas Totales</div>
                 </div>
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                <div className="bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl text-center">
+                  <div className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
                     {firebaseStats.uniqueVisitors?.toLocaleString() || 0}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">Visitantes Únicos</div>
                 </div>
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                <div className="bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl text-center">
+                  <div className="text-3xl font-extrabold tracking-tight text-green-600 dark:text-green-400">
                     {firebaseStats.registeredUsers?.toLocaleString() || 0}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">Usuarios Registrados</div>
                 </div>
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">
+                <div className="bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl text-center">
+                  <div className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
                     {firebaseStats.likes || 0} / {firebaseStats.dislikes || 0}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">Likes / Dislikes</div>
@@ -1044,11 +1044,11 @@ ${selectedProduct.description?.substring(0, 100)}...
             {/* Páginas más visitadas */}
             {firebaseStats && (
               <div className="mb-4">
-                <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">📄 Páginas más visitadas</h4>
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Páginas más visitadas</h4>
                 {firebaseStats.topPages?.length > 0 ? (
                   <div className="space-y-1">
                     {firebaseStats.topPages.slice(0, 5).map((page, index) => (
-                      <div key={page.id || index} className="flex justify-between items-center text-xs bg-white dark:bg-gray-800 px-3 py-2 rounded">
+                      <div key={page.id || index} className="flex justify-between items-center text-xs bg-gray-50 dark:bg-gray-800/40 px-3 py-2 rounded-lg">
                         <span className="text-gray-700 dark:text-gray-300 truncate flex-1">{page.path || page.title || page.id}</span>
                         <span className="text-indigo-600 dark:text-indigo-400 font-medium ml-2">{page.views || page.count || 0}</span>
                       </div>
@@ -1063,13 +1063,13 @@ ${selectedProduct.description?.substring(0, 100)}...
             {/* Productos más visitados */}
             {firebaseStats && (
               <div className="mb-4">
-                <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">🎯 Productos más visitados</h4>
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Productos más visitados</h4>
                 {firebaseStats.topProducts?.length > 0 ? (
                   <div className="space-y-1">
                     {firebaseStats.topProducts.slice(0, 5).map((product, index) => (
-                      <div key={product.id || index} className="flex justify-between items-center text-xs bg-white dark:bg-gray-800 px-3 py-2 rounded">
+                      <div key={product.id || index} className="flex justify-between items-center text-xs bg-gray-50 dark:bg-gray-800/40 px-3 py-2 rounded-lg">
                         <span className="text-gray-700 dark:text-gray-300 truncate flex-1">{product.productName || product.name || product.id}</span>
-                        <span className="text-purple-600 dark:text-purple-400 font-medium ml-2">{product.views || product.count || 0}</span>
+                        <span className="text-indigo-600 dark:text-indigo-400 font-medium ml-2">{product.views || product.count || 0}</span>
                       </div>
                     ))}
                   </div>
@@ -1096,9 +1096,9 @@ ${selectedProduct.description?.substring(0, 100)}...
                   });
                   showMessage('success', '📊 Estadísticas copiadas al formulario');
                 }}
-                className="w-full py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-medium hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
+                className="w-full py-2 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
-                📋 Usar estas estadísticas para publicar
+                Usar estas estadísticas para publicar
               </button>
             )}
           </div>
@@ -1106,7 +1106,7 @@ ${selectedProduct.description?.substring(0, 100)}...
           {/* Formulario de publicación */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
                 Título
               </label>
               <input
@@ -1114,12 +1114,12 @@ ${selectedProduct.description?.substring(0, 100)}...
                 value={stats.title}
                 onChange={(e) => setStats({ ...stats, title: e.target.value })}
                 placeholder="Ej: 10,000 visitantes"
-                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                className="w-full p-3 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
                 Descripción
               </label>
               <textarea
@@ -1127,18 +1127,18 @@ ${selectedProduct.description?.substring(0, 100)}...
                 onChange={(e) => setStats({ ...stats, description: e.target.value })}
                 rows={3}
                 placeholder="Descripción..."
-                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                className="w-full p-3 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
                 Métricas (opcional)
               </label>
               <input
                 type="text"
                 placeholder="Ej: Visitantes: 10,000 (Enter para agregar)"
-                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-2 text-sm"
+                className="w-full p-3 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm mb-2"
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
                     const [key, value] = e.target.value.split(':');
@@ -1153,17 +1153,17 @@ ${selectedProduct.description?.substring(0, 100)}...
                 }}
               />
               {Object.keys(stats.metrics).length > 0 && (
-                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                <div className="bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
                   {Object.entries(stats.metrics).map(([key, value]) => (
                     <div key={key} className="flex justify-between items-center text-xs sm:text-sm mb-1">
-                      <span className="text-gray-700 dark:text-gray-300">✅ {key}: {value}</span>
+                      <span className="text-gray-700 dark:text-gray-300">{key}: {value}</span>
                       <button
                         onClick={() => {
                           const newMetrics = { ...stats.metrics };
                           delete newMetrics[key];
                           setStats({ ...stats, metrics: newMetrics });
                         }}
-                        className="text-red-600 hover:text-red-800 ml-2"
+                        className="text-gray-400 hover:text-red-600 ml-2"
                       >
                         ✕
                       </button>
@@ -1175,11 +1175,11 @@ ${selectedProduct.description?.substring(0, 100)}...
 
             {/* Imagen - RESPONSIVE */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
                 Imagen (opcional)
               </label>
               {stats.imageUrl ? (
-                <div className="relative w-full max-w-xs mx-auto aspect-square rounded-lg overflow-hidden border-2 border-gray-300 dark:border-gray-600">
+                <div className="relative w-full max-w-xs mx-auto aspect-square rounded-xl overflow-hidden border border-gray-200 dark:border-neutral-700">
                   <img
                     src={stats.imageUrl}
                     alt="Preview"
@@ -1195,9 +1195,9 @@ ${selectedProduct.description?.substring(0, 100)}...
               ) : (
                 <div
                   onPaste={(e) => handlePaste(e, (url) => setStats({ ...stats, imageUrl: url }))}
-                  className="p-4 border-2 border-dashed border-indigo-300 dark:border-indigo-600 rounded-lg text-center text-xs sm:text-sm text-gray-600 dark:text-gray-300 bg-indigo-50 dark:bg-indigo-900/20 cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors"
+                  className="p-4 border-2 border-dashed border-indigo-300 dark:border-indigo-500/40 rounded-xl text-center text-xs sm:text-sm text-gray-600 dark:text-gray-300 bg-indigo-50 dark:bg-indigo-500/10 cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
                 >
-                  📋 Pega tu imagen aquí (Ctrl+V)
+                  Pegá tu imagen acá (Ctrl+V)
                 </div>
               )}
             </div>
@@ -1207,7 +1207,7 @@ ${selectedProduct.description?.substring(0, 100)}...
               disabled={isPublishing || !stats.title || !stats.description}
               className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
-              {isPublishing ? '⏳ Publicando...' : '🚀 Publicar Estadística'}
+              {isPublishing ? 'Publicando...' : 'Publicar estadística'}
             </button>
           </div>
         </div>
@@ -1226,16 +1226,16 @@ ${selectedProduct.description?.substring(0, 100)}...
               <button
                 onClick={loadProyectos}
                 disabled={loadingProyectos}
-                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-xs disabled:opacity-50"
+                className="px-3 py-2 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-xs disabled:opacity-50"
               >
-                {loadingProyectos ? '⏳' : '🔄'} Recargar
+                {loadingProyectos ? 'Recargando...' : 'Recargar'}
               </button>
               <button
                 onClick={handlePublishAllProyectos}
                 disabled={isPublishing || loadingProyectos || proyectos.length === 0}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
-                {isPublishing ? '⏳ Publicando...' : `🚀 Publicar todos (${proyectos.length})`}
+                {isPublishing ? 'Publicando...' : `Publicar todos (${proyectos.length})`}
               </button>
             </div>
           </div>
@@ -1244,7 +1244,7 @@ ${selectedProduct.description?.substring(0, 100)}...
           {loadingProyectos && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-pulse">
+                <div key={i} className="rounded-2xl border border-gray-200 dark:border-neutral-800 overflow-hidden animate-pulse">
                   <div className="h-36 bg-gray-200 dark:bg-gray-700" />
                   <div className="p-4 space-y-2">
                     <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3" />
@@ -1270,7 +1270,7 @@ ${selectedProduct.description?.substring(0, 100)}...
                 return (
                   <div
                     key={proyecto.domain}
-                    className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800"
+                    className="rounded-2xl border border-gray-200 dark:border-neutral-800 overflow-hidden bg-white dark:bg-neutral-900"
                   >
                     {/* Screenshot */}
                     <div className="h-36 bg-gray-100 dark:bg-gray-700 overflow-hidden relative">
@@ -1282,10 +1282,10 @@ ${selectedProduct.description?.substring(0, 100)}...
                       />
                       {/* Badge GSC stats */}
                       <div className="absolute bottom-2 left-2 flex gap-1.5">
-                        <span className="bg-indigo-600/90 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                        <span className="bg-indigo-600/90 text-white text-[11px] px-2 py-0.5 rounded-full font-semibold">
                           {proyecto.clicks >= 1000 ? `${(proyecto.clicks/1000).toFixed(1)}k` : proyecto.clicks} clicks
                         </span>
-                        <span className="bg-purple-600/90 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                        <span className="bg-black/60 text-white text-[11px] px-2 py-0.5 rounded-full font-semibold">
                           {proyecto.impressions >= 1000 ? `${(proyecto.impressions/1000).toFixed(1)}k` : proyecto.impressions} imp.
                         </span>
                       </div>
@@ -1315,7 +1315,7 @@ ${selectedProduct.description?.substring(0, 100)}...
 
                       {proyecto.stack && (
                         <p className="text-xs text-indigo-600 dark:text-indigo-400 truncate">
-                          🛠 {proyecto.stack}
+                          {proyecto.stack}
                         </p>
                       )}
 
@@ -1328,7 +1328,7 @@ ${selectedProduct.description?.substring(0, 100)}...
                         disabled={isPublishing || isPublishingThis || publishingProyectoId !== null}
                         className="w-full mt-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {isPublishingThis ? '⏳ Publicando...' : '🚀 Publicar este proyecto'}
+                        {isPublishingThis ? 'Publicando...' : 'Publicar este proyecto'}
                       </button>
                     </div>
                   </div>

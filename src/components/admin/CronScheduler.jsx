@@ -152,11 +152,11 @@ export default function CronScheduler() {
       <select
         value={currentVal}
         onChange={handleChange}
-        className="flex-1 min-w-0 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-2 py-1.5 truncate"
+        className="flex-1 min-w-0 text-xs rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-2 py-1.5 truncate"
       >
         <option value="">— Elegir contenido —</option>
 
-        <optgroup label="📦 Productos">
+        <optgroup label="Productos">
           {products.map((p) => {
             const val = JSON.stringify({ grupo: 'product', nombre: p.name, data: { productId: p.id, precio: p.priceUSD } });
             return <option key={p.id} value={val}>{p.name}</option>;
@@ -164,7 +164,7 @@ export default function CronScheduler() {
         </optgroup>
 
         {Object.entries(TECH_GROUPS).map(([cat, items]) => (
-          <optgroup key={cat} label={`⚙️ ${cat}`}>
+          <optgroup key={cat} label={cat}>
             {items.map((item) => {
               const val = JSON.stringify({ grupo: 'technology', nombre: item, data: { category: cat } });
               return <option key={item} value={val}>{item}</option>;
@@ -172,7 +172,7 @@ export default function CronScheduler() {
           </optgroup>
         ))}
 
-        <optgroup label="🌐 Proyectos">
+        <optgroup label="Proyectos">
           {projects.map((p, i) => {
             const val = JSON.stringify({ grupo: 'project', nombre: p.sitio || p.name || p.url, data: { sitio: p.sitio, clicks: p.clicks } });
             return <option key={i} value={val}>{p.sitio || p.name || p.url}</option>;
@@ -191,7 +191,7 @@ export default function CronScheduler() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">⏰ Cron Social</h2>
+          <h2 className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Cron social</h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             {totalSlots} publicación{totalSlots !== 1 ? 'es' : ''} programada{totalSlots !== 1 ? 's' : ''} · Timezone: America/Argentina/Buenos_Aires
           </p>
@@ -199,41 +199,41 @@ export default function CronScheduler() {
 
         <div className="flex items-center gap-3">
           {/* Badge estado */}
-          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+          <span className={`px-3 py-1 rounded-full text-[11px] font-semibold ${
             active
-              ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+              ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
           }`}>
-            {active ? '● ACTIVO' : '○ PAUSADO'}
+            {active ? 'Activo' : 'Pausado'}
           </span>
 
           {/* Toggle */}
           <button
             onClick={handleToggle}
             disabled={toggling}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors disabled:opacity-50 ${
               active
-                ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50'
-                : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50'
+                ? 'border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10'
+                : 'border-green-200 dark:border-green-500/30 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-500/10'
             }`}
           >
-            {toggling ? '…' : active ? '⏸ Pausar cron' : '▶ Activar cron'}
+            {toggling ? '…' : active ? 'Pausar cron' : 'Activar cron'}
           </button>
 
           {/* Guardar */}
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
           >
-            {saving ? 'Guardando…' : savedOk ? '✓ Guardado' : '💾 Guardar semana'}
+            {saving ? 'Guardando…' : savedOk ? 'Guardado' : 'Guardar semana'}
           </button>
         </div>
       </div>
 
       {loadError && (
         <p className="text-red-500 text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded p-2">
-          ⚠ {loadError}
+          {loadError}
         </p>
       )}
 
@@ -244,18 +244,18 @@ export default function CronScheduler() {
           const isOpen = !!expanded[dia];
 
           return (
-            <div key={dia} className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+            <div key={dia} className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
               {/* Cabecera del día */}
               <button
                 onClick={() => setExpanded((prev) => ({ ...prev, [dia]: !isOpen }))}
-                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
+                className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span className="font-semibold text-gray-800 dark:text-gray-200 text-sm">
                     {DIAS_LABEL[dia]}
                   </span>
                   {slots.length > 0 && (
-                    <span className="text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">
+                    <span className="text-[11px] font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 px-2 py-0.5 rounded-full">
                       {slots.length} slot{slots.length !== 1 ? 's' : ''}
                     </span>
                   )}
@@ -265,7 +265,7 @@ export default function CronScheduler() {
 
               {/* Slots */}
               {isOpen && (
-                <div className="p-3 space-y-2">
+                <div className="p-4 space-y-2 border-t border-gray-200 dark:border-neutral-800">
                   {slots.length === 0 && (
                     <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">
                       Sin publicaciones programadas
@@ -279,7 +279,7 @@ export default function CronScheduler() {
                         type="time"
                         value={slot.hora}
                         onChange={(e) => updateSlot(dia, slot.id, 'hora', e.target.value)}
-                        className="w-28 shrink-0 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-2 py-1.5"
+                        className="w-28 shrink-0 text-xs rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-2 py-1.5"
                       />
 
                       {/* Contenido */}
@@ -289,7 +289,7 @@ export default function CronScheduler() {
                       <select
                         value={slot.tipo}
                         onChange={(e) => updateSlot(dia, slot.id, 'tipo', e.target.value)}
-                        className="w-24 shrink-0 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-2 py-1.5"
+                        className="w-24 shrink-0 text-xs rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-2 py-1.5"
                       >
                         {TIPO_OPTIONS.map((t) => <option key={t}>{t}</option>)}
                       </select>
@@ -298,7 +298,7 @@ export default function CronScheduler() {
                       <select
                         value={slot.redes}
                         onChange={(e) => updateSlot(dia, slot.id, 'redes', e.target.value)}
-                        className="w-28 shrink-0 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-2 py-1.5"
+                        className="w-28 shrink-0 text-xs rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-2 py-1.5"
                       >
                         {REDES_OPTIONS.map((r) => <option key={r}>{r}</option>)}
                       </select>
@@ -306,10 +306,10 @@ export default function CronScheduler() {
                       {/* Eliminar */}
                       <button
                         onClick={() => removeSlot(dia, slot.id)}
-                        className="shrink-0 p-1.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        className="shrink-0 p-1.5 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                         title="Eliminar slot"
                       >
-                        🗑️
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2m-9 0l1 14h8l1-14" /></svg>
                       </button>
                     </div>
                   ))}
@@ -317,7 +317,7 @@ export default function CronScheduler() {
                   {slots.length < 10 && (
                     <button
                       onClick={() => addSlot(dia)}
-                      className="mt-1 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 font-medium"
+                      className="mt-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium"
                     >
                       + Agregar publicación
                     </button>
@@ -330,7 +330,7 @@ export default function CronScheduler() {
       </div>
 
       {/* Pie */}
-      <div className="text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 space-y-1">
+      <div className="text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800/40 rounded-xl p-4 space-y-1">
         <p>• El cron se ejecuta cada minuto. Solo publica cuando hay un slot con la hora exacta del día actual.</p>
         <p>• Si hay dos slots a la misma hora, se publican con 2 segundos de delay entre sí.</p>
         <p>• Los slots sin hora configurada se ignoran.</p>

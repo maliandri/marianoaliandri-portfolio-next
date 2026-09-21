@@ -137,8 +137,8 @@ export default function StoreExcelManager() {
   };
 
   return (
-    <div className="mb-6 bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Importar / Exportar tienda (Excel)</h3>
+    <div className="mb-6 bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800">
+      <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Importar / Exportar tienda (Excel)</h3>
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
         Descargá el Excel con todos los productos, editá precios y descripciones, y volvé a subirlo.
         Al importar se actualiza por <strong>ID</strong>. Si dejás <em>Precio ARS</em> vacío pero cargás
@@ -149,17 +149,17 @@ export default function StoreExcelManager() {
         <button
           onClick={download}
           disabled={busy}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm font-medium"
+          className="px-4 py-2 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50 text-sm font-medium"
         >
-          ⬇ Descargar Excel
+          Descargar Excel
         </button>
 
         <button
           onClick={() => fileRef.current?.click()}
           disabled={busy}
-          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 text-sm font-medium"
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm font-medium"
         >
-          ⬆ Subir y actualizar
+          Subir y actualizar
         </button>
         <input
           ref={fileRef}
@@ -184,7 +184,7 @@ export default function StoreExcelManager() {
           disabled={busy}
           className="px-3 py-2 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 text-sm font-medium"
         >
-          🗑 Vaciar tienda
+          Vaciar tienda
         </button>
 
         {busy && <span className="text-sm text-gray-500">Procesando…</span>}

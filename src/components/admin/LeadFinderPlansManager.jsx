@@ -3,9 +3,9 @@
 import { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 
 const SCOPE_LABEL = {
-  localidad: { label: '📍 Localidad', className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400' },
-  provincia: { label: '🗺️ Provincia', className: 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' },
-  pais:      { label: '🇦🇷 País',     className: 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400' },
+  localidad: { label: 'Localidad', className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400' },
+  provincia: { label: 'Provincia', className: 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' },
+  pais:      { label: 'País',     className: 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400' },
 };
 
 const BILLING_LABEL = {
@@ -34,18 +34,18 @@ function PlanForm({ initial, onCancel, onSave, saving }) {
     <div className="p-5 space-y-4 border-t border-gray-100 dark:border-neutral-800">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Nombre</label>
+          <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Nombre</label>
           <input
             type="text" value={form.name} onChange={e => setField('name', e.target.value)}
             placeholder="Ej: Ciudad Pro"
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Alcance</label>
+          <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Alcance</label>
           <select
             value={form.scope} onChange={e => setField('scope', e.target.value)}
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="localidad">Localidad</option>
             <option value="provincia">Provincia</option>
@@ -56,46 +56,46 @@ function PlanForm({ initial, onCancel, onSave, saving }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Facturación</label>
+          <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Facturación</label>
           <select
             value={form.billingType} onChange={e => setField('billingType', e.target.value)}
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="subscription">Suscripción mensual</option>
             <option value="project">Pago único (proyecto)</option>
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Precio (ARS)</label>
+          <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Precio (ARS)</label>
           <input
             type="number" min={0} value={form.priceARS} onChange={e => setField('priceARS', e.target.value)}
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Auditorías / créditos</label>
+          <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Auditorías / créditos</label>
           <input
             type="number" min={0} value={form.credits} onChange={e => setField('credits', e.target.value)}
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Descripción</label>
+        <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Descripción</label>
         <textarea
           rows={2} value={form.description} onChange={e => setField('description', e.target.value)}
           placeholder="Qué incluye este plan, para quién es..."
-          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
       </div>
 
       <div className="flex items-center gap-4">
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Orden</label>
+          <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Orden</label>
           <input
             type="number" min={0} value={form.order} onChange={e => setField('order', e.target.value)}
-            className="w-20 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-20 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
         <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-4">
@@ -103,7 +103,7 @@ function PlanForm({ initial, onCancel, onSave, saving }) {
           Activo (visible para clientes)
         </label>
         <div className="ml-auto mt-4 flex gap-2">
-          <button onClick={onCancel} className="px-4 py-2 border border-gray-300 dark:border-neutral-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">
+          <button onClick={onCancel} className="px-4 py-2 border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">
             Cancelar
           </button>
           <button
@@ -152,7 +152,7 @@ const LeadFinderPlansManager = forwardRef(function LeadFinderPlansManager(_props
       setEditingId(null);
       load();
     } catch (e) {
-      alert('❌ ' + e.message);
+      alert('Error: ' + e.message);
     } finally {
       setSaving(false);
     }
@@ -166,7 +166,7 @@ const LeadFinderPlansManager = forwardRef(function LeadFinderPlansManager(_props
       if (!res.ok) throw new Error((await res.json()).error || 'Error eliminando');
       load();
     } catch (e) {
-      alert('❌ ' + e.message);
+      alert('Error: ' + e.message);
     }
   };
 
@@ -180,7 +180,7 @@ const LeadFinderPlansManager = forwardRef(function LeadFinderPlansManager(_props
       });
       load();
     } catch (e) {
-      alert('❌ ' + e.message);
+      alert('Error: ' + e.message);
     }
   };
 
@@ -190,12 +190,12 @@ const LeadFinderPlansManager = forwardRef(function LeadFinderPlansManager(_props
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-2">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Planes — Lead Finder Pro</h3>
-          <p className="text-xs text-gray-500 mt-0.5">{plans.length} planes · créditos y precios editables sin redeploy</p>
+          <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Planes — Lead Finder Pro</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{plans.length} planes · créditos y precios editables sin redeploy</p>
         </div>
         <button
           onClick={() => setEditingId('new')}
-          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors"
+          className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors"
         >
           + Nuevo plan
         </button>
@@ -205,7 +205,7 @@ const LeadFinderPlansManager = forwardRef(function LeadFinderPlansManager(_props
 
       {editingId === 'new' && (
         <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-indigo-300 dark:border-indigo-500/40 overflow-hidden">
-          <p className="px-5 pt-4 text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">Nuevo plan</p>
+          <p className="px-5 pt-4 text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Nuevo plan</p>
           <PlanForm initial={EMPTY_PLAN} saving={saving} onCancel={() => setEditingId(null)} onSave={handleSave} />
         </div>
       )}
@@ -219,9 +219,9 @@ const LeadFinderPlansManager = forwardRef(function LeadFinderPlansManager(_props
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-gray-900 dark:text-gray-100">{plan.name}</span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${scope.className}`}>{scope.label}</span>
+                  <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${scope.className}`}>{scope.label}</span>
                   {!plan.active && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-500 dark:bg-neutral-800 dark:text-gray-400">Inactivo</span>
+                    <span className="text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-gray-100 text-gray-500 dark:bg-neutral-800 dark:text-gray-400">Inactivo</span>
                   )}
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5">
@@ -234,7 +234,7 @@ const LeadFinderPlansManager = forwardRef(function LeadFinderPlansManager(_props
                   title={plan.active ? 'Desactivar' : 'Activar'}
                   className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
                 >
-                  {plan.active ? '👁️' : '🚫'}
+                  {plan.active ? 'Desactivar' : 'Activar'}
                 </button>
                 <button
                   onClick={() => setEditingId(isEditing ? null : plan.id)}
@@ -246,7 +246,7 @@ const LeadFinderPlansManager = forwardRef(function LeadFinderPlansManager(_props
                   onClick={() => handleDelete(plan)}
                   className="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                 >
-                  🗑️
+                  Eliminar
                 </button>
               </div>
             </div>

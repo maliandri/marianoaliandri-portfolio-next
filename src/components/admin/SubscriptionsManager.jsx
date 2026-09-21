@@ -17,24 +17,24 @@ function formatDate(iso) {
 
 function StatusBadge({ status, plan }) {
   if (plan === 'free') {
-    return <span className="inline-block text-xs font-medium px-2 py-0.5 rounded-full border bg-gray-500/10 text-gray-500 border-gray-500/30">Free</span>;
+    return <span className="inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-gray-400">Free</span>;
   }
   const cls = status === 'active'
-    ? 'bg-green-500/15 text-green-400 border-green-500/30'
+    ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400'
     : status === 'pending'
-    ? 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'
+    ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
     : status === 'agotado'
-    ? 'bg-orange-500/15 text-orange-400 border-orange-500/30'
-    : 'bg-red-500/15 text-red-400 border-red-500/30';
+    ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400'
+    : 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400';
   const label = status === 'active' ? 'Activa' : status === 'pending' ? 'Pendiente' : status === 'agotado' ? 'Sin créditos' : 'Cancelada';
-  return <span className={`inline-block text-xs font-bold px-2 py-0.5 rounded-full border ${cls}`}>{label}</span>;
+  return <span className={`inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${cls}`}>{label}</span>;
 }
 
 const PLAN_FILTERS = [
   { id: 'all', label: 'Todos' },
   { id: 'paid', label: 'Pagos' },
-  { id: 'Analítica', label: '📊 Analítica' },
-  { id: 'Lead Finder Pro', label: '🎯 Lead Finder Pro' },
+  { id: 'Analítica', label: 'Analítica' },
+  { id: 'Lead Finder Pro', label: 'Lead Finder Pro' },
   { id: 'free', label: 'Free' },
 ];
 
@@ -91,7 +91,7 @@ export default function SubscriptionsManager() {
   if (error) {
     return (
       <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm">
-        ❌ {error}
+        {error}
       </div>
     );
   }
@@ -102,16 +102,16 @@ export default function SubscriptionsManager() {
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Suscripciones pagas activas</p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{stats.activePaid}</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Suscripciones pagas activas</p>
+            <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mt-2">{stats.activePaid}</p>
           </div>
           <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800">
-            <p className="text-sm text-gray-500 dark:text-gray-400">MRR estimado</p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{formatARS(stats.mrr)}</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">MRR estimado</p>
+            <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mt-2">{formatARS(stats.mrr)}</p>
           </div>
           <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Total usuarios con cuota</p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{stats.total}</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Total usuarios con cuota</p>
+            <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mt-2">{stats.total}</p>
           </div>
         </div>
       )}
@@ -123,10 +123,10 @@ export default function SubscriptionsManager() {
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                 filter === f.id
                   ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-700'
+                  : 'border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800'
               }`}
             >
               {f.label}
@@ -138,13 +138,13 @@ export default function SubscriptionsManager() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Buscar por email o nombre..."
-          className="ml-auto px-3 py-2 rounded-xl border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+          className="ml-auto px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
         />
         <button
           onClick={load}
-          className="px-3 py-2 rounded-xl border border-gray-300 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 text-sm font-medium transition-colors"
+          className="px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 text-sm font-medium transition-colors"
         >
-          🔄 Actualizar
+          Actualizar
         </button>
       </div>
 
@@ -154,13 +154,13 @@ export default function SubscriptionsManager() {
           <table className="min-w-full divide-y divide-gray-200 dark:divide-neutral-800">
             <thead>
               <tr>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Usuario</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Producto</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Plan</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Uso</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Próx. renovación</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actualizado</th>
+                <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Usuario</th>
+                <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Producto</th>
+                <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Plan</th>
+                <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Estado</th>
+                <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Uso</th>
+                <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Próx. renovación</th>
+                <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Actualizado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-neutral-800">
@@ -171,7 +171,7 @@ export default function SubscriptionsManager() {
                     <div className="text-gray-500 dark:text-gray-400 text-xs">{s.email || s.uid}</div>
                   </td>
                   <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-300">
-                    {s.product === 'Analítica' ? '📊' : '🎯'} {s.product}
+                    {s.product}
                   </td>
                   <td className="px-5 py-3 text-sm text-gray-900 dark:text-white">
                     {s.planName}

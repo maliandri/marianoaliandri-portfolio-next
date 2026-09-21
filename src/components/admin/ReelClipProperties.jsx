@@ -9,21 +9,21 @@ import { MIN_CLIP_DURATION } from '../../utils/canvasReelService';
 export default function ReelClipProperties({ clip, onUpdateClip, isScrubbing, onResumePreview }) {
   if (!clip) {
     return (
-      <div className="text-xs text-gray-500 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-3 text-center">
+      <div className="text-xs text-gray-500 border border-dashed border-gray-200 dark:border-neutral-700 rounded-xl p-4 text-center">
         Elegí contenido para ver las propiedades del clip acá.
       </div>
     );
   }
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-3">
+    <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-          Clip seleccionado {clip.type === 'video' && <span className="text-purple-400">🎬</span>}
+        <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+          Clip seleccionado {clip.type === 'video' && <span className="text-indigo-600 dark:text-indigo-400 normal-case tracking-normal font-semibold">· video</span>}
         </p>
         {isScrubbing && (
-          <button onClick={onResumePreview} className="text-[10px] px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-full transition-colors shrink-0">
-            ▶ Reanudar
+          <button onClick={onResumePreview} className="text-[11px] px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-colors shrink-0">
+            Reanudar
           </button>
         )}
       </div>
@@ -34,13 +34,13 @@ export default function ReelClipProperties({ clip, onUpdateClip, isScrubbing, on
           value={clip.title || ''}
           onChange={(e) => onUpdateClip({ title: e.target.value, titleManuallyEdited: true })}
           placeholder="Título de este clip"
-          className="w-full text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5"
+          className="w-full text-xs rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5"
         />
         <input
           value={clip.subtitle || ''}
           onChange={(e) => onUpdateClip({ subtitle: e.target.value, titleManuallyEdited: true })}
           placeholder="Subtítulo de este clip (opcional)"
-          className="w-full text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5"
+          className="w-full text-xs rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5"
         />
       </div>
 
@@ -52,7 +52,7 @@ export default function ReelClipProperties({ clip, onUpdateClip, isScrubbing, on
             const v = parseFloat(e.target.value);
             if (!Number.isNaN(v)) onUpdateClip({ duration: Math.max(MIN_CLIP_DURATION, v) });
           }}
-          className="flex-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1"
+          className="flex-1 text-xs rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1"
         />
       </div>
 
@@ -62,7 +62,7 @@ export default function ReelClipProperties({ clip, onUpdateClip, isScrubbing, on
         <select
           value={clip.fontFamily || FONT_FAMILIES[0].css}
           onChange={(e) => onUpdateClip({ fontFamily: e.target.value })}
-          className="flex-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1"
+          className="flex-1 text-xs rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1"
         >
           {FONT_FAMILIES.map((f) => <option key={f.id} value={f.css}>{f.label}</option>)}
         </select>
@@ -74,7 +74,7 @@ export default function ReelClipProperties({ clip, onUpdateClip, isScrubbing, on
         <select
           value={clip.textEffect || 'slideup'}
           onChange={(e) => onUpdateClip({ textEffect: e.target.value })}
-          className="flex-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1"
+          className="flex-1 text-xs rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1"
         >
           {TEXT_EFFECTS.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
         </select>
@@ -85,7 +85,7 @@ export default function ReelClipProperties({ clip, onUpdateClip, isScrubbing, on
         <select
           value={clip.transitionIn || 'cut'}
           onChange={(e) => onUpdateClip({ transitionIn: e.target.value })}
-          className="flex-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1"
+          className="flex-1 text-xs rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1"
         >
           {CLIP_TRANSITIONS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
         </select>
@@ -95,7 +95,7 @@ export default function ReelClipProperties({ clip, onUpdateClip, isScrubbing, on
         <span className="text-[10px] text-gray-500 shrink-0 w-24">Tamaño texto</span>
         <input type="range" min="0.5" max="2" step="0.05" value={clip.textScale ?? 1}
           onChange={(e) => onUpdateClip({ textScale: parseFloat(e.target.value) })}
-          className="flex-1 accent-purple-500"
+          className="flex-1 accent-indigo-500"
         />
         <span className="text-[10px] text-gray-400 w-9 text-right">{(clip.textScale ?? 1).toFixed(2)}×</span>
       </div>

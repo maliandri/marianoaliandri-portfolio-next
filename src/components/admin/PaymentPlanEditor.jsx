@@ -42,9 +42,9 @@ export default function PaymentPlanEditor() {
       const d = await res.json();
       if (!res.ok || d.error) throw new Error(d.error || 'Error');
       setMilestones(sanitizePlan(d.plan).milestones);
-      setMsg('✓ Guardado');
+      setMsg('Guardado');
     } catch (e) {
-      setMsg('✕ ' + e.message);
+      setMsg('Error: ' + e.message);
     } finally {
       setSaving(false);
       setTimeout(() => setMsg(''), 3000);
@@ -54,10 +54,10 @@ export default function PaymentPlanEditor() {
   if (loading) return null;
 
   return (
-    <div className="mb-6 bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-gray-200 dark:border-neutral-800">
+    <div className="mb-6 bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800">
       <div className="flex items-center justify-between mb-1">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Plan de pago de la tienda</h3>
-        <span className={`text-sm font-semibold ${total === 100 ? 'text-green-600' : 'text-orange-500'}`}>
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Plan de pago de la tienda</h3>
+        <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${total === 100 ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'}`}>
           Suma: {total}%
         </span>
       </div>
@@ -74,7 +74,7 @@ export default function PaymentPlanEditor() {
               type="text"
               value={m.label}
               onChange={(e) => updateMilestone(i, 'label', e.target.value)}
-              className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm text-gray-900 dark:text-white"
+              className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm text-gray-900 dark:text-white"
               placeholder="Etiqueta"
             />
             <div className="flex items-center gap-1">
@@ -84,7 +84,7 @@ export default function PaymentPlanEditor() {
                 max="100"
                 value={m.pct}
                 onChange={(e) => updateMilestone(i, 'pct', Number(e.target.value))}
-                className="w-20 px-3 py-2 rounded-lg border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm text-gray-900 dark:text-white"
+                className="w-20 px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm text-gray-900 dark:text-white"
               />
               <span className="text-sm text-gray-500">%</span>
             </div>
@@ -94,7 +94,7 @@ export default function PaymentPlanEditor() {
               className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg disabled:opacity-30"
               title="Eliminar hito"
             >
-              ✕
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
             </button>
           </div>
         ))}
@@ -103,14 +103,14 @@ export default function PaymentPlanEditor() {
       <div className="flex items-center gap-3 mt-4">
         <button
           onClick={addMilestone}
-          className="px-3 py-2 text-sm border border-gray-300 dark:border-neutral-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800"
+          className="px-3 py-2 text-sm border border-gray-200 dark:border-neutral-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800"
         >
           + Agregar hito
         </button>
         <button
           onClick={save}
           disabled={saving}
-          className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 font-medium"
+          className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium"
         >
           {saving ? 'Guardando…' : 'Guardar plan'}
         </button>

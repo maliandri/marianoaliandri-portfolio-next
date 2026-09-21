@@ -68,12 +68,12 @@ function shortUrl(url) {
 function ScoreBadge({ score }) {
   if (score === null) return <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>;
   const cls = score >= 70
-    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+    ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400'
     : score >= 40
-    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+    ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
+    : 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400';
   return (
-    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${cls}`}>
+    <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold ${cls}`}>
       {score}
     </span>
   );
@@ -439,7 +439,7 @@ export default function LeadFinderPanel() {
       {!user && (
         <div className="flex items-center justify-between gap-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl px-4 py-3">
           <p className="text-sm text-amber-700 dark:text-amber-400">
-            ⚠️ Iniciá sesión con <strong>{ADMIN_EMAIL_HINT}</strong> para poder buscar — esta herramienta gasta cuota de Google, requiere cuenta admin registrada.
+            Iniciá sesión con <strong>{ADMIN_EMAIL_HINT}</strong> para poder buscar — esta herramienta gasta cuota de Google, requiere cuenta admin registrada.
           </p>
           <button onClick={login} className="shrink-0 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors">
             Iniciar sesión
@@ -448,9 +448,9 @@ export default function LeadFinderPanel() {
       )}
 
       {/* Config card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
         <div
-          className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750"
+          className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-neutral-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-800/40"
           onClick={() => setShowConfig(v => !v)}
         >
           <div className="flex items-center gap-3">
@@ -460,30 +460,30 @@ export default function LeadFinderPanel() {
               <span className={`text-xs font-medium ${phaseInfo.color}`}>{phaseInfo.text}</span>
             </div>
           </div>
-          <span className="text-gray-400 text-sm">{showConfig ? '▲' : '▼'} Config</span>
+          <span className="text-gray-400 text-sm">{showConfig ? 'Ocultar' : 'Mostrar'} config</span>
         </div>
 
         {showConfig && (
           <div className="p-6 space-y-5">
             {/* API Key */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Google Places API Key</label>
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Google Places API Key</label>
               <input
                 type="password"
                 value={config.apiKey}
                 onChange={e => setConfig(p => ({ ...p, apiKey: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 font-mono text-sm"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 font-mono text-sm"
                 placeholder="AIza... — o configura GOOGLE_PLACES_API_KEY en Vercel"
                 disabled={isRunning}
               />
               <p className="text-xs text-gray-400 mt-1">
-                Si <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">GOOGLE_PLACES_API_KEY</code> está en Vercel, este campo puede quedar vacío.
+                Si <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">GOOGLE_PLACES_API_KEY</code> está en Vercel, este campo puede quedar vacío.
               </p>
             </div>
 
             {/* Ciudades */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
                 Ciudades <span className="text-gray-400 font-normal">({config.ciudades.length} seleccionada{config.ciudades.length !== 1 ? 's' : ''})</span>
               </label>
 
@@ -491,11 +491,11 @@ export default function LeadFinderPanel() {
               {config.ciudades.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {config.ciudades.map(c => (
-                    <span key={c} className="flex items-center gap-1 px-2.5 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-xs">
-                      📍 {c}
+                    <span key={c} className="flex items-center gap-1 px-2.5 py-1 bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 rounded-full text-[11px] font-semibold">
+                      {c}
                       {!isRunning && (
                         <button onClick={() => setConfig(p => ({ ...p, ciudades: p.ciudades.filter(x => x !== c) }))}
-                          className="ml-0.5 text-purple-400 hover:text-red-500 transition-colors leading-none font-bold">×</button>
+                          className="ml-0.5 text-indigo-400 hover:text-red-500 transition-colors leading-none font-bold">×</button>
                       )}
                     </span>
                   ))}
@@ -514,7 +514,7 @@ export default function LeadFinderPanel() {
                   value={ciudadInput.split('||')[0] || ''}
                   onChange={e => setCiudadInput(e.target.value + '||')}
                   disabled={isRunning}
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 text-sm">
+                  className="flex-1 px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm">
                   <option value="">— Provincia —</option>
                   {PROVINCIAS_AR.map(p => (
                     <option key={p.provincia} value={p.provincia}>{p.provincia}</option>
@@ -525,7 +525,7 @@ export default function LeadFinderPanel() {
                   value={ciudadInput.split('||')[1] || ''}
                   onChange={e => setCiudadInput((ciudadInput.split('||')[0] || '') + '||' + e.target.value)}
                   disabled={isRunning || !ciudadInput.split('||')[0]}
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 text-sm disabled:opacity-40">
+                  className="flex-1 px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm disabled:opacity-40">
                   <option value="">— Localidad —</option>
                   {(PROVINCIAS_AR.find(p => p.provincia === ciudadInput.split('||')[0])?.localidades || []).map(l => (
                     <option key={l} value={l}>{l}</option>
@@ -539,7 +539,7 @@ export default function LeadFinderPanel() {
                     setCiudadInput('');
                   }}
                   disabled={isRunning || !ciudadInput.split('||')[1]?.trim()}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-40 text-sm font-medium transition-colors whitespace-nowrap">
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 text-sm font-medium transition-colors whitespace-nowrap">
                   + Agregar
                 </button>
               </div>
@@ -560,22 +560,22 @@ export default function LeadFinderPanel() {
                   }}
                   disabled={isRunning}
                   placeholder="O escribí una ciudad manualmente (Enter)…"
-                  className="flex-1 px-3 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-transparent text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-purple-500 text-xs placeholder-gray-400"
+                  className="flex-1 px-3 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-transparent text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-indigo-500 text-xs placeholder-gray-400"
                 />
               </div>
             </div>
 
             {/* Términos de búsqueda (texto libre en Google Maps) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
                 Términos de búsqueda <span className="text-gray-400 font-normal">(opcional — busca por texto en Maps)</span>
               </label>
 
               {config.terminos.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {config.terminos.map(t => (
-                    <span key={t} className="flex items-center gap-1 px-2.5 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-xs">
-                      🔎 {t}
+                    <span key={t} className="flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 rounded-full text-[11px] font-semibold">
+                      {t}
                       {!isRunning && (
                         <button onClick={() => setConfig(p => ({ ...p, terminos: p.terminos.filter(x => x !== t) }))}
                           className="ml-0.5 text-blue-400 hover:text-red-500 transition-colors leading-none font-bold">×</button>
@@ -604,7 +604,7 @@ export default function LeadFinderPanel() {
                   }}
                   disabled={isRunning}
                   placeholder='Ej: "gomería", "estudio contable", "café de especialidad"…'
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 text-sm placeholder-gray-400"
+                  className="flex-1 px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm placeholder-gray-400"
                 />
                 <button
                   onClick={() => {
@@ -613,7 +613,7 @@ export default function LeadFinderPanel() {
                     setTerminoInput('');
                   }}
                   disabled={isRunning || !terminoInput.trim()}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-40 text-sm font-medium transition-colors whitespace-nowrap">
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 text-sm font-medium transition-colors whitespace-nowrap">
                   + Agregar
                 </button>
               </div>
@@ -628,12 +628,12 @@ export default function LeadFinderPanel() {
                 { label: 'Máx. auditorías', key: 'maxAudit', type: 'number', min: 1, max: 500 },
               ].map(f => (
                 <div key={f.key}>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{f.label}</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">{f.label}</label>
                   <input
                     type={f.type}
                     value={config[f.key]}
                     onChange={e => setConfig(p => ({ ...p, [f.key]: f.type === 'number' ? parseInt(e.target.value) || 1 : e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 text-sm"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm"
                     placeholder={f.placeholder} min={f.min} max={f.max} disabled={isRunning}
                   />
                 </div>
@@ -650,7 +650,7 @@ export default function LeadFinderPanel() {
                   <div className="relative">
                     <input type="checkbox" className="sr-only peer" checked={config[t.key]}
                       onChange={e => setConfig(p => ({ ...p, [t.key]: e.target.checked }))} disabled={isRunning} />
-                    <div className="w-10 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-purple-600 transition-colors" />
+                    <div className="w-10 h-6 bg-gray-200 dark:bg-neutral-700 rounded-full peer peer-checked:bg-indigo-600 transition-colors" />
                     <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
                   </div>
                   <span className="text-sm text-gray-700 dark:text-gray-300">{t.label}</span>
@@ -661,7 +661,7 @@ export default function LeadFinderPanel() {
             {/* Tipos */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
                   Tipos de negocio <span className="text-gray-400">({config.tipos.length} seleccionados)</span>
                 </label>
                 <div className="flex gap-2">
@@ -670,7 +670,7 @@ export default function LeadFinderPanel() {
                     ['Default', () => setConfig(p => ({ ...p, tipos: DEFAULT_TIPOS }))],
                   ].map(([label, fn]) => (
                     <button key={label} onClick={fn} disabled={isRunning}
-                      className="text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-40">
+                      className="text-xs px-2.5 py-1 border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-40">
                       {label}
                     </button>
                   ))}
@@ -692,7 +692,7 @@ export default function LeadFinderPanel() {
                             : [...new Set([...p.tipos, ...ids])];
                           return { ...p, tipos };
                         })}
-                        className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1.5 hover:text-purple-500 disabled:hover:text-gray-400">
+                        className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1.5 hover:text-indigo-500 disabled:hover:text-gray-400">
                         {cat} <span className="font-normal">({allOn ? 'quitar' : 'todos'})</span>
                       </button>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
@@ -700,12 +700,12 @@ export default function LeadFinderPanel() {
                           const checked = config.tipos.includes(tipo.id);
                           return (
                             <label key={tipo.id} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs cursor-pointer select-none transition-colors
-                              ${checked ? 'border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300'
-                                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'}
+                              ${checked ? 'border-indigo-300 dark:border-indigo-500/40 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400'
+                                        : 'border-gray-200 dark:border-neutral-800 text-gray-600 dark:text-gray-400 hover:border-gray-300'}
                               ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}>
                               <input type="checkbox" checked={checked} disabled={isRunning}
                                 onChange={e => { if (isRunning) return; setConfig(p => ({ ...p, tipos: e.target.checked ? [...p.tipos, tipo.id] : p.tipos.filter(t => t !== tipo.id) })); }}
-                                className="accent-purple-600 w-3 h-3" />
+                                className="accent-indigo-600 w-3 h-3" />
                               {tipo.label}
                             </label>
                           );
@@ -720,34 +720,34 @@ export default function LeadFinderPanel() {
         )}
 
         {/* Action bar */}
-        <div className="flex flex-wrap items-center gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/30 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex flex-wrap items-center gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-800/40 border-t border-gray-200 dark:border-neutral-800">
           {!isRunning ? (
             <button onClick={startSearch} disabled={config.tipos.length === 0 && (config.terminos?.length || 0) === 0}
-              className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm disabled:opacity-50">
-              ▶ Iniciar Auditoría
+              className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-sm disabled:opacity-50">
+              Iniciar auditoría
             </button>
           ) : (
             <button onClick={stopSearch}
               className="px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm">
-              ⏹ Detener
+              Detener
             </button>
           )}
           {results.length > 0 && (
             <button onClick={exportCSV}
-              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm">
-              ⬇ Exportar CSV ({results.length})
+              className="px-5 py-2.5 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors font-semibold text-sm">
+              Exportar CSV ({results.length})
             </button>
           )}
           {results.length > 0 && !isRunning && !publishedUrl && (
             <button onClick={openPublishModal} disabled={publishing}
               className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-sm disabled:opacity-50">
-              🌐 Publicar Reporte
+              Publicar reporte
             </button>
           )}
           {publishedUrl && (
             <a href={publishedUrl} target="_blank" rel="noopener noreferrer"
               className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm">
-              ✓ Ver Reporte →
+              Ver reporte
             </a>
           )}
           {results.length > 0 && (
@@ -760,18 +760,18 @@ export default function LeadFinderPanel() {
 
       {/* Progress */}
       {(isRunning || (phase !== 'idle' && results.length > 0)) && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-lg">
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
           <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300 mb-1">
             <span>
-              {progress.ciudadActual && <span className="font-medium">📍 {progress.ciudadActual} · </span>}
+              {progress.ciudadActual && <span className="font-medium">{progress.ciudadActual} · </span>}
               Tipos: {progress.tiposDone}/{progress.tiposTotal}
               {progress.currentTipo ? ` — ${progress.currentTipo}` : ''}
               {' '}· {progress.negocios} con web auditados
             </span>
             <span>{searchPct}%</span>
           </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div className="bg-yellow-500 h-2 rounded-full transition-all duration-300" style={{ width: `${searchPct}%` }} />
+          <div className="w-full bg-gray-200 dark:bg-neutral-800 rounded-full h-2">
+            <div className="bg-indigo-500 h-2 rounded-full transition-all duration-300" style={{ width: `${searchPct}%` }} />
           </div>
         </div>
       )}
@@ -785,9 +785,9 @@ export default function LeadFinderPanel() {
             { value: lowSeoCount,       label: 'SEO Score bajo (< 50)',   color: 'text-red-600 dark:text-red-400' },
             { value: avgSeoScore ?? '—',label: 'Score SEO promedio',      color: 'text-yellow-600 dark:text-yellow-400' },
           ].map(stat => (
-            <div key={stat.label} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg text-center">
-              <div className={`text-3xl font-bold ${stat.color}`}>{stat.value}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{stat.label}</div>
+            <div key={stat.label} className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">{stat.label}</div>
+              <div className={`text-3xl font-extrabold tracking-tight mt-1 ${stat.color}`}>{stat.value}</div>
             </div>
           ))}
         </div>
@@ -795,19 +795,19 @@ export default function LeadFinderPanel() {
 
       {/* Results table */}
       {results.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
           {/* Filter bar */}
-          <div className="flex flex-wrap items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex flex-wrap items-center gap-3 p-4 border-b border-gray-200 dark:border-neutral-800">
             <span className="text-sm font-semibold text-gray-900 dark:text-white">
               {filteredResults.length}/{results.length} resultados
             </span>
             <select value={filterTipo} onChange={e => setFilterTipo(e.target.value)}
-              className="px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-purple-500">
+              className="px-2.5 py-1.5 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500">
               <option value="">Todos los tipos</option>
               {tiposEnResultados.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <label className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
-              <input type="checkbox" checked={filterEmail} onChange={e => setFilterEmail(e.target.checked)} className="accent-purple-600" />
+              <input type="checkbox" checked={filterEmail} onChange={e => setFilterEmail(e.target.checked)} className="accent-indigo-600" />
               Con email
             </label>
             <label className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
@@ -816,32 +816,32 @@ export default function LeadFinderPanel() {
             </label>
             <input type="text" value={filterText} onChange={e => setFilterText(e.target.value)}
               placeholder="Buscar nombre..."
-              className="px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-purple-500 w-40" />
+              className="px-2.5 py-1.5 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 w-40" />
             <button onClick={exportCSV}
-              className="ml-auto px-4 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
-              ⬇ CSV
+              className="ml-auto px-4 py-1.5 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors text-sm font-medium">
+              Descargar CSV
             </button>
           </div>
 
           {/* Table */}
           <div className="overflow-x-auto" style={{ maxHeight: '540px', overflowY: 'auto' }}>
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-neutral-800 text-sm">
+              <thead className="bg-gray-50 dark:bg-gray-800/40 sticky top-0 z-10">
                 <tr>
                   {['Nombre','Ciudad','Tipo','Dirección','Teléfono','Email','Sitio web','SEO','Sitemap','Robots','Meta','OG','Actualizado','★',''].map(h => (
-                    <th key={h} className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+              <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
                 {filteredResults.map(neg => (
-                  <tr key={neg.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                  <tr key={neg.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800/40 transition-colors">
                     <td className="px-3 py-2.5 max-w-[150px]">
                       <div className="font-medium text-gray-900 dark:text-white truncate" title={neg.nombre}>{neg.nombre}</div>
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">{neg.ciudad || '—'}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
-                      <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs">{neg.tipo}</span>
+                      <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 rounded-full text-[11px] font-semibold">{neg.tipo}</span>
                     </td>
                     <td className="px-3 py-2.5 max-w-[180px]">
                       <div className="text-gray-600 dark:text-gray-400 truncate text-xs" title={neg.direccion}>{neg.direccion || '—'}</div>
@@ -850,7 +850,7 @@ export default function LeadFinderPanel() {
                       {neg.telefono ? (
                         <div className="flex items-center gap-1">
                           <span className="text-gray-600 dark:text-gray-400 font-mono text-xs">{neg.telefono}</span>
-                          <button onClick={() => navigator.clipboard.writeText(neg.telefono)} className="text-gray-300 hover:text-gray-500 text-xs" title="Copiar">📋</button>
+                          <button onClick={() => navigator.clipboard.writeText(neg.telefono)} className="text-gray-300 hover:text-gray-500 text-xs" title="Copiar">Copiar</button>
                         </div>
                       ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
                     </td>
@@ -858,7 +858,7 @@ export default function LeadFinderPanel() {
                       {neg.email ? (
                         <div className="flex items-center gap-1">
                           <span className="text-green-600 dark:text-green-400 text-xs truncate" title={neg.email}>{neg.email}</span>
-                          <button onClick={() => navigator.clipboard.writeText(neg.email)} className="text-gray-300 hover:text-gray-500 text-xs flex-shrink-0" title="Copiar">📋</button>
+                          <button onClick={() => navigator.clipboard.writeText(neg.email)} className="text-gray-300 hover:text-gray-500 text-xs flex-shrink-0" title="Copiar">Copiar</button>
                         </div>
                       ) : <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>}
                     </td>
@@ -917,7 +917,7 @@ export default function LeadFinderPanel() {
 
       {/* Log */}
       {logs.length > 0 && (
-        <div className="bg-gray-950 rounded-xl shadow-lg overflow-hidden">
+        <div className="bg-gray-950 border border-neutral-800 rounded-2xl overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800">
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Log</span>
             <button onClick={() => setLogs([])} className="text-xs text-gray-600 hover:text-gray-400 transition-colors">Limpiar</button>
@@ -940,36 +940,36 @@ export default function LeadFinderPanel() {
       {/* Modal de pre-publicación: título + descripción editables */}
       {pubModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !publishing && setPubModal(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Publicar auditoría</h3>
             <p className="text-xs text-gray-500 mb-4">Revisá el título y la descripción antes de publicar. Los podés editar.</p>
 
-            <label className="block text-xs font-medium text-gray-500 mb-1">Título</label>
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Título</label>
             <input
               value={pubTitle}
               onChange={e => setPubTitle(e.target.value)}
               disabled={publishing}
-              className="w-full mb-4 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full mb-4 px-3 py-2 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-neutral-700 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
 
-            <label className="block text-xs font-medium text-gray-500 mb-1">Descripción del reporte</label>
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Descripción del reporte</label>
             <textarea
               value={pubDesc}
               onChange={e => setPubDesc(e.target.value)}
               rows={6}
               disabled={publishing}
-              className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-neutral-700 rounded-lg text-gray-700 dark:text-gray-200 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <p className="text-[11px] text-gray-400 mt-1">Se muestra como “Análisis” en la página pública del reporte.</p>
 
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => setPubModal(false)} disabled={publishing}
-                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-40">
+                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg transition-colors disabled:opacity-40">
                 Cancelar
               </button>
               <button onClick={confirmPublish} disabled={publishing || !pubTitle.trim()}
                 className="px-5 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50">
-                {publishing ? '⏳ Publicando…' : '🌐 Publicar'}
+                {publishing ? 'Publicando…' : 'Publicar'}
               </button>
             </div>
           </div>

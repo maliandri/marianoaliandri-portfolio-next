@@ -2,10 +2,10 @@
 import React, { useRef, useState } from 'react';
 
 const CATEGORIES = [
-  { id: 'producto',    label: '🛍️ Producto' },
-  { id: 'tecnologia',  label: '⚙️ Tecnología' },
-  { id: 'proyecto',    label: '📊 Proyecto' },
-  { id: 'herramienta', label: '🧰 Herramientas' },
+  { id: 'producto',    label: 'Producto' },
+  { id: 'tecnologia',  label: 'Tecnología' },
+  { id: 'proyecto',    label: 'Proyecto' },
+  { id: 'herramienta', label: 'Herramientas' },
 ];
 
 // Selector de contenido para el generador de reels — mezcla libre entre
@@ -44,16 +44,16 @@ export default function ReelContentPicker({
       <div className="flex gap-2 flex-wrap">
         {CATEGORIES.map((c) => (
           <button key={c.id} onClick={() => onActiveCategoryChange(c.id)}
-            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               activeCategory === c.id
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >{c.label}</button>
         ))}
       </div>
 
-      <div className="max-h-48 overflow-y-auto space-y-1 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+      <div className="max-h-48 overflow-y-auto space-y-1 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-neutral-800 rounded-xl p-2">
         {activeCategory === 'producto' && products.length === 0 && (
           <p className="text-xs text-gray-400 p-2">Sin productos disponibles.</p>
         )}
@@ -67,10 +67,10 @@ export default function ReelContentPicker({
                 mediaUrl: p.image, name: p.name, subtitleHint: '',
                 raw: { ...p, type: 'producto' },
               })}
-              className={`w-full text-left px-3 py-2 rounded text-sm transition-colors flex items-center gap-2 disabled:opacity-40 ${
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 disabled:opacity-40 ${
                 checked
-                  ? 'bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-800 dark:text-indigo-300'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
               }`}
             ><span>{checked ? '☑' : '☐'}</span>{p.name}</button>
           );
@@ -86,10 +86,10 @@ export default function ReelContentPicker({
                 mediaUrl: t.imageUrl, name: t.name, subtitleHint: t.category,
                 raw: { ...t, type: 'tecnologia' },
               })}
-              className={`w-full text-left px-3 py-2 rounded text-sm transition-colors flex items-center gap-2 disabled:opacity-40 ${
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 disabled:opacity-40 ${
                 checked
-                  ? 'bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-800 dark:text-indigo-300'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
               }`}
             ><span>{checked ? '☑' : '☐'}</span>{t.name} <span className="text-gray-400">— {t.category}</span></button>
           );
@@ -108,10 +108,10 @@ export default function ReelContentPicker({
                 mediaUrl: p.screenshotUrl, name: p.domain, subtitleHint: '',
                 raw: { ...p, id: p.domain, name: p.domain, type: 'proyecto' },
               })}
-              className={`w-full text-left px-3 py-2 rounded text-sm transition-colors flex items-center gap-2 disabled:opacity-40 ${
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 disabled:opacity-40 ${
                 checked
-                  ? 'bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-800 dark:text-indigo-300'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
               }`}
             ><span>{checked ? '☑' : '☐'}</span>{p.domain}</button>
           );
@@ -129,10 +129,10 @@ export default function ReelContentPicker({
                 name: tool.label, subtitleHint: tool.desc,
                 raw: { ...tool, type: 'herramienta' },
               })}
-              className={`w-full text-left px-3 py-2 rounded text-sm transition-colors flex items-center gap-2 disabled:opacity-40 ${
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 disabled:opacity-40 ${
                 checked
-                  ? 'bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-800 dark:text-indigo-300'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
               }`}
             ><span>{checked ? '☑' : '☐'}</span>{tool.icon} {tool.label} <span className="text-gray-400">— {tool.desc}</span></button>
           );
@@ -143,13 +143,13 @@ export default function ReelContentPicker({
         <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageFile} />
         <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoFile} />
         <button onClick={() => imageInputRef.current?.click()} disabled={trayFull || uploadingMedia}
-          className="flex-1 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-40"
-        >{uploadingMedia === 'image' ? 'Subiendo…' : '🖼️ Subir imagen'}</button>
+          className="flex-1 py-2 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-40"
+        >{uploadingMedia === 'image' ? 'Subiendo…' : 'Subir imagen'}</button>
         <button onClick={() => videoInputRef.current?.click()} disabled={trayFull || uploadingMedia}
-          className="flex-1 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-40"
-        >{uploadingMedia === 'video' ? 'Subiendo…' : '🎬 Subir video'}</button>
+          className="flex-1 py-2 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-40"
+        >{uploadingMedia === 'video' ? 'Subiendo…' : 'Subir video'}</button>
       </div>
-      {trayFull && <p className="text-[10px] text-amber-500">Máximo {maxItems} items en el reel — sacá uno para agregar otro.</p>}
+      {trayFull && <p className="text-[11px] text-amber-600 dark:text-amber-400">Máximo {maxItems} items en el reel — sacá uno para agregar otro.</p>}
     </div>
   );
 }

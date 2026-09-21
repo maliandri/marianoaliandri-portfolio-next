@@ -118,18 +118,18 @@ export default function NavConfigEditor() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Configurar Interfaz</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Configurar interfaz</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Renombrá secciones/items, reordená, y movéalos de sección. Cambia el menú de {isClient ? 'los clientes logueados' : 'este panel admin'}.
           </p>
         </div>
-        <div className="flex items-center bg-gray-100 dark:bg-neutral-800 rounded-xl p-1">
-          {[['admin', '🔐 Admin'], ['client', '👤 Cliente']].map(([t, label]) => (
+        <div className="flex items-center bg-gray-50 dark:bg-gray-800/40 rounded-xl p-1">
+          {[['admin', 'Admin'], ['client', 'Cliente']].map(([t, label]) => (
             <button
               key={t}
               onClick={() => setTree(t)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                tree === t ? 'bg-indigo-600 text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                tree === t ? 'bg-indigo-600 text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
             >
               {label}
@@ -139,23 +139,23 @@ export default function NavConfigEditor() {
       </div>
 
       {msg && (
-        <div className={`px-4 py-2.5 rounded-xl text-sm ${msg.type === 'ok' ? 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'}`}>
+        <div className={`px-4 py-2.5 rounded-xl text-sm font-medium ${msg.type === 'ok' ? 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'}`}>
           {msg.text}
         </div>
       )}
 
       <div className="space-y-3">
         {sections.map((section, sIdx) => (
-          <div key={section.id} className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-4">
+          <div key={section.id} className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-5">
             <div className="flex items-center gap-2 mb-3">
               <input value={section.icon} onChange={e => updateSection(sIdx, { icon: e.target.value })}
                 className="w-12 text-center rounded-lg border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-sm" />
               <input value={section.label} onChange={e => updateSection(sIdx, { label: e.target.value })}
                 className="flex-1 rounded-lg border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-1.5 text-sm font-semibold" />
-              <span className="text-[10px] text-gray-400 uppercase tracking-wide px-1">Nivel 1</span>
+              <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1">Nivel 1</span>
               <button onClick={() => moveSection(sIdx, -1)} disabled={sIdx === 0} className="px-2 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-500 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-neutral-800">↑</button>
               <button onClick={() => moveSection(sIdx, 1)} disabled={sIdx === sections.length - 1} className="px-2 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-500 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-neutral-800">↓</button>
-              <button onClick={() => deleteSection(sIdx)} className="px-2 py-1.5 rounded-lg border border-red-200 dark:border-red-500/30 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">🗑️</button>
+              <button onClick={() => deleteSection(sIdx)} className="px-2 py-1.5 rounded-lg border border-red-200 dark:border-red-500/30 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 text-xs font-medium">Eliminar</button>
             </div>
 
             <div className="space-y-2 pl-4 border-l-2 border-gray-100 dark:border-neutral-800">
@@ -171,7 +171,7 @@ export default function NavConfigEditor() {
                         placeholder="/ruta"
                         className="w-40 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-500 dark:text-gray-400 px-2.5 py-1 text-xs font-mono" />
                     )}
-                    <span className="text-[10px] text-gray-400 uppercase tracking-wide px-1 shrink-0">Nivel 2</span>
+                    <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1 shrink-0">Nivel 2</span>
                     <select
                       value={sIdx}
                       onChange={e => moveItemToSection(sIdx, iIdx, Number(e.target.value))}
@@ -188,7 +188,7 @@ export default function NavConfigEditor() {
                     <div className="mt-1.5 mb-1 pl-8 space-y-1.5">
                       {item.children.map((child, cIdx) => (
                         <div key={child.id} className="flex items-center gap-2">
-                          <span className="text-[10px] text-gray-400 uppercase tracking-wide w-14 shrink-0">Nivel 3</span>
+                          <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest w-14 shrink-0">Nivel 3</span>
                           <input value={child.label} onChange={e => updateChild(sIdx, iIdx, cIdx, { label: e.target.value })}
                             className="flex-1 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50/60 dark:bg-neutral-800/60 text-gray-700 dark:text-gray-300 px-2.5 py-1 text-xs" />
                         </div>
@@ -213,7 +213,7 @@ export default function NavConfigEditor() {
           placeholder="Nombre de la nueva sección..."
           className="flex-1 rounded-lg border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm"
         />
-        <button onClick={addSection} className="px-4 py-2 bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-neutral-700">
+        <button onClick={addSection} className="px-4 py-2 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-neutral-800">
           + Sección
         </button>
       </div>
@@ -222,7 +222,7 @@ export default function NavConfigEditor() {
         <button onClick={restoreDefault} className="text-xs text-gray-500 hover:text-red-500 transition-colors">
           Restaurar estructura por defecto
         </button>
-        <button onClick={save} disabled={saving} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors">
+        <button onClick={save} disabled={saving} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors">
           {saving ? 'Guardando...' : 'Guardar cambios'}
         </button>
       </div>

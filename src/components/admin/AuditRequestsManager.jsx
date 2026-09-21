@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 
 const STATUS_CONFIG = {
-  pending:     { label: 'Pendiente',   color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700' },
-  in_progress: { label: 'En proceso',  color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-700' },
-  done:        { label: 'Completada',  color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-700' },
-  rejected:    { label: 'Descartada', color: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700' },
+  pending:     { label: 'Pendiente',   color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border-transparent' },
+  in_progress: { label: 'En proceso',  color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border-transparent' },
+  done:        { label: 'Completada',  color: 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400 border-transparent' },
+  rejected:    { label: 'Descartada', color: 'bg-gray-100 text-gray-600 dark:bg-gray-500/10 dark:text-gray-400 border-transparent' },
 };
 
 function formatDate(iso) {
@@ -17,7 +17,7 @@ function formatDate(iso) {
 function StatusBadge({ status }) {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.color}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${cfg.color}`}>
       {cfg.label}
     </span>
   );
@@ -33,7 +33,7 @@ function RequestRow({ req, onStatusChange, onExpand, expanded }) {
   };
 
   const waUrl = `https://wa.me/${req.telefono?.replace(/\D/g, '')}?text=${encodeURIComponent(
-    `Hola ${req.nombre?.split(' ')[0]}, te contactamos por tu solicitud de auditoría SEO para "${req.searchTerm}" en ${req.localidad}, ${req.provincia}. 🔍`
+    `Hola ${req.nombre?.split(' ')[0]}, te contactamos por tu solicitud de auditoría SEO para "${req.searchTerm}" en ${req.localidad}, ${req.provincia}. `
   )}`;
 
   return (
@@ -55,7 +55,7 @@ function RequestRow({ req, onStatusChange, onExpand, expanded }) {
         <td className="px-4 py-3">
           <StatusBadge status={req.status} />
         </td>
-        <td className="px-4 py-3 text-gray-400 text-xs">{expanded ? '▲' : '▼'}</td>
+        <td className="px-4 py-3 text-gray-400 text-xs">{expanded ? 'Cerrar' : 'Ver'}</td>
       </tr>
 
       {expanded && (
@@ -64,7 +64,7 @@ function RequestRow({ req, onStatusChange, onExpand, expanded }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Datos completos */}
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wider mb-2">Datos de contacto</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Datos de contacto</p>
                 <Field label="Nombre"   value={req.nombre} />
                 <Field label="Email"    value={req.email} copyable />
                 <Field label="Teléfono" value={req.telefono} copyable />
@@ -76,24 +76,24 @@ function RequestRow({ req, onStatusChange, onExpand, expanded }) {
 
               {/* Acciones */}
               <div className="space-y-3">
-                <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wider mb-2">Acciones</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Acciones</p>
 
                 {/* WhatsApp */}
                 <a
                   href={waUrl} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 w-full bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors"
+                  className="flex items-center gap-2 w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
                   onClick={e => e.stopPropagation()}
                 >
-                  <span>💬</span> Contactar por WhatsApp
+                  Contactar por WhatsApp
                 </a>
 
                 {/* Email */}
                 <a
                   href={`mailto:${req.email}?subject=Tu solicitud de auditoría SEO — ${req.searchTerm}&body=Hola ${req.nombre?.split(' ')[0]},`}
-                  className="flex items-center gap-2 w-full bg-indigo-600/15 hover:bg-indigo-600/25 border border-indigo-500/30 text-indigo-300 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors"
+                  className="flex items-center gap-2 w-full border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
                   onClick={e => e.stopPropagation()}
                 >
-                  <span>✉️</span> Enviar email
+                  Enviar email
                 </a>
 
                 {/* Cambiar estado */}
@@ -108,7 +108,7 @@ function RequestRow({ req, onStatusChange, onExpand, expanded }) {
                         className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors disabled:opacity-40 ${
                           req.status === key
                             ? cfg.color + ' cursor-default'
-                            : 'bg-white dark:bg-neutral-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-indigo-400'
+                            : 'bg-white dark:bg-neutral-900 border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:border-indigo-400'
                         }`}
                       >
                         {cfg.label}
@@ -190,23 +190,33 @@ export default function AuditRequestsManager() {
   }, {});
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">🔍 Solicitudes de auditoría SEO</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">🔍 Solicitudes de auditoría SEO</h2>
           <p className="text-sm text-gray-500 mt-0.5">{requests.length} solicitudes en total</p>
         </div>
-        <button onClick={load} className="text-sm text-indigo-500 hover:text-indigo-400 transition-colors">
-          ↻ Actualizar
+        <button onClick={load} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">
+          Actualizar
         </button>
+      </div>
+
+      {/* Resumen */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+          <div key={key} className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">{cfg.label}</p>
+            <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mt-1">{counts[key] || 0}</p>
+          </div>
+        ))}
       </div>
 
       {/* Filtros por estado */}
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setFilter('all')}
-          className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${filter === 'all' ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-indigo-400'}`}
+          className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${filter === 'all' ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:border-indigo-400'}`}
         >
           Todas ({requests.length})
         </button>
@@ -230,20 +240,19 @@ export default function AuditRequestsManager() {
         <p className="text-red-400 text-sm">{error}</p>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
-          <p className="text-3xl mb-3">📭</p>
-          <p className="text-sm">{filter === 'all' ? 'No hay solicitudes todavía.' : 'No hay solicitudes con este estado.'}</p>
+                    <p className="text-sm">{filter === 'all' ? 'No hay solicitudes todavía.' : 'No hay solicitudes con este estado.'}</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-          <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800 text-sm">
-            <thead className="bg-gray-50 dark:bg-neutral-800/60">
+        <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-neutral-800">
+          <table className="min-w-full divide-y divide-gray-100 dark:divide-neutral-800 text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-800/40">
               <tr>
                 {['Fecha', 'Contacto', 'Teléfono', 'Rubro / Ciudad', 'Estado', ''].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-neutral-900">
+            <tbody className="divide-y divide-gray-100 dark:divide-neutral-800 bg-white dark:bg-neutral-900">
               {filtered.map(req => (
                 <RequestRow
                   key={req.id}

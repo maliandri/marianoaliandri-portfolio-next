@@ -36,10 +36,10 @@ export default function LeadFinderUsagePanel() {
   return (
     <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-5 mb-4">
       <div className="flex items-center justify-between mb-1">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Uso de Google Places — hoy</h3>
-        <span className="text-[11px] text-gray-400">contador propio — Google no expone esta cuota por API</span>
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Uso de Google Places — hoy</h3>
+        <span className="text-[11px] text-gray-500 dark:text-gray-400">contador propio — Google no expone esta cuota por API</span>
       </div>
-      <p className="text-xs text-gray-500 mb-4">{today?.date} · {today?.cacheHits || 0} auditorías servidas gratis desde caché</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{today?.date} · {today?.cacheHits || 0} auditorías servidas gratis desde caché</p>
 
       <div className="space-y-4">
         {metrics.map(m => {
@@ -50,7 +50,7 @@ export default function LeadFinderUsagePanel() {
             <div key={m.key}>
               <div className="flex items-center justify-between text-xs mb-1">
                 <span className="text-gray-700 dark:text-gray-300 font-medium">{m.label} {m.note && <span className="text-gray-400 font-normal">({m.note})</span>}</span>
-                <span className={`font-mono font-semibold ${over90 ? 'text-red-500' : 'text-gray-500'}`}>{used}/{cap}</span>
+                <span className={`font-mono font-bold ${over90 ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>{used}/{cap}</span>
               </div>
               <Bar used={used} cap={cap} color={over90 ? '#ef4444' : m.color} />
             </div>
@@ -59,7 +59,7 @@ export default function LeadFinderUsagePanel() {
       </div>
 
       <div className="mt-5 pt-4 border-t border-gray-100 dark:border-neutral-800">
-        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Últimos 7 días — getPlaceRequest</p>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Últimos 7 días — getPlaceRequest</p>
         <div className="flex items-end gap-1.5 h-16">
           {days.map(d => {
             const cap = caps.getPlaceRequests;

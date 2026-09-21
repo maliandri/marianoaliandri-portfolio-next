@@ -52,8 +52,8 @@ export default function BenefitsEditor() {
       if (!res.ok) throw new Error('Error');
       setDbBenefits(prev => ({ ...prev, [svc.id]: benefit }));
       setDrafts(prev => { const n = { ...prev }; delete n[svc.id]; return n; });
-      flash(svc.id, '✓ Guardado');
-    } catch { flash(svc.id, '✗ Error', false); }
+      flash(svc.id, 'Guardado');
+    } catch { flash(svc.id, 'Error', false); }
     finally { setSavingId(null); }
   };
 
@@ -101,7 +101,7 @@ export default function BenefitsEditor() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">📋 Catálogo de servicios</h2>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Catálogo de servicios</h2>
           <p className="text-xs text-gray-500 mt-0.5">
             {totalServices} servicios · valor total catálogo{' '}
             <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
@@ -119,7 +119,7 @@ export default function BenefitsEditor() {
             placeholder="Buscar servicio..."
             value={search}
             onChange={e => { setSearch(e.target.value); if (e.target.value) expandAll(); }}
-            className="w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500"
+            className="w-48 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500"
           />
         </div>
       </div>
@@ -133,7 +133,7 @@ export default function BenefitsEditor() {
           const catValue     = cat.items.reduce((sum, s) => sum + (s.price || 0), 0);
 
           return (
-            <div key={cat.category} className="border border-gray-200 dark:border-gray-700/60 rounded-xl overflow-hidden">
+            <div key={cat.category} className="border border-gray-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
 
               {/* Category header */}
               <button
@@ -210,7 +210,7 @@ export default function BenefitsEditor() {
                             {/* Precio */}
                             <td className="px-3 py-3 align-top text-right">
                               <span className={`text-sm font-semibold tabular-nums ${
-                                svc.price >= 1000 ? 'text-violet-500 dark:text-violet-400' :
+                                svc.price >= 1000 ? 'text-indigo-600 dark:text-indigo-400' :
                                 svc.price >= 300  ? 'text-emerald-600 dark:text-emerald-400' :
                                                     'text-teal-500 dark:text-teal-400'
                               }`}>
@@ -247,7 +247,7 @@ export default function BenefitsEditor() {
                                           : 'text-gray-300 dark:text-gray-600 cursor-default'
                                       } disabled:opacity-50`}
                                     >
-                                      {saving ? '...' : dirty ? '💾 Guardar' : 'Guardado'}
+                                      {saving ? '...' : dirty ? 'Guardar' : 'Guardado'}
                                     </button>
                                     {custom && (
                                       <button

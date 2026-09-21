@@ -269,7 +269,7 @@ export default function NoticiasBotManager() {
     return (
       <div className="flex items-center justify-between gap-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl px-4 py-3">
         <p className="text-sm text-amber-700 dark:text-amber-400">
-          ⚠️ Iniciá sesión con <strong>{ADMIN_EMAIL_HINT}</strong> para administrar el bot de noticias.
+          Iniciá sesión con <strong>{ADMIN_EMAIL_HINT}</strong> para administrar el bot de noticias.
         </p>
         <button onClick={login} className="shrink-0 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors">
           Iniciar sesión con Google

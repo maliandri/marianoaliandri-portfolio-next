@@ -43,11 +43,11 @@ const LABS_TOOLS = [
 ];
 
 const POST_TYPES = [
-  { id: 'launch',   label: '🚀 Lanzamiento',       desc: 'Anuncio oficial de la herramienta' },
-  { id: 'features', label: '✨ Características',    desc: 'Destacar funcionalidades clave' },
-  { id: 'howto',    label: '📖 Cómo usarla',        desc: 'Guía rápida de uso paso a paso' },
-  { id: 'whyuse',   label: '💡 Por qué usarla',     desc: 'Problema que resuelve + beneficios' },
-  { id: 'update',   label: '🔄 Update / Novedad',   desc: 'Nueva versión o mejora reciente' },
+  { id: 'launch',   label: 'Lanzamiento',       desc: 'Anuncio oficial de la herramienta' },
+  { id: 'features', label: 'Características',    desc: 'Destacar funcionalidades clave' },
+  { id: 'howto',    label: 'Cómo usarla',        desc: 'Guía rápida de uso paso a paso' },
+  { id: 'whyuse',   label: 'Por qué usarla',     desc: 'Problema que resuelve + beneficios' },
+  { id: 'update',   label: 'Update / Novedad',   desc: 'Nueva versión o mejora reciente' },
 ];
 
 const REDES = [
@@ -225,18 +225,18 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
     >
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-          🧪 Publicar Labs
+        <h2 className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
+          Publicar Labs
         </h2>
-        <p className="text-gray-400 text-sm mt-1">
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
           Elegí la herramienta y el tipo de post — Gemini redacta y Make.com publica
         </p>
       </div>
 
       {/* 1. Herramienta */}
-      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-        <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-          <span className="bg-teal-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">1</span>
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
+          <span className="bg-indigo-600 text-white text-[11px] rounded-full w-5 h-5 flex items-center justify-center font-bold">1</span>
           Herramienta
         </h3>
         <div className="space-y-2">
@@ -246,28 +246,28 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
               onClick={() => setSelectedTool(t.id)}
               className={`w-full text-left px-4 py-3 rounded-xl border transition-all flex items-center gap-4 ${
                 selectedTool === t.id
-                  ? 'border-teal-500 bg-teal-500/10'
-                  : 'border-gray-600 bg-gray-700/50 hover:border-gray-500'
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10'
+                  : 'border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-gray-800/40 hover:border-gray-300 dark:hover:border-gray-500'
               }`}
             >
               {/* Icon */}
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-2xl flex-shrink-0 shadow">
+              <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-500/10 flex items-center justify-center text-2xl flex-shrink-0">
                 {t.emoji}
               </div>
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className={`font-semibold text-sm ${selectedTool === t.id ? 'text-teal-300' : 'text-white'}`}>
+                <p className={`font-semibold text-sm ${selectedTool === t.id ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-900 dark:text-white'}`}>
                   {t.name}
                 </p>
-                <p className="text-xs text-gray-400 mt-0.5 truncate">{t.description}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{t.description}</p>
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-900/50 text-emerald-400 border border-emerald-700/50">v{t.version}</span>
-                  <span className="text-xs px-1.5 py-0.5 rounded bg-blue-900/50 text-blue-400 border border-blue-700/50">{t.platform}</span>
-                  <span className="text-xs px-1.5 py-0.5 rounded bg-orange-900/50 text-orange-400 border border-orange-700/50">{t.price}</span>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400">v{t.version}</span>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">{t.platform}</span>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">{t.price}</span>
                 </div>
               </div>
               {selectedTool === t.id && (
-                <span className="text-teal-400 text-lg flex-shrink-0">✓</span>
+                <span className="text-indigo-600 dark:text-indigo-400 text-lg flex-shrink-0">✓</span>
               )}
             </button>
           ))}
@@ -275,9 +275,9 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
       </div>
 
       {/* 2. Tipo de post */}
-      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-        <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-          <span className="bg-teal-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">2</span>
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
+          <span className="bg-indigo-600 text-white text-[11px] rounded-full w-5 h-5 flex items-center justify-center font-bold">2</span>
           Tipo de post
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -287,21 +287,21 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
               onClick={() => setSelectedPost(p.id)}
               className={`text-left px-4 py-3 rounded-lg border text-sm transition-all ${
                 selectedPost === p.id
-                  ? 'border-teal-500 bg-teal-500/10 text-white'
-                  : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-gray-500 hover:bg-gray-700'
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-gray-900 dark:text-white'
+                  : 'border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-gray-800/40 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500'
               }`}
             >
               <p className="font-semibold">{p.label}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{p.desc}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{p.desc}</p>
             </button>
           ))}
         </div>
       </div>
 
       {/* 3. Red Social */}
-      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-        <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-          <span className="bg-teal-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">3</span>
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
+          <span className="bg-indigo-600 text-white text-[11px] rounded-full w-5 h-5 flex items-center justify-center font-bold">3</span>
           Red Social
         </h3>
         <div className="flex gap-2 flex-wrap">
@@ -315,10 +315,9 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
               className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
                 selectedRed === r.id
                   ? 'text-white shadow-lg'
-                  : 'border-gray-600 text-gray-300 bg-gray-700/50 hover:border-gray-500'
+                  : 'border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/40 hover:border-gray-300 dark:hover:border-gray-500'
               }`}
             >
-              <span>{r.icon}</span>
               {r.label}
             </motion.button>
           ))}
@@ -326,9 +325,9 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
       </div>
 
       {/* 4. Tono */}
-      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-        <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-          <span className="bg-teal-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">4</span>
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
+          <span className="bg-indigo-600 text-white text-[11px] rounded-full w-5 h-5 flex items-center justify-center font-bold">4</span>
           Tono
         </h3>
         <div className="flex gap-2 flex-wrap">
@@ -338,8 +337,8 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
               onClick={() => setSelectedTono(t.id)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 selectedTono === t.id
-                  ? 'bg-teal-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               {t.label}
@@ -349,9 +348,9 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
       </div>
 
       {/* 5. Imagen */}
-      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-        <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-          <span className="bg-teal-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">5</span>
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
+          <span className="bg-indigo-600 text-white text-[11px] rounded-full w-5 h-5 flex items-center justify-center font-bold">5</span>
           Imagen del post
         </h3>
 
@@ -363,7 +362,7 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="mb-3 bg-gray-900 rounded-xl overflow-hidden border border-gray-700"
+              className="mb-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl overflow-hidden border border-gray-200 dark:border-neutral-800"
             >
               <img
                 src={imageUrl}
@@ -383,7 +382,7 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
             disabled={capturing || uploading}
             whileHover={capturing || uploading ? {} : { scale: 1.02 }}
             whileTap={capturing || uploading ? {} : { scale: 0.98 }}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-teal-700 hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-all"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-all"
           >
             {capturing ? (
               <>
@@ -392,15 +391,15 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
                 Capturando...
               </>
             ) : (
-              <>📸 Screenshot de /labs</>
+              <>Screenshot de /labs</>
             )}
           </motion.button>
 
           {/* Subir desde PC */}
           <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all
             ${uploading
-              ? 'bg-gray-700 opacity-50 cursor-not-allowed'
-              : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
+              ? 'bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed'
+              : 'border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
           >
             {uploading ? (
               <>
@@ -409,7 +408,7 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
                 Subiendo...
               </>
             ) : (
-              <>🖼️ Subir desde PC</>
+              <>Subir desde PC</>
             )}
             <input
               type="file"
@@ -422,7 +421,7 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
         </div>
 
         {captureMsg && (
-          <p className={`text-xs mb-3 ${captureMsg.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>
+          <p className={`text-xs mb-3 ${captureMsg.startsWith('✅') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
             {captureMsg}
           </p>
         )}
@@ -433,31 +432,31 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
           value={imageUrl}
           onChange={e => setImageUrl(e.target.value)}
           placeholder="URL de imagen (se actualiza al capturar)"
-          className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-teal-500 placeholder-gray-500"
+          className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500 placeholder-gray-400 dark:placeholder-gray-500"
         />
         {imageUrl && (
           <button
             onClick={() => { setImageUrl(''); setCaptureMsg(''); }}
-            className="mt-2 text-xs text-gray-500 hover:text-red-400 transition-colors"
+            className="mt-2 text-xs text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
           >
-            ✕ Quitar imagen
+            Quitar imagen
           </button>
         )}
       </div>
 
       {/* 6. Contexto extra */}
-      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-        <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-          <span className="bg-teal-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">6</span>
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
+          <span className="bg-indigo-600 text-white text-[11px] rounded-full w-5 h-5 flex items-center justify-center font-bold">6</span>
           Contexto extra
-          <span className="text-xs text-gray-500 font-normal">— opcional</span>
+          <span className="text-[11px] text-gray-500 font-normal normal-case tracking-normal">— opcional</span>
         </h3>
         <textarea
           value={extraContext}
           onChange={e => setExtraContext(e.target.value)}
           placeholder="Ej: Mencioná que es la primera app del Lab, que salió esta semana, que hay video demo..."
           rows={3}
-          className="w-full bg-gray-700 border border-gray-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-teal-500 placeholder-gray-500 resize-none"
+          className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500 placeholder-gray-400 dark:placeholder-gray-500 resize-none"
         />
       </div>
 
@@ -466,13 +465,13 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-gray-700/50 rounded-xl p-4 border border-gray-600 text-sm text-gray-300 space-y-1"
+          className="bg-gray-50 dark:bg-gray-800/40 rounded-xl p-4 border border-gray-200 dark:border-neutral-800 text-sm text-gray-700 dark:text-gray-300 space-y-1"
         >
-          <p><span className="text-gray-500">Herramienta:</span> {tool.emoji} {tool.name} v{tool.version}</p>
+          <p><span className="text-gray-500">Herramienta:</span> {tool.name} v{tool.version}</p>
           <p><span className="text-gray-500">Post:</span> {postType.label}</p>
-          <p><span className="text-gray-500">Red:</span> <span style={{ color: red?.color }}>{red?.icon} {red?.label}</span></p>
+          <p><span className="text-gray-500">Red:</span> <span style={{ color: red?.color }}>{red?.label}</span></p>
           <p><span className="text-gray-500">Tono:</span> <span className="capitalize">{selectedTono}</span></p>
-          <p><span className="text-gray-500">Imagen:</span> {imageUrl ? <span className="text-green-400">✓ URL cargada</span> : <span className="text-gray-500">Sin imagen</span>}</p>
+          <p><span className="text-gray-500">Imagen:</span> {imageUrl ? <span className="text-green-600 dark:text-green-400">URL cargada</span> : <span className="text-gray-500">Sin imagen</span>}</p>
         </motion.div>
       )}
 
@@ -482,10 +481,10 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
         whileTap={canSend ? { scale: 0.98 } : {}}
         onClick={handleSend}
         disabled={!canSend}
-        className="w-full py-4 rounded-xl font-bold text-white text-base transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        className="w-full py-3.5 rounded-lg font-semibold text-white text-base transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         style={{
           background: canSend
-            ? `linear-gradient(135deg, #0d9488, #7c3aed)`
+            ? '#4f46e5'
             : '#374151',
         }}
       >
@@ -501,19 +500,19 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
           {status === STATUS.success && (
             <motion.span key="success" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
               className="flex items-center justify-center gap-2 text-green-300">
-              ✅ Enviado — Gemini está generando el post
+              Enviado — Gemini está generando el post
             </motion.span>
           )}
           {status === STATUS.error && (
             <motion.span key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="flex items-center justify-center gap-2 text-red-300">
-              ❌ {errorMsg || 'Error al enviar'}
+              {errorMsg || 'Error al enviar'}
             </motion.span>
           )}
           {status === STATUS.idle && (
             <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="flex items-center justify-center gap-2">
-              🚀 Enviar a Make.com
+              Enviar a Make.com
             </motion.span>
           )}
         </AnimatePresence>

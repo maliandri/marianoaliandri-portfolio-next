@@ -40,11 +40,11 @@ const BG_THEMES = [
 ];
 
 const MOODS = [
-  { id: 'upbeat',        label: '🔥 Energético' },
-  { id: 'chill',         label: '😎 Chill' },
-  { id: 'corporate',     label: '💼 Corporativo' },
-  { id: 'inspirational', label: '🚀 Inspiracional' },
-  { id: 'tech',          label: '💻 Tech' },
+  { id: 'upbeat',        label: 'Energético' },
+  { id: 'chill',         label: 'Chill' },
+  { id: 'corporate',     label: 'Corporativo' },
+  { id: 'inspirational', label: 'Inspiracional' },
+  { id: 'tech',          label: 'Tech' },
 ];
 
 const TRAY_MAX = 10; // más de 4 partes — límite generoso, cuidando que el timeline siga siendo usable
@@ -799,18 +799,18 @@ export default function CanvasReelGenerator() {
   // ── UI — 3 zonas: preview+propiedades arriba, pasos al medio, timeline abajo ─
   return (
     <div className="space-y-5">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">🎬 Generador de Reels (Canvas)</h2>
+      <h2 className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Generador de reels (Canvas)</h2>
 
       {/* ── Zona A: preview + bandeja + propiedades del clip ── */}
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
         <div className="flex flex-col items-center gap-2">
-          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Preview 9:16</p>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Preview 9:16</p>
           <div ref={previewWrapperRef} className="relative" style={{ width: 270, height: 480 }}>
             <canvas
               ref={canvasRef}
               width={270}
               height={480}
-              className="rounded-xl shadow-xl border border-gray-300 dark:border-gray-600 bg-black"
+              className="rounded-xl border border-gray-200 dark:border-neutral-800 bg-black"
             />
             {isScrubbing && selectedClip && (
               <div
@@ -818,7 +818,7 @@ export default function CanvasReelGenerator() {
                 onPointerMove={handleTextPointerMove}
                 onPointerUp={handleTextPointerUp}
                 title="Arrastrá para mover el título"
-                className="absolute w-24 h-10 border-2 border-dashed border-purple-400 bg-purple-500/10 rounded cursor-move flex items-center justify-center"
+                className="absolute w-24 h-10 border-2 border-dashed border-indigo-400 bg-indigo-500/10 rounded cursor-move flex items-center justify-center"
                 style={{
                   left: `${(selectedClip.textX ?? 0.5) * 100}%`,
                   top: `${(selectedClip.textY ?? 0.5) * 100}%`,
@@ -826,7 +826,7 @@ export default function CanvasReelGenerator() {
                   touchAction: 'none',
                 }}
               >
-                <span className="text-[9px] text-purple-200 font-semibold pointer-events-none">Título</span>
+                <span className="text-[9px] text-indigo-200 font-semibold pointer-events-none">Título</span>
               </div>
             )}
           </div>
@@ -838,11 +838,11 @@ export default function CanvasReelGenerator() {
         <div className="space-y-3">
           {/* Bandeja */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
               Bandeja ({tray.length}/{TRAY_MAX})
             </p>
             {tray.length === 0 ? (
-              <p className="text-xs text-gray-400 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-3 text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400 border border-dashed border-gray-200 dark:border-neutral-700 rounded-xl p-4 text-center">
                 Vacía — elegí productos, tecnologías, proyectos, herramientas o subí tu propia imagen/video en la pestaña &quot;Contenido&quot;.
               </p>
             ) : (
@@ -861,11 +861,11 @@ export default function CanvasReelGenerator() {
                       title="Arrastrar para reordenar — click para editar"
                       style={{ touchAction: 'none' }}
                       className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all cursor-grab active:cursor-grabbing ${
-                        isSelected ? 'border-white ring-2 ring-purple-400 scale-105' : 'border-purple-500 hover:border-purple-300'
+                        isSelected ? 'border-white ring-2 ring-indigo-400 scale-105' : 'border-indigo-500 hover:border-indigo-300'
                       }`}
                     >
                       {t.mediaType === 'video' ? (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600 text-white text-lg">▶</div>
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-600 to-indigo-400 text-white text-lg">▶</div>
                       ) : (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={t.mediaUrl} alt="" className="w-full h-full object-cover" crossOrigin="anonymous" />
@@ -896,13 +896,13 @@ export default function CanvasReelGenerator() {
       </div>
 
       {/* ── Zona B: pasos como pestañas ── */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg">
-        <div className="flex border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
+        <div className="flex border-b border-gray-200 dark:border-neutral-800">
           {STEP_TABS.map((t) => (
             <button key={t.id} onClick={() => setStepTab(t.id)}
-              className={`flex-1 py-2.5 text-sm font-semibold uppercase tracking-wide transition-colors ${
+              className={`flex-1 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors ${
                 stepTab === t.id
-                  ? 'text-purple-500 border-b-2 border-purple-500'
+                  ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400'
                   : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >{t.label}</button>
@@ -929,14 +929,14 @@ export default function CanvasReelGenerator() {
               />
 
               {selectedContent && !selectedContent.multi && (
-                <div className="bg-slate-900/40 border border-slate-700 rounded-lg p-2 text-xs space-y-1.5">
+                <div className="bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-neutral-800 rounded-xl p-3 text-xs space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <div>
-                      <span className="text-slate-300">Item: </span>
-                      <span className="text-white font-semibold">{selectedContent.name || selectedContent.sitio}</span>
-                      {priceLabel && selectedContent.type === 'producto' && <div className="text-green-300 font-semibold mt-0.5">{priceLabel}</div>}
+                      <span className="text-gray-500 dark:text-gray-400">Item: </span>
+                      <span className="text-gray-900 dark:text-white font-semibold">{selectedContent.name || selectedContent.sitio}</span>
+                      {priceLabel && selectedContent.type === 'producto' && <div className="text-green-600 dark:text-green-400 font-semibold mt-0.5">{priceLabel}</div>}
                       {selectedContent.rental && (
-                        <div className="text-slate-200 mt-0.5">
+                        <div className="text-gray-600 dark:text-gray-300 mt-0.5">
                           Alquiler: seña ${selectedContent.rental.seña} · cuota ${selectedContent.rental.cuota}/mes · mín {selectedContent.rental.duracionMinima}m
                         </div>
                       )}
@@ -944,10 +944,10 @@ export default function CanvasReelGenerator() {
                     {selectedContent.type === 'producto' && priceLabel && (
                       <button
                         onClick={() => setShowPrice((v) => !v)}
-                        className={`shrink-0 px-2 py-1 rounded text-xs font-semibold transition-colors ${
-                          showPrice ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                        className={`shrink-0 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                          showPrice ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                         }`}
-                      >💲 {showPrice ? 'Precio: SÍ' : 'Precio: NO'}</button>
+                      >{showPrice ? 'Precio: SÍ' : 'Precio: NO'}</button>
                     )}
                   </div>
                 </div>
@@ -960,27 +960,27 @@ export default function CanvasReelGenerator() {
             <div className="space-y-2">
               <div className="flex gap-2">
                 <button onClick={handleGenerateScript} disabled={!selectedContent || scriptLoading}
-                  className="flex-1 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded text-sm font-semibold disabled:opacity-50 hover:from-purple-700 hover:to-pink-700 transition-all"
-                >{scriptLoading ? 'Generando…' : '✨ Generar script con Gemini'}</button>
+                  className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50 transition-colors"
+                >{scriptLoading ? 'Generando…' : 'Generar script con Gemini'}</button>
                 {script && (
                   <button onClick={handleGenerateScript} disabled={scriptLoading}
-                    className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    className="px-3 py-2 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg text-sm transition-colors"
                     title="Regenerar"
-                  >🔄</button>
+                  >Regenerar</button>
                 )}
               </div>
 
               {canCaseStudy && (
                 <button onClick={handleGenerateCaseStudy} disabled={scriptLoading}
                   title="Arma 4 slides (problema → solución → impacto → CTA) con los datos reales del proyecto"
-                  className="w-full py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded text-sm font-semibold disabled:opacity-50 hover:from-amber-700 hover:to-orange-700 transition-all"
-                >{scriptLoading ? 'Generando…' : '🎯 Armar caso de éxito (problema → solución → impacto)'}</button>
+                  className="w-full py-2 border border-amber-300 dark:border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg text-sm font-semibold disabled:opacity-50 transition-colors"
+                >{scriptLoading ? 'Generando…' : 'Armar caso de éxito (problema → solución → impacto)'}</button>
               )}
 
-              {scriptError && <p className="text-red-400 text-xs">{scriptError}</p>}
+              {scriptError && <p className="text-red-600 dark:text-red-400 text-xs">{scriptError}</p>}
 
               {selectedContent?.multi && selectedContent?.titles?.length > 0 && (
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-2 space-y-1">
+                <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl p-3 space-y-1">
                   {selectedContent.titles.map((t, i) => (
                     <p key={i} className="text-xs text-amber-800 dark:text-amber-300">
                       <span className="font-bold">{i + 1}.</span> {t}
@@ -996,9 +996,9 @@ export default function CanvasReelGenerator() {
                   onChange={(e) => { setScript(e.target.value); setTtsBase64(''); }}
                   rows={4}
                   placeholder="El script aparecerá aquí — podés editarlo antes de grabar"
-                  className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-2 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full text-sm rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-2 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
-                <div className={`text-xs text-right ${wordCount > 60 ? 'text-red-400' : 'text-gray-400'}`}>{wordCount}/60 palabras</div>
+                <div className={`text-xs text-right ${wordCount > 60 ? 'text-red-600 dark:text-red-400' : 'text-gray-400'}`}>{wordCount}/60 palabras</div>
               </div>
             </div>
           )}
@@ -1007,14 +1007,14 @@ export default function CanvasReelGenerator() {
           {stepTab === 'audio' && (
             <div className="space-y-3">
               <div>
-                <p className="text-xs text-gray-500 mb-1.5">Estilo (catálogo Jamendo, gratis)</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Estilo (catálogo Jamendo, gratis)</p>
                 <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 mb-2">
                   {MOODS.map((m) => (
                     <button key={m.id} onClick={() => handleLoadMusic(m.id)} disabled={musicLoading}
-                      className={`py-1.5 px-2 rounded text-xs font-medium transition-colors ${
+                      className={`py-1.5 px-2 rounded-lg text-xs font-medium transition-colors ${
                         mood === m.id && !musicQuery
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                       }`}
                     >{m.label}</button>
                   ))}
@@ -1024,77 +1024,77 @@ export default function CanvasReelGenerator() {
                   <input value={musicQuery} onChange={(e) => setMusicQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearchMusic()}
                     placeholder="Buscar por nombre o artista…"
-                    className="flex-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    className="flex-1 text-xs rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                   <button onClick={handleSearchMusic} disabled={musicLoading}
-                    className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
-                  >🔍</button>
+                    className="px-3 py-1.5 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg text-xs transition-colors disabled:opacity-50"
+                  >Buscar</button>
                 </div>
 
                 {musicLoading && musicTracks.length === 0 && <p className="text-xs text-gray-400">Cargando música…</p>}
 
                 {musicTracks.length > 0 && (
-                  <div className="max-h-48 overflow-y-auto space-y-1 border border-gray-200 dark:border-gray-700 rounded-lg p-1.5">
+                  <div className="max-h-48 overflow-y-auto space-y-1 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-neutral-800 rounded-xl p-1.5">
                     {musicTracks.map((t) => (
                       <div key={t.id}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors ${
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${
                           selectedTrack?.id === t.id
-                            ? 'bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100'
-                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                            ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-800 dark:text-indigo-300'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
                         }`}
                       >
-                        <button onClick={() => previewTrack(t)} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500">
+                        <button onClick={() => previewTrack(t)} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
                           {previewingTrackId === t.id ? '⏸' : '▶'}
                         </button>
                         <button onClick={() => selectTrack(t)} className="flex-1 text-left truncate">
                           <span className="font-medium">{t.nombre}</span>
                           <span className="text-gray-400"> — {t.artista}</span>
                         </button>
-                        {selectedTrack?.id === t.id && <span className="shrink-0 text-blue-500">✓</span>}
+                        {selectedTrack?.id === t.id && <span className="shrink-0 text-indigo-600 dark:text-indigo-400">✓</span>}
                       </div>
                     ))}
                     {hasMoreMusic && (
                       <button onClick={() => loadMusicTracks({ append: true })} disabled={musicLoading}
-                        className="w-full text-center text-xs text-blue-400 hover:text-blue-300 py-1 disabled:opacity-50"
+                        className="w-full text-center text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 py-1 disabled:opacity-50"
                       >{musicLoading ? 'Cargando…' : 'Cargar más ↓'}</button>
                     )}
                   </div>
                 )}
 
                 <div className="mt-2 flex items-center gap-2">
-                  <span className="text-xs text-gray-500 w-20 shrink-0">🎵 Volumen</span>
+                  <span className="text-xs text-gray-500 w-20 shrink-0">Volumen música</span>
                   <input type="range" min="0" max="1" step="0.05" value={musicVolume}
-                    onChange={(e) => setMusicVolume(parseFloat(e.target.value))} className="flex-1 accent-blue-500" />
+                    onChange={(e) => setMusicVolume(parseFloat(e.target.value))} className="flex-1 accent-indigo-500" />
                   <span className="text-xs text-gray-400 w-8 text-right">{Math.round(musicVolume * 100)}%</span>
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <p className="text-xs text-gray-500">Voz (Google TTS)</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Voz (Google TTS)</p>
                   <button onClick={() => setVoiceEnabled((v) => !v)}
-                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
-                      voiceEnabled ? 'bg-green-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                    className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                      voiceEnabled ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                     }`}
-                  >{voiceEnabled ? '🔊 ON' : '🔇 OFF'}</button>
+                  >{voiceEnabled ? 'Activada' : 'Desactivada'}</button>
                 </div>
 
                 {voiceEnabled && (
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       <button onClick={handleGenerateTTS} disabled={!script || ttsLoading}
-                        className="flex-1 py-1.5 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded text-xs font-semibold disabled:opacity-50 hover:from-green-700 hover:to-teal-700 transition-all"
-                      >{ttsLoading ? 'Generando voz…' : ttsBase64 ? '✅ Voz generada — Regenerar' : '🎙 Generar voz'}</button>
+                        className="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50 transition-colors"
+                      >{ttsLoading ? 'Generando voz…' : ttsBase64 ? 'Voz generada — Regenerar' : 'Generar voz'}</button>
                       {ttsBase64 && (
                         <button onClick={handlePreviewVoice}
-                          className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                        >▶ Escuchar</button>
+                          className="px-3 py-1.5 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg text-xs transition-colors"
+                        >Escuchar</button>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 w-20 shrink-0">🎙 Volumen</span>
+                      <span className="text-xs text-gray-500 w-20 shrink-0">Volumen voz</span>
                       <input type="range" min="0" max="1" step="0.05" value={voiceVolume}
-                        onChange={(e) => setVoiceVolume(parseFloat(e.target.value))} className="flex-1 accent-green-500" />
+                        onChange={(e) => setVoiceVolume(parseFloat(e.target.value))} className="flex-1 accent-indigo-500" />
                       <span className="text-xs text-gray-400 w-8 text-right">{Math.round(voiceVolume * 100)}%</span>
                     </div>
                   </div>
@@ -1108,12 +1108,12 @@ export default function CanvasReelGenerator() {
             <div className="space-y-3">
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-xs text-gray-500">Fondo — presets rápidos</p>
-                  <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Fondo — presets rápidos</p>
+                  <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
                     {[['duo', 'Bitono'], ['tri', 'Tritono']].map(([id, label]) => (
                       <button key={id} onClick={() => handleSetBgMode(id)}
-                        className={`px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
-                          bgMode === id ? 'bg-purple-600 text-white' : 'text-gray-500 dark:text-gray-400'
+                        className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                          bgMode === id ? 'bg-indigo-600 text-white' : 'text-gray-500 dark:text-gray-400'
                         }`}
                       >{label}</button>
                     ))}
@@ -1134,7 +1134,7 @@ export default function CanvasReelGenerator() {
                   {bgColors.map((c, i) => (
                     <input key={i} type="color" value={c}
                       onChange={(e) => setBgColors((prev) => prev.map((x, idx) => (idx === i ? e.target.value : x)))}
-                      className="w-9 h-9 rounded cursor-pointer border border-gray-300 dark:border-gray-600 bg-transparent"
+                      className="w-9 h-9 rounded-lg cursor-pointer border border-gray-200 dark:border-neutral-700 bg-transparent"
                     />
                   ))}
                   <div className="flex-1 h-9 rounded-lg" style={{ background: `linear-gradient(135deg, ${bgColors.join(', ')})` }} />
@@ -1142,34 +1142,34 @@ export default function CanvasReelGenerator() {
               </div>
 
               <div>
-                <p className="text-xs text-gray-500 mb-1.5">Grano (textura fílmica)</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Grano (textura fílmica)</p>
                 <div className="flex items-center gap-2">
                   <input type="range" min="0" max="1" step="0.05" value={grainIntensity}
-                    onChange={(e) => setGrainIntensity(parseFloat(e.target.value))} className="flex-1 accent-purple-500" />
+                    onChange={(e) => setGrainIntensity(parseFloat(e.target.value))} className="flex-1 accent-indigo-500" />
                   <span className="text-xs text-gray-400 w-9 text-right">{Math.round(grainIntensity * 100)}%</span>
                 </div>
               </div>
 
               <div>
-                <p className="text-xs text-gray-500 mb-1.5">Difuminado del fondo (blur)</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Difuminado del fondo (blur)</p>
                 <div className="flex items-center gap-2">
                   <input type="range" min="0" max="20" step="1" value={blurAmount}
-                    onChange={(e) => setBlurAmount(parseInt(e.target.value, 10))} className="flex-1 accent-purple-500" />
+                    onChange={(e) => setBlurAmount(parseInt(e.target.value, 10))} className="flex-1 accent-indigo-500" />
                   <span className="text-xs text-gray-400 w-9 text-right">{blurAmount}px</span>
                 </div>
               </div>
 
-              <p className="text-[10px] text-gray-600">
+              <p className="text-[11px] text-gray-500 dark:text-gray-400">
                 Texto, fuente, efecto de entrada y transición ahora se configuran por clip — seleccioná uno en el timeline y editalo en el panel de arriba.
               </p>
 
               <div>
-                <p className="text-xs text-gray-500 mb-1.5">Duración total</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Duración total</p>
                 <div className="flex gap-2 items-center">
                   {[15, 30].map((d) => (
                     <button key={d} onClick={() => handleSetDuration(d)}
-                      className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                        duration === d ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        duration === d ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
                       }`}
                     >{d}s</button>
                   ))}
@@ -1180,11 +1180,11 @@ export default function CanvasReelGenerator() {
               <div className="grid grid-cols-2 gap-2">
                 <input value={customMainText} onChange={(e) => setCustomMainText(e.target.value)}
                   placeholder="Título (opcional)"
-                  className="text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="text-xs rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
                 <input value={customSubtitle} onChange={(e) => setCustomSubtitle(e.target.value)}
                   placeholder="Subtitle (opcional)"
-                  className="text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="text-xs rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
             </div>
@@ -1210,26 +1210,26 @@ export default function CanvasReelGenerator() {
             />
           </div>
           <button onClick={handleRecord} disabled={!selectedContent || clips.length === 0 || busy}
-            className="shrink-0 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold disabled:opacity-50 transition-all hover:from-purple-700 hover:to-blue-700"
+            className="shrink-0 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold disabled:opacity-50 transition-colors"
           >{busyLabel}</button>
         </div>
       )}
 
       {busy && (
-        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-          <motion.div className="h-full bg-gradient-to-r from-purple-600 to-blue-600"
+        <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+          <motion.div className="h-full bg-indigo-600"
             animate={{ width: `${Math.round(recordProgress * 100)}%` }} transition={{ duration: 0.1 }} />
         </div>
       )}
 
       {error && (
-        <p className="text-red-500 text-xs bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded p-2">❌ {error}</p>
+        <p className="text-red-600 dark:text-red-400 text-xs bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl p-3">{error}</p>
       )}
 
       {videoUrl && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3 space-y-1">
-          <p className="text-green-700 dark:text-green-300 font-semibold text-sm">✅ Video listo — Make.com notificado</p>
-          <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs break-all hover:underline">{videoUrl}</a>
+        <div className="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 rounded-xl p-4 space-y-1">
+          <p className="text-green-700 dark:text-green-400 font-semibold text-sm">Video listo — Make.com notificado</p>
+          <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 text-xs break-all hover:underline">{videoUrl}</a>
         </div>
       )}
     </div>

@@ -369,7 +369,7 @@ export default function QuoteBuilder({ initialData = null }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error');
-      flash(`✓ Guardado (ID: ${data.id})`);
+      flash(`Guardado (ID: ${data.id})`);
     } catch (e) { flash('Error: ' + e.message, false); }
     finally { setSaving(false); }
   };
@@ -387,7 +387,7 @@ export default function QuoteBuilder({ initialData = null }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error');
-      flash('✓ Email enviado correctamente');
+      flash('Email enviado correctamente');
     } catch (e) { flash('Error: ' + e.message, false); }
     finally { setSending(false); }
   };
@@ -464,7 +464,7 @@ export default function QuoteBuilder({ initialData = null }) {
           {/* Banner si viene de una solicitud */}
           {initialData && (
             <div className="bg-indigo-600/10 border border-indigo-500/30 rounded-xl px-4 py-3 flex items-center gap-3 no-print">
-              <span className="text-indigo-400 text-lg">✏️</span>
+              <svg className="w-5 h-5 text-indigo-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-indigo-300">
                   Editando solicitud de {initialData.clientName || 'cliente'}
@@ -549,7 +549,6 @@ export default function QuoteBuilder({ initialData = null }) {
               {/* Items table */}
               {items.length === 0 ? (
                 <div className="text-center py-14 text-gray-300">
-                  <p className="text-5xl mb-3">📋</p>
                   <p className="text-gray-400 text-sm">Seleccioná servicios desde el panel izquierdo</p>
                 </div>
               ) : (
@@ -716,7 +715,7 @@ export default function QuoteBuilder({ initialData = null }) {
                       Plan de pagos — cuota inicial + {numMonthly} pago{numMonthly > 1 ? 's' : ''} mensual{numMonthly > 1 ? 'es' : ''}
                     </h4>
                     {Math.abs(pctSum - 100) > 0.1 && (
-                      <span className="text-xs text-orange-500 font-medium">⚠ Suma: {pctSum.toFixed(0)}% (debe ser 100%)</span>
+                      <span className="text-xs text-orange-500 font-medium">Suma: {pctSum.toFixed(0)}% (debe ser 100%)</span>
                     )}
                   </div>
                   <table className="w-full text-sm">
@@ -881,23 +880,23 @@ export default function QuoteBuilder({ initialData = null }) {
             <div className="flex flex-wrap gap-3 items-center pb-2">
               <button
                 onClick={handlePrint}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-800 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors"
               >
-                🖨️ PDF
+                PDF
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors"
               >
-                {saving ? '⏳ Guardando...' : '💾 Guardar'}
+                {saving ? 'Guardando...' : 'Guardar'}
               </button>
               <button
                 onClick={handleSendEmail}
                 disabled={sending}
-                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
               >
-                {sending ? '⏳ Enviando...' : '📧 Enviar email'}
+                {sending ? 'Enviando...' : 'Enviar email'}
               </button>
               {!clientEmail && (
                 <span className="text-xs text-gray-400">Completá el email para enviar</span>

@@ -37,7 +37,7 @@ export default function LeadMapView({ userLocation, businesses = [], onSelect, h
 
         {/* Mi ubicación */}
         <CircleMarker center={center} radius={9} pathOptions={{ color: '#93c5fd', fillColor: '#3b82f6', fillOpacity: 1, weight: 3 }}>
-          <Popup>📍 Tu ubicación</Popup>
+          <Popup>Tu ubicación</Popup>
         </CircleMarker>
 
         {businesses.map(b => {

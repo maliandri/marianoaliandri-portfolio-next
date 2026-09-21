@@ -3,11 +3,11 @@
 import { useState, useEffect, useMemo } from 'react';
 
 const STATUS_CONFIG = {
-  pending:  { label: 'Pendiente',  color: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' },
-  reviewed: { label: 'Revisado',   color: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
-  sent:     { label: 'Enviado',    color: 'bg-orange-500/15 text-orange-400 border-orange-500/30' },
-  accepted: { label: 'Aceptado',   color: 'bg-green-500/15 text-green-400 border-green-500/30' },
-  rejected: { label: 'Rechazado',  color: 'bg-red-500/15 text-red-400 border-red-500/30' },
+  pending:  { label: 'Pendiente',  color: 'bg-amber-100 text-amber-700 border-transparent dark:bg-amber-500/10 dark:text-amber-400' },
+  reviewed: { label: 'Revisado',   color: 'bg-blue-100 text-blue-700 border-transparent dark:bg-blue-500/10 dark:text-blue-400' },
+  sent:     { label: 'Enviado',    color: 'bg-orange-100 text-orange-700 border-transparent dark:bg-orange-500/10 dark:text-orange-400' },
+  accepted: { label: 'Aceptado',   color: 'bg-green-100 text-green-700 border-transparent dark:bg-green-500/10 dark:text-green-400' },
+  rejected: { label: 'Rechazado',  color: 'bg-red-100 text-red-700 border-transparent dark:bg-red-500/10 dark:text-red-400' },
 };
 
 // Rango de "avance" de un presupuesto — se usa para decidir cuál sobrevive dentro de
@@ -238,7 +238,7 @@ function BudgetDetail({ budget, onClose, onOpenInBuilder, onDelete }) {
           {budget.status === 'accepted' && (
             <section>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-gray-400 text-xs uppercase tracking-wider">💵 Pagos recibidos</h4>
+                <h4 className="text-gray-400 text-xs uppercase tracking-wider">Pagos recibidos</h4>
                 {payments.length > 0 && (
                   <span className="text-green-400 text-xs font-semibold">Total: ARS {totalPaidThisBudget.toLocaleString('es-AR')}</span>
                 )}
@@ -299,21 +299,21 @@ function BudgetDetail({ budget, onClose, onOpenInBuilder, onDelete }) {
                 onClick={() => { onClose(); onOpenInBuilder(budget); }}
                 className="w-full bg-indigo-600/15 border border-indigo-500/40 hover:bg-indigo-600/25 text-indigo-300 py-2.5 rounded-xl text-sm transition-colors font-medium"
               >
-                ✏️ Abrir en presupuestador
+                Abrir en presupuestador
               </button>
             )}
             <button onClick={handleSave} disabled={saving} className="w-full bg-[#111] border border-white/10 hover:border-indigo-500 text-white py-2.5 rounded-xl text-sm transition-colors disabled:opacity-50">
-              {saving ? 'Guardando...' : '💾 Guardar cambios'}
+              {saving ? 'Guardando...' : 'Guardar cambios'}
             </button>
             <button onClick={handleGenerateMP} disabled={generatingMP} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl text-sm transition-colors disabled:opacity-50">
-              {generatingMP ? 'Generando...' : '💳 Generar link MercadoPago'}
+              {generatingMP ? 'Generando...' : 'Generar link MercadoPago'}
             </button>
             <div className="grid grid-cols-2 gap-3">
               <button onClick={handleSendEmail} disabled={sendingEmail} className="bg-[#111] border border-white/10 hover:border-indigo-500 text-white py-2.5 rounded-xl text-sm transition-colors disabled:opacity-50">
-                {sendingEmail ? '...' : '📧 Enviar email'}
+                {sendingEmail ? '...' : 'Enviar email'}
               </button>
               <button onClick={handleWA} className="bg-[#0d1f0d] border border-green-600/30 hover:border-green-500 text-green-400 py-2.5 rounded-xl text-sm transition-colors">
-                💬 WhatsApp
+                WhatsApp
               </button>
             </div>
             {onDelete && (
@@ -321,7 +321,7 @@ function BudgetDetail({ budget, onClose, onOpenInBuilder, onDelete }) {
                 onClick={() => { if (confirm('¿Eliminar esta solicitud de presupuesto? No se puede deshacer.')) { onDelete(budget.id); onClose(); } }}
                 className="w-full text-red-400/70 hover:text-red-400 text-xs py-2 transition-colors"
               >
-                🗑 Eliminar esta solicitud
+                Eliminar esta solicitud
               </button>
             )}
           </section>
@@ -479,19 +479,19 @@ export default function BudgetManager({ onOpenInBuilder }) {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">💰 Presupuestos</h2>
-          <p className="text-xs text-gray-500 mt-0.5">{budgets.length} solicitud{budgets.length !== 1 ? 'es' : ''} recibida{budgets.length !== 1 ? 's' : ''}</p>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Presupuestos</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{budgets.length} solicitud{budgets.length !== 1 ? 'es' : ''} recibida{budgets.length !== 1 ? 's' : ''}</p>
         </div>
         <div className="flex items-center gap-3">
           {duplicateCount > 0 && (
             <button
               onClick={() => setShowDuplicates(true)}
-              className="text-xs px-3 py-1.5 rounded-full border border-amber-500/40 text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-colors font-medium"
+              className="text-[11px] px-3 py-1.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 hover:opacity-80 transition-opacity font-semibold"
             >
-              🧹 {duplicateCount} duplicado{duplicateCount !== 1 ? 's' : ''}
+              {duplicateCount} duplicado{duplicateCount !== 1 ? 's' : ''}
             </button>
           )}
-          <a href="/presupuesto" target="_blank" className="text-xs text-indigo-400 hover:underline">Ver formulario público →</a>
+          <a href="/presupuesto" target="_blank" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Ver formulario público →</a>
         </div>
       </div>
 
@@ -501,7 +501,7 @@ export default function BudgetManager({ onOpenInBuilder }) {
           <button
             key={k}
             onClick={() => setViewMode(k)}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${viewMode === k ? 'border-indigo-500 text-indigo-300 bg-indigo-600/10' : 'border-white/10 text-gray-500 hover:border-white/25'}`}
+            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${viewMode === k ? 'border-indigo-600 text-indigo-600 bg-indigo-50 dark:border-indigo-400 dark:text-indigo-400 dark:bg-indigo-500/10' : 'border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800'}`}
           >
             {label}
           </button>
@@ -515,7 +515,7 @@ export default function BudgetManager({ onOpenInBuilder }) {
             <button
               key={k}
               onClick={() => setFilter(k)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${filter === k ? 'border-indigo-500 text-indigo-300 bg-indigo-600/10' : 'border-white/10 text-gray-400 hover:border-white/25 dark:border-gray-600'}`}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${filter === k ? 'border-indigo-600 text-indigo-600 bg-indigo-50 dark:border-indigo-400 dark:text-indigo-400 dark:bg-indigo-500/10' : 'border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800'}`}
             >
               {label} {k !== 'all' && budgets.filter(b => b.status === k).length > 0 && `(${budgets.filter(b => b.status === k).length})`}
             </button>
@@ -525,9 +525,9 @@ export default function BudgetManager({ onOpenInBuilder }) {
 
       {/* Total pagado — solo tiene sentido mirando "Aceptado" */}
       {viewMode === 'all' && showPaymentCols && !loading && filtered.length > 0 && (
-        <div className="bg-green-600/10 border border-green-500/30 rounded-xl px-4 py-3 flex items-center justify-between">
-          <span className="text-green-300 text-sm font-medium">💵 Total pagado</span>
-          <span className="text-white font-bold">ARS {totalPaid.toLocaleString('es-AR')}</span>
+        <div className="bg-green-50 dark:bg-green-500/10 rounded-xl px-4 py-3 flex items-center justify-between">
+          <span className="text-green-700 dark:text-green-400 text-sm font-semibold">Total pagado</span>
+          <span className="text-gray-900 dark:text-white font-bold">ARS {totalPaid.toLocaleString('es-AR')}</span>
         </div>
       )}
 
@@ -539,14 +539,13 @@ export default function BudgetManager({ onOpenInBuilder }) {
       ) : viewMode === 'byClient' ? (
         clients.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
-            <p className="text-4xl mb-3">📭</p>
             <p>No hay solicitudes todavía</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs text-gray-500 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                <tr className="text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-neutral-800">
                   <th className="pb-3 pr-4">Cliente</th>
                   <th className="pb-3 pr-4">Email</th>
                   <th className="pb-3 pr-4">Solicitudes</th>
@@ -554,7 +553,7 @@ export default function BudgetManager({ onOpenInBuilder }) {
                   <th className="pb-3">Última fecha</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
                 {clients.map(c => {
                   const sorted = [...c.budgets].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
                   const latest = sorted[0];
@@ -570,7 +569,7 @@ export default function BudgetManager({ onOpenInBuilder }) {
                       </td>
                       <td className="py-3 pr-4 text-gray-500 dark:text-gray-400">{c.clientEmail}</td>
                       <td className="py-3 pr-4">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.budgets.length > 1 ? 'bg-indigo-500/15 text-indigo-300' : 'text-gray-500'}`}>
+                        <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${c.budgets.length > 1 ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400' : 'text-gray-500'}`}>
                           {c.budgets.length}
                         </span>
                       </td>
@@ -585,14 +584,13 @@ export default function BudgetManager({ onOpenInBuilder }) {
         )
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
-          <p className="text-4xl mb-3">📭</p>
           <p>No hay solicitudes {filter !== 'all' ? `con estado "${STATUS_CONFIG[filter]?.label}"` : 'todavía'}</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs text-gray-500 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+              <tr className="text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-neutral-800">
                 <th className="pb-3 pr-4">Cliente</th>
                 <th className="pb-3 pr-4">Email</th>
                 <th className="pb-3 pr-4">Servicios</th>
@@ -602,7 +600,7 @@ export default function BudgetManager({ onOpenInBuilder }) {
                 {showPaymentCols && <th className="pb-3">Total pagado</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
               {filtered.map(b => {
                 const bPayments = getPayments(b);
                 return (
@@ -620,7 +618,7 @@ export default function BudgetManager({ onOpenInBuilder }) {
                   <td className="py-3 pr-4"><StatusBadge status={b.status} /></td>
                   <td className="py-3 pr-4 text-gray-400 text-xs whitespace-nowrap">{formatDate(b.createdAt)}</td>
                   {showPaymentCols && <td className="py-3 pr-4 text-gray-400 text-xs whitespace-nowrap">{bPayments.length || '—'}</td>}
-                  {showPaymentCols && <td className="py-3 text-gray-300 text-xs whitespace-nowrap">{bPayments.length ? `ARS ${sumPayments(b).toLocaleString('es-AR')}` : '—'}</td>}
+                  {showPaymentCols && <td className="py-3 text-gray-600 dark:text-gray-300 text-xs whitespace-nowrap">{bPayments.length ? `ARS ${sumPayments(b).toLocaleString('es-AR')}` : '—'}</td>}
                 </tr>
                 );
               })}
@@ -645,7 +643,7 @@ export default function BudgetManager({ onOpenInBuilder }) {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-[#0f0f0f] border border-white/10 rounded-2xl p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-bold text-lg">🧹 Solicitudes duplicadas</h3>
+              <h3 className="text-white font-bold text-lg">Solicitudes duplicadas</h3>
               <button onClick={() => setShowDuplicates(false)} className="text-gray-500 hover:text-white text-xl">✕</button>
             </div>
             <p className="text-gray-500 text-sm mb-5">
@@ -657,14 +655,14 @@ export default function BudgetManager({ onOpenInBuilder }) {
                 <div key={i} className="bg-[#111] border border-white/10 rounded-xl p-4">
                   <p className="text-gray-400 text-xs mb-2">{g.keep.clientName} · {g.keep.clientEmail}</p>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs px-2 py-1 rounded-full bg-green-500/15 text-green-400 border border-green-500/30">✓ Se conserva</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-green-500/15 text-green-400 border border-green-500/30">Se conserva</span>
                     <span className="text-white text-xs">{formatDate(g.keep.createdAt)}</span>
                     <StatusBadge status={g.keep.status} />
                   </div>
                   <div className="space-y-1.5 pl-1">
                     {g.remove.map(b => (
                       <div key={b.id} className="flex items-center gap-2 text-xs">
-                        <span className="text-red-400">🗑 Se elimina</span>
+                        <span className="text-red-400">Se elimina</span>
                         <span className="text-gray-500">{formatDate(b.createdAt)}</span>
                         <StatusBadge status={b.status} />
                       </div>

@@ -11,9 +11,9 @@ function ShareButton() {
       href={`https://wa.me/?text=${encodeURIComponent(SHARE_TEXT)}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-xl transition-colors"
+      className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
     >
-      📤 Compartir por WhatsApp
+      Compartir por WhatsApp
     </a>
   );
 }
@@ -57,7 +57,7 @@ export default function StyleQuizManager() {
   if (error) {
     return (
       <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm">
-        ❌ {error}
+        {error}
       </div>
     );
   }
@@ -77,16 +77,17 @@ export default function StyleQuizManager() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Respuestas del test de estilo ({responses.length})
-        </h3>
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Respuestas del test de estilo</p>
+          <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">{responses.length}</p>
+        </div>
         <div className="flex items-center gap-2">
           <ShareButton />
           <button
             onClick={load}
-            className="px-3 py-2 rounded-xl border border-gray-300 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 text-sm font-medium transition-colors"
+            className="px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 text-sm font-medium transition-colors"
           >
-            🔄 Actualizar
+            Actualizar
           </button>
         </div>
       </div>
@@ -96,7 +97,7 @@ export default function StyleQuizManager() {
         return (
           <div key={r.id} className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 overflow-hidden">
             <button
-              className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors"
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
               onClick={() => setExpanded(isOpen ? null : r.id)}
             >
               <div className="text-left">
@@ -118,16 +119,16 @@ export default function StyleQuizManager() {
             {isOpen && (
               <div className="px-5 pb-5 space-y-4 border-t border-gray-100 dark:border-neutral-800 pt-4">
                 <div className="flex flex-wrap gap-3 text-xs text-gray-600 dark:text-gray-400">
-                  {r.email && <span>📧 {r.email}</span>}
+                  {r.email && <span>{r.email}</span>}
                   {r.phone && (
                     <a href={`https://wa.me/${r.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-green-600 dark:text-green-400 hover:underline">
-                      📱 {r.phone}
+                      {r.phone}
                     </a>
                   )}
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-2">Estilos elegidos</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Estilos elegidos</p>
                   {(r.likedStyles || []).length ? (
                     <ul className="space-y-1.5">
                       {r.likedStyles.map((s, i) => (
@@ -144,10 +145,10 @@ export default function StyleQuizManager() {
 
                 {(r.features || []).length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-2">Features pedidas</p>
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Features pedidas</p>
                     <div className="flex flex-wrap gap-2">
                       {r.features.map((f, i) => (
-                        <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300">{f}</span>
+                        <span key={i} className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 text-gray-700 dark:text-gray-300">{f}</span>
                       ))}
                     </div>
                   </div>
@@ -155,7 +156,7 @@ export default function StyleQuizManager() {
 
                 {r.comment && (
                   <div>
-                    <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Comentario</p>
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Comentario</p>
                     <p className="text-sm text-gray-700 dark:text-gray-300">{r.comment}</p>
                   </div>
                 )}
