@@ -68,6 +68,8 @@ src/
       subscribe/        # POST: crea suscripcion mensual MercadoPago (PreApproval) → init_point
       subscription-webhook/ # Webhook MP suscripciones → activa plan en "entitlements" (URL con barra!)
       resend-webhook/   # Webhook de Resend (email.sent/delivered/opened/bounced) → col "sent_emails"
+      gumroad-webhook/  # Ping de Gumroad → re-verifica venta via API Gumroad (GUMROAD_ACCESS_TOKEN)
+                        # antes de acreditar → "leadfinder_entitlements" (packs USD Lead Finder Pro)
     auditorias/         # Paginas publicas de auditorias SEO (server components, force-dynamic)
       page.jsx          # Lista de auditorias — lee Firestore via getDb() directamente
       [id]/
@@ -166,6 +168,16 @@ MERCADOPAGO_WEBHOOK_SECRET           ← Clave secreta del webhook (Tus Integrac
                                        Valida la firma x-signature (HMAC-SHA256) en payment-webhook
                                        y subscription-webhook. Ver src/lib/mpWebhook.js
 NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY   ← Public key para el SDK del browser
+
+# Gumroad
+GUMROAD_ACCESS_TOKEN                ← Access token de una Application creada en
+                                       Gumroad (Settings → Advanced → Applications →
+                                       Generate access token). Usado por
+                                       /api/gumroad-webhook para re-verificar cada venta
+                                       contra GET https://api.gumroad.com/v2/sales/:id
+                                       antes de acreditar créditos — el Ping de Gumroad
+                                       no viene firmado, así que nunca hay que confiar en
+                                       su body crudo. Ver seccion de Lead Finder Pro abajo.
 
 # LinkedIn OAuth
 LINKEDIN_CLIENT_ID
@@ -378,7 +390,8 @@ mensaje pre-cargado) ademas del screenshot del sitio y el badge de Score SEO.
   a cualquier POST sin barra final (`/api/x` → `/api/x/`). Los webhooks externos NO reenvian el
   POST al seguir el redirect → quedan como Failed con body `Redirecting...`. **Regla: toda URL de
   webhook registrada en un servicio externo (Resend, MercadoPago, Make.com) DEBE terminar en `/`.**
-  Ya paso con Resend (`/api/resend-webhook/`). Aplica igual a `/api/subscription-webhook/`.
+  Ya paso con Resend (`/api/resend-webhook/`). Aplica igual a `/api/subscription-webhook/` y a
+  `/api/gumroad-webhook/` (Ping de Gumroad).
 
 - **`trailingSlash: true` + segmentos dinamicos con punto (dominios)**: Next.js trata cualquier
   segmento de ruta que contenga un punto (ej. `marianoaliandri.com.ar`) como si fuera un archivo,
