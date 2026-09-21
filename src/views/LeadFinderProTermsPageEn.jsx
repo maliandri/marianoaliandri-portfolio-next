@@ -37,7 +37,9 @@ export default function LeadFinderProTermsPageEn() {
             <p>
               Lead Finder Pro lets you search local businesses by location and audit them
               (website presence, SEO score, contact info) using data sourced from Google Places.
-              Browsing/searching is free; each full audit consumes one credit from your plan.
+              Before each search you choose how many results you want — that number is the number
+              of credits it consumes from your plan. If you&apos;d already audited a business
+              before, it won&apos;t consume another credit.
             </p>
           </section>
 

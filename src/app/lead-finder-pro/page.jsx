@@ -86,23 +86,23 @@ export default function LeadFinderProLanding() {
       </div>
 
       <div className="max-w-4xl mx-auto bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 mb-16">
-        <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-4">¿Qué significa "100 negocios por mes"?</p>
+        <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-4">¿Cómo funcionan los créditos?</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <p className="text-white font-semibold text-sm mb-1.5">🔍 Buscar y explorar — sin límite</p>
+            <p className="text-white font-semibold text-sm mb-1.5">🎯 Vos elegís cuántos resultados querés</p>
             <p className="text-gray-500 text-sm">
-              Recorré el mapa, cambiá el término de búsqueda o la zona las veces que quieras. Ver los negocios de tu búsqueda no gasta nada de tu plan.
+              Antes de buscar, poné la localidad, el término y cuántos negocios querés (1, 10, 50...). Eso es exactamente lo que se gasta de tu plan — ni más, ni menos.
             </p>
           </div>
           <div>
-            <p className="text-white font-semibold text-sm mb-1.5">✅ Auditar a fondo — 1 crédito por negocio</p>
+            <p className="text-white font-semibold text-sm mb-1.5">✅ Resultados ya auditados, sin pasos extra</p>
             <p className="text-gray-500 text-sm">
-              Cuando pedís el detalle completo de un negocio (website, teléfono, horarios, rating, score SEO), ahí sí consume 1 de tus créditos del mes. Vos elegís cuáles priorizar.
+              No hay que tildar "auditar" uno por uno: cada resultado llega directo con website, teléfono, horarios, rating y score SEO. Si un negocio ya lo habías auditado antes, no te vuelve a cobrar el crédito.
             </p>
           </div>
         </div>
         <p className="text-gray-600 text-xs mt-5">
-          Con el plan Starter (100/mes) podés explorar toda tu zona sin límite, y quedarte con el detalle completo de los 100 negocios que más te sirvan.
+          Con el plan Starter (100/mes) podés pedir hasta 100 negocios completamente auditados por mes.
         </p>
       </div>
 

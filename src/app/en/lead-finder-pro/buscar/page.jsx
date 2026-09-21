@@ -17,7 +17,7 @@ export default function LeadFinderProBuscarPageEn() {
           <LanguageSwitch />
         </div>
         <h1 className="text-2xl md:text-3xl font-black text-white mt-2">Search businesses</h1>
-        <p className="text-gray-500 text-sm mt-1">Searching and exploring is free. A full audit uses 1 credit per business.</p>
+        <p className="text-gray-500 text-sm mt-1">Choose how many results you want — that number is what gets used from your credits.</p>
       </div>
 
       <div className="max-w-6xl mx-auto px-4">

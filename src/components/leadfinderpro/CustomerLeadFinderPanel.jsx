@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/utils/firebaseservice';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { lfpT } from '@/data/i18n/leadFinderPro';
 
@@ -20,6 +22,20 @@ function shortUrl(url) {
   return url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '').substring(0, 35);
 }
 
+// Mismo cálculo de cupo restante que usa el gate server-side en
+// /api/lead-finder-pro/run — se repite acá solo para mostrarle al cliente
+// cuántos créditos tiene ANTES de gastarlos, nunca para decidir el cobro real.
+function computeBalance(e) {
+  if (!e) return 0;
+  if (e.unlimited === true && e.status === 'active') return Infinity;
+  if (e.billingType === 'subscription' && e.status === 'active' && e.planCredits > 0) {
+    const monthKey = new Date().toISOString().slice(0, 7);
+    const used = e.usagePeriod === monthKey ? (e.usageCount || 0) : 0;
+    return Math.max(0, e.planCredits - used);
+  }
+  return e.credits || 0;
+}
+
 function ScoreBadge({ score }) {
   if (score === null || score === undefined) return <span className="text-gray-400 dark:text-gray-600 text-xs">—</span>;
   const cls = score >= 70 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
@@ -30,23 +46,25 @@ function ScoreBadge({ score }) {
 
 export default function CustomerLeadFinderPanel({ lang = 'es' }) {
   const t = lfpT(lang).panel;
-  const { getIdToken } = useAuthUser();
+  const { user, getIdToken } = useAuthUser();
 
   const [ciudades, setCiudades]       = useState([]);
   const [zonaInput, setZonaInput]     = useState('');
   const [terminos, setTerminos]       = useState([]);
   const [terminoInput, setTerminoInput] = useState('');
   const [radioKm, setRadioKm]         = useState(10);
+  const [cantidad, setCantidad]       = useState(10);
+  const [balance, setBalance]         = useState(null); // null = sin cargar, Infinity = ilimitado
   const [showConfig, setShowConfig]   = useState(true);
 
   const [phase, setPhase]         = useState('idle'); // idle | searching | done | error
   const [results, setResults]     = useState([]);
+  const [creditsUsed, setCreditsUsed] = useState(0);
   const [progress, setProgress]   = useState({ ciudadActual: '', tipoActual: '', encontrados: 0 });
-  const [blocked, setBlocked]     = useState(false); // sin plan activo
+  const [blocked, setBlocked]     = useState(false); // sin créditos
   const [quotaExceeded, setQuotaExceeded] = useState(false); // cuota diaria de Google agotada
   const [error, setError]         = useState('');
   const [auditingId, setAuditingId] = useState(null);
-  const [auditingAll, setAuditingAll] = useState(false);
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [loadingSavedId, setLoadingSavedId] = useState(null);
@@ -60,10 +78,23 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
   const stopRef = useRef(false);
   const isRunning = phase === 'searching';
 
-  const audited     = results.filter(r => r.hasWebsite !== null).length;
   const withSite    = results.filter(r => r.hasWebsite === true).length;
   const withoutSite = results.filter(r => r.hasWebsite === false).length;
-  const pending     = results.filter(r => r.hasWebsite === null && !r.auditError).length;
+
+  useEffect(() => {
+    if (!user) { setBalance(null); return; }
+    getDoc(doc(db, 'leadfinder_entitlements', user.uid))
+      .then(snap => setBalance(computeBalance(snap.data())))
+      .catch(() => setBalance(0));
+  }, [user]);
+
+  // Tope el input de cantidad al saldo real apenas lo conocemos, para no dejar
+  // pedir más resultados de los que tiene pagados.
+  useEffect(() => {
+    if (balance !== null && balance !== Infinity && cantidad > balance) {
+      setCantidad(Math.max(1, balance));
+    }
+  }, [balance]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const callFn = useCallback(async (action, params = {}) => {
     const idToken = await getIdToken();
@@ -90,6 +121,30 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
     return data;
   }, [getIdToken]);
 
+  // Audita un negocio ya encontrado — usado tanto en la búsqueda automática (hasta
+  // completar "cantidad") como en el botón "Reintentar" de una fila con error.
+  const auditPlace = async (negocio) => {
+    setAuditingId(negocio.id);
+    try {
+      const det = await callFn('auditPlace', { placeId: negocio.id });
+      setResults(prev => prev.map(r => r.id === negocio.id ? {
+        ...r,
+        hasWebsite: det.hasWebsite, siteUrl: det.siteUrl, seoScore: det.seoScore,
+        hasSitemap: det.hasSitemap, hasRobots: det.hasRobots, metaDesc: det.metaDesc, hasOG: det.hasOG,
+        phone: det.phone, openingHours: det.openingHours, rating: det.rating, ratingCount: det.ratingCount,
+        auditError: false,
+      } : r));
+      if (!det.fromMyHistory) setCreditsUsed(prev => prev + 1);
+      return true;
+    } catch (e) {
+      if (!stopRef.current) setResults(prev => prev.map(r => r.id === negocio.id ? { ...r, auditError: true } : r));
+      if (stopRef.current) throw e;
+      return false;
+    } finally {
+      setAuditingId(null);
+    }
+  };
+
   const runSearch = useCallback(async () => {
     cancelRef.current = false;
     setPhase('searching');
@@ -97,10 +152,12 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
     const allResults = [];
     const seenIds = new Set();
     const radiusM = radioKm * 1000;
+    let processedCount = 0; // negocios ya devueltos (auditados o desde caché) — tope: cantidad
 
     try {
+      outer:
       for (const ciudad of ciudades) {
-        if (cancelRef.current) break;
+        if (cancelRef.current || processedCount >= cantidad) break;
         setProgress(prev => ({ ...prev, ciudadActual: ciudad }));
 
         let lat, lon;
@@ -114,55 +171,62 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
           continue;
         }
 
-        // Búsqueda por texto libre en Maps — única forma de buscar (sin categorías fijas)
         for (const term of terminos) {
-          if (cancelRef.current) break;
+          if (cancelRef.current || processedCount >= cantidad) break outer;
           setProgress(prev => ({ ...prev, tipoActual: `"${term}"` }));
           try {
-            let places = [];
             let pageToken = null;
             let page = 0;
             do {
-              if (cancelRef.current) break;
+              if (cancelRef.current || processedCount >= cantidad) break;
               const res = await callFn('searchText', { lat, lon, query: `${term}, ${ciudad}`, radiusM, pageToken });
-              places.push(...(res.places || []));
+              const places = res.places || [];
               pageToken = res.nextPageToken || null;
-              page++;
-              if (pageToken && page < 3) await sleep(1500);
-            } while (pageToken && page < 3 && !cancelRef.current);
 
-            for (const place of places) {
-              if (seenIds.has(place.id)) continue;
-              seenIds.add(place.id);
-              const neg = {
-                id: place.id,
-                nombre: place.displayName?.text || t.noName,
-                tipo: term, ciudad,
-                lat: place.location?.latitude ?? null,
-                lon: place.location?.longitude ?? null,
-                previewRating: place.rating ? Number(place.rating).toFixed(1) : null,
-                hasWebsite: null, siteUrl: null, seoScore: null,
-                hasSitemap: null, hasRobots: null, metaDesc: null, hasOG: null,
-                phone: null, openingHours: null, rating: null, ratingCount: null,
-                auditError: false,
-              };
-              allResults.push(neg);
-              setResults(prev => [...prev, neg]);
-            }
-            setProgress(prev => ({ ...prev, encontrados: allResults.length }));
+              for (const place of places) {
+                if (cancelRef.current || processedCount >= cantidad) break;
+                if (seenIds.has(place.id)) continue;
+                seenIds.add(place.id);
+
+                const neg = {
+                  id: place.id,
+                  nombre: place.displayName?.text || t.noName,
+                  tipo: term, ciudad,
+                  lat: place.location?.latitude ?? null,
+                  lon: place.location?.longitude ?? null,
+                  previewRating: place.rating ? Number(place.rating).toFixed(1) : null,
+                  hasWebsite: null, siteUrl: null, seoScore: null,
+                  hasSitemap: null, hasRobots: null, metaDesc: null, hasOG: null,
+                  phone: null, openingHours: null, rating: null, ratingCount: null,
+                  auditError: false,
+                };
+                allResults.push(neg);
+                setResults(prev => [...prev, neg]);
+
+                // Audita apenas se encuentra — la búsqueda ya viene acotada a
+                // "cantidad" resultados totales, cada uno cuesta 1 crédito
+                // (salvo que ya estuviera en el historial del cliente).
+                await auditPlace(neg);
+                processedCount++;
+                setProgress(prev => ({ ...prev, encontrados: processedCount }));
+                await sleep(200);
+              }
+
+              page++;
+              if (pageToken && page < 3 && processedCount < cantidad) await sleep(1500);
+            } while (pageToken && page < 3 && processedCount < cantidad && !cancelRef.current);
           } catch (e) {
             if (stopRef.current) throw e;
           }
         }
       }
       setPhase('done');
-      await checkMyAudits(allResults.map(r => r.id));
       if (allResults.length) await saveSearch(allResults);
     } catch (e) {
       setPhase(stopRef.current ? 'idle' : 'error');
       if (!stopRef.current) setError(e.message);
     }
-  }, [ciudades, terminos, radioKm, callFn, t]);
+  }, [ciudades, terminos, radioKm, cantidad, callFn, t]);
 
   // Guarda esta búsqueda (config + resultados) en el historial del cliente, para
   // poder volver a verla despues sin relanzarla.
@@ -204,6 +268,7 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
         setCiudades(data.ciudades || []);
         setTerminos(data.terminos || []);
         setRadioKm(data.radioKm || 10);
+        setCreditsUsed(0);
         setPhase('done');
         setShowConfig(false);
         setShowHistory(false);
@@ -222,29 +287,12 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
     setHistory(prev => prev.filter(h => h.id !== id));
   };
 
-  // Consulta en bloque cuáles de estos negocios ya los auditó este cliente antes —
-  // los completa directo, sin gastar otro crédito ni tener que tocar "Auditar".
-  const checkMyAudits = async (placeIds) => {
-    if (!placeIds.length) return;
-    try {
-      const idToken = await getIdToken();
-      const resp = await fetch('/api/lead-finder-pro/my-audits', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}) },
-        body: JSON.stringify({ placeIds }),
-      });
-      const data = await resp.json().catch(() => ({}));
-      const audits = data.audits || {};
-      if (!Object.keys(audits).length) return;
-      setResults(prev => prev.map(r => audits[r.id] ? { ...r, ...audits[r.id], fromMyHistory: true } : r));
-    } catch { /* no bloquea la búsqueda si esto falla */ }
-  };
-
   const startSearch = () => {
     stopRef.current = false;
     setBlocked(false);
     setQuotaExceeded(false);
     setResults([]);
+    setCreditsUsed(0);
     setError('');
     setProgress({ ciudadActual: '', tipoActual: '', encontrados: 0 });
     setShowConfig(false);
@@ -252,35 +300,6 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
   };
 
   const stopSearch = () => { cancelRef.current = true; };
-
-  // Gasta 1 crédito — trae website + teléfono + horarios + rating + score SEO.
-  const auditOne = async (negocio) => {
-    setAuditingId(negocio.id);
-    try {
-      const det = await callFn('auditPlace', { placeId: negocio.id });
-      setResults(prev => prev.map(r => r.id === negocio.id ? {
-        ...r,
-        hasWebsite: det.hasWebsite, siteUrl: det.siteUrl, seoScore: det.seoScore,
-        hasSitemap: det.hasSitemap, hasRobots: det.hasRobots, metaDesc: det.metaDesc, hasOG: det.hasOG,
-        phone: det.phone, openingHours: det.openingHours, rating: det.rating, ratingCount: det.ratingCount,
-      } : r));
-    } catch (e) {
-      if (!stopRef.current) setResults(prev => prev.map(r => r.id === negocio.id ? { ...r, auditError: true } : r));
-    } finally {
-      setAuditingId(null);
-    }
-  };
-
-  const auditAll = async () => {
-    setAuditingAll(true);
-    const toAudit = results.filter(r => r.hasWebsite === null && !r.auditError);
-    for (const neg of toAudit) {
-      if (stopRef.current) break;
-      await auditOne(neg);
-      await sleep(250);
-    }
-    setAuditingAll(false);
-  };
 
   const exportCSV = () => {
     const rows = results.map(r => [
@@ -297,7 +316,9 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
     URL.revokeObjectURL(url);
   };
 
-  if (blocked) {
+  const noCredits = balance !== null && balance !== Infinity && balance <= 0;
+
+  if (blocked || noCredits) {
     return (
       <div className="bg-[#111] border border-amber-500/30 rounded-2xl p-8 text-center">
         <p className="text-3xl mb-3">🔒</p>
@@ -452,18 +473,42 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-2">{t.radioLabel}</label>
-              <input type="number" min={1} max={30} value={radioKm} disabled={isRunning}
-                onChange={e => setRadioKm(parseInt(e.target.value) || 1)}
-                className="w-28 px-3 py-2 bg-[#0a0a0a] border border-white/10 rounded-lg text-white text-sm" />
+            <div className="flex flex-wrap gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-2">{t.radioLabel}</label>
+                <input type="number" min={1} max={30} value={radioKm} disabled={isRunning}
+                  onChange={e => setRadioKm(parseInt(e.target.value) || 1)}
+                  className="w-28 px-3 py-2 bg-[#0a0a0a] border border-white/10 rounded-lg text-white text-sm" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-2">
+                  {t.cantidadLabel} <span className="text-gray-600 font-normal">{t.cantidadHint}</span>
+                </label>
+                <input
+                  type="number" min={1} max={balance === Infinity || balance === null ? undefined : balance}
+                  value={cantidad} disabled={isRunning}
+                  onChange={e => {
+                    const v = parseInt(e.target.value) || 1;
+                    const capped = (balance !== null && balance !== Infinity) ? Math.min(v, Math.max(1, balance)) : v;
+                    setCantidad(Math.max(1, capped));
+                  }}
+                  className="w-28 px-3 py-2 bg-[#0a0a0a] border border-white/10 rounded-lg text-white text-sm"
+                />
+              </div>
+
+              <div className="flex items-end pb-2">
+                <span className="text-xs text-gray-500">
+                  {balance === null ? '' : balance === Infinity ? t.balanceUnlimited : balance <= 0 ? t.balanceZero : t.balanceAvailable(balance)}
+                </span>
+              </div>
             </div>
           </div>
         )}
 
         <div className="flex flex-wrap items-center gap-3 px-5 py-4 bg-white/[0.02] border-t border-white/10">
           {!isRunning ? (
-            <button onClick={startSearch} disabled={!ciudades.length || !terminos.length}
+            <button onClick={startSearch} disabled={!ciudades.length || !terminos.length || !cantidad}
               className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl font-semibold text-sm transition-colors">
               {t.searchBtn}
             </button>
@@ -477,12 +522,6 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
               {t.csvBtn}
             </button>
           )}
-          {pending > 0 && !isRunning && (
-            <button onClick={auditAll} disabled={auditingAll}
-              className="px-4 py-2.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors">
-              {auditingAll ? t.auditingAllBtn : t.auditAllBtn(pending)}
-            </button>
-          )}
           {error && <span className="text-xs text-red-400 ml-auto">{error}</span>}
         </div>
       </div>
@@ -490,7 +529,7 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
       {/* Progress */}
       {isRunning && (
         <div className="bg-[#111] border border-white/10 rounded-2xl p-4 text-xs text-gray-400">
-          📍 {progress.ciudadActual} · {progress.tipoActual} · {progress.encontrados} {t.progressFound}
+          📍 {progress.ciudadActual} · {progress.tipoActual} · {progress.encontrados}/{cantidad} {t.progressFound}
         </div>
       )}
 
@@ -501,7 +540,7 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
             { value: results.length, label: t.statsFound, color: 'text-white' },
             { value: withSite, label: t.statsWithSite, color: 'text-green-400' },
             { value: withoutSite, label: t.statsWithoutSite, color: 'text-purple-400' },
-            { value: pending, label: t.statsPending, color: 'text-gray-400' },
+            { value: creditsUsed, label: t.statsCreditsUsed, color: 'text-gray-400' },
           ].map(s => (
             <div key={s.label} className="bg-[#111] border border-white/10 rounded-xl p-4 text-center">
               <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
@@ -530,7 +569,7 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
                     <td className="px-3 py-2.5 text-xs text-gray-500 whitespace-nowrap">{neg.ciudad}</td>
                     <td className="px-3 py-2.5"><span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-300 rounded-full text-xs">{neg.tipo}</span></td>
                     <td className="px-3 py-2.5 max-w-[150px]">
-                      {neg.hasWebsite === null ? <span className="text-gray-600 text-xs">—</span>
+                      {neg.hasWebsite === null ? (auditingId === neg.id ? <span className="text-gray-500 text-xs">{t.auditingBtn}</span> : <span className="text-gray-600 text-xs">—</span>)
                         : neg.hasWebsite ? <a href={neg.siteUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 text-xs truncate block">{shortUrl(neg.siteUrl)}</a>
                         : <span className="text-purple-400 text-xs font-medium">{t.noSite}</span>}
                     </td>
@@ -538,14 +577,9 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
                     <td className="px-3 py-2.5 text-xs text-gray-400 whitespace-nowrap">{neg.phone || '—'}</td>
                     <td className="px-3 py-2.5 text-xs text-yellow-500 whitespace-nowrap">{neg.rating ? `★${neg.rating}` : neg.previewRating ? `★${neg.previewRating}` : '—'}</td>
                     <td className="px-3 py-2.5">
-                      {neg.hasWebsite === null && !neg.auditError && (
-                        <button onClick={() => auditOne(neg)} disabled={auditingId === neg.id || auditingAll}
-                          className="px-2.5 py-1 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors whitespace-nowrap">
-                          {auditingId === neg.id ? t.auditingBtn : t.auditBtn}
-                        </button>
-                      )}
                       {neg.auditError && (
-                        <button onClick={() => auditOne(neg)} className="px-2.5 py-1 bg-red-600/20 text-red-400 rounded-lg text-xs">{t.retryBtn}</button>
+                        <button onClick={() => auditPlace(neg)} disabled={auditingId === neg.id}
+                          className="px-2.5 py-1 bg-red-600/20 text-red-400 rounded-lg text-xs disabled:opacity-50">{t.retryBtn}</button>
                       )}
                     </td>
                     <td className="px-3 py-2.5">

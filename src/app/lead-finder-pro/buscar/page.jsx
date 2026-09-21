@@ -17,7 +17,7 @@ export default function LeadFinderProBuscarPage() {
           <LanguageSwitch />
         </div>
         <h1 className="text-2xl md:text-3xl font-black text-white mt-2">Buscar negocios</h1>
-        <p className="text-gray-500 text-sm mt-1">Buscar y explorar es gratis. Auditar a fondo gasta 1 crédito por negocio.</p>
+        <p className="text-gray-500 text-sm mt-1">Elegí cuántos resultados querés — esa cantidad es la que se gasta de tus créditos.</p>
       </div>
 
       <div className="max-w-6xl mx-auto px-4">

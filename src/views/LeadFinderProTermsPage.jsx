@@ -36,8 +36,10 @@ export default function LeadFinderProTermsPage() {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">2. El servicio</h2>
             <p>
               Lead Finder Pro te permite buscar negocios locales por zona y auditarlos (presencia
-              de sitio web, score SEO, datos de contacto) usando datos de Google Places. Buscar y
-              explorar es gratis; cada auditoría completa consume un crédito de tu plan.
+              de sitio web, score SEO, datos de contacto) usando datos de Google Places. Antes de
+              cada búsqueda elegís cuántos resultados querés — esa cantidad consume esa misma
+              cantidad de créditos de tu plan. Si un negocio ya lo habías auditado antes, no vuelve
+              a consumir un crédito.
             </p>
           </section>
 
