@@ -119,7 +119,6 @@ src/
   data/
     products.js         # Catalogo estatico de productos (IDs canonicos, fallback)
     localidadesAR.js    # PROVINCIAS_AR: 24 provincias con localidades para el Lead Finder
-    linkedinPosts.js    # Posts de LinkedIn hardcodeados
     serviceLogos.js     # Mapa tema→logo Cloudinary para SocialPublisher
 ```
 
@@ -288,7 +287,6 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 - **Auth**: Firebase Auth (Google login)
 - **Likes + Visitas**: Contadores en Firestore, anonimos con localStorage
 - **AI Chatbot**: Integrado en header (Gemini 2.5 Flash)
-- **LinkedIn Sidebar**: Feed de posts de LinkedIn
 - **WhatsApp Button**: Flotante en todas las paginas
 - **Favicon dinamico**: Emoji segun dia de la semana (Dom😴 Lun😊 Mar😄 Mie🥳 Jue😎 Vie🤩 Sab😁) — script inline en `<head>`, sin archivos ni requests
 - **Dark mode**: Persistido en localStorage, aplicado antes del primer render (sin flash)
@@ -321,7 +319,7 @@ un usuario se auto-asigne un plan o resetee su cuota. Ver `src/lib/entitlements.
 ## Decisiones de arquitectura importantes
 
 ### Carga diferida de Firebase (providers.jsx)
-`AuthButton`, `LikeSystem`, `VisitorCounter`, `AIChatBot`, `LinkedInSidebar` usan
+`AuthButton`, `LikeSystem`, `VisitorCounter`, `AIChatBot` usan
 `dynamic()` con `ssr: false`. Esto evita que `auth/iframe.js` de Firebase (90 KiB)
 entre en el critical render path. Mejora LCP significativamente. **No revertir.**
 
