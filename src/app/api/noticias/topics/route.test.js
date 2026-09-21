@@ -223,7 +223,7 @@ describe('PATCH /api/noticias/topics', () => {
   it('actualiza destino con un valor válido', async () => {
     const { db, state } = createFakeDb({ t1: { label: 'trabajo remoto', activo: true } });
     getDb.mockReturnValue(db);
-    for (const destino of ['fb_ig', 'linkedin', 'todas']) {
+    for (const destino of ['fb_ig', 'linkedin', 'todas', 'x']) {
       const res = await PATCH(makeRequest({ id: 't1', destino }));
       expect(res.status).toBe(200);
       expect(state.topics.t1.destino).toBe(destino);
@@ -245,6 +245,18 @@ describe('PATCH /api/noticias/topics', () => {
     getDb.mockReturnValue(db);
     const res = await PATCH(makeRequest({ id: 't1', maxPorCorrida: bad }));
     expect(res.status).toBe(400);
+  });
+
+  it('actualiza query (con trim) y rechaza vacía o demasiado larga', async () => {
+    const { db, state } = createFakeDb({ t1: { label: 'SEO', activo: true } });
+    getDb.mockReturnValue(db);
+    const ok = await PATCH(makeRequest({ id: 't1', query: '  "trabajo remoto" OR teletrabajo ' }));
+    expect(ok.status).toBe(200);
+    expect(state.topics.t1.query).toBe('"trabajo remoto" OR teletrabajo');
+    for (const bad of ['', '   ', 'x'.repeat(201), 5]) {
+      const res = await PATCH(makeRequest({ id: 't1', query: bad }));
+      expect(res.status).toBe(400);
+    }
   });
 
   it('rechaza un destino que no existe', async () => {

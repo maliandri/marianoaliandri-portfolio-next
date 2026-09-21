@@ -5,7 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { requireAdmin } from '@/lib/adminAuth';
 
 // Mismos valores que networksFor() en scripts/noticias-bot.mjs (el bot no puede importar de src/).
-const DESTINOS = ['fb_ig', 'linkedin', 'todas'];
+const DESTINOS = ['fb_ig', 'linkedin', 'todas', 'x'];
 
 // Tope de notas por corrida de cada tópico: mismo default (2) y máximo (5) que
 // itemsPerRunFor() en scripts/noticias-bot.mjs.
@@ -34,7 +34,8 @@ export async function GET(request) {
         toneInstructions: data.toneInstructions ?? null,
         // Tópicos creados antes de este campo no lo tienen: por default usan la foto del artículo.
         usarFoto: data.usarFoto !== false,
-        // Dónde se publica: 'fb_ig' (default, como siempre), 'linkedin' (solo LinkedIn) o 'todas'.
+        // Dónde se publica: 'fb_ig' (default, como siempre), 'linkedin' (solo LinkedIn), 'todas'
+        // o 'x' (solo X, y esas notas NO se muestran en el sitio).
         destino: DESTINOS.includes(data.destino) ? data.destino : 'fb_ig',
         maxPorCorrida: normalizeMaxPorCorrida(data.maxPorCorrida),
         createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
@@ -80,15 +81,15 @@ export async function PATCH(request) {
   if (auth.response) return auth.response;
 
   try {
-    const { id, activo, toneInstructions, usarFoto, destino, maxPorCorrida } = await request.json();
+    const { id, activo, toneInstructions, usarFoto, destino, maxPorCorrida, query } = await request.json();
     if (!id) {
       return Response.json({ error: 'id es requerido' }, { status: 400 });
     }
     if (
       activo === undefined && toneInstructions === undefined && usarFoto === undefined &&
-      destino === undefined && maxPorCorrida === undefined
+      destino === undefined && maxPorCorrida === undefined && query === undefined
     ) {
-      return Response.json({ error: 'Nada para actualizar (activo, toneInstructions, usarFoto, destino o maxPorCorrida)' }, { status: 400 });
+      return Response.json({ error: 'Nada para actualizar (activo, toneInstructions, usarFoto, destino, maxPorCorrida o query)' }, { status: 400 });
     }
     if (maxPorCorrida !== undefined && !isValidMaxPorCorrida(maxPorCorrida)) {
       return Response.json({ error: `maxPorCorrida debe ser un entero de 1 a ${ABSOLUTE_MAX_POR_CORRIDA}` }, { status: 400 });
@@ -102,6 +103,9 @@ export async function PATCH(request) {
     if (usarFoto !== undefined && typeof usarFoto !== 'boolean') {
       return Response.json({ error: 'usarFoto debe ser boolean' }, { status: 400 });
     }
+    if (query !== undefined && (typeof query !== 'string' || !query.trim() || query.length > 200)) {
+      return Response.json({ error: 'query debe ser un texto de 1 a 200 caracteres' }, { status: 400 });
+    }
     if (toneInstructions !== undefined && typeof toneInstructions !== 'string') {
       return Response.json({ error: 'toneInstructions debe ser string' }, { status: 400 });
     }
@@ -114,6 +118,7 @@ export async function PATCH(request) {
     if (usarFoto !== undefined) update.usarFoto = usarFoto;
     if (destino !== undefined) update.destino = destino;
     if (maxPorCorrida !== undefined) update.maxPorCorrida = maxPorCorrida;
+    if (query !== undefined) update.query = query.trim();
     if (toneInstructions !== undefined) update.toneInstructions = toneInstructions.trim() || null;
 
     await db.collection('noticias_topics').doc(id).update(update);

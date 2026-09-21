@@ -16,7 +16,9 @@ async function getNoticia(id) {
     const doc = await db.collection('noticias').doc(id).get();
     if (!doc.exists) return null;
     const data = doc.data();
-    if (data.status !== 'published') return null;
+    // Las notas de tópicos "solo X" existen en Firestore (dedup, tope diario, log del admin)
+    // pero no se muestran en el sitio: responden 404 aunque alguien tenga el id.
+    if (data.status !== 'published' || data.visibleEnSitio === false) return null;
     return {
       id: doc.id,
       ...data,

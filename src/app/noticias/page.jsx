@@ -35,10 +35,12 @@ async function getNoticias() {
           topicLabel: data.topicLabel,
           imageUrl: data.imageUrl,
           status: data.status,
+          // Notas de tópicos "solo X" (visibleEnSitio:false) no se muestran en el sitio.
+          visibleEnSitio: data.visibleEnSitio !== false,
           publishedAt: data.publishedAt?.toDate?.()?.toISOString() || null,
         };
       })
-      .filter(n => n.status === 'published')
+      .filter(n => n.status === 'published' && n.visibleEnSitio)
       .slice(0, 30);
   } catch { return []; }
 }

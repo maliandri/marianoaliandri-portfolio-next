@@ -13,6 +13,7 @@ const SELECT_CLASS =
 export default function TopicCard({ topic, notes, busy, onToggleActivo, onToggleFoto, onUpdate, onSaveTone, onDelete }) {
   const [expanded, setExpanded] = useState(false);
   const [toneDraft, setToneDraft] = useState(topic.toneInstructions || '');
+  const [queryDraft, setQueryDraft] = useState(topic.query || '');
 
   const publishedCount = notes.filter(n => n.status === 'published').length;
 
@@ -59,8 +60,13 @@ export default function TopicCard({ topic, notes, busy, onToggleActivo, onToggle
                 <option value="fb_ig">Facebook + Instagram</option>
                 <option value="linkedin">Solo LinkedIn</option>
                 <option value="todas">Facebook + Instagram + LinkedIn</option>
+                <option value="x">Solo X (no aparece en el sitio)</option>
               </select>
-              <p className="text-xs text-gray-400 mt-1">Siempre se publica también en el sitio (/noticias).</p>
+              <p className="text-xs text-gray-400 mt-1">
+                {topic.destino === 'x'
+                  ? 'Estas notas NO se muestran en tu sitio (/noticias): solo salen en X.'
+                  : 'Siempre se publica también en el sitio (/noticias).'}
+              </p>
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5 block">
@@ -78,6 +84,38 @@ export default function TopicCard({ topic, notes, busy, onToggleActivo, onToggle
               </select>
               <p className="text-xs text-gray-400 mt-1">Máximo de este tópico cada vez que corre el bot (cada hora).</p>
             </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5 block">
+              Búsqueda en Google News
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={queryDraft}
+                onChange={e => setQueryDraft(e.target.value)}
+                maxLength={200}
+                className="flex-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1.5"
+              />
+              <button
+                type="button"
+                onClick={() => onUpdate(topic.id, { query: queryDraft })}
+                disabled={busy || !queryDraft.trim() || queryDraft.trim() === (topic.query || '')}
+                className="text-xs px-2.5 py-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 disabled:opacity-50"
+              >
+                Guardar
+              </button>
+              <a
+                href={`https://news.google.com/search?q=${encodeURIComponent(queryDraft)}&hl=es-419&gl=AR&ceid=AR:es-419`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs px-2.5 py-1.5 rounded-lg text-indigo-600 dark:text-indigo-400 hover:underline self-center"
+              >
+                Probar
+              </a>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Lo que busca el bot. Podés usar OR y comillas. "Probar" abre Google News con esta búsqueda.</p>
           </div>
 
           <div>

@@ -6,6 +6,7 @@ import admin from 'firebase-admin';
 import crypto from 'node:crypto';
 import { XMLParser } from 'fast-xml-parser';
 import { renderNoticiaCard } from './noticiaCard.mjs';
+import { postToX } from './xClient.mjs';
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -247,7 +248,9 @@ async function generateContent(item, topic) {
 }
 
 // Foto principal del artículo (og:image) vía Microlink en modo meta: liviano, no
-// renderiza la página entera. Devuelve { url, width, height } o null.
+// renderiza la página entera. Devuelve { url, width, height, pageUrl } (url/width/height
+// son null si el artículo no tiene og:image; pageUrl es la URL final del artículo, ya
+// resuelta la redirección de Google News) o null si Microlink falla.
 // (Antes se sacaba una captura de pantalla de la página, pero salía recortada y con
 // menús/banners de cookies: ilegible. Ahora la imagen es una tarjeta hecha por
 // scripts/noticiaCard.mjs, con la foto —si el tópico la usa— solo de fondo.)
@@ -257,8 +260,7 @@ async function getArticlePhoto(url) {
     const resp = await fetch(apiUrl, { signal: AbortSignal.timeout(15000) });
     const data = await resp.json();
     const img = data?.data?.image;
-    if (!img?.url) return null;
-    return { url: img.url, width: img.width ?? null, height: img.height ?? null };
+    return { url: img?.url ?? null, width: img?.width ?? null, height: img?.height ?? null, pageUrl: data?.data?.url ?? null };
   } catch {
     return null;
   }
@@ -341,14 +343,33 @@ export async function waitForImage(url, { fetchImpl = fetch, retries = 6, delayM
 
 // Dónde se publica cada nota según el `destino` del tópico (se elige en el admin):
 // 'fb_ig' = Facebook + Instagram (default y lo que hacían todos los tópicos hasta ahora),
-// 'linkedin' = SOLO LinkedIn (ej. trabajo remoto, sitios de empleo), 'todas' = las tres.
-// Siempre se publica además en el sitio (/noticias). Un valor desconocido cae en 'fb_ig'.
+// 'linkedin' = SOLO LinkedIn (ej. trabajo remoto, sitios de empleo), 'todas' = las tres,
+// 'x' = SOLO X (ej. política: esas notas NO se muestran en el sitio). Los demás destinos
+// se publican además en el sitio (/noticias). Un valor desconocido cae en 'fb_ig'.
 // Mismos valores que DESTINOS en src/app/api/noticias/topics/route.js.
 const DESTINOS = {
-  fb_ig: { facebook: true, instagram: true, linkedin: false },
-  linkedin: { facebook: false, instagram: false, linkedin: true },
-  todas: { facebook: true, instagram: true, linkedin: true },
+  fb_ig: { facebook: true, instagram: true, linkedin: false, x: false },
+  linkedin: { facebook: false, instagram: false, linkedin: true, x: false },
+  todas: { facebook: true, instagram: true, linkedin: true, x: false },
+  x: { facebook: false, instagram: false, linkedin: false, x: true },
 };
+
+// Las notas de un tópico solo-X no se muestran en el sitio; todas las demás sí.
+export function isVisibleOnSite(destino) {
+  return destino !== 'x';
+}
+
+// X corta en 280 caracteres y cuenta cualquier link como 23, sin importar su largo real.
+const X_MAX_CHARS = 280;
+const X_LINK_CHARS = 23;
+
+// Texto del post de X: la caption corta (1-2 oraciones que ya genera la IA, sin link) más el
+// link a la fuente en una línea aparte, dentro de los 280 caracteres.
+export function buildXText(caption, link) {
+  const room = X_MAX_CHARS - X_LINK_CHARS - 2; // 2 = la línea en blanco antes del link
+  const text = fitBody(String(caption ?? '').replace(/\s+/g, ' ').trim(), room);
+  return link ? `${text}\n\n${link}` : text;
+}
 
 export function networksFor(destino) {
   return { ...(DESTINOS[destino] ?? DESTINOS.fb_ig) };
@@ -372,47 +393,73 @@ async function sendToMake(text, imageUrl, networks) {
   if (!resp.ok) throw new Error(`Make ${resp.status}`);
 }
 
-async function publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng, usedPhoto }) {
-  let imageUrl;
-  try {
-    imageUrl = await uploadToCloudinary(cardPng);
-  } catch (e) {
-    await db.collection('noticias').add({
-      topicId: topic.id, topicLabel: topic.label,
-      title: content.title, body: content.body, caption: content.caption,
-      sourceUrl: item.link, sourceUrlHash, sourceTitle: item.title,
-      imageUrl: null, status: 'error', makeError: `Cloudinary: ${e.message}`,
-      publishedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-    console.log(`  ✗ "${content.title}" — Cloudinary falló, guardada como error`);
-    return;
+async function publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng, usedPhoto, xLink }) {
+  const destino = topic.destino || 'fb_ig';
+  const networks = networksFor(destino);
+  const soloX = destino === 'x';
+
+  // Los tópicos "solo X" salen como texto + link: no llevan tarjeta ni pasan por Cloudinary.
+  let imageUrl = null;
+  if (!soloX) {
+    try {
+      imageUrl = await uploadToCloudinary(cardPng);
+    } catch (e) {
+      await db.collection('noticias').add({
+        topicId: topic.id, topicLabel: topic.label,
+        title: content.title, body: content.body, caption: content.caption,
+        sourceUrl: item.link, sourceUrlHash, sourceTitle: item.title,
+        imageUrl: null, status: 'error', makeError: `Cloudinary: ${e.message}`,
+        publishedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      console.log(`  ✗ "${content.title}" — Cloudinary falló, guardada como error`);
+      return;
+    }
   }
 
   const docRef = await db.collection('noticias').add({
     topicId: topic.id, topicLabel: topic.label,
     title: content.title, body: content.body, caption: content.caption,
     sourceUrl: item.link, sourceUrlHash, sourceTitle: item.title,
-    imageUrl, imageMode: usedPhoto ? 'foto' : 'marca', destino: topic.destino || 'fb_ig',
+    imageUrl, imageMode: soloX ? null : (usedPhoto ? 'foto' : 'marca'), destino,
+    // Las notas de un tópico "solo X" NO se muestran en el sitio (/noticias, detalle, API
+    // pública), pero existen igual en Firestore para el dedup, el tope diario y el log del admin.
+    visibleEnSitio: isVisibleOnSite(destino),
     status: 'published', makeError: null,
     publishedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
-  const noticiaUrl = `${SITE_URL}/noticias/${docRef.id}/`;
-  const postText = `${content.body}\n\nLeé la nota completa: ${noticiaUrl}`;
-
-  const makeImageUrl = toInstagramSafeUrl(imageUrl);
-  if (!(await waitForImage(makeImageUrl))) {
-    await docRef.update({ makeError: 'Imagen para Instagram no estuvo lista, no se envió a Make' });
-    console.log(`  ⚠ "${content.title}" — publicada en el sitio, pero la imagen no estuvo lista: no se envió a Make`);
+  // Sin página en el sitio no hay "nota completa" a la que linkear: en solo-X el link va a la fuente.
+  const postText = soloX
+    ? content.body
+    : `${content.body}\n\nLeé la nota completa: ${SITE_URL}/noticias/${docRef.id}/`;
+  // X se publica directo desde acá con la API oficial (Make ya no tiene módulo de X).
+  if (soloX) {
+    try {
+      const tweetId = await postToX(buildXText(content.caption, xLink || item.link));
+      console.log(`  ✓ "${content.title}" — guardada (no visible en el sitio) y publicada en X${tweetId ? ` (id ${tweetId})` : ''}`);
+    } catch (e) {
+      await docRef.update({ makeError: `X: ${e.message}` });
+      console.log(`  ⚠ "${content.title}" — guardada, pero X falló: ${e.message}`);
+    }
     return;
   }
 
+  let makeImageUrl = null;
+  if (imageUrl) {
+    makeImageUrl = toInstagramSafeUrl(imageUrl);
+    if (!(await waitForImage(makeImageUrl))) {
+      await docRef.update({ makeError: 'Imagen para Instagram no estuvo lista, no se envió a Make' });
+      console.log(`  ⚠ "${content.title}" — publicada en el sitio, pero la imagen no estuvo lista: no se envió a Make`);
+      return;
+    }
+  }
+
   try {
-    await sendToMake(postText, makeImageUrl, networksFor(topic.destino));
+    await sendToMake(postText, makeImageUrl, networks);
     console.log(`  ✓ "${content.title}" — publicada y enviada a Make`);
   } catch (e) {
     await docRef.update({ makeError: e.message });
-    console.log(`  ⚠ "${content.title}" — publicada en el sitio, pero Make falló: ${e.message}`);
+    console.log(`  ⚠ "${content.title}" — guardada, pero Make falló: ${e.message}`);
   }
 }
 
@@ -472,12 +519,20 @@ async function main() {
         // artículo de fondo si el tópico la usa y hay una buena, o el fondo de marca).
         // Por eso primero se genera el texto y después la tarjeta, que lleva el titular.
         const content = await generateContent(item, topic);
-        const photoDataUri = topic.usarFoto === false ? null : await fetchPhotoDataUri(await getArticlePhoto(item.link));
-        const { png: cardPng, usedPhoto } = await renderNoticiaCard({
-          title: content.title, topicLabel: topic.label, topicId: topic.id, source: item.source, photoDataUri,
-        });
-        console.log(`  Tarjeta: fondo de ${usedPhoto ? 'foto del artículo' : 'marca'}.`);
-        await publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng, usedPhoto });
+        const soloX = topic.destino === 'x';
+        // Una sola consulta a Microlink por nota: da la foto (og:image) y la URL final del
+        // artículo (el link de X). Solo se hace si hace falta alguna de las dos cosas.
+        const meta = soloX || topic.usarFoto !== false ? await getArticlePhoto(item.link) : null;
+        let cardPng = null;
+        let usedPhoto = false;
+        if (!soloX) {
+          const photoDataUri = topic.usarFoto === false ? null : await fetchPhotoDataUri(meta);
+          ({ png: cardPng, usedPhoto } = await renderNoticiaCard({
+            title: content.title, topicLabel: topic.label, topicId: topic.id, source: item.source, photoDataUri,
+          }));
+          console.log(`  Tarjeta: fondo de ${usedPhoto ? 'foto del artículo' : 'marca'}.`);
+        }
+        await publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng, usedPhoto, xLink: meta?.pageUrl || item.link });
         publishedCount++;
         remaining--;
       } catch (e) {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isWithinSchedule, nowArgentina, toInstagramSafeUrl, waitForImage, fetchPhotoDataUri, fitBody, MAX_BODY_CHARS, networksFor, itemsPerRunFor } from './noticias-bot.mjs';
+import { isWithinSchedule, nowArgentina, toInstagramSafeUrl, waitForImage, fetchPhotoDataUri, fitBody, MAX_BODY_CHARS, networksFor, itemsPerRunFor, buildXText, isVisibleOnSite } from './noticias-bot.mjs';
 
 // Enero de 1970: 1=jue, 2=vie, 3=sab, 4=dom, 5=lun, 6=mar, 7=mie.
 // Se usan estas fechas fijas para tener un getUTCDay() conocido sin ambigüedad.
@@ -95,25 +95,60 @@ describe('itemsPerRunFor', () => {
 
 describe('networksFor', () => {
   it('fb_ig publica en Facebook e Instagram, sin LinkedIn', () => {
-    expect(networksFor('fb_ig')).toEqual({ facebook: true, instagram: true, linkedin: false });
+    expect(networksFor('fb_ig')).toEqual({ facebook: true, instagram: true, linkedin: false, x: false });
   });
 
   it('linkedin publica SOLO en LinkedIn', () => {
-    expect(networksFor('linkedin')).toEqual({ facebook: false, instagram: false, linkedin: true });
+    expect(networksFor('linkedin')).toEqual({ facebook: false, instagram: false, linkedin: true, x: false });
   });
 
   it('todas publica en las tres', () => {
-    expect(networksFor('todas')).toEqual({ facebook: true, instagram: true, linkedin: true });
+    expect(networksFor('todas')).toEqual({ facebook: true, instagram: true, linkedin: true, x: false });
   });
 
   it('un tópico viejo (sin destino) o con un valor raro cae en Facebook + Instagram, como hasta ahora', () => {
-    expect(networksFor(undefined)).toEqual({ facebook: true, instagram: true, linkedin: false });
-    expect(networksFor('twitter')).toEqual({ facebook: true, instagram: true, linkedin: false });
+    expect(networksFor(undefined)).toEqual({ facebook: true, instagram: true, linkedin: false, x: false });
+    expect(networksFor('twitter')).toEqual({ facebook: true, instagram: true, linkedin: false, x: false });
   });
 
   it('devuelve una copia: modificarla no altera las próximas notas', () => {
     networksFor('linkedin').linkedin = false;
     expect(networksFor('linkedin').linkedin).toBe(true);
+  });
+});
+
+describe('destino "x" (solo X)', () => {
+  it('publica SOLO en X: ninguna otra red', () => {
+    expect(networksFor('x')).toEqual({ facebook: false, instagram: false, linkedin: false, x: true });
+  });
+
+  it('las notas de un tópico solo-X no se muestran en el sitio; las demás sí', () => {
+    expect(isVisibleOnSite('x')).toBe(false);
+    for (const d of ['fb_ig', 'linkedin', 'todas', undefined, 'raro']) expect(isVisibleOnSite(d)).toBe(true);
+  });
+});
+
+describe('buildXText', () => {
+  const LINK = 'https://www.infobae.com/politica/2026/09/21/una-nota-larga-sobre-algo/';
+
+  it('junta la caption y el link, separados por una línea en blanco', () => {
+    expect(buildXText('Una caption corta.', LINK)).toBe(`Una caption corta.\n\n${LINK}`);
+  });
+
+  it('nunca supera los 280 caracteres de X (el link cuenta como 23 aunque sea más largo)', () => {
+    const out = buildXText('Una oración de relleno para pasar el límite. '.repeat(20), LINK);
+    const caption = out.slice(0, out.indexOf('\n\n'));
+    expect(caption.length + 2 + 23).toBeLessThanOrEqual(280);
+    expect(out.endsWith(LINK)).toBe(true);
+  });
+
+  it('colapsa saltos de línea de la caption y tolera null', () => {
+    expect(buildXText('Una\nlínea   partida.', LINK)).toBe(`Una línea partida.\n\n${LINK}`);
+    expect(buildXText(null, LINK)).toBe(`\n\n${LINK}`);
+  });
+
+  it('sin link devuelve solo la caption', () => {
+    expect(buildXText('Solo texto.', '')).toBe('Solo texto.');
   });
 });
 

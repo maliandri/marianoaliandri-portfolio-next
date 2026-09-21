@@ -2,9 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import TopicCard from './TopicCard';
+import NoticiasResumen from './NoticiasResumen';
+import NoticiasFeed from './NoticiasFeed';
 import { useAuthUser } from '@/hooks/useAuthUser';
 
 const ADMIN_EMAIL_HINT = 'yo@marianoaliandri.com.ar';
+
+const TABS = [
+  ['resumen', 'Resumen'], ['notas', 'Notas'], ['topicos', 'Tópicos'], ['ajustes', 'Ajustes'],
+];
 
 const DAYS = [
   ['lun', 'Lunes'], ['mar', 'Martes'], ['mie', 'Miércoles'], ['jue', 'Jueves'],
@@ -43,6 +49,7 @@ export default function NoticiasBotManager() {
   const [capInput, setCapInput] = useState('');
   const [busy, setBusy]         = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [tab, setTab]           = useState('resumen');
 
   // Las rutas /api/noticias/topics y /config exigen el idToken de Firebase del admin.
   const authFetch = useCallback(async (url, options = {}) => {
@@ -60,7 +67,7 @@ export default function NoticiasBotManager() {
       const [tRes, cRes, lRes] = await Promise.all([
         authFetch('/api/noticias/topics'),
         authFetch('/api/noticias/config'),
-        fetch('/api/noticias'),
+        authFetch('/api/noticias'), // log del admin: exige login (incluye notas solo-X y errores)
       ]);
       const [tData, cData, lData] = await Promise.all([tRes.json(), cRes.json(), lRes.json()]);
       if (!tRes.ok) throw new Error(tData.error || 'No se pudieron cargar los tópicos');
@@ -280,6 +287,24 @@ export default function NoticiasBotManager() {
 
       {errorMsg && <p className="text-xs text-red-500">{errorMsg}</p>}
 
+      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
+        {TABS.map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`px-3 py-2 text-sm -mb-px border-b-2 transition-colors ${tab === key ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+          >
+            {label}
+          </button>
+        ))}
+        <button type="button" onClick={load} disabled={loading} className="ml-auto text-xs text-gray-400 hover:text-gray-900 dark:hover:text-white px-2">↻ Refrescar</button>
+      </div>
+
+      {tab === 'resumen' && <NoticiasResumen log={log} config={config} onGoTo={setTab} />}
+      {tab === 'notas' && <NoticiasFeed log={log} topics={topics} />}
+
+      {tab === 'ajustes' && (<>
       {/* Interruptor general + tope diario */}
       <div className="flex flex-wrap items-center gap-6 bg-gray-50 dark:bg-gray-800/40 rounded-xl p-4">
         <label className="flex items-center gap-2 text-sm">
@@ -344,8 +369,11 @@ export default function NoticiasBotManager() {
         </p>
       </div>
 
-      {/* Agregar tópico */}
+      </>)}
+
+      {tab === 'topicos' && (
       <div>
+      {/* Agregar tópico */}
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Tópicos a seguir</p>
         <div className="flex flex-wrap gap-2 mb-3">
           <input
@@ -382,6 +410,7 @@ export default function NoticiasBotManager() {
           ))}
         </div>
       </div>
+      )}
     </div>
   );
 }
