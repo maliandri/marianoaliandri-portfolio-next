@@ -1,8 +1,8 @@
 export const dynamic = 'force-dynamic';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
+import { Resend } from 'resend';
 import crypto from 'crypto';
 import admin, { getDb } from '@/lib/firebase-admin';
-const db = getDb();
 
 
 function verifyWebhookSignature(rawBody, headers) {
@@ -51,10 +51,45 @@ async function sendCVAnalysisEmail(paymentData, baseUrl) {
   }
 }
 
+// Avisa por email cuando un pago de Lead Finder Pro queda "approved" en MP pero falla la
+// acreditación en Firestore — sin esto, el único rastro era un console.error perdido en los
+// logs de Vercel y el cliente reclamando créditos que nunca llegaron (pasó de verdad con el
+// bug de metadata en snake_case, ver commit que agrego este archivo). No relanza el error:
+// una falla mandando el email no debe tapar el error original ni romper el webhook.
+async function notifyAdminOfCreditFailure(paymentData, error) {
+  try {
+    if (!process.env.RESEND_API_KEY) return;
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const metadata = paymentData.metadata || {};
+    await resend.emails.send({
+      from: 'Mariano Aliandri <notificaciones@marianoaliandri.com.ar>',
+      to: 'yo@marianoaliandri.com.ar',
+      reply_to: 'yo@marianoaliandri.com.ar',
+      subject: `⚠ Pago de Lead Finder Pro aprobado sin acreditar (paymentId ${paymentData.id})`,
+      html: `
+        <p>Un pago de Lead Finder Pro quedó <b>approved</b> en MercadoPago pero falló al acreditar los créditos en Firestore.</p>
+        <ul>
+          <li>paymentId: ${paymentData.id}</li>
+          <li>uid: ${metadata.uid || '(sin uid)'}</li>
+          <li>planId: ${metadata.planId ?? metadata.plan_id ?? '(sin planId)'}</li>
+          <li>credits: ${metadata.credits || '(sin credits)'}</li>
+          <li>monto: ${paymentData.transaction_amount} ${paymentData.currency_id || 'ARS'}</li>
+        </ul>
+        <p>Error: <code>${error?.message || String(error)}</code></p>
+        <p>Acreditar a mano en <code>leadfinder_entitlements/${metadata.uid || '&lt;uid&gt;'}</code>.</p>
+      `,
+    });
+  } catch (e) {
+    console.error('[payment-webhook] no se pudo enviar el email de alerta:', e.message);
+  }
+}
+
 // Acredita un plan de pago único ("project") de Lead Finder Pro. Idempotente: usa el
 // paymentId de MercadoPago como llave de deduplicación, porque MP puede reenviar el mismo
 // webhook varias veces (reintentos) y no queremos sumar créditos dos veces.
 async function creditLeadFinderPlan(paymentData) {
+  const db = getDb();
+  if (!db) throw new Error('DB no disponible');
   const metadata = paymentData.metadata;
   const uid = metadata?.uid;
   // MercadoPago convierte las claves de metadata a snake_case al guardarlas — mandamos
@@ -78,6 +113,20 @@ async function creditLeadFinderPlan(paymentData) {
       status: 'active',
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
+    // Sin esto la compra no aparecía en /mis-compras -- esa pantalla solo lee la
+    // colección "orders" (por userId o customerEmail), y acá nunca se escribía ahí.
+    tx.set(db.collection('orders').doc(`LFP-${paymentData.id}`), {
+      paymentId: paymentData.id,
+      type: 'leadfinder_plan',
+      userId: uid,
+      customerEmail: paymentData.payer?.email || null,
+      status: 'approved',
+      totalARS: paymentData.transaction_amount,
+      items: [{ name: `Lead Finder Pro — ${credits} créditos`, quantity: 1, priceARS: paymentData.transaction_amount }],
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      paymentMethod: paymentData.payment_type_id,
+      externalReference: paymentData.external_reference,
+    });
     return false;
   });
   if (alreadyProcessed) {
@@ -86,6 +135,8 @@ async function creditLeadFinderPlan(paymentData) {
 }
 
 async function saveCVOrder(paymentData) {
+  const db = getDb();
+  if (!db) throw new Error('DB no disponible');
   const metadata = paymentData.metadata;
   await db.collection('orders').doc(`CV-${paymentData.id}`).set({
     paymentId: paymentData.id,
@@ -134,7 +185,12 @@ export async function POST(request) {
           try { await saveCVOrder(paymentData); } catch (e) { console.error(e); }
         }
         if (metadata?.type === 'leadfinder_plan') {
-          try { await creditLeadFinderPlan(paymentData); } catch (e) { console.error('[payment-webhook] error acreditando Lead Finder Pro:', e); }
+          try {
+            await creditLeadFinderPlan(paymentData);
+          } catch (e) {
+            console.error('[payment-webhook] error acreditando Lead Finder Pro:', e);
+            await notifyAdminOfCreditFailure(paymentData, e);
+          }
         }
       }
     }
