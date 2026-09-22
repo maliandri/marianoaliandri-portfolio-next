@@ -29,8 +29,11 @@ function verifyWebhookSignature(rawBody, headers) {
 
 async function sendCVAnalysisEmail(paymentData, baseUrl) {
   const metadata = paymentData.metadata;
-  if (!metadata?.cvAnalysis) throw new Error('cvAnalysis no encontrado en metadata');
-  const cvAnalysis = JSON.parse(metadata.cvAnalysis);
+  // Mismo problema que planId/plan_id en creditLeadFinderPlan: MP guarda "cvAnalysis" como
+  // "cv_analysis" y lo devuelve así en el webhook.
+  const rawCvAnalysis = metadata?.cvAnalysis ?? metadata?.cv_analysis;
+  if (!rawCvAnalysis) throw new Error('cvAnalysis no encontrado en metadata');
+  const cvAnalysis = JSON.parse(rawCvAnalysis);
   const response = await fetch(`${baseUrl}/api/send-cv-analysis`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -54,7 +57,12 @@ async function sendCVAnalysisEmail(paymentData, baseUrl) {
 async function creditLeadFinderPlan(paymentData) {
   const metadata = paymentData.metadata;
   const uid = metadata?.uid;
-  const planId = metadata?.planId;
+  // MercadoPago convierte las claves de metadata a snake_case al guardarlas — mandamos
+  // "planId" al crear la preferencia (lead-finder-pro/subscribe/route.js) pero acá vuelve
+  // como "plan_id". Sin este fallback, planId queda undefined y Firestore tira excepción
+  // al intentar escribirlo (Admin SDK no acepta undefined), el catch de más abajo la traga
+  // y el pago queda approved en MP sin acreditar nada — pasó de verdad, ver git blame.
+  const planId = metadata?.planId ?? metadata?.plan_id;
   const credits = Number(metadata?.credits) || 0;
   if (!uid || !credits) return;
 
@@ -121,7 +129,7 @@ export async function POST(request) {
 
       if (paymentData.status === 'approved') {
         const metadata = paymentData.metadata;
-        if (metadata?.cvAnalysis) {
+        if (metadata?.cvAnalysis ?? metadata?.cv_analysis) {
           try { await sendCVAnalysisEmail(paymentData, baseUrl); } catch (e) { console.error(e); }
           try { await saveCVOrder(paymentData); } catch (e) { console.error(e); }
         }
