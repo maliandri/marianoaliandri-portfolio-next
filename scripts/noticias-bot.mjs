@@ -110,8 +110,27 @@ async function alreadyPublished(db, sourceUrlHash) {
   return !snap.empty;
 }
 
-async function fetchGoogleNewsRss(query) {
-  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=es-419&gl=AR&ceid=AR:es-419`;
+// Alcance geográfico de la búsqueda: mismos valores que SCOPES/COUNTRY_CODES en
+// src/app/api/noticias/topics/route.js (el bot no puede importar de src/, se duplica acá).
+// Región (ej. Neuquén) no es un modo aparte de Google News RSS -- no existe filtro geográfico
+// más fino que país -- se logra fijando el país y poniendo el nombre de la región en `query`.
+const COUNTRY_HL = {
+  AR: 'es-419', ES: 'es-ES', MX: 'es-419', CL: 'es-419', UY: 'es-419',
+  CO: 'es-419', PE: 'es-419', US: 'en-US', BR: 'pt-BR',
+};
+
+async function fetchGoogleNewsRss(query, topic = {}) {
+  const params = new URLSearchParams({ q: query });
+  if (topic.scope === 'global') {
+    params.set('hl', 'es-419');
+  } else {
+    const countryCode = topic.countryCode || 'AR';
+    const hl = COUNTRY_HL[countryCode] || 'es-419';
+    params.set('hl', hl);
+    params.set('gl', countryCode);
+    params.set('ceid', `${countryCode}:${hl}`);
+  }
+  const url = `https://news.google.com/rss/search?${params.toString()}`;
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`Google News RSS ${resp.status}`);
   const xml = await resp.text();
@@ -497,7 +516,7 @@ async function main() {
 
     let items;
     try {
-      items = await fetchGoogleNewsRss(topic.query || topic.label);
+      items = await fetchGoogleNewsRss(topic.query || topic.label, topic);
     } catch (e) {
       console.error(`  Error trayendo RSS: ${e.message}`);
       continue;

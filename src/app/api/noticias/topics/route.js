@@ -7,6 +7,11 @@ import { requireAdmin } from '@/lib/adminAuth';
 // Mismos valores que networksFor() en scripts/noticias-bot.mjs (el bot no puede importar de src/).
 const DESTINOS = ['fb_ig', 'linkedin', 'todas', 'x'];
 
+// Alcance geográfico de la búsqueda en Google News. Mismos valores que COUNTRY_HL en
+// scripts/noticias-bot.mjs (el bot no puede importar de src/, así que se duplica ahí).
+const SCOPES = ['global', 'pais'];
+const COUNTRY_CODES = ['AR', 'ES', 'MX', 'CL', 'UY', 'CO', 'PE', 'US', 'BR'];
+
 // Tope de notas por corrida de cada tópico: mismo default (2) y máximo (5) que
 // itemsPerRunFor() en scripts/noticias-bot.mjs.
 const DEFAULT_MAX_POR_CORRIDA = 2;
@@ -38,6 +43,8 @@ export async function GET(request) {
         // o 'x' (solo X, y esas notas NO se muestran en el sitio).
         destino: DESTINOS.includes(data.destino) ? data.destino : 'fb_ig',
         maxPorCorrida: normalizeMaxPorCorrida(data.maxPorCorrida),
+        scope: SCOPES.includes(data.scope) ? data.scope : 'pais',
+        countryCode: COUNTRY_CODES.includes(data.countryCode) ? data.countryCode : 'AR',
         createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
       };
     });
@@ -81,21 +88,28 @@ export async function PATCH(request) {
   if (auth.response) return auth.response;
 
   try {
-    const { id, activo, toneInstructions, usarFoto, destino, maxPorCorrida, query } = await request.json();
+    const { id, activo, toneInstructions, usarFoto, destino, maxPorCorrida, query, scope, countryCode } = await request.json();
     if (!id) {
       return Response.json({ error: 'id es requerido' }, { status: 400 });
     }
     if (
       activo === undefined && toneInstructions === undefined && usarFoto === undefined &&
-      destino === undefined && maxPorCorrida === undefined && query === undefined
+      destino === undefined && maxPorCorrida === undefined && query === undefined &&
+      scope === undefined && countryCode === undefined
     ) {
-      return Response.json({ error: 'Nada para actualizar (activo, toneInstructions, usarFoto, destino, maxPorCorrida o query)' }, { status: 400 });
+      return Response.json({ error: 'Nada para actualizar (activo, toneInstructions, usarFoto, destino, maxPorCorrida, query, scope o countryCode)' }, { status: 400 });
     }
     if (maxPorCorrida !== undefined && !isValidMaxPorCorrida(maxPorCorrida)) {
       return Response.json({ error: `maxPorCorrida debe ser un entero de 1 a ${ABSOLUTE_MAX_POR_CORRIDA}` }, { status: 400 });
     }
     if (destino !== undefined && !DESTINOS.includes(destino)) {
       return Response.json({ error: `destino debe ser uno de: ${DESTINOS.join(', ')}` }, { status: 400 });
+    }
+    if (scope !== undefined && !SCOPES.includes(scope)) {
+      return Response.json({ error: `scope debe ser uno de: ${SCOPES.join(', ')}` }, { status: 400 });
+    }
+    if (countryCode !== undefined && !COUNTRY_CODES.includes(countryCode)) {
+      return Response.json({ error: `countryCode debe ser uno de: ${COUNTRY_CODES.join(', ')}` }, { status: 400 });
     }
     if (activo !== undefined && typeof activo !== 'boolean') {
       return Response.json({ error: 'activo debe ser boolean' }, { status: 400 });
@@ -120,6 +134,8 @@ export async function PATCH(request) {
     if (maxPorCorrida !== undefined) update.maxPorCorrida = maxPorCorrida;
     if (query !== undefined) update.query = query.trim();
     if (toneInstructions !== undefined) update.toneInstructions = toneInstructions.trim() || null;
+    if (scope !== undefined) update.scope = scope;
+    if (countryCode !== undefined) update.countryCode = countryCode;
 
     await db.collection('noticias_topics').doc(id).update(update);
     return Response.json({ success: true });

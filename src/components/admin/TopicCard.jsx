@@ -49,6 +49,49 @@ export default function TopicCard({ topic, notes, busy, onToggleActivo, onToggle
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5 block">
+                Alcance
+              </label>
+              <select
+                value={topic.scope || 'pais'}
+                disabled={busy}
+                onChange={e => onUpdate(topic.id, { scope: e.target.value })}
+                className={`${SELECT_CLASS} w-full`}
+              >
+                <option value="pais">País</option>
+                <option value="global">Global</option>
+              </select>
+              <p className="text-xs text-gray-400 mt-1">
+                Para una región (ej. Neuquén), dejá "País" y sumá el nombre de la región en la búsqueda.
+              </p>
+            </div>
+            {(topic.scope || 'pais') === 'pais' && (
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5 block">
+                  País
+                </label>
+                <select
+                  value={topic.countryCode || 'AR'}
+                  disabled={busy}
+                  onChange={e => onUpdate(topic.id, { countryCode: e.target.value })}
+                  className={`${SELECT_CLASS} w-full`}
+                >
+                  <option value="AR">Argentina</option>
+                  <option value="ES">España</option>
+                  <option value="MX">México</option>
+                  <option value="CL">Chile</option>
+                  <option value="UY">Uruguay</option>
+                  <option value="CO">Colombia</option>
+                  <option value="PE">Perú</option>
+                  <option value="US">Estados Unidos</option>
+                  <option value="BR">Brasil</option>
+                </select>
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5 block">
                 Dónde se publica
               </label>
               <select
