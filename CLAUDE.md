@@ -649,6 +649,13 @@ Instaladas en `.claude/skills/` (ver con `npx skills list`):
 - **firebase-security-rules-auditor** (Firebase oficial): auditar reglas de Firestore/Storage.
 - **agent-browser**: automatización de navegador (ver sección Browser Automation).
 
+No instaladas en `.claude/skills/` (vienen del plugin `make-skills`, ya disponible en esta cuenta) pero
+en uso seguido en este repo para el escenario de Make.com del bot de noticias y del publicador de redes:
+
+- **make-skills:make-scenario-building** — qué módulos usar y por qué al diseñar o modificar un escenario (routers, filtros, ramas).
+- **make-skills:make-module-configuring** — cómo configurar cada módulo (conexiones, mapeo de datos, IML).
+- **make-skills:make-mcp-reference** — referencia del servidor MCP de Make (conexión, scopes, troubleshooting).
+
 Reglas:
 - Para UI nueva o rediseño → aplicar **frontend-design** (no que parezca templated).
 - Para código React/Next → seguir **vercel-react-best-practices** (routing, data fetching, Server/Client Components).
