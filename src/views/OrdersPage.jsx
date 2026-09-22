@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { firebaseAuth } from '../utils/firebaseservice';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
@@ -149,6 +150,15 @@ export default function OrdersPage() {
     );
   };
 
+  // Etapa del proyecto (solo compras de Tienda) — ver
+  // docs/superpowers/specs/2026-09-22-area-cliente-design.md.
+  const STAGE_LABELS = {
+    pago_confirmado: 'Pago confirmado',
+    en_desarrollo: 'En desarrollo',
+    en_revision: 'En revisión',
+    entregado: 'Entregado',
+  };
+
   const formatDate = (timestamp) => {
     if (!timestamp) return 'Fecha no disponible';
 
@@ -280,6 +290,11 @@ export default function OrdersPage() {
                         Orden #{order.id.slice(-6).toUpperCase()}
                       </h3>
                       {getStatusBadge(order.status || 'pending')}
+                      {order.type === 'store' && (
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400">
+                          {STAGE_LABELS[order.stage] || STAGE_LABELS.pago_confirmado}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       {formatDate(order.createdAt)}
@@ -343,6 +358,14 @@ export default function OrdersPage() {
 
                 {/* Botón de contacto */}
                 <div className="mt-4 flex gap-3">
+                  {order.type === 'store' && (
+                    <Link
+                      href={`/mis-compras/${order.id}/`}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-semibold"
+                    >
+                      Ver proceso del proyecto
+                    </Link>
+                  )}
                   <button
                     onClick={() => window.open(`https://wa.me/5491112345678?text=Hola! Tengo una consulta sobre mi orden ${order.id.slice(-6).toUpperCase()}`, '_blank')}
                     className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold flex items-center gap-2"

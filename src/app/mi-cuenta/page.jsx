@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/utils/firebaseservice';
 import AuthGate from '@/components/auth/AuthGate';
+import ClientAreaShell from '@/components/ClientAreaShell';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { PLANS } from '@/data/plans';
 
@@ -164,10 +165,12 @@ function MiCuentaContent() {
 
 export default function MiCuentaPage() {
   return (
-    <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20">
-      <AuthGate title="Mi cuenta" subtitle="Iniciá sesión para ver tu panel.">
-        <MiCuentaContent />
-      </AuthGate>
-    </main>
+    <ClientAreaShell>
+      <main className="min-h-screen bg-[#0a0a0a] pt-10 pb-20">
+        <AuthGate title="Mi cuenta" subtitle="Iniciá sesión para ver tu panel.">
+          <MiCuentaContent />
+        </AuthGate>
+      </main>
+    </ClientAreaShell>
   );
 }

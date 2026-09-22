@@ -273,6 +273,14 @@ function AppChromeInner({ children }) {
   // público (Navbar fijo z-1000) lo tapaba por completo en mobile.
   const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/');
 
+  // Área de cliente (ClientAreaShell, ver src/components/ClientAreaShell.jsx): mismo
+  // problema que admin, pero para mi-cuenta/mis-compras/perfil/lead-finder-pro.
+  // NO incluye /analitica: esa ruta es mixta (Tendencias es pública, solo "Rubros
+  // buscados" pide login) -- ocultar el chrome ahí dejaría a un visitante anónimo sin
+  // ninguna navegación. Ver docs/superpowers/specs/2026-09-22-area-cliente-design.md.
+  const CLIENT_AREA_PATHS = ['/mi-cuenta', '/mis-compras', '/perfil', '/lead-finder-pro/buscar'];
+  const isClientArea = CLIENT_AREA_PATHS.some(p => pathname === p || pathname.startsWith(`${p}/`));
+
   const closeTool = () => router.push('/');
 
   // GA4 page_view en cada cambio de ruta — Next.js App Router no lo dispara solo
@@ -290,7 +298,7 @@ function AppChromeInner({ children }) {
 
       <Suspense fallback={null}><ScreenshotHider /></Suspense>
 
-      {!isAdmin && <div className="app-chrome"><Navbar pathname={pathname} /></div>}
+      {!isAdmin && !isClientArea && <div className="app-chrome"><Navbar pathname={pathname} /></div>}
 
       {/* Tool modals - lazy loaded */}
       <Suspense fallback={null}>
@@ -304,8 +312,8 @@ function AppChromeInner({ children }) {
       {/* Page content */}
       {children}
 
-      {!isAdmin && <div className="app-chrome"><Footer /></div>}
-      {!isAdmin && <div className="app-chrome"><WhatsAppButton /></div>}
+      {!isAdmin && !isClientArea && <div className="app-chrome"><Footer /></div>}
+      {!isAdmin && !isClientArea && <div className="app-chrome"><WhatsAppButton /></div>}
     </div>
   );
 }

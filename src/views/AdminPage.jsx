@@ -32,7 +32,7 @@ import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAna
 import { ADMIN_NAV_DEFAULT } from '../data/adminNav';
 import NavConfigEditor from '../components/admin/NavConfigEditor';
 import KeywordExplorer from '../components/audit/KeywordExplorer';
-import AdminIcon from '../components/admin/AdminIcon';
+import AppSidebar from '../components/AppSidebar';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], display: 'swap' });
@@ -104,7 +104,6 @@ export default function AdminPage() {
   const [activeSubTab, setActiveSubTab] = useState(null);
   const [productsView, setProductsView] = useState('grid'); // 'grid' | 'list' (tab Productos)
   const [navOpen, setNavOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
   const [navTree, setNavTree] = useState(ADMIN_NAV_DEFAULT);
 
   // Config editable desde Sitio > Configurar Interfaz — si hay una guardada en
@@ -128,17 +127,6 @@ export default function AdminPage() {
     setActiveTab(tabId);
     setActiveSubTab(subId ?? loc.item.children?.[0]?.id ?? null);
     setNavOpen(false);
-  };
-
-  // Colapso de sidebar persistido (igual que almamod: localStorage('sidebar_collapsed'))
-  useEffect(() => {
-    setCollapsed(localStorage.getItem('admin_sidebar_collapsed') === 'true');
-  }, []);
-  const toggleCollapsed = () => {
-    setCollapsed(v => {
-      localStorage.setItem('admin_sidebar_collapsed', String(!v));
-      return !v;
-    });
   };
 
   // Cerrar el drawer mobile con Escape
@@ -348,6 +336,39 @@ export default function AdminPage() {
     }
   };
 
+  // Etapas de un pedido de Tienda (ver docs/superpowers/specs/2026-09-22-area-cliente-design.md).
+  const ORDER_STAGES = [
+    { id: 'pago_confirmado', label: 'Pago confirmado' },
+    { id: 'en_desarrollo', label: 'En desarrollo' },
+    { id: 'en_revision', label: 'En revisión' },
+    { id: 'entregado', label: 'Entregado' },
+  ];
+
+  const updateOrderStage = async (order, stage) => {
+    const note = window.prompt(`Nota para el cliente sobre este cambio a "${ORDER_STAGES.find(s => s.id === stage)?.label}" (opcional, se incluye en el email):`, '') || '';
+    try {
+      setLoading(true);
+      const response = await fetch('/api/orders/update-stage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminPassword: sessionStorage.getItem('adminPassword'),
+          orderId: order.id,
+          stage,
+          note,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Error actualizando la etapa');
+
+      setOrders(prev => prev.map(o => o.id === order.id ? { ...o, stage } : o));
+    } catch (error) {
+      alert('❌ Error actualizando la etapa: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateProduct = async (productId, updates) => {
     try {
       const isDev = window.location.hostname === 'localhost';
@@ -541,64 +562,21 @@ export default function AdminPage() {
   // Admin Dashboard
   return (
     <div className={`admin-theme ${jakarta.className} min-h-screen bg-gray-50 dark:bg-neutral-950 md:flex`}>
-      {/* Sidebar navy, colapsable en desktop, drawer en mobile (estilo almamod) */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 shrink-0 overflow-y-auto p-3 bg-white dark:bg-[#111827] border-r border-gray-200 dark:border-[#243350] transition-[transform,width] duration-200 md:sticky md:top-0 md:h-screen md:translate-x-0 ${navOpen ? 'translate-x-0' : '-translate-x-full'} ${collapsed ? 'md:w-16' : 'md:w-60'} w-64`}
-        
-      >
-        <div className="flex items-center justify-between px-1 pb-3 mb-2 border-b border-gray-200 dark:border-[#243350]">
-          {!collapsed && (
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-gray-900 dark:text-white truncate">Panel interno</p>
-              <p className="text-[11px] text-gray-500 truncate">{username}</p>
-            </div>
-          )}
-          <button
-            onClick={toggleCollapsed}
-            aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
-            className={`hidden md:flex items-center justify-center w-7 h-7 ${CUT_SM} text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#172033] transition-colors shrink-0`}
-          >
-            {collapsed ? '»' : '«'}
-          </button>
-        </div>
-        {/* Secciones con sus items (niveles 1 y 2 juntos); los sub-items van como pestañas en el encabezado. */}
-        <nav className="space-y-0.5">
-          {navTree.map(group => (
-            <div key={group.id}>
-              {collapsed
-                ? <div className="my-2 border-t border-gray-200 dark:border-[#243350]" />
-                : <p className="px-2.5 pt-4 pb-1.5 text-[10.5px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">{group.label}</p>}
-              {group.items.map(it => {
-                const isActive = it.id === activeTab;
-                return (
-                  <button
-                    key={group.id + it.id}
-                    onClick={() => goToTab(it.id)}
-                    title={collapsed ? it.label : undefined}
-                    className={`w-full flex items-center gap-2.5 px-2.5 min-h-[34px] rounded-lg text-[13px] text-left transition-colors ${collapsed ? 'justify-center' : ''} ${isActive
-                      ? 'bg-indigo-50 dark:bg-[#232a5c] text-gray-900 dark:text-white font-semibold'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#172033] font-medium'}`}
-                  >
-                    <span className={`shrink-0 flex ${isActive ? 'text-indigo-600 dark:text-indigo-400' : ''}`}>
-                      <AdminIcon id={it.id} fallback={it.icon} />
-                    </span>
-                    {!collapsed && <span className="truncate">{it.label}</span>}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
-      </aside>
-
-      {/* Backdrop mobile con blur (estilo almamod), cierra con click o Escape */}
-      {navOpen && (
-        <div
-          className="fixed inset-0 z-30 md:hidden"
-          style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
-          onClick={() => setNavOpen(false)}
-        />
-      )}
+      {/* Sidebar navy, colapsable en desktop, drawer en mobile (estilo almamod) --
+          componente compartido con el área de cliente, ver src/components/AppSidebar.jsx */}
+      <AppSidebar
+        sections={navTree.map(group => ({
+          id: group.id,
+          label: group.label,
+          items: group.items.map(it => ({ id: it.id, label: it.label, icon: it.icon, onClick: () => goToTab(it.id) })),
+        }))}
+        activeId={activeTab}
+        navOpen={navOpen}
+        onNavOpenChange={setNavOpen}
+        storageKey="admin_sidebar_collapsed"
+        headerTitle="Panel interno"
+        headerSubtitle={username}
+      />
 
       {/* Columna principal */}
       <div className="flex-1 min-w-0 flex flex-col">
@@ -744,9 +722,11 @@ export default function AdminPage() {
                       <span className={`ml-3 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
                         order.type === 'cv_analysis'
                           ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+                          : order.type === 'leadfinder_plan'
+                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400'
                           : 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400'
                       }`}>
-                        {order.type === 'cv_analysis' ? 'CV Analysis' : 'Tienda'}
+                        {order.type === 'cv_analysis' ? 'CV Analysis' : order.type === 'leadfinder_plan' ? 'Lead Finder Pro' : 'Tienda'}
                       </span>
                     </div>
                     <span className="text-lg font-bold text-gray-900 dark:text-white">{formatARS(order.totalARS || 0)}</span>
@@ -770,6 +750,26 @@ export default function AdminPage() {
                     >
                       Reenviar email
                     </button>
+                  )}
+
+                  {order.type === 'store' && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Etapa:</span>
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400">
+                        {ORDER_STAGES.find(s => s.id === (order.stage || 'pago_confirmado'))?.label}
+                      </span>
+                      <select
+                        defaultValue=""
+                        disabled={loading}
+                        onChange={e => { if (e.target.value) { updateOrderStage(order, e.target.value); e.target.value = ''; } }}
+                        className="text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1.5 text-gray-900 dark:text-white disabled:opacity-50"
+                      >
+                        <option value="" disabled>Avanzar a...</option>
+                        {ORDER_STAGES.filter(s => ORDER_STAGES.findIndex(x => x.id === s.id) > ORDER_STAGES.findIndex(x => x.id === (order.stage || 'pago_confirmado'))).map(s => (
+                          <option key={s.id} value={s.id}>{s.label}</option>
+                        ))}
+                      </select>
+                    </div>
                   )}
                 </div>
               ))}

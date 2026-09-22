@@ -151,6 +151,43 @@ async function saveCVOrder(paymentData) {
   });
 }
 
+// Compras de la Tienda (create-payment/route.js -> Cart.jsx). A diferencia de CV y Lead
+// Finder Pro, esta rama no existía -- una compra de tienda aprobada en MP nunca quedaba
+// registrada en ningún lado del sitio. "user_id"/"user_email" ya vienen en snake_case desde
+// el cliente (Cart.jsx los manda así), no sufren el problema de MP reescribiendo camelCase.
+async function saveStoreOrder(paymentData) {
+  const db = getDb();
+  if (!db) throw new Error('DB no disponible');
+  const metadata = paymentData.metadata || {};
+  const uid = metadata.user_id;
+  if (!uid) return; // sin uid no hay a quién mostrárselo en /mis-compras
+
+  let cartItems = [];
+  try { cartItems = JSON.parse(metadata.cart_items || '[]'); } catch { /* items no parseables, se usa el fallback de abajo */ }
+  const items = cartItems.length
+    ? cartItems.map(i => ({ name: i.name, quantity: i.quantity, priceARS: i.price }))
+    : [{ name: 'Compra en la Tienda', quantity: 1, priceARS: paymentData.transaction_amount }];
+
+  await db.collection('orders').doc(`STORE-${paymentData.id}`).set({
+    paymentId: paymentData.id,
+    type: 'store',
+    userId: uid,
+    customerEmail: metadata.user_email || paymentData.payer?.email || null,
+    status: paymentData.status,
+    totalARS: paymentData.transaction_amount,
+    items,
+    paymentMode: metadata.payment_mode || 'full',
+    // Etapas del proyecto -- ver docs/superpowers/specs/2026-09-22-area-cliente-design.md.
+    // stageHistory es un array: FieldValue.serverTimestamp() no funciona ahí adentro
+    // (limitación de Firestore), por eso Timestamp.now() en vez de FieldValue en este campo.
+    stage: 'pago_confirmado',
+    stageHistory: [{ stage: 'pago_confirmado', at: admin.firestore.Timestamp.now(), note: '' }],
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    paymentMethod: paymentData.payment_type_id,
+    externalReference: paymentData.external_reference,
+  });
+}
+
 export async function POST(request) {
   try {
     const rawBody = await request.text();
@@ -191,6 +228,9 @@ export async function POST(request) {
             console.error('[payment-webhook] error acreditando Lead Finder Pro:', e);
             await notifyAdminOfCreditFailure(paymentData, e);
           }
+        }
+        if (metadata?.user_id && metadata?.type !== 'leadfinder_plan') {
+          try { await saveStoreOrder(paymentData); } catch (e) { console.error('[payment-webhook] error guardando orden de tienda:', e); }
         }
       }
     }

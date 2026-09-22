@@ -1,4 +1,5 @@
 import OrdersPage from '@/views/OrdersPage';
+import ClientAreaShell from '@/components/ClientAreaShell';
 
 export const metadata = {
   title: 'Mis Compras',
@@ -9,5 +10,9 @@ export const metadata = {
 };
 
 export default function MisComprasRoute() {
-  return <OrdersPage />;
+  return (
+    <ClientAreaShell>
+      <OrdersPage />
+    </ClientAreaShell>
+  );
 }

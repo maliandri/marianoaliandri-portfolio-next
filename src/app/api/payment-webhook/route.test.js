@@ -7,6 +7,7 @@ vi.mock('@/lib/firebase-admin', () => ({
         increment: (n) => ({ __op: 'increment', n }),
         serverTimestamp: () => ({ __op: 'serverTimestamp' }),
       },
+      Timestamp: { now: () => ({ __op: 'timestampNow' }) },
     },
   },
   getDb: vi.fn(),
@@ -185,5 +186,56 @@ describe('POST /api/payment-webhook — Lead Finder Pro', () => {
     await POST(makeRequest({ type: 'payment', data: { id: 'pay-4' } }));
 
     expect(docs['leadfinder_entitlements/user-4']).toBeUndefined();
+  });
+});
+
+describe('POST /api/payment-webhook — compras de Tienda', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('guarda la orden con stage inicial "pago_confirmado" (antes esto no se guardaba en ningún lado)', async () => {
+    mockPaymentGet.mockResolvedValue({
+      id: 'store-pay-1',
+      status: 'approved',
+      transaction_amount: 45000,
+      payer: { email: 'cliente@example.com' },
+      metadata: {
+        user_id: 'user-5',
+        user_email: 'cliente@example.com',
+        payment_mode: 'full',
+        cart_total_ars: 45000,
+        cart_items: JSON.stringify([{ id: 'p1', name: 'Landing Page', price: 45000, quantity: 1 }]),
+      },
+    });
+    const { db, docs } = createFakeDb();
+    getDb.mockReturnValue(db);
+
+    const res = await POST(makeRequest({ type: 'payment', data: { id: 'store-pay-1' } }));
+
+    expect(res.status).toBe(200);
+    const order = docs['orders/STORE-store-pay-1'];
+    expect(order).toBeDefined();
+    expect(order.type).toBe('store');
+    expect(order.userId).toBe('user-5');
+    expect(order.stage).toBe('pago_confirmado');
+    expect(order.stageHistory).toHaveLength(1);
+    expect(order.stageHistory[0].stage).toBe('pago_confirmado');
+    expect(order.items).toEqual([{ name: 'Landing Page', quantity: 1, priceARS: 45000 }]);
+  });
+
+  it('no guarda nada si la compra no tiene user_id (no se puede asociar a un cliente)', async () => {
+    mockPaymentGet.mockResolvedValue({
+      id: 'store-pay-2',
+      status: 'approved',
+      transaction_amount: 1000,
+      metadata: { hide_payer_information: false }, // pago sin relación con el sitio (ej. otro negocio de MP)
+    });
+    const { db, docs } = createFakeDb();
+    getDb.mockReturnValue(db);
+
+    await POST(makeRequest({ type: 'payment', data: { id: 'store-pay-2' } }));
+
+    expect(docs['orders/STORE-store-pay-2']).toBeUndefined();
   });
 });

@@ -1,4 +1,5 @@
 import ProfilePage from '@/views/ProfilePage';
+import ClientAreaShell from '@/components/ClientAreaShell';
 
 export const metadata = {
   title: 'Mi Perfil',
@@ -9,5 +10,9 @@ export const metadata = {
 };
 
 export default function PerfilRoute() {
-  return <ProfilePage />;
+  return (
+    <ClientAreaShell>
+      <ProfilePage />
+    </ClientAreaShell>
+  );
 }
