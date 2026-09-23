@@ -12,6 +12,12 @@ const nextConfig = {
         destination: 'https://marianoaliandri.com.ar/:path*',
         permanent: true,
       },
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'marianoaliandri-portfolio-next.vercel.app' }],
+        destination: 'https://marianoaliandri.com.ar/:path*',
+        permanent: true,
+      },
     ];
   },
   images: {
