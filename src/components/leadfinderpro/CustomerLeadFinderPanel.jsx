@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/utils/firebaseservice';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { lfpT } from '@/data/i18n/leadFinderPro';
+import MailBatchPanel from './MailBatchPanel';
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -36,6 +37,18 @@ function computeBalance(e) {
   return e.credits || 0;
 }
 
+const OUTDATED_MS = 18 * 30 * 24 * 60 * 60 * 1000; // ~18 meses
+
+function isOutdated(iso) {
+  const t = Date.parse(iso);
+  return Number.isFinite(t) && Date.now() - t > OUTDATED_MS;
+}
+
+function fmtMonth(iso, locale) {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString(locale, { month: 'short', year: 'numeric' });
+}
+
 function ScoreBadge({ score }) {
   if (score === null || score === undefined) return <span className="text-gray-400 dark:text-gray-600 text-xs">—</span>;
   const cls = score >= 70 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
@@ -56,6 +69,8 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
   const [cantidad, setCantidad]       = useState(10);
   const [balance, setBalance]         = useState(null); // null = sin cargar, Infinity = ilimitado
   const [showConfig, setShowConfig]   = useState(true);
+  const [perfil, setPerfil]           = useState('dev'); // 'dev' | 'empresa'
+  const [producto, setProducto]       = useState('');
 
   const [phase, setPhase]         = useState('idle'); // idle | searching | done | error
   const [results, setResults]     = useState([]);
@@ -69,6 +84,15 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
   const [showHistory, setShowHistory] = useState(false);
   const [loadingSavedId, setLoadingSavedId] = useState(null);
 
+  // Espejo síncrono de `results`: el guardado del historial necesita el estado FINAL de cada
+  // fila (auditoría + conteo), y el estado de React no sirve para leerlo desde un loop async.
+  const resultsRef = useRef([]);
+  const commitResults = (updater) => {
+    resultsRef.current = updater(resultsRef.current);
+    setResults(resultsRef.current);
+  };
+  const pendingCounts = useRef([]); // conteos de productos en curso (corren en paralelo a la búsqueda)
+
   const cancelRef = useRef(false);
   // Se pone en true apenas el server dice "no sigas" (sin plan / cuota agotada). Usamos un
   // ref en vez de leer el state `blocked`/`quotaExceeded` porque esos son closures viejas
@@ -78,6 +102,7 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
   const stopRef = useRef(false);
   const isRunning = phase === 'searching';
 
+  const emails = useMemo(() => results.map(r => r.email).filter(Boolean), [results]);
   const withSite    = results.filter(r => r.hasWebsite === true).length;
   const withoutSite = results.filter(r => r.hasWebsite === false).length;
 
@@ -121,23 +146,41 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
     return data;
   }, [getIdToken]);
 
+  // Cuenta cuántos productos del rubro tiene publicados el sitio (solo perfil empresa).
+  // Es gratis (va incluido en el crédito de la auditoría) y NUNCA frena la búsqueda: si falla,
+  // la fila queda con "reintentar".
+  const countProductsFor = async (negocio) => {
+    const patch = (p) => commitResults(prev => prev.map(r => r.id === negocio.id ? { ...r, ...p } : r));
+    patch({ prodState: 'loading' });
+    try {
+      const data = await callFn('countProducts', { placeId: negocio.id, keyword: producto.trim() });
+      if (data.applicable === false) return patch({ prodState: 'none' });
+      if (data.count === null) return patch({ prodState: data.partial ? 'error' : 'none' });
+      patch({ prodState: 'done', prodCount: data.count, prodConfidence: data.confidence, prodPartial: !!data.partial });
+    } catch {
+      patch({ prodState: 'error' });
+    }
+  };
+
   // Audita un negocio ya encontrado — usado tanto en la búsqueda automática (hasta
   // completar "cantidad") como en el botón "Reintentar" de una fila con error.
   const auditPlace = async (negocio) => {
     setAuditingId(negocio.id);
     try {
       const det = await callFn('auditPlace', { placeId: negocio.id });
-      setResults(prev => prev.map(r => r.id === negocio.id ? {
+      commitResults(prev => prev.map(r => r.id === negocio.id ? {
         ...r,
         hasWebsite: det.hasWebsite, siteUrl: det.siteUrl, seoScore: det.seoScore,
         hasSitemap: det.hasSitemap, hasRobots: det.hasRobots, metaDesc: det.metaDesc, hasOG: det.hasOG,
         phone: det.phone, openingHours: det.openingHours, rating: det.rating, ratingCount: det.ratingCount,
+        email: det.email || null, lastUpdated: det.lastUpdated || null,
         auditError: false,
       } : r));
       if (!det.fromMyHistory) setCreditsUsed(prev => prev + 1);
+      if (perfil === 'empresa' && producto.trim() && det.siteUrl) pendingCounts.current.push(countProductsFor(negocio));
       return true;
     } catch (e) {
-      if (!stopRef.current) setResults(prev => prev.map(r => r.id === negocio.id ? { ...r, auditError: true } : r));
+      if (!stopRef.current) commitResults(prev => prev.map(r => r.id === negocio.id ? { ...r, auditError: true } : r));
       if (stopRef.current) throw e;
       return false;
     } finally {
@@ -201,7 +244,7 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
                   auditError: false,
                 };
                 allResults.push(neg);
-                setResults(prev => [...prev, neg]);
+                commitResults(prev => [...prev, neg]);
 
                 // Audita apenas se encuentra — la búsqueda ya viene acotada a
                 // "cantidad" resultados totales, cada uno cuesta 1 crédito
@@ -220,13 +263,15 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
           }
         }
       }
+      await Promise.allSettled(pendingCounts.current);
+      pendingCounts.current = [];
       setPhase('done');
-      if (allResults.length) await saveSearch(allResults);
+      if (allResults.length) await saveSearch(resultsRef.current);
     } catch (e) {
       setPhase(stopRef.current ? 'idle' : 'error');
       if (!stopRef.current) setError(e.message);
     }
-  }, [ciudades, terminos, radioKm, cantidad, callFn, t]);
+  }, [ciudades, terminos, radioKm, cantidad, callFn, t, perfil, producto]);
 
   // Guarda esta búsqueda (config + resultados) en el historial del cliente, para
   // poder volver a verla despues sin relanzarla.
@@ -264,7 +309,7 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
       });
       const data = await resp.json().catch(() => ({}));
       if (data.results) {
-        setResults(data.results);
+        commitResults(() => data.results);
         setCiudades(data.ciudades || []);
         setTerminos(data.terminos || []);
         setRadioKm(data.radioKm || 10);
@@ -291,7 +336,8 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
     stopRef.current = false;
     setBlocked(false);
     setQuotaExceeded(false);
-    setResults([]);
+    commitResults(() => []);
+    pendingCounts.current = [];
     setCreditsUsed(0);
     setError('');
     setProgress({ ciudadActual: '', tipoActual: '', encontrados: 0 });
@@ -305,9 +351,11 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
     const rows = results.map(r => [
       r.nombre, r.ciudad, r.tipo, r.phone || '', r.siteUrl || '', r.seoScore ?? '',
       r.rating ?? '', r.ratingCount ?? '', (r.openingHours || []).join(' | '),
+      r.email || '', r.lastUpdated ? r.lastUpdated.slice(0, 10) : '',
+      r.prodState === 'done' ? r.prodCount : '', r.prodState === 'done' ? (r.prodConfidence === 'catalogo' ? t.productsCatalog : t.productsEstimated) : '',
     ]);
     const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const csv = [t.csvHeaders, ...rows].map(row => row.map(esc).join(',')).join('\n');
+    const csv = [[...t.csvHeaders, ...t.csvExtra], ...rows].map(row => row.map(esc).join(',')).join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -383,6 +431,40 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
 
         {showConfig && (
           <div className="p-5 space-y-4 border-t border-white/10">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-2">{t.perfilLabel}</label>
+              <div className="grid sm:grid-cols-2 gap-2" role="radiogroup" aria-label={t.perfilLabel}>
+                {[
+                  { id: 'dev', label: t.perfilDev, hint: t.perfilDevHint },
+                  { id: 'empresa', label: t.perfilEmpresa, hint: t.perfilEmpresaHint },
+                ].map(opt => (
+                  <button
+                    key={opt.id} type="button" role="radio" aria-checked={perfil === opt.id}
+                    disabled={isRunning} onClick={() => setPerfil(opt.id)}
+                    className={`text-left px-4 py-3 rounded-xl border transition-colors disabled:opacity-60 ${perfil === opt.id
+                      ? 'bg-indigo-500/10 border-indigo-500/60'
+                      : 'bg-[#0a0a0a] border-white/10 hover:border-white/20'}`}
+                  >
+                    <span className="block text-white text-sm font-semibold">{opt.label}</span>
+                    <span className="block text-gray-500 text-xs mt-0.5">{opt.hint}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {perfil === 'empresa' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-2">
+                  {t.productoLabel} <span className="text-gray-600 font-normal">{t.productoHint}</span>
+                </label>
+                <input
+                  type="text" value={producto} onChange={e => setProducto(e.target.value)}
+                  disabled={isRunning} maxLength={60} placeholder={t.productoPlaceholder}
+                  className="w-full px-3 py-2 bg-[#0a0a0a] border border-white/10 rounded-lg text-white text-sm placeholder-gray-600"
+                />
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-2">
                 {t.zonaLabel} <span className="text-gray-600 font-normal">{t.zonaHint}</span>
@@ -508,7 +590,7 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
 
         <div className="flex flex-wrap items-center gap-3 px-5 py-4 bg-white/[0.02] border-t border-white/10">
           {!isRunning ? (
-            <button onClick={startSearch} disabled={!ciudades.length || !terminos.length || !cantidad}
+            <button onClick={startSearch} disabled={!ciudades.length || !terminos.length || !cantidad || (perfil === 'empresa' && !producto.trim())}
               className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl font-semibold text-sm transition-colors">
               {t.searchBtn}
             </button>
@@ -550,6 +632,9 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
         </div>
       )}
 
+      {/* Mail masivo (CCO) a todos los negocios con email encontrado */}
+      {emails.length > 0 && <MailBatchPanel emails={emails} userEmail={user?.email} t={t.mail} />}
+
       {/* Results */}
       {results.length > 0 && (
         <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden">
@@ -557,7 +642,12 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
             <table className="min-w-full text-sm">
               <thead className="bg-white/[0.02] sticky top-0">
                 <tr>
-                  {t.tableHeaders.map((h, i) => (
+                  {[
+                    ...t.tableHeaders.slice(0, 5),
+                    t.colEmail, t.colUpdated,
+                    ...(perfil === 'empresa' ? [t.colProducts] : []),
+                    ...t.tableHeaders.slice(5),
+                  ].map((h, i) => (
                     <th key={i} className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -574,6 +664,31 @@ export default function CustomerLeadFinderPanel({ lang = 'es' }) {
                         : <span className="text-purple-400 text-xs font-medium">{t.noSite}</span>}
                     </td>
                     <td className="px-3 py-2.5 text-center"><ScoreBadge score={neg.seoScore} /></td>
+                    <td className="px-3 py-2.5 max-w-[170px]">
+                      {neg.email
+                        ? <a href={`mailto:${neg.email}`} title={neg.email} className="text-indigo-400 hover:text-indigo-300 text-xs truncate block">{neg.email}</a>
+                        : <span className="text-gray-600 text-xs">—</span>}
+                    </td>
+                    <td className="px-3 py-2.5 text-xs whitespace-nowrap">
+                      {neg.lastUpdated
+                        ? <span className={isOutdated(neg.lastUpdated) ? 'text-orange-400' : 'text-gray-400'} title={isOutdated(neg.lastUpdated) ? t.outdatedTitle : undefined}>{fmtMonth(neg.lastUpdated, t.locale)}</span>
+                        : <span className="text-gray-600">—</span>}
+                    </td>
+                    {perfil === 'empresa' && (
+                      <td className="px-3 py-2.5 text-xs whitespace-nowrap">
+                        {neg.prodState === 'loading' ? <span className="text-gray-500">{t.countingProducts}</span>
+                          : neg.prodState === 'done' ? (
+                            <span title={neg.prodConfidence === 'catalogo' ? t.productsCatalogTitle : t.productsEstimatedTitle}>
+                              <span className="text-white font-semibold">{neg.prodCount}{neg.prodPartial ? '+' : ''}</span>{' '}
+                              <span className={neg.prodConfidence === 'catalogo' ? 'text-green-400' : 'text-yellow-500'}>
+                                {neg.prodConfidence === 'catalogo' ? t.productsCatalog : t.productsEstimated}
+                              </span>
+                            </span>
+                          ) : neg.prodState === 'error' ? (
+                            <button onClick={() => countProductsFor(neg)} className="px-2 py-1 bg-red-600/20 text-red-400 rounded-lg text-xs">{t.retryProducts}</button>
+                          ) : <span className="text-gray-600">—</span>}
+                      </td>
+                    )}
                     <td className="px-3 py-2.5 text-xs text-gray-400 whitespace-nowrap">{neg.phone || '—'}</td>
                     <td className="px-3 py-2.5 text-xs text-yellow-500 whitespace-nowrap">{neg.rating ? `★${neg.rating}` : neg.previewRating ? `★${neg.previewRating}` : '—'}</td>
                     <td className="px-3 py-2.5">
