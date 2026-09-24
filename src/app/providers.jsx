@@ -205,7 +205,7 @@ function Navbar({ pathname }) {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden border-t border-white/8 bg-[#0a0a0a] px-5 py-4 flex flex-col gap-1">
+        <div className="md:hidden border-t border-white/8 bg-[#0a0a0a] px-5 py-4 flex flex-col gap-1 max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
           {NAV_LINKS.map(({ label, href }) => (
             <Link
               key={href}
@@ -246,7 +246,7 @@ function Navbar({ pathname }) {
             </Link>
           )}
           <div className="pt-2 border-t border-white/8 mt-1">
-            <AuthButton />
+            <AuthButton inline onNavigate={() => { setOpen(false); setToolsOpen(false); }} />
           </div>
         </div>
       )}

@@ -5,7 +5,10 @@ import { firebaseAuth } from '../../utils/firebaseservice';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
-export default function AuthButton() {
+// inline: dentro del menú hamburguesa (móvil) la lista se despliega en el flujo, a todo
+// el ancho, en vez de un popover absoluto (que quedaba anclado al borde derecho de la
+// pantalla, lejos del avatar, y flotando sobre la página). onNavigate cierra ese menú.
+export default function AuthButton({ inline = false, onNavigate }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
@@ -93,12 +96,20 @@ export default function AuthButton() {
     );
   }
 
+  const goTo = (path) => {
+    setShowMenu(false);
+    onNavigate?.();
+    router.push(path);
+  };
+  const itemPad = inline ? 'py-3' : 'py-2'; // 44px de alto táctil en el menú móvil
+
   // Usuario autenticado - Mostrar foto y menú
   return (
-    <div className="relative">
+    <div className={inline ? 'w-full' : 'relative'}>
       <motion.button
         onClick={() => setShowMenu(!showMenu)}
-        className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+        aria-expanded={showMenu}
+        className={`flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm ${inline ? 'w-full' : ''}`}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
       >
@@ -107,8 +118,8 @@ export default function AuthButton() {
           alt={user.displayName}
           className="w-8 h-8 rounded-full"
         />
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-200 hidden sm:block">
-          {user.displayName?.split(' ')[0]}
+        <span className={`text-sm font-medium text-gray-700 dark:text-gray-200 ${inline ? 'flex-1 text-left truncate' : 'hidden sm:block'}`}>
+          {inline ? user.displayName : user.displayName?.split(' ')[0]}
         </span>
         <svg
           className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform ${showMenu ? 'rotate-180' : ''}`}
@@ -127,10 +138,10 @@ export default function AuthButton() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50"
+            className={`mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden ${inline ? '' : 'absolute right-0 w-64 shadow-lg z-50'}`}
           >
-            {/* Header del menú */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            {/* Header del menú (en el menú móvil ya se ve el nombre en el botón) */}
+            <div className={`p-4 border-b border-gray-200 dark:border-gray-700 ${inline ? 'hidden' : ''}`}>
               <div className="flex items-center gap-3">
                 <img
                   src={user.photoURL}
@@ -151,11 +162,8 @@ export default function AuthButton() {
             {/* Opciones del menú */}
             <div className="py-2">
               <button
-                onClick={() => {
-                  setShowMenu(false);
-                  router.push('/mi-cuenta');
-                }}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-medium"
+                onClick={() => goTo('/mi-cuenta')}
+                className={`w-full px-4 ${itemPad} text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-medium`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -164,11 +172,8 @@ export default function AuthButton() {
               </button>
 
               <button
-                onClick={() => {
-                  setShowMenu(false);
-                  router.push('/perfil');
-                }}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                onClick={() => goTo('/perfil')}
+                className={`w-full px-4 ${itemPad} text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -177,11 +182,8 @@ export default function AuthButton() {
               </button>
 
               <button
-                onClick={() => {
-                  setShowMenu(false);
-                  router.push('/mis-compras');
-                }}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                onClick={() => goTo('/mis-compras')}
+                className={`w-full px-4 ${itemPad} text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -193,7 +195,7 @@ export default function AuthButton() {
 
               <button
                 onClick={handleLogout}
-                className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                className={`w-full px-4 ${itemPad} text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -205,8 +207,8 @@ export default function AuthButton() {
         )}
       </AnimatePresence>
 
-      {/* Overlay para cerrar el menú al hacer clic fuera */}
-      {showMenu && (
+      {/* Overlay para cerrar el menú al hacer clic fuera (no aplica en el menú móvil: ahí la lista va en el flujo) */}
+      {showMenu && !inline && (
         <div
           className="fixed inset-0 z-40"
           onClick={() => setShowMenu(false)}
