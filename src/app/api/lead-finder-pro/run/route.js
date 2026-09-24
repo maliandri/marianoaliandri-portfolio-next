@@ -4,12 +4,60 @@ import { getUserFromRequest } from '@/lib/authServer';
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { runLeadFinderAction } from '../../lead-finder/route';
+import { countProducts, normalizeKeyword } from '@/lib/productCounter';
+
+// El conteo de productos rastrea varios archivos del sitio del negocio (presupuesto
+// interno ~20 s), más que un fetch normal.
+export const maxDuration = 30;
 
 // Acciones que solo buscan/listan negocios (sin pedir website/detalle) — no consumen
 // créditos, igual que "buscar y explorar" es gratis según lo que le prometimos al dev
 // en la landing. La única acción que gasta 1 crédito es 'auditPlace' (website + SEO).
 const FREE_ACTIONS = ['geocode', 'searchNearby', 'searchText'];
 const PAID_ACTION = 'auditPlace';
+
+// Conteo de productos: gratis (incluido en el crédito de auditPlace). Se cachea aparte del
+// caché SEO porque el número depende de la palabra clave de cada cliente.
+const COUNT_ACTION = 'countProducts';
+const PRODUCT_CACHE_COLLECTION = 'places_product_count';
+const PRODUCT_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+const badRequest = (msg) => Response.json({ ok: false, error: msg }, { status: 400 });
+
+// Solo rastrea sitios que ESTE cliente ya auditó: la URL sale de su propio historial, nunca
+// del request. Así la acción no sirve para hacer pedir cualquier URL desde nuestro server.
+async function handleCountProducts(authUser, body) {
+  const placeId = typeof body.placeId === 'string' ? body.placeId.trim() : '';
+  const keyword = typeof body.keyword === 'string' ? body.keyword.trim() : '';
+  const norm = normalizeKeyword(keyword);
+  if (!placeId || placeId.includes('/')) return badRequest('placeId requerido');
+  if (norm.length < 2 || keyword.length > 60) return badRequest('keyword inválida (2 a 60 caracteres)');
+
+  const db = getDb();
+  if (!db) return Response.json({ ok: false, error: 'DB no disponible' }, { status: 500 });
+
+  const auditSnap = await db.collection('leadfinder_client_audits').doc(authUser.uid)
+    .collection('audits').doc(placeId).get();
+  const siteUrl = auditSnap.exists ? auditSnap.data().siteUrl : null;
+  if (!siteUrl) return Response.json({ ok: true, applicable: false });
+
+  const cacheRef = db.collection(PRODUCT_CACHE_COLLECTION).doc(`${placeId}__${norm.replace(/ /g, '-')}`);
+  try {
+    const cached = await cacheRef.get();
+    if (cached.exists && Date.now() - (cached.data().checkedAt || 0) < PRODUCT_CACHE_TTL_MS) {
+      const { checkedAt: _c, keyword: _k, ...rest } = cached.data();
+      return Response.json({ ok: true, applicable: true, ...rest, fromCache: true });
+    }
+  } catch { /* si falla la lectura del caché, se cuenta igual */ }
+
+  const result = await countProducts(siteUrl, keyword);
+
+  // Solo se cachea un resultado completo: uno parcial o fallido puede mejorar al reintentar.
+  if (result.count !== null && !result.partial) {
+    try { await cacheRef.set({ ...result, keyword: norm, checkedAt: Date.now() }); } catch { /* informativo */ }
+  }
+  return Response.json({ ok: true, applicable: true, ...result, fromCache: false });
+}
 
 export async function POST(request) {
   const authUser = await getUserFromRequest(request);
@@ -18,6 +66,8 @@ export async function POST(request) {
   let body;
   try { body = await request.json(); } catch { return Response.json({ ok: false, error: 'JSON inválido' }, { status: 400 }); }
   const { action } = body;
+
+  if (action === COUNT_ACTION) return handleCountProducts(authUser, body);
 
   if (action !== PAID_ACTION && !FREE_ACTIONS.includes(action)) {
     return Response.json({ ok: false, error: 'Acción no permitida' }, { status: 400 });
