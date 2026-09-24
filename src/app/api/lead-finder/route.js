@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { getUserFromRequest } from '@/lib/authServer';
+import { extractLatestLastmod } from '@/lib/sitemapUtils';
 
 // Cuenta registrada (Firebase Auth) reconocida como admin para esta ruta interna.
 // No es un password aparte -- es la MISMA cuenta con la que Mariano se loguea en el
@@ -87,18 +88,14 @@ async function fetchFirstContact(origin) {
   } catch { return null; }
 }
 
-async function resourceOk(u) {
+// Descarga un sitemap. Devuelve su texto (recortado) si responde OK, null si no existe.
+// Se lee el contenido —no solo el status— para sacar el <lastmod> más reciente.
+async function fetchSitemapText(u) {
   try {
-    const r = await fetch(u, { method: 'HEAD', headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(7000) });
-    if (r.ok) return true;
-    const r2 = await fetch(u, { method: 'GET', headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(7000) });
-    return r2.ok;
-  } catch {
-    try {
-      const r2 = await fetch(u, { method: 'GET', headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(7000) });
-      return r2.ok;
-    } catch { return false; }
-  }
+    const r = await fetch(u, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(7000) });
+    if (!r.ok) return null;
+    return (await r.text()).slice(0, 500_000);
+  } catch { return null; }
 }
 
 function calcSeoScore({ hasSitemap, hasRobots, metaDesc, hasOG, lastModified }) {
@@ -158,9 +155,10 @@ async function auditSite(url) {
       declaredSitemap,
       origin + '/sitemap_index.xml',
     ].filter(Boolean))];
-    let hasSitemap = false;
+    let hasSitemap = false, sitemapXml = null;
     for (const cand of candidates) {
-      if (await resourceOk(cand)) { hasSitemap = true; break; }
+      const xml = await fetchSitemapText(cand);
+      if (xml !== null) { hasSitemap = true; sitemapXml = xml; break; }
     }
 
     let lastModified = null, metaDesc = null, hasOG = false, emailFromHome = null;
@@ -184,10 +182,14 @@ async function auditSite(url) {
 
     const email    = emailFromHome || emailFromContact || null;
     const seoScore = calcSeoScore({ hasSitemap, hasRobots, metaDesc, hasOG, lastModified });
+    // "Última actualización" para mostrar al cliente: el header Last-Modified casi nunca
+    // viene en sitios dinámicos, así que se prefiere el <lastmod> más reciente del sitemap.
+    const lastUpdated = extractLatestLastmod(sitemapXml)
+      || (lastModified && Number.isFinite(Date.parse(lastModified)) ? new Date(lastModified).toISOString() : null);
 
-    return { hasSitemap, hasRobots, lastModified, email, metaDesc, hasOG, seoScore };
+    return { hasSitemap, hasRobots, lastModified, lastUpdated, email, metaDesc, hasOG, seoScore };
   } catch {
-    return { hasSitemap: false, hasRobots: false, lastModified: null, email: null, metaDesc: null, hasOG: false, seoScore: null };
+    return { hasSitemap: false, hasRobots: false, lastModified: null, lastUpdated: null, email: null, metaDesc: null, hasOG: false, seoScore: null };
   }
 }
 
@@ -303,6 +305,13 @@ export async function runLeadFinderAction(action, params, clientKey) {
               if (Date.now() - checkedAt < CACHE_TTL_MS) {
                 await bumpUsage('cacheHits');
                 const { checkedAt: _omit, ...rest } = cached;
+                // Entradas guardadas antes de existir `lastUpdated`: se completa acá con la
+                // auditoría del sitio (gratis, sin Google) para no esperar 30 días al vencimiento.
+                if (rest.siteUrl && rest.lastUpdated === undefined) {
+                  const site = await auditSite(rest.siteUrl);
+                  rest.lastUpdated = site.lastUpdated;
+                  await cacheRef.set({ lastUpdated: site.lastUpdated }, { merge: true }).catch(() => {});
+                }
                 return ok({ ...rest, fromCache: true });
               }
             }
@@ -322,6 +331,7 @@ export async function runLeadFinderAction(action, params, clientKey) {
         let result = {
           hasWebsite: !!websiteUri, siteUrl: websiteUri,
           seoScore: null, hasSitemap: null, hasRobots: null, metaDesc: null, hasOG: false, email: null,
+          lastUpdated: null,
           phone: detData.nationalPhoneNumber || null,
           openingHours: detData.regularOpeningHours?.weekdayDescriptions || null,
           rating: detData.rating ?? null,
