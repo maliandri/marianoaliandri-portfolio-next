@@ -2019,6 +2019,7 @@ function AdminUsersPanel({ users, formatDate }) {
   const [localUsers, setLocalUsers] = useState(users);
   const [compedUids, setCompedUids] = useState(new Set());
   const [grantingId, setGrantingId] = useState(null);
+  const [creditBalances, setCreditBalances] = useState({}); // uid → créditos de Lead Finder Pro
 
   useEffect(() => { setLocalUsers(users); }, [users]);
 
@@ -2026,9 +2027,41 @@ function AdminUsersPanel({ users, formatDate }) {
     const adminPassword = sessionStorage.getItem('adminPassword');
     fetch(`/api/admin-leadfinder-access?adminPassword=${encodeURIComponent(adminPassword)}`)
       .then(r => r.json())
-      .then(data => setCompedUids(new Set(data.uids || [])))
+      .then(data => {
+        setCompedUids(new Set(data.uids || []));
+        setCreditBalances(data.balances || {});
+      })
       .catch(() => {});
   }, []);
+
+  const giftCredits = async (user) => {
+    const name = user.displayName || user.email;
+    const input = prompt(`¿Cuántos créditos de Lead Finder Pro le regalás a ${name}?`, '10');
+    if (input === null) return;
+    const amount = Number(input);
+    if (!Number.isInteger(amount) || amount < 1) {
+      setActionResult({ type: 'error', msg: 'La cantidad tiene que ser un número entero mayor a 0' });
+      return;
+    }
+    setGrantingId(user.id);
+    setActionResult(null);
+    try {
+      const adminPassword = sessionStorage.getItem('adminPassword');
+      const res = await fetch('/api/admin-leadfinder-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminPassword, uid: user.id, credits: amount }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error');
+      setCreditBalances(prev => ({ ...prev, [user.id]: data.balance }));
+      setActionResult({ type: 'success', msg: `${amount} créditos regalados a ${name} (saldo: ${data.balance})` });
+    } catch (err) {
+      setActionResult({ type: 'error', msg: 'Error: ' + err.message });
+    } finally {
+      setGrantingId(null);
+    }
+  };
 
   const toggleLeadFinderAccess = async (user) => {
     const isGranted = compedUids.has(user.id);
@@ -2145,6 +2178,11 @@ function AdminUsersPanel({ users, formatDate }) {
                         Lead Finder Pro gratis
                       </span>
                     )}
+                    {creditBalances[user.id] > 0 && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 font-medium">
+                        {creditBalances[user.id]} créditos
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
                   <p className="text-xs text-gray-400 dark:text-gray-500">{formatDate(user.createdAt)}</p>
@@ -2162,6 +2200,14 @@ function AdminUsersPanel({ users, formatDate }) {
                   }`}
                 >
                   {grantingId === user.id ? '...' : compedUids.has(user.id) ? 'Revocar' : 'Dar acceso gratis'}
+                </button>
+                <button
+                  onClick={() => giftCredits(user)}
+                  disabled={grantingId === user.id}
+                  title="Regalar una cantidad de créditos de Lead Finder Pro"
+                  className="px-3 py-1.5 rounded-lg transition-colors text-xs font-medium disabled:opacity-50 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20"
+                >
+                  Regalar créditos
                 </button>
                 <button
                   onClick={() => resendWelcome(user)}
