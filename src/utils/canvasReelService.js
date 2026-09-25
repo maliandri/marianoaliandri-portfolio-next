@@ -44,7 +44,7 @@ const CTA_TEXT = {
   tecnologia:  'Lo implemento en tu proyecto',
   proyecto:    'Ver proyecto en vivo',
   herramienta: 'Probalo en marianoaliandri.com.ar',
-  default:     'marianoaliandri.com.ar',
+  default:     '',
 };
 
 // Ventana de transición entre clips, en segundos — clampeada a como mucho el
@@ -237,19 +237,6 @@ class CanvasReelService {
     ctx.fillStyle = topGrad;
     ctx.fillRect(0, 0, W, topH);
 
-    const brandSize = Math.max(22, W * 0.032);
-    ctx.save();
-    ctx.font        = `700 ${brandSize}px Montserrat, sans-serif`;
-    ctx.fillStyle   = '#000000';
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth   = 0.25;
-    ctx.shadowColor = 'rgba(0,0,0,0.9)';
-    ctx.shadowBlur  = 10;
-    ctx.textAlign   = 'center';
-    ctx.strokeText('marianoaliandri.com.ar', W / 2, topH * 0.6);
-    ctx.fillText('marianoaliandri.com.ar', W / 2, topH * 0.6);
-    ctx.restore();
-
     // ── 7. Texto principal — posición libre por clip (no más zona fija) ─────
     if (activeClip) {
       this._drawText(
@@ -267,16 +254,18 @@ class CanvasReelService {
     ctx.fillStyle = botGrad;
     ctx.fillRect(0, botY, W, botH);
 
-    const cta      = CTA_TEXT[contentType] || CTA_TEXT.default;
-    const ctaSize  = Math.max(18, W * 0.028);
-    ctx.save();
-    ctx.font        = `600 ${ctaSize}px Montserrat, sans-serif`;
-    ctx.fillStyle   = '#ffffff';
-    ctx.shadowColor = 'rgba(0,0,0,0.8)';
-    ctx.shadowBlur  = 8;
-    ctx.textAlign   = 'center';
-    ctx.fillText(cta, W / 2, botY + botH * 0.45);
-    ctx.restore();
+    const cta = CTA_TEXT[contentType] || CTA_TEXT.default;
+    if (cta) {
+      const ctaSize = Math.max(18, W * 0.028);
+      ctx.save();
+      ctx.font        = `600 ${ctaSize}px Montserrat, sans-serif`;
+      ctx.fillStyle   = '#ffffff';
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur  = 8;
+      ctx.textAlign   = 'center';
+      ctx.fillText(cta, W / 2, botY + botH * 0.45);
+      ctx.restore();
+    }
 
     // ── 9. Barra de progreso ─────────────────────────────────────────────────
     const barH = Math.max(6, H * 0.005);
