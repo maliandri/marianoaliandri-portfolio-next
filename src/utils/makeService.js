@@ -2,6 +2,26 @@
 // Servicio simple para publicar en redes sociales via Make.com
 import cloudinaryService from './cloudinaryService';
 
+// Cloudinary genera la versión JPG (f_jpg) recién en el primer pedido. Si Instagram la pide
+// antes de que exista, falla con 9004. Se pide acá y se espera antes de avisarle a Make
+// (mismo motivo que waitForImage en scripts/noticias-bot.mjs).
+function warmImage(url, retries = 6, delayMs = 2000) {
+  return new Promise(resolve => {
+    let attempt = 0;
+    const tryLoad = () => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => {
+        attempt += 1;
+        if (attempt < retries) setTimeout(tryLoad, delayMs);
+        else resolve(false);
+      };
+      img.src = url;
+    };
+    tryLoad();
+  });
+}
+
 class MakeService {
   constructor() {
     // Webhook URL de Make.com (único para evitar límite de webhooks en plan gratuito)
@@ -48,6 +68,13 @@ class MakeService {
       const carouselImages = Array.isArray(data.images) && data.images.length > 1
         ? data.images.slice(0, 10).map(u => (u.includes('/upload/') ? u.replace('/upload/', '/upload/f_jpg,q_auto/') : u))
         : null;
+
+      if (carouselImages) {
+        const ready = await Promise.all(carouselImages.map(u => warmImage(u)));
+        if (ready.includes(false)) {
+          throw new Error('Cloudinary no pudo preparar todas las imágenes del carrusel. Reintentá en unos segundos.');
+        }
+      }
 
       const payload = {
         // Texto del post - múltiples campos para compatibilidad con diferentes módulos de Make.com
