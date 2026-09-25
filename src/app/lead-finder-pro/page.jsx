@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import PlansSection from '@/components/leadfinderpro/PlansSection';
 import LanguageSwitch from '@/components/leadfinderpro/LanguageSwitch';
+import AudienceHero from '@/components/leadfinderpro/AudienceHero';
 
 export const metadata = {
   title: 'Lead Finder Pro — Negocios sin sitio o con SEO débil',
@@ -38,13 +39,6 @@ const schema = {
   ],
 };
 
-const FEATURES = [
-  { icon: '🗺️', title: 'Mapa en vivo', desc: 'Ubicación, distancia y estado de cada negocio de la zona que elijas.' },
-  { icon: '📊', title: 'Score SEO por negocio', desc: 'Sitemap, robots.txt, meta description, Open Graph y antigüedad del sitio.' },
-  { icon: '☎️', title: 'Teléfono, horarios y rating', desc: 'Datos de contacto listos para armar tu lista de prospección.' },
-  { icon: '📍', title: 'Por localidad, provincia o país', desc: 'Elegí el alcance según lo que necesites auditar.' },
-];
-
 export default function LeadFinderProLanding() {
   return (
     <>
@@ -53,37 +47,7 @@ export default function LeadFinderProLanding() {
       <div className="max-w-4xl mx-auto flex justify-end mb-4">
         <LanguageSwitch />
       </div>
-      <div className="max-w-4xl mx-auto text-center mb-14">
-        <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-3">Para devs y agencias</p>
-        <h1 className="text-4xl md:text-5xl font-black text-white leading-tight mb-5">
-          Encontrá negocios sin sitio<br className="hidden sm:block" /> o con SEO débil
-        </h1>
-        <p className="text-gray-400 text-base max-w-xl mx-auto mb-8">
-          En vez de salir a golpear puertas a ciegas, elegís una zona — localidad, provincia o todo
-          el país — y qué tipo de negocio buscás, y te devolvemos la lista completa de negocios reales de Google Maps:
-          si tienen sitio web o no (los que no tienen son el lead más caliente), score SEO de 0 a 100,
-          teléfono, horarios y rating listos para armar tu lista de contacto, con mapa y tabla ordenable
-          para priorizar por zona o por qué tan débil está su presencia digital. Es la misma herramienta
-          que uso yo para conseguir mis propios clientes — ahora la podés usar vos para conseguir los tuyos.
-        </p>
-        <Link
-          href="/lead-finder-pro/demo"
-          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-7 py-3.5 rounded-xl transition-colors"
-        >
-          Probar gratis <span aria-hidden>→</span>
-        </Link>
-        <p className="text-xs text-gray-600 mt-3">Sin tarjeta. Ves una auditoría real completa.</p>
-      </div>
-
-      <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 mb-16">
-        {FEATURES.map(f => (
-          <div key={f.title} className="bg-[#111] border border-white/10 rounded-2xl p-6">
-            <div className="text-2xl mb-3" aria-hidden>{f.icon}</div>
-            <h3 className="text-white font-semibold mb-1.5">{f.title}</h3>
-            <p className="text-gray-500 text-sm">{f.desc}</p>
-          </div>
-        ))}
-      </div>
+      <AudienceHero />
 
       <div className="max-w-4xl mx-auto bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 mb-16">
         <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-4">¿Cómo funcionan los créditos?</p>
