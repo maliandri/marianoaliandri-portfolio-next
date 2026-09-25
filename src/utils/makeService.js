@@ -44,6 +44,11 @@ class MakeService {
         }
       }
 
+      // Carrusel (FB + IG): 2 a 10 imágenes. Se fuerza JPEG porque Instagram solo acepta JPEG.
+      const carouselImages = Array.isArray(data.images) && data.images.length > 1
+        ? data.images.slice(0, 10).map(u => (u.includes('/upload/') ? u.replace('/upload/', '/upload/f_jpg,q_auto/') : u))
+        : null;
+
       const payload = {
         // Texto del post - múltiples campos para compatibilidad con diferentes módulos de Make.com
         text: data.text,
@@ -61,6 +66,15 @@ class MakeService {
         aiProvider, // Pasar el proveedor de AI a la función
         metadata: data.metadata || {}
       };
+
+      // Los arrays con la forma exacta de los módulos de Make (FB photos / IG files) evitan Iterator+Aggregator en el escenario
+      if (carouselImages) {
+        payload.isCarousel = true;
+        payload.images = carouselImages;
+        payload.imageUrl = carouselImages[0];
+        payload.carouselPhotos = carouselImages.map(url => ({ type: 'url', url }));
+        payload.carouselFiles = carouselImages.map(image_url => ({ media_type: 'IMAGE', image_url }));
+      }
 
       // Solo incluir 'url' si hay un video (reels)
       if (data.url) {
@@ -259,13 +273,16 @@ class MakeService {
   /**
    * Publicar contenido personalizado
    */
-  async publishCustom(text, networks = null, imageUrl = null, useAI = false, aiProvider = 'groq') {
+  async publishCustom(text, networks = null, images = null, useAI = false, aiProvider = 'groq') {
+    const list = Array.isArray(images) ? images.filter(Boolean) : (images ? [images] : []);
+    const isCarousel = list.length > 1;
     return this.publish({
       text,
       type: 'custom',
       networks: networks || ['linkedin', 'facebook'],
-      imageUrl,
-      useAI,
+      imageUrl: list[0] || null,
+      images: isCarousel ? list : null,
+      useAI: isCarousel ? false : useAI, // el carrusel publica el texto tal cual
       aiProvider
     });
   }

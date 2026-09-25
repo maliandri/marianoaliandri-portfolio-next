@@ -14,6 +14,8 @@ import { useExtendedStats } from '../../hooks/useFirebaseStats';
  * Panel simplificado para publicar en redes sociales via webhooks
  * RESPONSIVE: Optimizado para móvil y desktop
  */
+const MAX_CAROUSEL_IMAGES = 10;
+
 function SocialMediaDashboard({ initialTab = null }) {
   const [activeTab, setActiveTab] = useState(initialTab || 'custom'); // custom, products, services, statistics
   const [isPublishing, setIsPublishing] = useState(false);
@@ -26,7 +28,8 @@ function SocialMediaDashboard({ initialTab = null }) {
   const [postText, setPostText] = useState('');
   const [selectedNetworks, setSelectedNetworks] = useState(['linkedin', 'facebook']);
   const [useAI, setUseAI] = useState(false); // Toggle para usar AI
-  const [customImageUrl, setCustomImageUrl] = useState(''); // URL de imagen para publicación libre
+  const [customImages, setCustomImages] = useState([]); // URLs de imágenes para publicación libre (hasta 10 = carrusel)
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [contentType, setContentType] = useState('post'); // 'post' o 'reel'
   const [videoFile, setVideoFile] = useState(null); // Archivo de video para reels
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(''); // URL de preview del video
@@ -135,6 +138,8 @@ function SocialMediaDashboard({ initialTab = null }) {
     }
   };
 
+  const isCarousel = customImages.length > 1;
+
   const toggleNetwork = (networkId) => {
     setSelectedNetworks(prev =>
       prev.includes(networkId)
@@ -205,6 +210,45 @@ function SocialMediaDashboard({ initialTab = null }) {
       showMessage('success', '📷 Imagen subida correctamente');
     } catch {
       showMessage('error', 'Error al subir imagen a Cloudinary');
+    }
+  };
+
+  // Agrega una URL a la lista de imágenes respetando el tope del carrusel
+  const addCustomImage = (url) => {
+    setCustomImages(prev => (prev.length >= MAX_CAROUSEL_IMAGES ? prev : [...prev, url]));
+  };
+
+  const removeCustomImage = (index) => {
+    setCustomImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Carga múltiple de imágenes para publicación libre (hasta MAX_CAROUSEL_IMAGES)
+  const handleMultiFileUpload = async (e) => {
+    const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/'));
+    e.target.value = '';
+    if (files.length === 0) return;
+
+    const slots = MAX_CAROUSEL_IMAGES - customImages.length;
+    if (slots <= 0) {
+      showMessage('error', `Máximo ${MAX_CAROUSEL_IMAGES} imágenes por carrusel`);
+      return;
+    }
+    const toUpload = files.slice(0, slots);
+    if (files.length > slots) {
+      showMessage('error', `Solo entran ${slots} más — se subirán las primeras ${slots}`);
+    }
+
+    setUploadingImages(true);
+    try {
+      // Secuencial para conservar el orden de selección
+      for (const file of toUpload) {
+        const url = await uploadToCloudinary(file, 'image');
+        addCustomImage(url);
+      }
+    } catch {
+      showMessage('error', 'Error al subir una imagen a Cloudinary');
+    } finally {
+      setUploadingImages(false);
     }
   };
 
@@ -336,19 +380,25 @@ function SocialMediaDashboard({ initialTab = null }) {
       return;
     }
 
-    if (selectedNetworks.length === 0) {
-      showMessage('error', 'Selecciona al menos una red social');
+    const networksToUse = isCarousel
+      ? selectedNetworks.filter(n => n !== 'linkedin')
+      : selectedNetworks;
+
+    if (networksToUse.length === 0) {
+      showMessage('error', isCarousel
+        ? 'El carrusel se publica solo en FB + IG — activá esa red'
+        : 'Selecciona al menos una red social');
       return;
     }
 
     setIsPublishing(true);
     try {
-      const result = await makeService.publishCustom(postText, selectedNetworks, customImageUrl || null, useAI, aiProvider);
+      const result = await makeService.publishCustom(postText, networksToUse, customImages, useAI, aiProvider);
 
       if (result.success) {
         showMessage('success', useAI ? '¡Contenido enviado a AI para generar y publicar!' : '¡Publicación enviada correctamente!');
         setPostText('');
-        setCustomImageUrl('');
+        setCustomImages([]);
       } else {
         showMessage('error', `Error: ${result.message}`);
       }
@@ -685,21 +735,32 @@ https://marianoaliandri.com.ar/analitica
           Redes Sociales
         </h3>
         <div className="flex flex-wrap gap-2">
-          {networks.map(network => (
-            <button
-              key={network.id}
-              onClick={() => toggleNetwork(network.id)}
-              className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                selectedNetworks.includes(network.id)
-                  ? `${network.color} text-white`
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
-              title={network.info || network.name}
-            >
-              {network.name}
-            </button>
-          ))}
+          {networks.map(network => {
+            const blocked = isCarousel && network.id === 'linkedin';
+            return (
+              <button
+                key={network.id}
+                onClick={() => toggleNetwork(network.id)}
+                disabled={blocked}
+                className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                  selectedNetworks.includes(network.id) && !blocked
+                    ? `${network.color} text-white`
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+                title={blocked ? 'LinkedIn no soporta carrusel' : (network.info || network.name)}
+              >
+                {network.name}
+              </button>
+            );
+          })}
         </div>
+        {isCarousel && (
+          <div className="mt-3 p-2 sm:p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl">
+            <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-400">
+              <strong>Carrusel:</strong> LinkedIn no soporta carrusel, se excluye. Se publica solo en FB + IG.
+            </p>
+          </div>
+        )}
         {selectedNetworks.includes('facebook') && (
           <div className="mt-3 p-2 sm:p-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl">
             <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-400">
@@ -735,7 +796,7 @@ https://marianoaliandri.com.ar/analitica
                   Post
                 </button>
                 <button
-                  onClick={() => { setContentType('reel'); setCustomImageUrl(''); }}
+                  onClick={() => { setContentType('reel'); setCustomImages([]); }}
                   className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     contentType === 'reel'
                       ? 'bg-indigo-600 text-white'
@@ -797,7 +858,7 @@ https://marianoaliandri.com.ar/analitica
                   Modo AI
                 </h3>
                 <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                  {useAI ? 'AI genera el post' : 'Publica tal cual'}
+                  {isCarousel ? 'Carrusel: se publica tal cual (sin AI)' : (useAI ? 'AI genera el post' : 'Publica tal cual')}
                 </p>
               </div>
               <button
@@ -838,34 +899,44 @@ https://marianoaliandri.com.ar/analitica
           {contentType === 'post' && (
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
-              Imagen (opcional)
+              Imágenes (opcional) — {customImages.length}/{MAX_CAROUSEL_IMAGES}
+              {isCarousel && <span className="ml-2 normal-case tracking-normal text-indigo-600 dark:text-indigo-400">modo carrusel</span>}
             </label>
             <div className="space-y-2">
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleFileUpload(e, setCustomImageUrl)}
-                className="w-full text-xs sm:text-sm text-gray-500 dark:text-gray-400 file:mr-2 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-indigo-500/10 file:text-indigo-700 dark:file:text-indigo-300 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-500/20"
+                multiple
+                disabled={uploadingImages || customImages.length >= MAX_CAROUSEL_IMAGES}
+                onChange={handleMultiFileUpload}
+                className="w-full text-xs sm:text-sm text-gray-500 dark:text-gray-400 file:mr-2 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-indigo-500/10 file:text-indigo-700 dark:file:text-indigo-300 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-500/20 disabled:opacity-50"
               />
               <div
-                onPaste={(e) => handlePaste(e, setCustomImageUrl)}
+                onPaste={(e) => handlePaste(e, addCustomImage)}
+                tabIndex={0}
                 className="p-3 border-2 border-dashed border-gray-200 dark:border-neutral-700 rounded-xl text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/40"
               >
-                Pegá una imagen (Ctrl+V)
+                {uploadingImages ? 'Subiendo imágenes...' : 'Pegá una imagen (Ctrl+V) — cada pegado suma una'}
               </div>
-              {customImageUrl && (
-                <div className="relative">
-                  <img
-                    src={customImageUrl}
-                    alt="Preview"
-                    className="w-full h-32 sm:h-40 object-cover rounded-lg"
-                  />
-                  <button
-                    onClick={() => setCustomImageUrl('')}
-                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 sm:p-2 transition-colors text-xs"
-                  >
-                    ✕
-                  </button>
+              {customImages.length > 0 && (
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                  {customImages.map((url, i) => (
+                    <div key={url} className="relative">
+                      <img
+                        src={url}
+                        alt={`Imagen ${i + 1}`}
+                        className="w-full aspect-[4/5] object-cover rounded-lg"
+                      />
+                      <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 rounded">{i + 1}</span>
+                      <button
+                        onClick={() => removeCustomImage(i)}
+                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center transition-colors text-[10px]"
+                        aria-label={`Quitar imagen ${i + 1}`}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
