@@ -3,10 +3,29 @@
 // URL a registrar en Merchant Center: https://marianoaliandri.com.ar/api/merchant-feed/
 
 import { products } from '@/data/products';
+import { PLANS } from '@/data/plans';
 import { NextResponse } from 'next/server';
 
 const SITE_URL = 'https://marianoaliandri.com.ar';
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.jpg`;
+
+// Packs de Lead Finder Pro (vendidos también en Gumroad en USD)
+const LEAD_FINDER_PRO_PACKS = [
+  {
+    id: 'lead-finder-pro-starter-50',
+    name: 'Lead Finder Pro — Starter 50',
+    description: 'Herramienta de prospección de clientes potenciales. Obtené 50 créditos para auditar negocios locales sin presencia web optimizada. Activación automática al comprar.',
+    priceUSD: 9,
+    link: `${SITE_URL}/lead-finder-pro`,
+  },
+  {
+    id: 'lead-finder-pro-starter-100',
+    name: 'Lead Finder Pro — Starter 100',
+    description: 'Herramienta de prospección de clientes potenciales. Obtené 100 créditos para auditar negocios locales sin presencia web optimizada. Activación automática al comprar.',
+    priceUSD: 15,
+    link: `${SITE_URL}/lead-finder-pro`,
+  },
+];
 
 async function getExchangeRate() {
   try {
@@ -33,40 +52,71 @@ function escapeXml(str) {
     .replace(/"/g, '&quot;');
 }
 
-export async function GET() {
-  const rate = await getExchangeRate();
-
-  // Solo productos con precio fijo (excluye cotización personalizada)
-  const feedProducts = products.filter((p) => p.priceUSD && !p.isCustom);
-
-  const items = feedProducts
-    .map((p) => {
-      const priceARS = (p.priceUSD * rate).toFixed(2);
-      const imageUrl =
-        p.image && p.image.startsWith('http') ? p.image : DEFAULT_IMAGE;
-
-      return `
+function makeItem({ id, name, description, priceARS, link, image }) {
+  return `
     <item>
-      <g:id>${escapeXml(p.id)}</g:id>
-      <g:title>${escapeXml(p.name)}</g:title>
-      <g:description>${escapeXml(p.description)}</g:description>
-      <g:link>${SITE_URL}/tienda/${escapeXml(p.id)}</g:link>
-      <g:image_link>${escapeXml(imageUrl)}</g:image_link>
-      <g:price>${priceARS} ARS</g:price>
+      <g:id>${escapeXml(id)}</g:id>
+      <g:title>${escapeXml(name)}</g:title>
+      <g:description>${escapeXml(description)}</g:description>
+      <g:link>${escapeXml(link)}</g:link>
+      <g:image_link>${escapeXml(image ?? DEFAULT_IMAGE)}</g:image_link>
+      <g:price>${Number(priceARS).toFixed(2)} ARS</g:price>
       <g:availability>in_stock</g:availability>
       <g:condition>new</g:condition>
       <g:brand>Mariano Aliandri</g:brand>
     </item>`;
+}
+
+export async function GET() {
+  const rate = await getExchangeRate();
+
+  // 1. Servicios de la tienda con precio fijo
+  const serviceItems = products
+    .filter((p) => p.priceUSD && !p.isCustom)
+    .map((p) =>
+      makeItem({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        priceARS: p.priceUSD * rate,
+        link: `${SITE_URL}/tienda/${p.id}`,
+        image: p.image?.startsWith('http') ? p.image : DEFAULT_IMAGE,
+      })
+    );
+
+  // 2. Packs de Lead Finder Pro (USD → ARS)
+  const leadFinderItems = LEAD_FINDER_PRO_PACKS.map((p) =>
+    makeItem({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      priceARS: p.priceUSD * rate,
+      link: p.link,
     })
-    .join('\n');
+  );
+
+  // 3. Planes de Analítica / Rubros buscados (ya en ARS)
+  const planItems = Object.values(PLANS)
+    .filter((p) => p.price > 0)
+    .map((p) =>
+      makeItem({
+        id: `plan-${p.id}`,
+        name: `Analítica Local — Plan ${p.name}`,
+        description: `Acceso al buscador de rubros por demanda en Argentina. ${p.features.join('. ')}.`,
+        priceARS: p.price,
+        link: `${SITE_URL}/analitica`,
+      })
+    );
+
+  const allItems = [...serviceItems, ...leadFinderItems, ...planItems].join('\n');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
   <channel>
-    <title>Mariano Aliandri — Servicios de Desarrollo Web y Datos</title>
+    <title>Mariano Aliandri — Herramientas y Servicios Digitales</title>
     <link>${SITE_URL}/tienda</link>
-    <description>Servicios profesionales de desarrollo web, e-commerce e inteligencia de datos en Argentina</description>
-${items}
+    <description>Servicios de desarrollo web, herramientas de prospección y analítica local para Argentina</description>
+${allItems}
   </channel>
 </rss>`;
 
