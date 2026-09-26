@@ -26,15 +26,25 @@ const CVATSUploader = dynamic(() => import('@/components/tools/CVATSUploader'), 
 const RadarWeb = dynamic(() => import('@/components/tools/RadarWeb'), { ssr: false });
 const LabsTool = dynamic(() => import('@/components/tools/LabsTool'), { ssr: false });
 
-const TOOL_PATHS = ['/stats', '/ats', '/kpi', '/radarweb', '/labs', '/lead-finder-pro', '/analitica', '/herramientas'];
+const TOOL_PATHS = ['/stats', '/ats', '/kpi', '/radarweb', '/labs', '/lead-finder-pro', '/analitica', '/herramientas', '/roi', '/web', '/tienda', '/presupuesto'];
 const NAV_LINKS = [
-  { label: 'Noticias',    href: '/noticias' },
-  { label: 'Proyectos',   href: '/#proyectos' },
-  { label: 'Contacto',    href: '/#contact' },
-  { label: 'Auditorías',  href: '/auditorias' },
-  { label: 'Analítica',   href: '/analitica' },
-  { label: 'Tienda',      href: '/tienda' },
-  { label: 'Presupuesto', href: '/presupuesto' },
+  { label: 'Auditorías', href: '/auditorias' },
+  { label: 'Noticias',   href: '/noticias' },
+];
+const SERVICIOS = [
+  { label: 'Tienda de servicios',   href: '/tienda',      icon: '🛒', desc: 'Sitios, sistemas y diseño' },
+  { label: 'Solicitar presupuesto', href: '/presupuesto', icon: '📝', desc: 'Para proyectos a medida' },
+];
+const HERRAMIENTAS_GRATIS = [
+  { label: 'Análisis de CV',  href: '/ats',      icon: '📄', desc: 'Evaluá tu CV contra filtros ATS' },
+  { label: 'Cotizador web',   href: '/web',      icon: '🌐', desc: 'Estimá el costo de tu sitio' },
+  { label: 'Calculadora ROI', href: '/roi',      icon: '📈', desc: 'Calculá el retorno de tu proyecto' },
+  { label: 'Radar KPI',       href: '/kpi',      icon: '📊', desc: 'KPIs de tu negocio en un radar' },
+  { label: 'Radar Web',       href: '/radarweb', icon: '🔍', desc: 'Auditá la presencia online' },
+];
+const PRODUCTOS_SAAS = [
+  { label: 'Lead Finder Pro',    href: '/lead-finder-pro', icon: '🎯', desc: 'Encontrá negocios locales con datos de contacto' },
+  { label: 'Analítica Regional', href: '/analitica',       icon: '📊', desc: 'Rubros más buscados en tu zona' },
 ];
 export const TOOLS = [
   { label: 'Lead Finder Pro', href: '/lead-finder-pro', icon: '🎯', desc: 'Para devs: encontrá negocios sin sitio o con SEO débil' },
@@ -100,9 +110,9 @@ function ScrambleLogo({ onClick }) {
   );
 }
 
-function ToolsDropdown({ pathname }) {
+function NavDropdown({ label, items, pathname, footerLink }) {
   const [open, setOpen] = useState(false);
-  const isActive = TOOL_PATHS.some(p => pathname === p);
+  const isActive = items.some(t => pathname === t.href || pathname.startsWith(t.href + '/'));
 
   return (
     <div className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
@@ -112,7 +122,7 @@ function ToolsDropdown({ pathname }) {
           isActive ? 'text-indigo-400 bg-indigo-600/10' : 'text-gray-400 hover:text-white hover:bg-white/5'
         }`}
       >
-        Herramientas
+        {label}
         <svg className={`w-3.5 h-3.5 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
@@ -122,14 +132,14 @@ function ToolsDropdown({ pathname }) {
         <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 z-50">
           <div className="bg-[#111] border border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden w-64">
             <div className="px-4 pt-3 pb-1">
-              <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest">Herramientas</p>
+              <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest">{label}</p>
             </div>
-            {TOOLS.map(t => (
+            {items.map(t => (
               <Link
                 key={t.href}
                 href={t.href}
                 onClick={() => setOpen(false)}
-                className={`flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors group ${
+                className={`flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors ${
                   pathname === t.href ? 'bg-indigo-600/10' : ''
                 }`}
               >
@@ -140,13 +150,15 @@ function ToolsDropdown({ pathname }) {
                 </div>
               </Link>
             ))}
-            <Link
-              href="/herramientas"
-              onClick={() => setOpen(false)}
-              className="block px-4 py-3 border-t border-white/10 text-center text-xs font-semibold text-indigo-400 hover:text-indigo-300 hover:bg-white/5 transition-colors"
-            >
-              Ver todas + planes →
-            </Link>
+            {footerLink && (
+              <Link
+                href={footerLink.href}
+                onClick={() => setOpen(false)}
+                className="block px-4 py-3 border-t border-white/10 text-center text-xs font-semibold text-indigo-400 hover:text-indigo-300 hover:bg-white/5 transition-colors"
+              >
+                {footerLink.label}
+              </Link>
+            )}
           </div>
         </div>
       )}
@@ -154,16 +166,35 @@ function ToolsDropdown({ pathname }) {
   );
 }
 
+function MobileSection({ title, items, onNavigate }) {
+  return (
+    <div>
+      <p className="px-4 pt-4 pb-1 text-[10px] font-semibold text-gray-600 uppercase tracking-widest">{title}</p>
+      {items.map(t => (
+        <Link
+          key={t.href}
+          href={t.href}
+          onClick={onNavigate}
+          className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+        >
+          <span className="text-base">{t.icon}</span>
+          <span>{t.label}</span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 function Navbar({ pathname }) {
   const [open, setOpen] = useState(false);
-  const [toolsOpen, setToolsOpen] = useState(false);
+  const close = () => setOpen(false);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-[1000] bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/8">
       <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
 
         {/* Logo */}
-        <ScrambleLogo onClick={() => setOpen(false)} />
+        <ScrambleLogo onClick={close} />
 
         {/* Nav links — desktop */}
         <div className="hidden md:flex items-center gap-1">
@@ -172,7 +203,7 @@ function Navbar({ pathname }) {
               key={href}
               href={href}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                (pathname === href || (href !== '/' && pathname.startsWith(href) && href !== '/#proyectos' && href !== '/#contact'))
+                pathname === href || (href !== '/' && pathname.startsWith(href))
                   ? 'text-indigo-400 bg-indigo-600/10'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
@@ -180,7 +211,9 @@ function Navbar({ pathname }) {
               {label}
             </Link>
           ))}
-          <ToolsDropdown pathname={pathname} />
+          <NavDropdown label="Servicios" items={SERVICIOS} pathname={pathname} />
+          <NavDropdown label="Herramientas" items={HERRAMIENTAS_GRATIS} pathname={pathname} footerLink={{ href: '/herramientas', label: 'Ver todas las herramientas →' }} />
+          <NavDropdown label="Productos" items={PRODUCTOS_SAAS} pathname={pathname} />
         </div>
 
         {/* Right side */}
@@ -205,48 +238,25 @@ function Navbar({ pathname }) {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden border-t border-white/8 bg-[#0a0a0a] px-5 py-4 flex flex-col gap-1 max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
-          {NAV_LINKS.map(({ label, href }) => (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setOpen(false)}
-              className="px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-            >
-              {label}
-            </Link>
-          ))}
-          {/* Herramientas — mobile */}
-          <button
-            onClick={() => setToolsOpen(p => !p)}
-            className="flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            <span>Herramientas</span>
-            <svg className={`w-4 h-4 transition-transform ${toolsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          {toolsOpen && TOOLS.map(t => (
-            <Link
-              key={t.href}
-              href={t.href}
-              onClick={() => { setOpen(false); setToolsOpen(false); }}
-              className="flex items-center gap-3 px-6 py-2.5 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-            >
-              <span>{t.icon}</span> {t.label}
-            </Link>
-          ))}
-          {toolsOpen && (
-            <Link
-              href="/herramientas"
-              onClick={() => { setOpen(false); setToolsOpen(false); }}
-              className="flex items-center gap-3 px-6 py-2.5 rounded-xl text-sm font-semibold text-indigo-400 hover:text-indigo-300 hover:bg-white/5 transition-colors"
-            >
-              Ver todas + planes →
-            </Link>
-          )}
-          <div className="pt-2 border-t border-white/8 mt-1">
-            <AuthButton inline onNavigate={() => { setOpen(false); setToolsOpen(false); }} />
+        <div className="md:hidden border-t border-white/8 bg-[#0a0a0a] px-3 py-3 flex flex-col max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
+          {/* Flat links */}
+          <div className="flex gap-1 mb-1">
+            {NAV_LINKS.map(({ label, href }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={close}
+                className="flex-1 text-center px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+          <MobileSection title="Servicios" items={SERVICIOS} onNavigate={close} />
+          <MobileSection title="Herramientas gratuitas" items={HERRAMIENTAS_GRATIS} onNavigate={close} />
+          <MobileSection title="Productos" items={PRODUCTOS_SAAS} onNavigate={close} />
+          <div className="pt-3 mt-2 border-t border-white/8">
+            <AuthButton inline onNavigate={close} />
           </div>
         </div>
       )}
