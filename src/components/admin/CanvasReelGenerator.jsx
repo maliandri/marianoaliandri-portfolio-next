@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { canvasReelService, MIN_CLIP_DURATION, FONT_FAMILIES } from '../../utils/canvasReelService';
+import { canvasReelService, MIN_CLIP_DURATION, FONT_FAMILIES, MUSIC_TRACKS } from '../../utils/canvasReelService';
 import ReelTimeline from './ReelTimeline';
 import ReelContentPicker from './ReelContentPicker';
 import ReelClipProperties from './ReelClipProperties';
@@ -412,10 +412,16 @@ export default function CanvasReelGenerator() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedContent, duration, clips, bgColors, grainIntensity, blurAmount, showPrice, priceLabel, isScrubbing]);
 
+  // Mood → índice en MUSIC_TRACKS (fallback Cloudinary con CORS garantizado)
+  const MOOD_TRACK = { upbeat: 0, chill: 1, tech: 2, corporate: 3, inspirational: 4 };
+
   function buildConfig(clipsOverride) {
+    // Si el usuario no seleccionó un track de Jamendo, usar el de Cloudinary
+    // que corresponde al mood elegido — garantiza que siempre haya música.
+    const fallbackMusicUrl = MUSIC_TRACKS[MOOD_TRACK[mood] ?? 0]?.url || '';
     return {
       clips: clipsOverride || clips,
-      musicUrl,
+      musicUrl: musicUrl || fallbackMusicUrl,
       ttsBase64:   voiceEnabled ? ttsBase64 : '',
       voiceVolume,
       musicVolume,

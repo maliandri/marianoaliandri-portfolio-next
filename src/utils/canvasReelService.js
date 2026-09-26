@@ -715,7 +715,16 @@ class CanvasReelService {
   // ── Audio helpers ─────────────────────────────────────────────────────────
 
   async _fetchAudioBuffer(audioCtx, url) {
-    const res = await fetch(url, { mode: 'cors' });
+    // Intento directo con CORS — funciona para Cloudinary y dominios con headers.
+    // Para Jamendo (sin CORS headers), falla y reintentamos vía proxy server-side.
+    let res;
+    try {
+      res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch {
+      res = await fetch(`/api/reel-audio-proxy?url=${encodeURIComponent(url)}`);
+      if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
+    }
     const buf = await res.arrayBuffer();
     return audioCtx.decodeAudioData(buf);
   }
@@ -779,28 +788,36 @@ class CanvasReelService {
       const videoGains = new Map();
 
       if (ttsBase64) {
-        const voiceBuf    = await this._base64ToAudioBuffer(audioCtx, ttsBase64);
-        const voiceSrc    = audioCtx.createBufferSource();
-        voiceSrc.buffer   = voiceBuf;
-        const voiceGain   = audioCtx.createGain();
-        voiceGain.gain.value = voiceVolume;
-        voiceSrc.connect(voiceGain);
-        voiceGain.connect(dest);
-        voiceSrc.start(0);
-        sources.push(voiceSrc);
+        try {
+          const voiceBuf    = await this._base64ToAudioBuffer(audioCtx, ttsBase64);
+          const voiceSrc    = audioCtx.createBufferSource();
+          voiceSrc.buffer   = voiceBuf;
+          const voiceGain   = audioCtx.createGain();
+          voiceGain.gain.value = voiceVolume;
+          voiceSrc.connect(voiceGain);
+          voiceGain.connect(dest);
+          voiceSrc.start(0);
+          sources.push(voiceSrc);
+        } catch (e) {
+          console.warn('Voice setup failed:', e.message);
+        }
       }
 
       if (musicUrl) {
-        const musicBuf    = await this._fetchAudioBuffer(audioCtx, musicUrl);
-        const musicSrc    = audioCtx.createBufferSource();
-        musicSrc.buffer   = musicBuf;
-        musicSrc.loop     = true;
-        const musicGain   = audioCtx.createGain();
-        musicGain.gain.value = musicVolume !== null ? musicVolume : (ttsBase64 ? 0.25 : 0.6);
-        musicSrc.connect(musicGain);
-        musicGain.connect(dest);
-        musicSrc.start(0);
-        sources.push(musicSrc);
+        try {
+          const musicBuf    = await this._fetchAudioBuffer(audioCtx, musicUrl);
+          const musicSrc    = audioCtx.createBufferSource();
+          musicSrc.buffer   = musicBuf;
+          musicSrc.loop     = true;
+          const musicGain   = audioCtx.createGain();
+          musicGain.gain.value = musicVolume !== null ? musicVolume : (ttsBase64 ? 0.25 : 0.6);
+          musicSrc.connect(musicGain);
+          musicGain.connect(dest);
+          musicSrc.start(0);
+          sources.push(musicSrc);
+        } catch (e) {
+          console.warn('Music setup failed:', e.message);
+        }
       }
 
       videoEls.forEach(({ id, el }) => {
