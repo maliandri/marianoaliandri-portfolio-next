@@ -18,7 +18,8 @@ export default function sitemap() {
     { url: `${BASE_URL}/web/`,        lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/keywords/`,   lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/analitica/`,   lastModified: now, changeFrequency: 'daily',   priority: 0.8 },
-    { url: `${BASE_URL}/faq/`,        lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
-    { url: `${BASE_URL}/stats/`,      lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE_URL}/faq/`,                    lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${BASE_URL}/politica-devoluciones/`, lastModified: now, changeFrequency: 'yearly',  priority: 0.4 },
+    { url: `${BASE_URL}/stats/`,                 lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
   ];
 }
