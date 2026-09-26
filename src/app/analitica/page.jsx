@@ -13,8 +13,8 @@ const REGIONS = [
 ];
 
 const TABS = [
-  { id: 'tendencias', label: 'Tendencias',       icon: '📈' },
-  { id: 'keywords',   label: 'Rubros buscados',  icon: '🔍' },
+  { id: 'tendencias', label: 'Tendencias',      icon: '📈' },
+  { id: 'keywords',   label: 'Rubros buscados', icon: '🔍', planRequired: true },
 ];
 
 export default function AnaliticaPage() {
@@ -73,6 +73,11 @@ export default function AnaliticaPage() {
               }`}
             >
               <span>{t.icon}</span> {t.label}
+              {t.planRequired && tab !== t.id && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 leading-none">
+                  Plan
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -103,6 +108,7 @@ export default function AnaliticaPage() {
               <AuthGate
                 title="Rubros buscados"
                 subtitle="Registrate gratis para rankear rubros por demanda de búsqueda en tu zona. Incluye 1 búsqueda sin cargo."
+                defaultInterest="analitica"
               >
                 <KeywordsTab />
               </AuthGate>

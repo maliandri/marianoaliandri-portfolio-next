@@ -169,12 +169,25 @@ function MiCuentaContent() {
 
   return (
     <div className="max-w-4xl mx-auto px-4">
-      <div className="flex items-center gap-4 mb-10">
+      <div className="flex items-center gap-4 mb-8">
         {user?.photoURL && <img src={user.photoURL} alt="" className="w-14 h-14 rounded-full" referrerPolicy="no-referrer" />}
         <div>
           <h1 className="text-2xl font-black text-white">Hola, {user?.displayName?.split(' ')[0] || 'de nuevo'}</h1>
           <p className="text-gray-500 text-sm">{user?.email}</p>
         </div>
+      </div>
+
+      {/* Accesos rápidos */}
+      <div className="flex flex-wrap gap-2 mb-10">
+        <Link href="/lead-finder-pro/buscar" className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors">
+          🎯 Buscar negocios
+        </Link>
+        <Link href="/analitica" className="inline-flex items-center gap-1.5 px-4 py-2 bg-white/5 hover:bg-white/10 text-white text-sm font-medium rounded-xl transition-colors border border-white/10">
+          🔍 Rubros buscados
+        </Link>
+        <Link href="/analitica?tab=zona" className="inline-flex items-center gap-1.5 px-4 py-2 bg-white/5 hover:bg-white/10 text-white text-sm font-medium rounded-xl transition-colors border border-white/10">
+          🗺️ Analítica zonal
+        </Link>
       </div>
 
       <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-4">Tus productos</p>

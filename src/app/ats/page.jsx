@@ -95,6 +95,15 @@ export default function ToolPage() {
             <a href="/web" className="text-indigo-500 hover:underline">Cotizá tu sitio web</a> o mirá las{' '}
             <a href="/auditorias" className="text-indigo-500 hover:underline">auditorías SEO</a>.
           </p>
+
+          <div className="mt-8 p-5 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50 rounded-2xl">
+            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1">¿Sos recruiter o consultora?</p>
+            <h3 className="font-bold text-gray-900 dark:text-white mb-2">Automatizá la búsqueda de candidatos o clientes</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Si necesitás un sistema a medida para gestión de postulaciones, base de candidatos o automatización de procesos, podemos construirlo juntos.</p>
+            <a href="/presupuesto" className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors">
+              Solicitar presupuesto →
+            </a>
+          </div>
         </div>
       </main>
     </>

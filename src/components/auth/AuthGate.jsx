@@ -38,9 +38,9 @@ const STORAGE_KEY = 'authgate_pending_interest';
 // - loading → spinner
 // - sin user → muro de login con selector de interés
 // - con user → children
-export default function AuthGate({ children, title = 'Contenido para usuarios registrados', subtitle, lang = 'es' }) {
+export default function AuthGate({ children, title = 'Contenido para usuarios registrados', subtitle, lang = 'es', defaultInterest = '' }) {
   const { user, loading, login } = useAuthUser();
-  const [selectedInterest, setSelectedInterest] = useState('');
+  const [selectedInterest, setSelectedInterest] = useState(defaultInterest);
   const loginLabel = lang === 'en' ? 'Sign up with Google' : 'Registrarme con Google';
   const freeLabel = lang === 'en' ? 'Free. No card required.' : 'Gratis. Sin tarjeta.';
 

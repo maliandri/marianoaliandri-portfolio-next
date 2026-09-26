@@ -51,26 +51,31 @@ export async function POST(request) {
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    // Notificar al admin por email
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://marianoaliandri.com.ar'}/api/send-email`, {
+    const BASE = process.env.NEXT_PUBLIC_BASE_URL || 'https://marianoaliandri.com.ar';
+    const emailPayload = {
+      name: clientName,
+      email: clientEmail,
+      phone: clientPhone,
+      company: clientCompany,
+      message: projectDescription,
+      services: selectedServices,
+      deadline,
+      budgetId: docRef.id,
+    };
+
+    // Notificar al admin y confirmar al cliente (en paralelo, sin bloquear)
+    await Promise.allSettled([
+      fetch(`${BASE}/api/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'budget-received',
-          name: clientName,
-          email: clientEmail,
-          phone: clientPhone,
-          company: clientCompany,
-          message: projectDescription,
-          services: selectedServices,
-          deadline,
-          budgetId: docRef.id,
-        }),
-      });
-    } catch {
-      // No bloquear si el email falla
-    }
+        body: JSON.stringify({ type: 'budget-received', ...emailPayload }),
+      }),
+      fetch(`${BASE}/api/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'budget-confirmation', ...emailPayload }),
+      }),
+    ]);
 
     return Response.json({ success: true, budgetId: docRef.id });
   } catch (error) {

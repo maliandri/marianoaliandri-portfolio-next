@@ -205,6 +205,31 @@ const templates = {
     };
   },
 
+  'budget-confirmation': (data) => {
+    const servicesList = (data.services || []).map(s => `<li style="color:#374151;font-size:13px;padding:3px 0;">${s}</li>`).join('');
+    return {
+      subject: `Recibimos tu solicitud — Mariano Aliandri`,
+      to: data.email,
+      html: baseTemplate(`
+        <h2 style="margin:0 0 8px;color:#111827;font-size:22px;">Hola, ${data.name}!</h2>
+        <p style="margin:0 0 20px;color:#6b7280;font-size:15px;line-height:1.6;">Recibí tu solicitud de presupuesto. Te respondo en <strong style="color:#111827;">menos de 24 horas hábiles</strong> con el detalle y el costo estimado.</p>
+        <div style="background:#f9fafb;border-radius:10px;padding:16px;margin-bottom:20px;">
+          <p style="margin:0 0 8px;color:#6b7280;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Servicios solicitados</p>
+          <ul style="margin:0;padding-left:16px;">${servicesList}</ul>
+        </div>
+        ${data.message ? `<div style="padding:14px;background:#eff6ff;border-left:4px solid #4f46e5;border-radius:0 8px 8px 0;margin-bottom:20px;"><p style="margin:0;color:#1e40af;font-size:13px;line-height:1.6;"><em>"${data.message}"</em></p></div>` : ''}
+        <div style="margin-top:24px;padding:16px;background:#f0fdf4;border-radius:8px;text-align:center;">
+          <p style="margin:0 0 6px;color:#166534;font-size:13px;font-weight:600;">¿Tenés alguna consulta urgente?</p>
+          <p style="margin:0;font-size:13px;color:#6b7280;">
+            <a href="mailto:yo@marianoaliandri.com.ar" style="color:#4f46e5;text-decoration:none;">yo@marianoaliandri.com.ar</a>
+            &nbsp;·&nbsp;
+            <a href="https://wa.me/5492995414422?text=Hola Mariano, mandé una solicitud de presupuesto y quería consultarte algo." style="color:#22c55e;text-decoration:none;">WhatsApp</a>
+          </p>
+        </div>
+      `, `Recibimos tu solicitud, ${data.name}. Te respondo en menos de 24 hs.`),
+    };
+  },
+
   'style-quiz-received': (data) => {
     const likedList = (data.likedStyles || []).map(s =>
       `<li style="color:#374151;font-size:13px;padding:4px 0;"><strong>${s.name}</strong>${s.comment ? ` — ${s.comment}` : ''}</li>`

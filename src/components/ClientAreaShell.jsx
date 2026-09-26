@@ -15,18 +15,23 @@ import { firebaseAuth } from '@/utils/firebaseservice';
 // Sin usuario logueado no tiene sentido mostrar el sidebar (no hay a dónde navegar
 // todavía) -- se deja que el AuthGate de cada página (dentro de children) muestre su
 // propio prompt de login a pantalla completa.
-const ITEMS = [
-  { id: 'mi-cuenta',        label: 'Mi cuenta',          icon: '🏠', href: '/mi-cuenta' },
-  { id: 'mis-compras',      label: 'Mis compras',         icon: '🧾', href: '/mis-compras' },
-  { id: 'lead-finder-pro',  label: 'Lead Finder Pro',     icon: '🎯', href: '/lead-finder-pro/buscar' },
-  { id: 'rubros-buscados',  label: 'Rubros buscados',     icon: '🔍', href: '/analitica' },
-  { id: 'analitica-zonal',  label: 'Analítica regional',  icon: '🗺️', href: '/analitica?tab=zona' },
-  { id: 'perfil',           label: 'Mi perfil',           icon: '⚙️', href: '/perfil' },
+const TOOL_ITEMS = [
+  { id: 'lead-finder-pro',  label: 'Lead Finder Pro',    icon: '🎯', href: '/lead-finder-pro/buscar' },
+  { id: 'lfp-demo',         label: 'Demo gratis',        icon: '👀', href: '/lead-finder-pro/demo' },
+  { id: 'rubros-buscados',  label: 'Rubros buscados',    icon: '🔍', href: '/analitica' },
+  { id: 'analitica-zonal',  label: 'Analítica regional', icon: '🗺️', href: '/analitica?tab=zona' },
 ];
 
+const ACCOUNT_ITEMS = [
+  { id: 'mi-cuenta',   label: 'Mi cuenta',  icon: '🏠', href: '/mi-cuenta' },
+  { id: 'mis-compras', label: 'Mis compras', icon: '🧾', href: '/mis-compras' },
+  { id: 'perfil',      label: 'Mi perfil',  icon: '⚙️', href: '/perfil' },
+];
+
+const ALL_ITEMS = [...TOOL_ITEMS, ...ACCOUNT_ITEMS];
+
 function activeIdFor(pathname) {
-  // Prioridad: coincidencia exacta primero, luego prefijo
-  const found = ITEMS.find(it => {
+  const found = ALL_ITEMS.find(it => {
     const base = it.href.split('?')[0];
     return pathname === base || pathname.startsWith(`${base}/`);
   });
@@ -50,7 +55,10 @@ export default function ClientAreaShell({ children }) {
   return (
     <div className="min-h-screen bg-[#0a0a0a] md:flex">
       <AppSidebar
-        sections={[{ id: 'cliente', items: ITEMS }]}
+        sections={[
+          { id: 'herramientas', label: 'Mis herramientas', items: TOOL_ITEMS },
+          { id: 'cuenta',       label: 'Mi cuenta',        items: ACCOUNT_ITEMS },
+        ]}
         activeId={activeIdFor(pathname)}
         navOpen={navOpen}
         onNavOpenChange={setNavOpen}

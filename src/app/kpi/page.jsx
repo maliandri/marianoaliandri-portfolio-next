@@ -91,6 +91,15 @@ export default function ToolPage() {
             <a href="/stats" className="text-indigo-500 hover:underline">Estadísticas del portfolio</a> ·{' '}
             <a href="/radarweb" className="text-indigo-500 hover:underline">Radar Web</a>.
           </p>
+
+          <div className="mt-8 p-5 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50 rounded-2xl">
+            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1">¿Siguiente paso?</p>
+            <h3 className="font-bold text-gray-900 dark:text-white mb-2">Auditá los KPIs digitales de comercios en tu zona</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Lead Finder Pro encuentra negocios locales, analiza su presencia digital y te da sus datos de contacto. Ideal para consultores y agencias.</p>
+            <a href="/lead-finder-pro" className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors">
+              Ver Lead Finder Pro →
+            </a>
+          </div>
         </div>
       </main>
     </>
