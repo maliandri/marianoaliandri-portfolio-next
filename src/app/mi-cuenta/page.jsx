@@ -81,8 +81,8 @@ function LeadFinderProCard({ user }) {
   );
 }
 
-function AnaliticaCard({ user, getIdToken }) {
-  const [me, setMe] = useState(undefined); // undefined = cargando, null = error
+function RubrosBuscadosCard({ user, getIdToken }) {
+  const [me, setMe] = useState(undefined);
 
   useEffect(() => {
     if (!user) return;
@@ -104,13 +104,13 @@ function AnaliticaCard({ user, getIdToken }) {
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-1">Producto</p>
-          <h3 className="text-white font-bold text-lg">📊 Analítica Regional</h3>
+          <h3 className="text-white font-bold text-lg">🔍 Rubros más buscados</h3>
         </div>
         {me === undefined ? (
           <span className="text-xs text-gray-500">Cargando...</span>
         ) : (
           <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${isPaid ? 'bg-green-500/10 text-green-400' : 'bg-gray-500/10 text-gray-400'}`}>
-            Plan {planName}
+            {isPaid ? `Plan ${planName}` : 'Plan Gratis'}
           </span>
         )}
       </div>
@@ -120,17 +120,45 @@ function AnaliticaCard({ user, getIdToken }) {
           ? 'Búsquedas de rubros ilimitadas.'
           : exhausted
           ? 'Ya usaste tu búsqueda gratis del plan actual.'
-          : `${me?.remaining ?? '—'} ${me?.remaining === 1 ? 'búsqueda' : 'búsquedas'} disponibles.`}
+          : `${me?.remaining ?? '—'} ${me?.remaining === 1 ? 'búsqueda disponible' : 'búsquedas disponibles'}.`}
       </p>
       <div className="flex flex-wrap gap-2">
         <Link href="/analitica" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors">
-          📊 Abrir Analítica
+          🔍 Buscar rubros
         </Link>
         {!isPaid && (
           <Link href="/analitica" className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white text-sm font-medium rounded-xl transition-colors">
             Ver planes →
           </Link>
         )}
+      </div>
+    </div>
+  );
+}
+
+function AnaliticaRegionalCard() {
+  return (
+    <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-1">Producto</p>
+          <h3 className="text-white font-bold text-lg">🗺️ Analítica Regional</h3>
+        </div>
+        <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-green-500/10 text-green-400">
+          Incluido
+        </span>
+      </div>
+
+      <p className="text-gray-400 text-sm mb-4">
+        Analizá zonas urbanas: heatmap de tráfico, concentración de negocios y demanda por barrio en tu ciudad.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Link href="/analitica?tab=zona" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors">
+          🗺️ Abrir mapa
+        </Link>
+        <Link href="/analitica?tab=tendencias" className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white text-sm font-medium rounded-xl transition-colors">
+          📈 Tendencias →
+        </Link>
       </div>
     </div>
   );
@@ -152,7 +180,8 @@ function MiCuentaContent() {
       <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-4">Tus productos</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
         <LeadFinderProCard user={user} />
-        <AnaliticaCard user={user} getIdToken={getIdToken} />
+        <RubrosBuscadosCard user={user} getIdToken={getIdToken} />
+        <AnaliticaRegionalCard />
       </div>
 
       <div className="flex flex-wrap gap-4 text-sm">

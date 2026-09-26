@@ -16,15 +16,20 @@ import { firebaseAuth } from '@/utils/firebaseservice';
 // todavía) -- se deja que el AuthGate de cada página (dentro de children) muestre su
 // propio prompt de login a pantalla completa.
 const ITEMS = [
-  { id: 'mi-cuenta', label: 'Mi cuenta', icon: '🏠', href: '/mi-cuenta' },
-  { id: 'mis-compras', label: 'Mis compras', iconId: 'orders', icon: '🧾', href: '/mis-compras' },
-  { id: 'lead-finder-pro', label: 'Lead Finder Pro', iconId: 'leads', icon: '🎯', href: '/lead-finder-pro/buscar' },
-  { id: 'analitica', label: 'Analítica', iconId: 'rubros-buscados', icon: '📊', href: '/analitica' },
-  { id: 'perfil', label: 'Mi perfil', icon: '⚙️', href: '/perfil' },
+  { id: 'mi-cuenta',        label: 'Mi cuenta',          icon: '🏠', href: '/mi-cuenta' },
+  { id: 'mis-compras',      label: 'Mis compras',         icon: '🧾', href: '/mis-compras' },
+  { id: 'lead-finder-pro',  label: 'Lead Finder Pro',     icon: '🎯', href: '/lead-finder-pro/buscar' },
+  { id: 'rubros-buscados',  label: 'Rubros buscados',     icon: '🔍', href: '/analitica' },
+  { id: 'analitica-zonal',  label: 'Analítica regional',  icon: '🗺️', href: '/analitica?tab=zona' },
+  { id: 'perfil',           label: 'Mi perfil',           icon: '⚙️', href: '/perfil' },
 ];
 
 function activeIdFor(pathname) {
-  const found = ITEMS.find(it => pathname === it.href || pathname.startsWith(`${it.href}/`) || pathname.startsWith(`${it.href}?`));
+  // Prioridad: coincidencia exacta primero, luego prefijo
+  const found = ITEMS.find(it => {
+    const base = it.href.split('?')[0];
+    return pathname === base || pathname.startsWith(`${base}/`);
+  });
   return found?.id || null;
 }
 
