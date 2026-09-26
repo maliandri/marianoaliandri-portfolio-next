@@ -1,15 +1,72 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useAuthUser } from '@/hooks/useAuthUser';
+import { db } from '@/utils/firebaseservice';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+
+const INTERESTS = [
+  {
+    id: 'tienda',
+    label: 'Sitio web o sistema',
+    description: 'Quiero contratar un desarrollo',
+    emoji: '🛒',
+  },
+  {
+    id: 'leadfinder_dev',
+    label: 'Lead Finder (dev)',
+    description: 'Soy desarrollador y quiero integrarlo',
+    emoji: '👨‍💻',
+  },
+  {
+    id: 'leadfinder_comercio',
+    label: 'Lead Finder (negocio)',
+    description: 'Tengo un negocio y busco clientes',
+    emoji: '🏪',
+  },
+  {
+    id: 'analitica',
+    label: 'Analítica regional',
+    description: 'Quiero ver demanda por zona y rubro',
+    emoji: '📊',
+  },
+];
+
+const STORAGE_KEY = 'authgate_pending_interest';
 
 // Envuelve contenido que requiere estar logueado.
 // - loading → spinner
-// - sin user → muro de login (registro con Google)
+// - sin user → muro de login con selector de interés
 // - con user → children
 export default function AuthGate({ children, title = 'Contenido para usuarios registrados', subtitle, lang = 'es' }) {
   const { user, loading, login } = useAuthUser();
+  const [selectedInterest, setSelectedInterest] = useState('');
   const loginLabel = lang === 'en' ? 'Sign up with Google' : 'Registrarme con Google';
   const freeLabel = lang === 'en' ? 'Free. No card required.' : 'Gratis. Sin tarjeta.';
+
+  // Cuando el usuario completa el login, guardar el interés pendiente en Firestore
+  useEffect(() => {
+    if (!user) return;
+    const pending = sessionStorage.getItem(STORAGE_KEY);
+    if (!pending) return;
+    sessionStorage.removeItem(STORAGE_KEY);
+    setDoc(
+      doc(db, 'users', user.uid),
+      {
+        interest: pending,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL || null,
+        registeredAt: serverTimestamp(),
+      },
+      { merge: true }
+    ).catch(() => {});
+  }, [user]);
+
+  async function handleLogin() {
+    if (selectedInterest) sessionStorage.setItem(STORAGE_KEY, selectedInterest);
+    await login();
+  }
 
   if (loading) {
     return (
@@ -29,8 +86,37 @@ export default function AuthGate({ children, title = 'Contenido para usuarios re
         <p className="text-gray-500 text-sm mb-6">
           {subtitle || 'Registrate gratis para acceder a la Analítica. Incluye 1 búsqueda de rubros sin cargo.'}
         </p>
+
+        {/* Selector de interés */}
+        <p className="text-gray-400 text-xs uppercase tracking-widest font-semibold mb-3">
+          ¿Qué te trajo por acá?
+        </p>
+        <div className="grid grid-cols-2 gap-2 mb-6 text-left">
+          {INTERESTS.map((item) => {
+            const active = selectedInterest === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setSelectedInterest(active ? '' : item.id)}
+                className={`flex flex-col gap-1 p-3 rounded-xl border text-left transition-all ${
+                  active
+                    ? 'bg-indigo-600/20 border-indigo-500 ring-1 ring-indigo-500'
+                    : 'bg-white/5 border-white/10 hover:border-indigo-500/50 hover:bg-white/8'
+                }`}
+              >
+                <span className="text-xl leading-none">{item.emoji}</span>
+                <span className={`text-xs font-semibold leading-tight ${active ? 'text-indigo-300' : 'text-white'}`}>
+                  {item.label}
+                </span>
+                <span className="text-[11px] text-gray-400 leading-tight">{item.description}</span>
+              </button>
+            );
+          })}
+        </div>
+
         <button
-          onClick={login}
+          onClick={handleLogin}
           className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition"
         >
           <svg width="18" height="18" viewBox="0 0 24 24">
