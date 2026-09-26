@@ -4,43 +4,26 @@
 
 import { products } from '@/data/products';
 import { PLANS } from '@/data/plans';
+import { getDb } from '@/lib/firebase-admin';
 import { NextResponse } from 'next/server';
 
 const SITE_URL = 'https://marianoaliandri.com.ar';
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.jpg`;
-
-// Packs de Lead Finder Pro (vendidos también en Gumroad en USD)
-const LEAD_FINDER_PRO_PACKS = [
-  {
-    id: 'lead-finder-pro-starter-50',
-    name: 'Lead Finder Pro — Starter 50',
-    description: 'Herramienta de prospección de clientes potenciales. Obtené 50 créditos para auditar negocios locales sin presencia web optimizada. Activación automática al comprar.',
-    priceUSD: 9,
-    link: `${SITE_URL}/lead-finder-pro`,
-  },
-  {
-    id: 'lead-finder-pro-starter-100',
-    name: 'Lead Finder Pro — Starter 100',
-    description: 'Herramienta de prospección de clientes potenciales. Obtené 100 créditos para auditar negocios locales sin presencia web optimizada. Activación automática al comprar.',
-    priceUSD: 15,
-    link: `${SITE_URL}/lead-finder-pro`,
-  },
-];
 
 async function getExchangeRate() {
   try {
     const res = await fetch('https://api.bluelytics.com.ar/v2/latest', {
       next: { revalidate: 3600 },
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) throw new Error();
     const data = await res.json();
     const buy = Number(data?.oficial?.value_buy);
     const sell = Number(data?.oficial?.value_sell);
     const rate = Math.round((buy + sell) / 2);
-    if (!Number.isFinite(rate) || rate <= 0) throw new Error('tasa inválida');
+    if (!Number.isFinite(rate) || rate <= 0) throw new Error();
     return rate;
   } catch {
-    return 1200; // fallback conservador
+    return 1200;
   }
 }
 
@@ -67,10 +50,26 @@ function makeItem({ id, name, description, priceARS, link, image }) {
     </item>`;
 }
 
-export async function GET() {
-  const rate = await getExchangeRate();
+async function getLeadFinderPlans() {
+  try {
+    const db = getDb();
+    if (!db) return [];
+    const snap = await db.collection('leadfinder_plans')
+      .where('active', '!=', false)
+      .get();
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch {
+    return [];
+  }
+}
 
-  // 1. Servicios de la tienda con precio fijo
+export async function GET() {
+  const [leadFinderPlans, rate] = await Promise.all([
+    getLeadFinderPlans(),
+    getExchangeRate(),
+  ]);
+
+  // 1. Servicios de la tienda con precio fijo (USD → ARS)
   const serviceItems = products
     .filter((p) => p.priceUSD && !p.isCustom)
     .map((p) =>
@@ -84,25 +83,25 @@ export async function GET() {
       })
     );
 
-  // 2. Packs de Lead Finder Pro (USD → ARS)
-  const leadFinderItems = LEAD_FINDER_PRO_PACKS.map((p) =>
+  // 2. Lead Finder Pro — planes activos desde Firestore (precio en ARS)
+  const leadFinderItems = leadFinderPlans.map((p) =>
     makeItem({
-      id: p.id,
-      name: p.name,
-      description: p.description,
-      priceARS: p.priceUSD * rate,
-      link: p.link,
+      id: `lfp-${p.id}`,
+      name: `Lead Finder Pro — ${p.name}`,
+      description: p.description || `${p.credits ?? p.auditorias ?? ''} auditorías de negocios locales. Activación automática.`,
+      priceARS: p.priceARS,
+      link: `${SITE_URL}/lead-finder-pro`,
     })
   );
 
-  // 3. Planes de Analítica / Rubros buscados (ya en ARS)
+  // 3. Planes de Analítica / Rubros buscados (precios en ARS de plans.js)
   const planItems = Object.values(PLANS)
     .filter((p) => p.price > 0)
     .map((p) =>
       makeItem({
-        id: `plan-${p.id}`,
+        id: `analitica-${p.id}`,
         name: `Analítica Local — Plan ${p.name}`,
-        description: `Acceso al buscador de rubros por demanda en Argentina. ${p.features.join('. ')}.`,
+        description: `Buscador de rubros por demanda en Argentina. ${p.features.join('. ')}.`,
         priceARS: p.price,
         link: `${SITE_URL}/analitica`,
       })
