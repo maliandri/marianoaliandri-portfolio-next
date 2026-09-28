@@ -3,6 +3,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -97,9 +98,21 @@ function ScrambleLogo({ onClick }) {
       href="/"
       onClick={onClick}
       onMouseEnter={run}
-      className="shrink-0 select-none"
+      className="shrink-0 select-none flex items-center gap-2"
       aria-label="marianoaliandri.com.ar — inicio"
     >
+      <motion.img
+        src="/logo-ma.png"
+        alt=""
+        aria-hidden
+        width={32}
+        height={32}
+        className="w-8 h-8 object-contain"
+        initial={{ scale: 0, rotate: -180, opacity: 0 }}
+        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 280, damping: 18, delay: 0.1 }}
+        whileHover={{ scale: 1.18, rotate: 12 }}
+      />
       <span className="font-mono font-bold text-base tracking-tight text-white">
         {chars.join('')}
       </span>
