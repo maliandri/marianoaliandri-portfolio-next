@@ -747,6 +747,12 @@ export default function CanvasReelGenerator() {
     setSentToMake(false);
     setIsRecording(true);
     setRecordProgress(0);
+    // Detener cualquier preview de audio activo (música o voz) antes de grabar
+    if (previewRef) {
+      try { previewRef.source?.stop(); previewRef.audioCtx?.close(); } catch {}
+      setPreviewRef(null);
+      setPreviewingTrackId(null);
+    }
     canvasReelService.stopPreview();
 
     try {
