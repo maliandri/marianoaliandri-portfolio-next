@@ -148,6 +148,9 @@ export default function CanvasReelGenerator() {
   const [recordProgress, setRecordProgress] = useState(0);
   const [isUploading, setIsUploading]     = useState(false);
   const [videoUrl, setVideoUrl]           = useState(null);
+  const [reelMeta, setReelMeta]           = useState(null); // datos para enviar a Make luego
+  const [isSendingToMake, setIsSendingToMake] = useState(false);
+  const [sentToMake, setSentToMake]       = useState(false);
   const [error, setError]                 = useState(null);
 
   const canvasRef        = useRef(null);
@@ -740,6 +743,8 @@ export default function CanvasReelGenerator() {
     if (!selectedContent || clips.length === 0 || isRecording || isUploading) return;
     setError(null);
     setVideoUrl(null);
+    setReelMeta(null);
+    setSentToMake(false);
     setIsRecording(true);
     setRecordProgress(0);
     canvasReelService.stopPreview();
@@ -770,22 +775,13 @@ export default function CanvasReelGenerator() {
       const productName = selectedContent.name || selectedContent.sitio || productId;
       const cfg         = buildConfig();
 
-      const res  = await fetch('/api/upload-reel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          videoUrl:   mp4Url,
-          productId,
-          text:       script || productName,
-          subtitle:   cfg.clips?.[0]?.subtitle || '',
-          aiProvider: 'gemini',
-          useAI:      true,
-          type:       'reel',
-        }),
+      setVideoUrl(mp4Url);
+      setReelMeta({
+        mp4Url,
+        productId,
+        text:     script || productName,
+        subtitle: cfg.clips?.[0]?.subtitle || '',
       });
-      const data = await res.json();
-      if (!data.videoUrl) throw new Error(data.error || 'Error notificando Make.com');
-      setVideoUrl(data.videoUrl);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -796,6 +792,34 @@ export default function CanvasReelGenerator() {
         canvasReelService.startPreview(canvasRef.current, buildConfig());
     }
   };
+
+  async function handleSendToMake() {
+    if (!reelMeta || isSendingToMake) return;
+    setIsSendingToMake(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/upload-reel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoUrl:   reelMeta.mp4Url,
+          productId:  reelMeta.productId,
+          text:       reelMeta.text,
+          subtitle:   reelMeta.subtitle,
+          aiProvider: 'gemini',
+          useAI:      true,
+          type:       'reel',
+        }),
+      });
+      const data = await res.json();
+      if (!data.videoUrl) throw new Error(data.error || 'Error notificando Make.com');
+      setSentToMake(true);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setIsSendingToMake(false);
+    }
+  }
 
   const busy      = isRecording || isUploading;
   const busyLabel = isRecording
@@ -1233,9 +1257,45 @@ export default function CanvasReelGenerator() {
       )}
 
       {videoUrl && (
-        <div className="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 rounded-xl p-4 space-y-1">
-          <p className="text-green-700 dark:text-green-400 font-semibold text-sm">Video listo — Make.com notificado</p>
-          <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 text-xs break-all hover:underline">{videoUrl}</a>
+        <div className="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 rounded-xl p-4 space-y-3">
+          <p className="text-green-700 dark:text-green-400 font-semibold text-sm">✅ Reel grabado y subido a Cloudinary</p>
+          <a href={videoUrl} target="_blank" rel="noopener noreferrer"
+            className="text-indigo-600 dark:text-indigo-400 text-xs break-all hover:underline block"
+          >{videoUrl}</a>
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            {/* Reproducir */}
+            <a
+              href={videoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-semibold transition-colors"
+            >▶ Reproducir</a>
+
+            {/* Descargar */}
+            <a
+              href={videoUrl}
+              download="reel.mp4"
+              className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-semibold transition-colors"
+            >⬇ Descargar</a>
+
+            {/* Enviar a Make */}
+            <button
+              onClick={handleSendToMake}
+              disabled={isSendingToMake || sentToMake}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 ${
+                sentToMake
+                  ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              }`}
+            >
+              {isSendingToMake ? 'Enviando…' : sentToMake ? '✓ Enviado a Make' : '🚀 Enviar a Make'}
+            </button>
+          </div>
+
+          {sentToMake && (
+            <p className="text-xs text-green-600 dark:text-green-400">Make.com notificado — el reel se publicará en Instagram.</p>
+          )}
         </div>
       )}
     </div>
