@@ -475,6 +475,40 @@ export default function BudgetManager({ onOpenInBuilder }) {
 
   const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
 
+  function handleExportExcel() {
+    const rows = filtered.map(b => ({
+      Nombre:           b.clientName || '',
+      Empresa:          b.clientCompany || '',
+      Email:            b.clientEmail || '',
+      Teléfono:         b.clientPhone || '',
+      Estado:           STATUS_CONFIG[b.status]?.label || b.status || '',
+      Fecha:            b.createdAt ? new Date(b.createdAt).toLocaleString('es-AR') : '',
+      'Fecha límite':   b.deadline || '',
+      Servicios:        (b.selectedServices || []).join(' | '),
+      Descripción:      b.projectDescription || '',
+      'USD':            b.budgetUSD || '',
+      'ARS':            b.budgetARS || '',
+      'Pagado (ARS)':   sumPayments(b) || '',
+      'Link de pago':   b.paymentLink || '',
+      'Notas admin':    b.adminNotes || '',
+    }));
+
+    const headers = Object.keys(rows[0] || {});
+    const escape = (v) => `"${String(v).replace(/"/g, '""')}"`;
+    const csv = [
+      headers.map(escape).join(','),
+      ...rows.map(r => headers.map(h => escape(r[h])).join(',')),
+    ].join('\r\n');
+
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `presupuestos-${filter}-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -489,6 +523,14 @@ export default function BudgetManager({ onOpenInBuilder }) {
               className="text-[11px] px-3 py-1.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 hover:opacity-80 transition-opacity font-semibold"
             >
               {duplicateCount} duplicado{duplicateCount !== 1 ? 's' : ''}
+            </button>
+          )}
+          {!loading && filtered.length > 0 && (
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors font-medium"
+            >
+              ⬇ Excel
             </button>
           )}
           <a href="/presupuesto" target="_blank" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Ver formulario público →</a>
