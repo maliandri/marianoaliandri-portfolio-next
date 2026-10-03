@@ -16,8 +16,7 @@ function getKeys() {
 export function getGeminiKey() {
   const keys = getKeys();
   if (!keys.length) return null;
-  // round-robin stateless: rota por segundo para distribuir entre instancias
-  const idx = Math.floor(Date.now() / 1000) % keys.length;
+  const idx = Math.floor(Math.random() * keys.length);
   return keys[idx];
 }
 
