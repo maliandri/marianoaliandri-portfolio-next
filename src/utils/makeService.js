@@ -305,7 +305,7 @@ class MakeService {
     const isCarousel = list.length > 1;
     return this.publish({
       text,
-      type: 'custom',
+      type: isCarousel ? 'carousel' : 'custom',
       networks: networks || ['linkedin', 'facebook'],
       imageUrl: list[0] || null,
       images: isCarousel ? list : null,
