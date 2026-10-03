@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getGeminiKey } from '@/lib/geminiClient';
 
 const TONE_INSTRUCTIONS = {
   técnico: 'Usá datos precisos, porcentajes, tiempos exactos y terminología técnica urbana. Dirigido a profesionales del sector inmobiliario, transporte o urbanismo.',
@@ -11,7 +12,7 @@ export async function POST(request) {
   try {
     const { tone, networks, extraContext, medios = [], result } = await request.json();
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const genAI = new GoogleGenerativeAI(getGeminiKey());
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const networkNote =

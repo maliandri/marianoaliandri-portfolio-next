@@ -1,11 +1,12 @@
 export const dynamic = 'force-dynamic';
+import { getGeminiKey } from '@/lib/geminiClient';
 
 // Genera contenido enriquecido de un producto de la tienda a partir de su
 // descripción base, usando Gemini 2.5 Flash. Devuelve JSON estructurado.
 export async function POST(request) {
   try {
     const { name = '', description = '', category = '' } = await request.json();
-    const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    const apiKey = getGeminiKey();
     if (!apiKey) return Response.json({ error: 'GEMINI_API_KEY no configurada' }, { status: 500 });
 
     const prompt = `Sos un consultor de desarrollo de software y copywriter. A partir de un servicio de una tienda de desarrollo web / data, generá contenido de venta claro y realista.

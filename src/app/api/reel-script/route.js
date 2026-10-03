@@ -1,27 +1,10 @@
 export const dynamic = 'force-dynamic';
 
-async function callGemini(apiKey, prompt) {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-    }
-  );
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Gemini error ${res.status}: ${err}`);
-  }
-  const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-}
+import { callGemini } from '@/lib/geminiClient';
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-    if (!apiKey) return Response.json({ error: 'GEMINI_API_KEY no configurada' }, { status: 500 });
 
     // Modo "caso de éxito": arma un arco narrativo de 4 slides (problema →
     // solución → impacto → CTA) a partir de los datos REALES del proyecto que
@@ -51,7 +34,7 @@ Generá DOS cosas:
 
 Devolvé SOLO JSON, sin markdown: {"slides":[{"title":"...","subtitle":"..."}],"script":"..."}`;
 
-      let raw = await callGemini(apiKey, prompt);
+      let raw = await callGemini(prompt);
       raw = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
       const parsed = JSON.parse(raw);
       return Response.json({ slides: parsed.slides || [], script: parsed.script || '' });
@@ -79,7 +62,7 @@ ${isMulti ? '- Mencionar cada item por su nombre, breve, en el orden dado' : ''}
 - Cerrar con CTA: visitar marianoaliandri.com.ar
 - Solo el texto, sin indicaciones de escena ni acotaciones`;
 
-    const script = await callGemini(apiKey, prompt);
+    const script = await callGemini(prompt);
     return Response.json({ script });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });

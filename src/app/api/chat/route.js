@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getGeminiKey } from '@/lib/geminiClient';
 
 const MARIANO_CONTEXT = `
 Sos el asistente comercial profesional de Mariano Aliandri. Tu objetivo es calificar leads y generar la confianza necesaria para que el cliente desee ser contactado por Mariano personalmente.
@@ -113,13 +114,14 @@ export async function POST(request) {
     if (!message) {
       return Response.json({ error: 'Message is required' }, { status: 400 });
     }
-    if (!(process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY)) {
+    const apiKey = getGeminiKey();
+    if (!apiKey) {
       return Response.json({
         error: 'API key no configurada',
         response: 'El chatbot no está disponible temporalmente. Por favor, contactame por WhatsApp al +54 299 541-4422 o por email a marianoaliandri@gmail.com',
       }, { status: 500 });
     }
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 800 },

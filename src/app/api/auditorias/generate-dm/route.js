@@ -1,24 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-
-async function callGemini(prompt) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY no configurada');
-  const resp = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-    signal: AbortSignal.timeout(25000),
-  });
-  const data = await resp.json();
-  if (!resp.ok || data?.error) {
-    throw new Error(`Gemini ${resp.status}: ${data?.error?.message || 'error desconocido'}`);
-  }
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-  if (!text) throw new Error('Gemini no generó texto (posible bloqueo de contenido)');
-  return text;
-}
+import { callGemini } from '@/lib/geminiClient';
 
 // Fallback escrito a mano si Gemini no está disponible.
 function buildTemplateDM({ nombre, ciudad, hasWebsite, nivelSeo }) {

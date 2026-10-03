@@ -4,7 +4,7 @@ import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { RUBROS } from '@/data/rubros';
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+import { callGemini } from '@/lib/geminiClient';
 const SITE_URL   = 'https://marianoaliandri.com.ar';
 const WHATSAPP         = '5492995414422';       // número para wa.me
 const WHATSAPP_DISPLAY = '+54 299 541-4422';    // formato legible
@@ -57,24 +57,6 @@ function getExtraServices(tipoLabel) {
   return EXTRA_SERVICES_BY_CAT[rubro?.cat] || DEFAULT_EXTRA_SERVICES;
 }
 
-async function callGemini(prompt) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY no configurada');
-  const resp = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-    signal: AbortSignal.timeout(25000),
-  });
-  const data = await resp.json();
-  // Surface el error real de Google en vez de un mensaje genérico
-  if (!resp.ok || data?.error) {
-    throw new Error(`Gemini ${resp.status}: ${data?.error?.message || 'error desconocido'}`);
-  }
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-  if (!text) throw new Error('Gemini no generó texto (posible bloqueo de contenido)');
-  return text;
-}
 
 async function getScreenshot(url) {
   try {
