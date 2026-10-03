@@ -25,7 +25,11 @@ export async function GET() {
         }
       );
       if (res.status === 429) { results[name] = '⚠️ cuota agotada (429)'; continue; }
-      if (!res.ok) { results[name] = `❌ error ${res.status}`; continue; }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        results[name] = `❌ error ${res.status}: ${errData?.error?.message || errData?.error?.status || 'sin detalle'}`;
+        continue;
+      }
       const data = await res.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
       results[name] = text ? `✅ ok — "${text}"` : '⚠️ respuesta vacía';
