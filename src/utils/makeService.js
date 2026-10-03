@@ -309,7 +309,7 @@ class MakeService {
       networks: networks || ['linkedin', 'facebook'],
       imageUrl: list[0] || null,
       images: isCarousel ? list : null,
-      useAI: isCarousel ? false : useAI, // el carrusel publica el texto tal cual
+      useAI,
       aiProvider
     });
   }
