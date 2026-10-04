@@ -123,7 +123,7 @@ export async function POST(request) {
     }
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.8-flash',
       generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 800 },
     });
     let history = [

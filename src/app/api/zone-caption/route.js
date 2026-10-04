@@ -13,7 +13,7 @@ export async function POST(request) {
     const { tone, networks, extraContext, medios = [], result } = await request.json();
 
     const genAI = new GoogleGenerativeAI(getGeminiKey());
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' });
 
     const networkNote =
       networks === 'Todas' ? 'para LinkedIn, Instagram y Facebook'

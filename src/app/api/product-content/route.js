@@ -27,7 +27,7 @@ Devolvé EXCLUSIVAMENTE un JSON válido (sin markdown, sin backticks) con esta f
 Reglas: JSON válido y parseable, comillas dobles, sin comentarios, sin texto fuera del JSON.`;
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
