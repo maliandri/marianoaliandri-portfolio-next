@@ -8,7 +8,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { renderNoticiaCard } from './noticiaCard.mjs';
 import { postToX } from './xClient.mjs';
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 // Groq deprecó llama-3.3-70b-versatile para free/developer tier el 2026-06-17.
 // openai/gpt-oss-120b es el reemplazo recomendado por Groq con perfil de cuota
