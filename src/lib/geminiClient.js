@@ -37,7 +37,7 @@ export async function callGemini(prompt, { timeout = 25000, model } = {}) {
         signal: AbortSignal.timeout(timeout),
       });
 
-      if (resp.status === 429) continue; // quota agotada → siguiente key
+      if (resp.status === 429 || resp.status === 503) continue; // quota agotada o sobrecarga → siguiente key
 
       const data = await resp.json();
       if (!resp.ok) throw new Error(data?.error?.message || `Gemini error ${resp.status}`);
