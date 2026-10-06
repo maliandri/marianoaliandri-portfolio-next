@@ -119,9 +119,9 @@ async function fetchAuditorias() {
   const porCiudad = {};
 
   for (const d of docs) {
-    const negocios = d.negocios || [];
-    totalNegocios += negocios.length;
-    for (const neg of negocios) {
+    // stats.total is pre-aggregated at save time; fallback to results array length
+    totalNegocios += d.stats?.total ?? (d.results?.length || 0);
+    for (const neg of (d.results || [])) {
       const ciudad = neg.ciudad || 'Sin ciudad';
       porCiudad[ciudad] = (porCiudad[ciudad] || 0) + 1;
     }
