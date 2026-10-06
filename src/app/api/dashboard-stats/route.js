@@ -43,14 +43,14 @@ export async function POST(request) {
 
 async function fetchNoticias() {
   const db = await getDb();
-  const snap = await db.collection('noticias').orderBy('createdAt', 'desc').limit(200).get();
+  const snap = await db.collection('noticias').orderBy('publishedAt', 'desc').limit(200).get();
   const docs = snap.docs.map(d => d.data());
 
   const now = new Date();
   const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
 
   const recientes = docs.filter(d => {
-    const ts = d.createdAt?.toDate ? d.createdAt.toDate() : new Date(d.createdAt);
+    const ts = d.publishedAt?.toDate ? d.publishedAt.toDate() : new Date(d.publishedAt);
     return ts >= thirtyDaysAgo;
   });
 
@@ -58,8 +58,17 @@ async function fetchNoticias() {
   const porTopico = {};
   const seriePorDia = {};
 
+  // The bot saves `destino` (fb_ig / linkedin / todas / x) but not `networks`.
+  // Derive network counts from destino field.
+  const DESTINO_NETS = {
+    fb_ig:    { facebook: true, instagram: true },
+    linkedin: { linkedin: true },
+    todas:    { facebook: true, instagram: true, linkedin: true },
+    x:        { x: true },
+  };
+
   for (const d of recientes) {
-    const nets = d.networks || {};
+    const nets = d.networks || DESTINO_NETS[d.destino] || DESTINO_NETS.fb_ig;
     if (nets.facebook)  porRed.facebook++;
     if (nets.instagram) porRed.instagram++;
     if (nets.linkedin)  porRed.linkedin++;
@@ -68,7 +77,7 @@ async function fetchNoticias() {
     const topico = d.topicId || d.topic || 'sin-topico';
     porTopico[topico] = (porTopico[topico] || 0) + 1;
 
-    const ts = d.createdAt?.toDate ? d.createdAt.toDate() : new Date(d.createdAt);
+    const ts = d.publishedAt?.toDate ? d.publishedAt.toDate() : new Date(d.publishedAt);
     const dia = ts.toISOString().split('T')[0];
     seriePorDia[dia] = (seriePorDia[dia] || 0) + 1;
   }
