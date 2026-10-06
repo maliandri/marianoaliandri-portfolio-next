@@ -1,10 +1,14 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { PROVINCIAS_AR } from '@/data/localidadesAR';
 import { CATEGORIAS_RUBROS } from '@/data/rubros';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import PlansModal from '@/components/payments/PlansModal';
+
+const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const MAKE_WEBHOOK = 'https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi';
+const TOOL_URL = 'https://marianoaliandri.com.ar/keywords';
 
 function interesColor(v) {
   if (v >= 66) return 'bg-emerald-500';
@@ -24,6 +28,14 @@ export default function KeywordExplorer({ embedded = false }) {
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [loadingSavedId, setLoadingSavedId] = useState(null);
+
+  // Publicación en redes (solo admin)
+  const [pubStatus, setPubStatus] = useState('idle'); // idle|capturing|uploading|sending|done|error
+  const [pubError, setPubError] = useState('');
+  const [pubNets, setPubNets] = useState({ linkedin: true, instagram: true, facebook: true });
+  const resultsRef = useRef(null);
+
+  const isAdmin = typeof window !== 'undefined' && sessionStorage.getItem('adminAuth') === 'true';
 
   const { user, getIdToken, login } = useAuthUser();
   const remaining = data?.remaining; // undefined si aún no buscó; null = ilimitado
@@ -134,6 +146,41 @@ export default function KeywordExplorer({ embedded = false }) {
       setError(e.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function publishToSocial() {
+    if (!resultsRef.current || !data) return;
+    setPubStatus('capturing');
+    setPubError('');
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(resultsRef.current, {
+        useCORS: true, allowTaint: false, scale: 2, backgroundColor: '#0f172a',
+      });
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
+
+      setPubStatus('uploading');
+      const form = new FormData();
+      form.append('file', blob, 'keyword-report.jpg');
+      form.append('upload_preset', 'zone_analysis_images');
+      form.append('folder', 'keyword_reports');
+      const upRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: 'POST', body: form });
+      if (!upRes.ok) throw new Error('Error subiendo imagen');
+      const { secure_url: imageUrl } = await upRes.json();
+
+      setPubStatus('sending');
+      const top5 = (data.results || []).filter(r => r.count > 0).slice(0, 5).map(r => r.label).join(', ');
+      const caption = `📊 Rubros más buscados en ${data.localidad}, ${data.provincia || ''}:\n${top5}\n\n🔍 Analizá la demanda en tu zona: ${TOOL_URL}\n#SEOLocal #MarketingDigital`;
+      await fetch(MAKE_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'keyword_report', text: caption, networks: pubNets, imageUrl }),
+      });
+      setPubStatus('done');
+    } catch (e) {
+      setPubError(e.message);
+      setPubStatus('error');
     }
   }
 
@@ -291,19 +338,52 @@ export default function KeywordExplorer({ embedded = false }) {
       {/* Resultados */}
       {data && results.length > 0 && (
         <div className="mt-8">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">
               {data.withData} rubros con demanda en {data.localidad}
             </h2>
-            <button
-              onClick={exportCSV}
-              className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
-            >
-              ↓ Exportar CSV
-            </button>
+            <div className="flex items-center gap-3">
+              {isAdmin && data.withData > 0 && (
+                <button
+                  onClick={() => { setPubStatus('idle'); setPubError(''); }}
+                  className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
+                >
+                  📣 Publicar en redes
+                </button>
+              )}
+              <button onClick={exportCSV} className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                ↓ Exportar CSV
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-2">
+          {/* Panel de publicación admin */}
+          {isAdmin && data.withData > 0 && pubStatus !== 'idle' && (
+            <div className="mb-4 p-4 rounded-xl bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 space-y-3">
+              <div className="flex gap-4">
+                {['linkedin', 'instagram', 'facebook'].map(n => (
+                  <label key={n} className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" checked={pubNets[n]} onChange={() => setPubNets(p => ({ ...p, [n]: !p[n] }))} className="w-3.5 h-3.5" />
+                    <span className="text-xs text-gray-700 dark:text-gray-300 capitalize">{n}</span>
+                  </label>
+                ))}
+              </div>
+              {pubStatus === 'error' && <p className="text-red-500 text-xs">{pubError}</p>}
+              {pubStatus === 'done' && <p className="text-emerald-500 text-xs">✓ Publicado en redes con link a {TOOL_URL}</p>}
+              <button
+                onClick={publishToSocial}
+                disabled={['capturing','uploading','sending'].includes(pubStatus) || pubStatus === 'done'}
+                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition"
+              >
+                {pubStatus === 'idle' || pubStatus === 'error' ? '📸 Capturar y publicar' :
+                 pubStatus === 'capturing' ? 'Capturando…' :
+                 pubStatus === 'uploading' ? 'Subiendo imagen…' :
+                 pubStatus === 'sending'   ? 'Enviando a Make.com…' : '✓ Publicado'}
+              </button>
+            </div>
+          )}
+
+          <div ref={resultsRef} className="space-y-2">
             {results.map((r, i) => (
               <div
                 key={r.id}
