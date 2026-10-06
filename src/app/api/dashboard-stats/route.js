@@ -141,9 +141,18 @@ async function fetchGSC() {
   const auth = getGSCAuth();
   const searchconsole = google.searchconsole({ version: 'v1', auth });
   const allSites = await getVerifiedSites(auth);
-  console.log('[dashboard-stats] GSC sites:', allSites.map(s => s.domain));
-  // Only show own portfolio site in dashboard (other sites are client projects)
-  const sites = allSites.filter(s => s.domain?.includes('marianoaliandri'));
+  console.log('[dashboard-stats] GSC sites:', allSites.map(s => `${s.domain} → ${s.siteUrl}`));
+  // Show only the portfolio site (not client sites managed in GSC)
+  // siteUrl can be sc-domain:marianoaliandri.com.ar OR https://marianoaliandri.com.ar/
+  let sites = allSites.filter(s =>
+    s.domain === 'marianoaliandri.com.ar' ||
+    (s.siteUrl || '').includes('marianoaliandri')
+  );
+  // Fallback: if nothing matched, show the first site (avoids silent 0)
+  if (sites.length === 0 && allSites.length > 0) {
+    console.warn('[dashboard-stats] GSC filter matched nothing — falling back to first site:', allSites[0].siteUrl);
+    sites = [allSites[0]];
+  }
 
   const end = new Date();
   end.setDate(end.getDate() - 3);
