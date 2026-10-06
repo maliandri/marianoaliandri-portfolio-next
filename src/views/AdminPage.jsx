@@ -34,6 +34,7 @@ import NavConfigEditor from '../components/admin/NavConfigEditor';
 import KeywordExplorer from '../components/audit/KeywordExplorer';
 import AppSidebar from '../components/AppSidebar';
 import { Plus_Jakarta_Sans } from 'next/font/google';
+import DashboardGrid from '../components/dashboard/DashboardGrid';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], display: 'swap' });
 
@@ -148,6 +149,7 @@ export default function AdminPage() {
     cvAnalysis: 0,
     storeOrders: 0
   });
+  const [dashboardData, setDashboardData] = useState(null);
 
   const router = useRouter();
 
@@ -188,6 +190,16 @@ export default function AdminPage() {
           } else {
             throw new Error(result.error);
           }
+
+          // Load dashboard stats in background (non-blocking)
+          fetch('/api/dashboard-stats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: sessionStorage.getItem('adminUsername'),
+              password: sessionStorage.getItem('adminPassword'),
+            }),
+          }).then(r => r.ok ? r.json() : null).then(d => { if (d && !cancelled) setDashboardData(d); }).catch(() => {});
         } catch (error) {
           if (!cancelled) {
             console.error('❌ Error cargando datos admin:', error);
@@ -652,64 +664,7 @@ export default function AdminPage() {
         )}
 
         {!loading && activeTab === 'dashboard' && (
-          <div className="space-y-6">
-            {/* KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Total órdenes</p>
-                <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mt-2">{stats.totalOrders}</p>
-              </div>
-              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Análisis CV</p>
-                <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mt-2">{stats.cvAnalysis}</p>
-              </div>
-              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Tienda</p>
-                <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mt-2">{stats.storeOrders}</p>
-              </div>
-              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 border border-gray-200 dark:border-neutral-800">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Revenue total</p>
-                <p className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mt-2">{formatARS(stats.totalRevenue)}</p>
-              </div>
-            </div>
-
-            {/* Recent Orders */}
-            <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
-              <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">Órdenes recientes</h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead>
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Tipo</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cliente</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Monto</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Fecha</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {orders.slice(0, 10).map(order => (
-                      <tr key={order.id}>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white font-mono">{order.id.slice(-8)}</td>
-                        <td className="px-6 py-4 text-sm">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            order.type === 'cv_analysis'
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-                              : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                          }`}>
-                            {order.type === 'cv_analysis' ? 'CV Analysis' : 'Tienda'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{order.customerEmail || 'N/A'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white font-semibold">{formatARS(order.totalARS || 0)}</td>
-                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{formatDate(order.createdAt)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          <DashboardGrid data={dashboardData} />
         )}
 
         {!loading && activeTab === 'users' && (
