@@ -140,19 +140,25 @@ async function fetchPresupuestos() {
 async function fetchGSC() {
   const auth = getGSCAuth();
   const searchconsole = google.searchconsole({ version: 'v1', auth });
-  const allSites = await getVerifiedSites(auth);
-  console.log('[dashboard-stats] GSC sites:', allSites.map(s => `${s.domain} → ${s.siteUrl}`));
-  // Show only the portfolio site (not client sites managed in GSC)
-  // siteUrl can be sc-domain:marianoaliandri.com.ar OR https://marianoaliandri.com.ar/
-  let sites = allSites.filter(s =>
-    s.domain === 'marianoaliandri.com.ar' ||
-    (s.siteUrl || '').includes('marianoaliandri')
-  );
-  // Fallback: if nothing matched, show the first site (avoids silent 0)
-  if (sites.length === 0 && allSites.length > 0) {
-    console.warn('[dashboard-stats] GSC filter matched nothing — falling back to first site:', allSites[0].siteUrl);
-    sites = [allSites[0]];
+  // Query the portfolio site directly — try sc-domain first, then URL-prefix
+  const PORTFOLIO_SITE_CANDIDATES = [
+    'sc-domain:marianoaliandri.com.ar',
+    'https://marianoaliandri.com.ar/',
+    'https://www.marianoaliandri.com.ar/',
+  ];
+  // Verify which siteUrl actually exists in the account
+  let portfolioSiteUrl = null;
+  try {
+    const allSites = await getVerifiedSites(auth);
+    const match = allSites.find(s =>
+      s.domain === 'marianoaliandri.com.ar' ||
+      PORTFOLIO_SITE_CANDIDATES.includes(s.siteUrl)
+    );
+    portfolioSiteUrl = match?.siteUrl || PORTFOLIO_SITE_CANDIDATES[0];
+  } catch {
+    portfolioSiteUrl = PORTFOLIO_SITE_CANDIDATES[0];
   }
+  const sites = [{ siteUrl: portfolioSiteUrl }];
 
   const end = new Date();
   end.setDate(end.getDate() - 3);
