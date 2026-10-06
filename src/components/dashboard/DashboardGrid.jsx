@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { ResponsiveGridLayout } from 'react-grid-layout';
+import { ResponsiveGridLayout, useContainerWidth } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import ReelsWidget from './widgets/ReelsWidget';
@@ -48,6 +48,7 @@ function loadLayout() {
 
 export default function DashboardGrid({ data }) {
   const [layouts, setLayouts] = useState(DEFAULT_LAYOUTS);
+  const { width: containerWidth, containerRef } = useContainerWidth();
 
   useEffect(() => {
     setLayouts(loadLayout());
@@ -70,12 +71,14 @@ export default function DashboardGrid({ data }) {
   };
 
   return (
+    <div ref={containerRef} style={{ width: '100%', minHeight: 100 }}>
     <ResponsiveGridLayout
       className="layout"
       layouts={layouts}
       breakpoints={{ lg: 1200, md: 996, sm: 768 }}
       cols={{ lg: 12, md: 10, sm: 6 }}
       rowHeight={80}
+      width={containerWidth || 1200}
       onLayoutChange={handleLayoutChange}
       draggableHandle=".widget-drag-handle"
     >
@@ -94,5 +97,6 @@ export default function DashboardGrid({ data }) {
         </div>
       ))}
     </ResponsiveGridLayout>
+    </div>
   );
 }
