@@ -978,26 +978,26 @@ export default function LeadFinderPanel() {
               disabled={publishing}
               className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-neutral-700 rounded-lg text-gray-700 dark:text-gray-200 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            <p className=”text-[11px] text-gray-400 mt-1”>Se muestra como “Análisis” en la página pública del reporte.</p>
+            <p className="text-[11px] text-gray-400 mt-1">Se muestra como &ldquo;Análisis&rdquo; en la página pública del reporte.</p>
 
-            <div className=”mt-4 p-3 rounded-xl bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 space-y-2”>
-              <label className=”flex items-center gap-2 cursor-pointer”>
-                <input type=”checkbox” checked={pubToSocial} onChange={e => setPubToSocial(e.target.checked)} className=”w-4 h-4” />
-                <span className=”text-sm font-medium text-gray-700 dark:text-gray-300”>Publicar también en redes sociales</span>
+            <div className="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={pubToSocial} onChange={e => setPubToSocial(e.target.checked)} className="w-4 h-4" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Publicar también en redes sociales</span>
               </label>
               {pubToSocial && (
-                <div className=”flex gap-4 pl-6”>
+                <div className="flex gap-4 pl-6">
                   {['linkedin', 'instagram', 'facebook'].map(n => (
-                    <label key={n} className=”flex items-center gap-1.5 cursor-pointer”>
-                      <input type=”checkbox” checked={pubNets[n]} onChange={() => setPubNets(p => ({ ...p, [n]: !p[n] }))} className=”w-3.5 h-3.5” />
-                      <span className=”text-xs text-gray-600 dark:text-gray-400 capitalize”>{n}</span>
+                    <label key={n} className="flex items-center gap-1.5 cursor-pointer">
+                      <input type="checkbox" checked={pubNets[n]} onChange={() => setPubNets(p => ({ ...p, [n]: !p[n] }))} className="w-3.5 h-3.5" />
+                      <span className="text-xs text-gray-600 dark:text-gray-400 capitalize">{n}</span>
                     </label>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className=”flex justify-end gap-2 mt-4”>
+            <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => setPubModal(false)} disabled={publishing}
                 className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg transition-colors disabled:opacity-40">
                 Cancelar
