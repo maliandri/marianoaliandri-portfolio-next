@@ -50,6 +50,7 @@ export const ADMIN_NAV_DEFAULT = [
   ]},
   { id: 'herramientas', label: 'Herramientas', icon: '🔧', items: [
     { id: 'rubros-buscados', label: 'Rubros buscados', icon: '🔍' },
+    { id: 'keyword-publisher', label: 'Publicar análisis', icon: '📊' },
   ]},
   { id: 'dev', label: 'Dev', icon: '🧰', items: [
     { id: 'free-for-dev', label: 'Free for Dev', icon: '🆓' },

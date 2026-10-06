@@ -9,6 +9,8 @@ import { consumeSearch } from '@/lib/entitlements';
 // El autocompletado de Google es gratis (sin riesgo de facturación como Places API),
 // así que el único motivo del límite es evitar abuso de terceros, no el costo.
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || null;
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 // Consulta el autocompletado de Google (mismo motor que sugiere mientras tipeás).
 // client=chrome devuelve google:suggestrelevance → nos sirve para rankear.
@@ -81,22 +83,34 @@ async function runPool(items, worker, concurrency = 6) {
 
 export async function POST(request) {
   try {
-    // 1) Autenticación: requiere idToken de Firebase (no se puede evadir desde el cliente)
-    const user = await getUserFromRequest(request);
-    if (!user) {
-      return Response.json({ error: 'Necesitás iniciar sesión', reason: 'auth' }, { status: 401 });
-    }
-
     const body = await request.json().catch(() => ({}));
     const localidad = (body?.localidad || '').trim();
     if (!localidad) {
       return Response.json({ error: 'Falta la localidad' }, { status: 400 });
     }
 
-    // 2) Cuota: consume una búsqueda del plan del usuario (transacción atómica) —
-    // salvo la cuenta admin, que no tiene límite.
-    const isAdmin = ADMIN_EMAIL && user.email === ADMIN_EMAIL;
-    const quota = isAdmin ? { allowed: true, plan: 'admin', remaining: null } : await consumeSearch(user.uid);
+    // Bypass admin: si viene username/password del panel admin, saltear Firebase y cuota
+    const adminBypass =
+      ADMIN_USERNAME &&
+      ADMIN_PASSWORD &&
+      body.adminUsername === ADMIN_USERNAME &&
+      body.adminPassword === ADMIN_PASSWORD;
+
+    let quota;
+    if (adminBypass) {
+      quota = { allowed: true, plan: 'admin', remaining: null };
+    } else {
+      // 1) Autenticación: requiere idToken de Firebase (no se puede evadir desde el cliente)
+      const user = await getUserFromRequest(request);
+      if (!user) {
+        return Response.json({ error: 'Necesitás iniciar sesión', reason: 'auth' }, { status: 401 });
+      }
+
+      // 2) Cuota: consume una búsqueda del plan del usuario (transacción atómica) —
+      // salvo la cuenta admin, que no tiene límite.
+      const isAdmin = ADMIN_EMAIL && user.email === ADMIN_EMAIL;
+      quota = isAdmin ? { allowed: true, plan: 'admin', remaining: null } : await consumeSearch(user.uid);
+    }
     if (!quota.allowed) {
       const status = quota.reason === 'db_unavailable' ? 500 : 402;
       return Response.json(

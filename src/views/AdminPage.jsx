@@ -32,6 +32,7 @@ import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAna
 import { ADMIN_NAV_DEFAULT } from '../data/adminNav';
 import NavConfigEditor from '../components/admin/NavConfigEditor';
 import KeywordExplorer from '../components/audit/KeywordExplorer';
+import KeywordAnalyticsPublisher from '../components/admin/KeywordAnalyticsPublisher';
 import AppSidebar from '../components/AppSidebar';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import DashboardGrid from '../components/dashboard/DashboardGrid';
@@ -837,6 +838,12 @@ export default function AdminPage() {
         {activeTab === 'rubros-buscados' && (
           <div>
             <KeywordExplorer embedded />
+          </div>
+        )}
+
+        {activeTab === 'keyword-publisher' && (
+          <div>
+            <KeywordAnalyticsPublisher />
           </div>
         )}
 
