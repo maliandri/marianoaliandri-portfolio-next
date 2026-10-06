@@ -140,7 +140,9 @@ async function fetchPresupuestos() {
 async function fetchGSC() {
   const auth = getGSCAuth();
   const searchconsole = google.searchconsole({ version: 'v1', auth });
-  const sites = await getVerifiedSites(auth);
+  const allSites = await getVerifiedSites(auth);
+  // Only show own portfolio site in dashboard (other sites are client projects)
+  const sites = allSites.filter(s => s.domain === 'marianoaliandri.com.ar' || (s.siteUrl || '').includes('marianoaliandri'));
 
   const end = new Date();
   end.setDate(end.getDate() - 3);
