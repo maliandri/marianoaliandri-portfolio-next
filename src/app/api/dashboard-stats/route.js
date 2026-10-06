@@ -106,10 +106,15 @@ async function fetchReels() {
 
 async function fetchAuditorias() {
   const db = await getDb();
-  const snap = await db.collection('auditorias').get();
-  const docs = snap.docs.map(d => d.data());
+  const [auditSnap, emailSnap] = await Promise.all([
+    db.collection('auditorias').get(),
+    db.collection('sent_emails').get(),
+  ]);
+  const docs = auditSnap.docs.map(d => d.data());
 
-  let emailsEnviados = 0;
+  // Count emails from sent_emails collection (tracked by Resend webhook)
+  const emailsEnviados = emailSnap.size;
+
   let totalNegocios = 0;
   const porCiudad = {};
 
@@ -117,7 +122,6 @@ async function fetchAuditorias() {
     const negocios = d.negocios || [];
     totalNegocios += negocios.length;
     for (const neg of negocios) {
-      if (neg.emailEnviado || neg.sent) emailsEnviados++;
       const ciudad = neg.ciudad || 'Sin ciudad';
       porCiudad[ciudad] = (porCiudad[ciudad] || 0) + 1;
     }
