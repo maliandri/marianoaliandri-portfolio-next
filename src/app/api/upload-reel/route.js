@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic';
 
+import { getDb } from '@/lib/firebase-admin';
+
 const MAKE_WEBHOOK = 'https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi';
 
 export async function POST(request) {
@@ -38,6 +40,19 @@ export async function POST(request) {
       }
     } catch (makeError) {
       console.error('[upload-reel] Make.com fetch failed:', makeError.message);
+    }
+
+    // Log reel to Firestore for dashboard stats
+    try {
+      const db = await getDb();
+      await db.collection('reels').add({
+        createdAt: new Date(),
+        videoUrl,
+        productId,
+        text: text || '',
+      });
+    } catch (reelLogErr) {
+      console.error('[upload-reel] Firestore log failed:', reelLogErr.message);
     }
 
     return Response.json({ success: true, videoUrl });
