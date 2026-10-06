@@ -23,6 +23,11 @@ function move(arr, index, dir) {
   return next;
 }
 
+// Todos los tabs disponibles en el default (aplanados)
+function getAllDefaultItems(tree) {
+  return DEFAULTS[tree].flatMap(s => s.items);
+}
+
 export default function NavConfigEditor() {
   const [tree, setTree] = useState('admin');
   const [sections, setSections] = useState(DEFAULTS.admin);
@@ -30,6 +35,8 @@ export default function NavConfigEditor() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
   const [newSectionLabel, setNewSectionLabel] = useState('');
+  // { sIdx: selectedItemId } para el picker de cada sección
+  const [addPicker, setAddPicker] = useState({});
 
   const load = (t) => {
     setLoading(true);
@@ -71,6 +78,25 @@ export default function NavConfigEditor() {
       next[targetSIdx].items.push(item);
       return next;
     });
+  };
+
+  // Agrega un ítem existente del default a una sección
+  const addItemToSection = (sIdx) => {
+    const pickedId = addPicker[sIdx];
+    if (!pickedId) return;
+    const allItems = getAllDefaultItems(tree);
+    const item = allItems.find(i => i.id === pickedId);
+    if (!item) return;
+    setSections(prev => prev.map((s, i) => i !== sIdx ? s : {
+      ...s, items: [...s.items, { ...item }],
+    }));
+    setAddPicker(prev => ({ ...prev, [sIdx]: '' }));
+  };
+
+  const removeItem = (sIdx, iIdx) => {
+    setSections(prev => prev.map((s, i) => i !== sIdx ? s : {
+      ...s, items: s.items.filter((_, j) => j !== iIdx),
+    }));
   };
 
   const addSection = () => {
@@ -182,6 +208,7 @@ export default function NavConfigEditor() {
                     </select>
                     <button onClick={() => moveItem(sIdx, iIdx, -1)} disabled={iIdx === 0} className="px-1.5 py-1 rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-500 disabled:opacity-30 text-xs">↑</button>
                     <button onClick={() => moveItem(sIdx, iIdx, 1)} disabled={iIdx === section.items.length - 1} className="px-1.5 py-1 rounded-lg border border-gray-200 dark:border-neutral-700 text-gray-500 disabled:opacity-30 text-xs">↓</button>
+                    <button onClick={() => removeItem(sIdx, iIdx)} className="px-1.5 py-1 rounded-lg border border-red-200 dark:border-red-700/40 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-xs" title="Quitar ítem">✕</button>
                   </div>
 
                   {item.children?.length > 0 && (
@@ -198,9 +225,35 @@ export default function NavConfigEditor() {
                 </div>
               ))}
               {section.items.length === 0 && (
-                <p className="text-xs text-gray-400 italic py-1">Sin items — arrastrá uno acá cambiando su sección arriba.</p>
+                <p className="text-xs text-gray-400 italic py-1">Sin items — agregá uno desde el selector de abajo.</p>
               )}
             </div>
+
+            {/* Picker para agregar ítems disponibles */}
+            {(() => {
+              const usedIds = new Set(sections.flatMap(s => s.items.map(i => i.id)));
+              const available = getAllDefaultItems(tree).filter(i => !usedIds.has(i.id));
+              if (available.length === 0) return null;
+              return (
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-neutral-800">
+                  <select
+                    value={addPicker[sIdx] || ''}
+                    onChange={e => setAddPicker(prev => ({ ...prev, [sIdx]: e.target.value }))}
+                    className="flex-1 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 px-2.5 py-1.5 text-xs"
+                  >
+                    <option value="">— Agregar ítem —</option>
+                    {available.map(i => <option key={i.id} value={i.id}>{i.icon || ''} {i.label} ({i.id})</option>)}
+                  </select>
+                  <button
+                    onClick={() => addItemToSection(sIdx)}
+                    disabled={!addPicker[sIdx]}
+                    className="px-3 py-1.5 rounded-lg border border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 text-xs font-medium disabled:opacity-30 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition"
+                  >
+                    + Agregar
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         ))}
       </div>
