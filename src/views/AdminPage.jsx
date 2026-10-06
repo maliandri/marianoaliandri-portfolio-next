@@ -603,6 +603,12 @@ export default function AdminPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              <a
+                href="/dashboard"
+                className={`px-3 py-2 border border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 ${CUT_SM} hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors text-sm font-medium`}
+              >
+                📊 Dashboard
+              </a>
               <button
                 onClick={() => router.push('/')}
                 className={`px-3 py-2 border border-gray-300 dark:border-[#243350] text-gray-700 dark:text-gray-300 ${CUT_SM} hover:bg-gray-50 dark:hover:bg-[#172033] transition-colors text-sm font-medium`}
