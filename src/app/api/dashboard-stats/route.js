@@ -141,8 +141,9 @@ async function fetchGSC() {
   const auth = getGSCAuth();
   const searchconsole = google.searchconsole({ version: 'v1', auth });
   const allSites = await getVerifiedSites(auth);
+  console.log('[dashboard-stats] GSC sites:', allSites.map(s => s.domain));
   // Only show own portfolio site in dashboard (other sites are client projects)
-  const sites = allSites.filter(s => s.domain === 'marianoaliandri.com.ar' || (s.siteUrl || '').includes('marianoaliandri'));
+  const sites = allSites.filter(s => s.domain?.includes('marianoaliandri'));
 
   const end = new Date();
   end.setDate(end.getDate() - 3);
