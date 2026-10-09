@@ -29,10 +29,13 @@ function merge(a, b) {
 
 // Firestore falso: doc de config + colección de runs + transacciones.
 function createFakeDb(initialConfig) {
-  const state = { config: initialConfig, runs: [] };
+  const state = { config: initialConfig, runs: [], setCalls: [] };
   const configRef = {
     async get() { return { exists: state.config !== undefined, data: () => state.config }; },
-    async set(patch) { state.config = merge(state.config || {}, patch); },
+    async set(patch) {
+      state.setCalls.push(patch);
+      state.config = merge(state.config || {}, patch);
+    },
   };
   return {
     state,
@@ -237,5 +240,57 @@ describe('runAutoAudit — flujo', () => {
   it('lanza si no hay Firestore', async () => {
     getDb.mockReturnValue(null);
     await expect(runAutoAudit({ now: () => NOW })).rejects.toThrow('DB no disponible');
+  });
+
+  it('config write falla una vez luego sucede: resultado devuelto, candado liberado, combo marcado', async () => {
+    const db = createFakeDb(BASE_CONFIG);
+    let failCount = 0;
+    const originalSet = db.collection('auditoria_auto').doc('config').set;
+    db.collection('auditoria_auto').doc('config').set = async function(patch) {
+      // Solo fallar en el segundo set (el del finally, no el del lock)
+      if (Object.keys(patch).includes('ultimaCorrida') && failCount === 0) {
+        failCount++;
+        throw new Error('Firestore transient error');
+      }
+      return originalSet.call(this, patch);
+    };
+    getDb.mockReturnValue(db);
+
+    const out = await runAutoAudit({ now: () => NOW });
+    expect(out.estado).toBe('ok');
+    expect(db.state.config.lock.until).toBe(0);
+    expect(db.state.config.ultimaCorrida[COMBO_KEY]).toBe(NOW);
+  });
+
+  it('config write siempre falla: runAutoAudit resuelve con el estado computado, falla logueada', async () => {
+    const db = createFakeDb(BASE_CONFIG);
+    const originalSet = db.collection('auditoria_auto').doc('config').set;
+    db.collection('auditoria_auto').doc('config').set = async function(patch) {
+      // Solo fallar en el segundo set (el del finally)
+      if (Object.keys(patch).includes('ultimaCorrida')) {
+        throw new Error('Firestore permanently down');
+      }
+      return originalSet.call(this, patch);
+    };
+    getDb.mockReturnValue(db);
+
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const out = await runAutoAudit({ now: () => NOW });
+    expect(out.estado).toBe('ok');
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining('[auto-audit] no se pudo liberar el candado'),
+      expect.stringContaining('Firestore permanently down'),
+    );
+    consoleError.mockRestore();
+  });
+
+  it('batch error sin mensaje: registra "error desconocido"', async () => {
+    const db = createFakeDb(BASE_CONFIG);
+    getDb.mockReturnValue(db);
+    runBatch.mockResolvedValue({ results: [], status: 'error', error: undefined, examined: 0 });
+    const out = await runAutoAudit({ now: () => NOW });
+    expect(out.estado).toBe('error');
+    expect(out.error).toBe('error desconocido');
+    expect(db.state.runs[0].error).toBe('error desconocido');
   });
 });

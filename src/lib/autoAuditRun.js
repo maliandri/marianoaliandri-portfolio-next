@@ -56,6 +56,12 @@ function fechaLarga(ms) {
   });
 }
 
+async function saveReport(combo, results, stats, nowMs) {
+  const title = `Auditoría SEO de ${stats.total} sitios de ${combo.rubro.label} en ${combo.ciudad} (${fechaLarga(nowMs)})`;
+  const config = { ciudades: [combo.ciudad], pais: 'Argentina', radioKm: 15, tiposLabels: [combo.rubro.label] };
+  return saveAuditoria({ title, config, results, stats });
+}
+
 // Una corrida de la auditoría automática. La invocan el script de GitHub Actions
 // (scripts/auto-audit.mjs) y el botón "Correr ahora" del admin (force: true).
 export async function runAutoAudit({
@@ -86,17 +92,12 @@ export async function runAutoAudit({
 
       if (batch.status === 'error') {
         run.estado = 'error';
-        run.error = batch.error;
+        run.error = batch.error || 'error desconocido';
       } else if (batch.status === 'cuota_agotada') {
         run.estado = 'cuota_agotada';
         if (batch.results.length >= MIN_SITES_TO_SAVE) {
           const stats = buildStats(batch.results);
-          const saved = await saveAuditoria({
-            title: `Auditoría SEO de ${stats.total} sitios de ${combo.rubro.label} en ${combo.ciudad} (${fechaLarga(nowMs)})`,
-            config: { ciudades: [combo.ciudad], pais: 'Argentina', radioKm: 15, tiposLabels: [combo.rubro.label] },
-            results: batch.results,
-            stats,
-          });
+          const saved = await saveReport(combo, batch.results, stats, nowMs);
           run.auditoriaId = saved.id;
         }
       } else if (!batch.results.length) {
@@ -104,12 +105,7 @@ export async function runAutoAudit({
         markRan = true;
       } else {
         const stats = buildStats(batch.results);
-        const saved = await saveAuditoria({
-          title: `Auditoría SEO de ${stats.total} sitios de ${combo.rubro.label} en ${combo.ciudad} (${fechaLarga(nowMs)})`,
-          config: { ciudades: [combo.ciudad], pais: 'Argentina', radioKm: 15, tiposLabels: [combo.rubro.label] },
-          results: batch.results,
-          stats,
-        });
+        const saved = await saveReport(combo, batch.results, stats, nowMs);
         run.auditoriaId = saved.id;
         markRan = true;
 
@@ -151,7 +147,21 @@ export async function runAutoAudit({
     }
     const patch = { lock: { until: 0 } };
     if (markRan && combo) patch.ultimaCorrida = { [comboKey(combo.ciudad, combo.rubro)]: nowMs };
-    await configRef.set(patch, { merge: true });
+
+    // Proteger la liberación del candado: reintentar una vez si falla
+    let attempts = 0;
+    while (attempts < 2) {
+      try {
+        await configRef.set(patch, { merge: true });
+        break;
+      } catch (e) {
+        attempts++;
+        if (attempts >= 2) {
+          console.error('[auto-audit] no se pudo liberar el candado:', e.message);
+          break;
+        }
+      }
+    }
   }
 
   if (skipped) return { skipped };
