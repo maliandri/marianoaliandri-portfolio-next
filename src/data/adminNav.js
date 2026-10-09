@@ -40,6 +40,7 @@ export const ADMIN_NAV_DEFAULT = [
     { id: 'zonas', label: 'Zonas', icon: '🗺️' },
     { id: 'auditorias', label: 'Auditorías', icon: '📋' },
     { id: 'auditorias-todas', label: 'Todas las Auditorías', icon: '🗂️' },
+    { id: 'auto-auditoria', label: 'Auditoría automática', icon: '🤖' },
     { id: 'audit-requests', label: 'Solicitudes SEO', icon: '🔍' },
     { id: 'emails', label: 'Emails', icon: '📧' },
     { id: 'style-quiz', label: 'Test de Estilo', icon: '🎨' },

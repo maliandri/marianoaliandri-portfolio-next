@@ -17,6 +17,7 @@ import QuoteBuilder from '../components/admin/QuoteBuilder';
 import BenefitsEditor from '../components/admin/BenefitsEditor';
 import AuditoriasManager from '../components/admin/AuditoriasManager';
 import AuditoriasUnificado from '../components/admin/AuditoriasUnificado';
+import AutoAuditCard from '../components/admin/AutoAuditCard';
 import NoticiasBotManager from '../components/admin/NoticiasBotManager';
 import PaymentPlanEditor from '../components/admin/PaymentPlanEditor';
 import StoreExcelManager from '../components/admin/StoreExcelManager';
@@ -877,6 +878,11 @@ export default function AdminPage() {
         {activeTab === 'auditorias-todas' && (
           <div>
             <AuditoriasUnificado />
+          </div>
+        )}
+        {activeTab === 'auto-auditoria' && (
+          <div>
+            <AutoAuditCard />
           </div>
         )}
         {activeTab === 'noticias-bot' && (
