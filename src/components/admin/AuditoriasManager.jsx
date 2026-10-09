@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import SendAuditEmailButton from './SendAuditEmailButton';
+import { buildAuditPublishPayload } from '@/lib/socialAuditPost';
 
 function ScoreBadge({ score }) {
   if (score == null) return <span className="text-gray-500 text-xs">—</span>;
@@ -112,32 +113,11 @@ ${reportUrl}
     const networks = Object.keys(pubNets).filter(k => pubNets[k]);
     if (!pub || !networks.length || !pubCaption.trim()) return;
     setPubSending(true); setPubMsg('');
-    const reportUrl   = `https://marianoaliandri.com.ar/auditorias/${pub.id}`;
-    // screenshot=1 oculta navbar/footer/WA; viewport.height corta antes de la tabla
-    const screenshotUrl = `${reportUrl}?screenshot=1`;
-    const imageUrl    = `https://api.microlink.io/?url=${encodeURIComponent(screenshotUrl)}&screenshot=true&meta=false&embed=screenshot.url&viewport.width=1280&viewport.height=980`;
     try {
       const res = await fetch('/api/publish-social', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          // mismo contrato que SocialPublisher (no cambiar nombres de campos)
-          text:        pubCaption,
-          content:     pubCaption,
-          caption:     pubCaption,
-          description: pubCaption,
-          message:     pubCaption,
-          networks,
-          type:        'service',
-          useAI:       false,
-          aiProvider:  'gemini',
-          imageUrl,
-          url:         imageUrl,
-          // Link del reporte en campo aparte: Make lo agrega al final del caption
-          link:        reportUrl,
-          reportUrl,
-          metadata: { topic: 'auditoria', reportUrl, link: reportUrl },
-        }),
+        body: JSON.stringify(buildAuditPublishPayload({ caption: pubCaption, networks, auditoriaId: pub.id })),
       });
       const data = await res.json();
       if (!res.ok || data.success === false) throw new Error(data.error || 'Error al publicar');

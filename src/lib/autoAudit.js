@@ -1,10 +1,11 @@
 // Lógica pura de la auditoría automática (sin I/O) — ver
 // docs/superpowers/specs/2026-10-08-auditoria-automatica-design.md
+import { auditReportUrl, buildAuditPublishPayload } from './socialAuditPost.js';
+
 export const COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // = TTL de caché de auditPlace
 export const PRIORITY_RATIO = 0.8;
 export const DEFAULT_NETWORKS = ['linkedin', 'instagram', 'facebook'];
 
-const SITE_URL = 'https://marianoaliandri.com.ar';
 const VALID_NETWORKS = ['linkedin', 'instagram', 'facebook'];
 const SUMMARY_MAX = 240;
 
@@ -58,7 +59,7 @@ function clip(text, max) {
 }
 
 // Post para redes: SOLO datos agregados, nunca nombres de negocios.
-export function buildPost({ combo, stats, auditoriaId, summary, imageUrl, networks }) {
+export function buildPost({ combo, stats, auditoriaId, summary, networks }) {
   const { ciudad, rubro } = combo;
   const title = `Auditoría SEO de ${stats.total} sitios de ${rubro.label} en ${ciudad}`;
   const pctLow = stats.total ? Math.round((stats.lowSeoCount / stats.total) * 100) : 0;
@@ -72,16 +73,16 @@ export function buildPost({ combo, stats, auditoriaId, summary, imageUrl, networ
   if (summary && String(summary).trim()) {
     lines.push('', clip(summary, SUMMARY_MAX));
   }
-  lines.push('', `Ver el informe completo: ${SITE_URL}/auditorias/${auditoriaId}`);
+  lines.push('', `Ver el informe completo: ${auditReportUrl(auditoriaId)}`);
+  lines.push('', '#SEO #MarketingDigital #PresenciaDigital #NegociosLocales');
 
   return {
     title,
-    payload: {
-      type: 'keyword_report',
-      text: lines.join('\n'),
+    payload: buildAuditPublishPayload({
+      caption: lines.join('\n'),
       networks: networks?.length ? networks : DEFAULT_NETWORKS,
-      imageUrl,
-    },
+      auditoriaId,
+    }),
   };
 }
 
@@ -127,15 +128,8 @@ export function validateConfigPatch(body) {
     update.networks = [...new Set(body.networks)];
   }
 
-  if ('imageUrl' in body) {
-    if (typeof body.imageUrl !== 'string' || !body.imageUrl.startsWith('https://')) {
-      return { error: 'imageUrl debe ser una URL https' };
-    }
-    update.imageUrl = body.imageUrl;
-  }
-
   if (!Object.keys(update).length) {
-    return { error: 'Nada para actualizar (activo, ciudades, rubros, networks o imageUrl)' };
+    return { error: 'Nada para actualizar (activo, ciudades, rubros o networks)' };
   }
   return { update };
 }

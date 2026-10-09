@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { PROVINCIAS_AR } from '@/data/localidadesAR';
 import { RUBROS, CATEGORIAS_RUBROS, DEFAULT_TIPOS } from '@/data/rubros';
 import { useAuthUser } from '@/hooks/useAuthUser';
+import { buildAuditPublishPayload } from '@/lib/socialAuditPost';
 
 // Tipos de negocio → se pasan como `includedTypes` a la Places API (New).
 // Lista compartida en src/data/rubros.js (también la usa el Keyword Explorer /keywords).
@@ -394,16 +395,25 @@ export default function LeadFinderPanel() {
       addLog(`Reporte publicado: /auditorias/${data.id}`, 'success');
 
       if (pubToSocial) {
-        try {
-          const socialText = `${pubTitle}\n\n${pubDesc}`;
-          await fetch('https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'keyword_report', text: socialText, networks: pubNets }),
-          });
-          addLog('Publicado en redes sociales', 'success');
-        } catch {
-          addLog('Guardado en Firestore, pero falló la publicación en redes', 'warn');
+        const networks = Object.keys(pubNets).filter(k => pubNets[k]);
+        if (!networks.length) {
+          addLog('Reporte guardado, pero no se eligió ninguna red social: no se publicó en redes', 'warn');
+        } else {
+          try {
+            const caption = `${pubTitle}\n\n${pubDesc}`;
+            const res = await fetch('/api/publish-social', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(buildAuditPublishPayload({ caption, networks, auditoriaId: data.id })),
+            });
+            const pubData = await res.json().catch(() => ({}));
+            if (!res.ok || pubData.success === false) {
+              throw new Error(pubData.error || `HTTP ${res.status}`);
+            }
+            addLog('Publicado en redes sociales', 'success');
+          } catch (e) {
+            addLog(`Guardado en Firestore, pero falló la publicación en redes: ${e.message}`, 'warn');
+          }
         }
       }
 

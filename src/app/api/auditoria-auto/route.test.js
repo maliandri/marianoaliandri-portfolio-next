@@ -39,7 +39,7 @@ describe('autenticación de /api/auditoria-auto', () => {
 describe('GET /api/auditoria-auto', () => {
   it('devuelve la config sin el lock y los últimos runs con fecha ISO', async () => {
     loadConfig.mockResolvedValue({
-      activo: true, ciudades: ['A'], rubros: [], networks: ['linkedin'], imageUrl: 'https://i', ultimaCorrida: {}, lock: { until: 5 },
+      activo: true, ciudades: ['A'], rubros: [], networks: ['linkedin'], ultimaCorrida: {}, lock: { until: 5 },
     });
     getDb.mockReturnValue({
       collection: () => ({

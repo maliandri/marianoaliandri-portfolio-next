@@ -53,8 +53,3 @@ export const RUBROS_SEMILLA = [
   { label: 'Inmobiliaria', kind: 'type', value: 'real_estate_agency', prioritario: false },
   { label: 'Contabilidad', kind: 'type', value: 'accounting',         prioritario: false },
 ];
-
-// Imagen de marca (Instagram no publica sin imagen). Se puede cambiar desde el admin
-// (config.imageUrl). Debe devolver un JPG/PNG 1080x1080 público.
-export const IMAGEN_MARCA =
-  'https://res.cloudinary.com/dlshym1te/image/fetch/w_1080,h_1080,c_pad,b_white,f_jpg/https://marianoaliandri.com.ar/logo-ma.png';

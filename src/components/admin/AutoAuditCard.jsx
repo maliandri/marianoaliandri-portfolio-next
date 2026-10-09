@@ -20,7 +20,6 @@ export default function AutoAuditCard() {
   const [ciudadesText, setCiudadesText] = useState('');
   const [rubros, setRubros] = useState([]);
   const [newRubro, setNewRubro] = useState({ label: '', kind: 'text', value: '', prioritario: true });
-  const [imageUrl, setImageUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [running, setRunning] = useState(false);
   const [msg, setMsg] = useState('');
@@ -48,7 +47,6 @@ export default function AutoAuditCard() {
       setRuns(data.runs || []);
       setCiudadesText((data.config.ciudades || []).join('\n'));
       setRubros(data.config.rubros || []);
-      setImageUrl(data.config.imageUrl || '');
     } catch (e) {
       setErrorMsg(e.message);
     }
@@ -144,7 +142,7 @@ export default function AutoAuditCard() {
       {config && (
         <>
           <div className={card}>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Redes e imagen</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Redes</h3>
             <div className="flex flex-wrap gap-4 mb-4">
               {Object.entries(NETWORK_LABELS).map(([key, label]) => (
                 <label key={key} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -152,12 +150,6 @@ export default function AutoAuditCard() {
                   {label}
                 </label>
               ))}
-            </div>
-            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1" htmlFor="aa-image">Imagen del post (https, 1080×1080)</label>
-            <div className="flex gap-2">
-              <input id="aa-image" className={input} value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
-              <button onClick={() => patch({ imageUrl }, 'Imagen guardada')} disabled={busy}
-                className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm dark:bg-gray-600 disabled:opacity-50">Guardar</button>
             </div>
           </div>
 

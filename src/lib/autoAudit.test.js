@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   COOLDOWN_MS, DEFAULT_NETWORKS, comboKey, pickNext, buildStats, buildPost, validateConfigPatch,
 } from './autoAudit.js';
+import { auditScreenshotUrl } from './socialAuditPost.js';
 
 const NOW = Date.UTC(2026, 9, 9);
 const PRIO = { label: 'Ferretería', kind: 'type', value: 'hardware_store', prioritario: true };
@@ -87,12 +88,27 @@ describe('buildPost', () => {
   it('arma título, texto con agregados y link al informe', () => {
     const { title, payload } = buildPost({
       combo, stats, auditoriaId: 'abc123', summary: 'Resumen corto.',
-      imageUrl: 'https://img/x.jpg', networks: DEFAULT_NETWORKS,
+      networks: DEFAULT_NETWORKS,
     });
     expect(title).toBe('Auditoría SEO de 12 sitios de Ferretería en Mendoza');
-    expect(payload.type).toBe('keyword_report');
+    expect(payload.type).toBe('service');
     expect(payload.networks).toEqual(['linkedin', 'instagram', 'facebook']);
-    expect(payload.imageUrl).toBe('https://img/x.jpg');
+    expect(payload.imageUrl).toBe(auditScreenshotUrl('abc123'));
+    expect(payload.url).toBe(payload.imageUrl);
+    expect(payload.link).toBe('https://marianoaliandri.com.ar/auditorias/abc123');
+    expect(payload.reportUrl).toBe(payload.link);
+    expect(payload.text).toBe([
+      'Auditoría SEO de 12 sitios de Ferretería en Mendoza',
+      '',
+      '📊 SEO promedio: 41/100',
+      '⚠️ 75% (9 de 12) con posicionamiento débil (menos de 50)',
+      '',
+      'Resumen corto.',
+      '',
+      'Ver el informe completo: https://marianoaliandri.com.ar/auditorias/abc123',
+      '',
+      '#SEO #MarketingDigital #PresenciaDigital #NegociosLocales',
+    ].join('\n'));
     expect(payload.text).toContain('41/100');
     expect(payload.text).toContain('75% (9 de 12)');
     expect(payload.text).toContain('Resumen corto.');
@@ -101,7 +117,7 @@ describe('buildPost', () => {
 
   it('trunca resúmenes largos a 240 caracteres', () => {
     const { payload } = buildPost({
-      combo, stats, auditoriaId: 'x', summary: 'a'.repeat(500), imageUrl: 'u', networks: ['linkedin'],
+      combo, stats, auditoriaId: 'x', summary: 'a'.repeat(500), networks: ['linkedin'],
     });
     const line = payload.text.split('\n').find(l => l.startsWith('aaa'));
     expect(line.length).toBeLessThanOrEqual(240);
@@ -109,7 +125,7 @@ describe('buildPost', () => {
   });
 
   it('sin summary no deja líneas vacías de más', () => {
-    const { payload } = buildPost({ combo, stats, auditoriaId: 'x', imageUrl: 'u', networks: ['linkedin'] });
+    const { payload } = buildPost({ combo, stats, auditoriaId: 'x', networks: ['linkedin'] });
     expect(payload.text).not.toMatch(/\n{3,}/);
   });
 });
@@ -145,11 +161,6 @@ describe('validateConfigPatch', () => {
     expect(validateConfigPatch({ networks: ['linkedin', 'facebook'] }).update.networks).toEqual(['linkedin', 'facebook']);
     expect(validateConfigPatch({ networks: ['tiktok'] }).error).toMatch(/networks/);
     expect(validateConfigPatch({ networks: [] }).error).toMatch(/networks/);
-  });
-
-  it('valida imageUrl https', () => {
-    expect(validateConfigPatch({ imageUrl: 'https://a/b.jpg' }).update.imageUrl).toBe('https://a/b.jpg');
-    expect(validateConfigPatch({ imageUrl: 'http://a/b.jpg' }).error).toMatch(/imageUrl/);
   });
 
   it('rechaza un body sin campos conocidos', () => {

@@ -1,6 +1,6 @@
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { CIUDADES_SEMILLA, RUBROS_SEMILLA, IMAGEN_MARCA } from '@/data/auditoriaAuto';
+import { CIUDADES_SEMILLA, RUBROS_SEMILLA } from '@/data/auditoriaAuto';
 import { pickNext, comboKey, buildStats, buildPost, DEFAULT_NETWORKS } from '@/lib/autoAudit';
 import { runBatch } from '@/lib/autoAuditBatch';
 import { saveAuditoria } from '@/lib/auditoriasStore';
@@ -17,7 +17,6 @@ export function defaultConfig() {
     ciudades: [...CIUDADES_SEMILLA],
     rubros: RUBROS_SEMILLA.map(r => ({ ...r })),
     networks: [...DEFAULT_NETWORKS],
-    imageUrl: IMAGEN_MARCA,
     ultimaCorrida: {},
   };
 }
@@ -34,7 +33,6 @@ export async function loadConfig(db) {
     ciudades: d.ciudades?.length ? d.ciudades : base.ciudades,
     rubros: d.rubros?.length ? d.rubros : base.rubros,
     networks: d.networks?.length ? d.networks : base.networks,
-    imageUrl: d.imageUrl || base.imageUrl,
     ultimaCorrida: d.ultimaCorrida || {},
   };
 }
@@ -62,19 +60,18 @@ async function saveReport(combo, results, stats, nowMs, useGemini) {
   return saveAuditoria({ title, config, results, stats, useGemini });
 }
 
-// Make responde 200 antes de correr el escenario: un imageUrl roto pasaría como 'ok'.
-// Verifica que la URL responda 2xx con content-type image/* (HEAD, y GET si el host rechaza HEAD).
+// Make responde 200 antes de correr el escenario: una imagen rota pasaría como 'ok'.
+// Verifica con un GET que la URL (captura Microlink del informe) responda 2xx con content-type
+// image/*. Microlink la renderiza en el primer pedido (puede tardar) y la cachea: esto además la "calienta".
 const imageCheck = { detail: '' };
 async function imageIsReachable(url) {
   imageCheck.detail = '';
   try {
-    for (const method of ['HEAD', 'GET']) {
-      const res = await fetch(url, { method, redirect: 'follow', signal: AbortSignal.timeout(8000) });
-      const type = res.headers?.get?.('content-type') || '';
-      if (method === 'GET') res.body?.cancel?.();
-      if (res.ok && type.startsWith('image/')) return true;
-      imageCheck.detail = res.ok ? `content-type ${type || 'vacío'}` : `HTTP ${res.status}`;
-    }
+    const res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(20000) });
+    const type = res.headers?.get?.('content-type') || '';
+    res.body?.cancel?.();
+    if (res.ok && type.startsWith('image/')) return true;
+    imageCheck.detail = res.ok ? `content-type ${type || 'vacío'}` : `HTTP ${res.status}`;
     return false;
   } catch (e) {
     imageCheck.detail = e.message;
@@ -132,11 +129,11 @@ export async function runAutoAudit({
 
         const { payload } = buildPost({
           combo, stats, auditoriaId: saved.id, summary: saved.summary,
-          imageUrl: config.imageUrl, networks: config.networks,
+          networks: config.networks,
         });
-        if (!(await imageIsReachable(config.imageUrl))) {
+        if (!(await imageIsReachable(payload.imageUrl))) {
           run.estado = 'post_fallido';
-          run.error = `imageUrl no responde con una imagen (revisar config.imageUrl): ${imageCheck.detail}`;
+          run.error = `La captura del informe no responde con una imagen (Microlink): ${imageCheck.detail}`;
         } else try {
           const res = await fetch(process.env.MAKE_SOCIAL_WEBHOOK_URL || MAKE_WEBHOOK_DEFAULT, {
             method: 'POST',

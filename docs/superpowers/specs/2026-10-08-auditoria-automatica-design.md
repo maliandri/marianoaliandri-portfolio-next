@@ -20,8 +20,9 @@ sin intervención manual y sin abrir el panel admin.
   dos veces.
 - `POST /api/auditorias` guarda la auditoría y genera el resumen con Gemini (`callGemini`, con
   rotación de `GEMINI_API_KEY_1..5`).
-- La publicación en redes hoy es un POST al webhook de Make.com con `type: 'keyword_report'`,
-  `text`, `networks`. El router de Make depende de esos nombres de campo: **no cambiarlos**.
+- La publicación en redes es un POST al webhook de Make.com con el contrato probado de
+  `/api/publish-social` (`type: 'service'`, `text`, `networks`, `imageUrl`, `link`...). El router de
+  Make depende de esos nombres de campo: **no cambiarlos**.
 - `CRON_SECRET` ya está en Vercel. Vercel envía `Authorization: Bearer $CRON_SECRET` en sus crons.
 - Google Places `getDetails` tiene un tope manual de 100/día en GCP.
 
@@ -96,8 +97,8 @@ Plomero, Pintor, Ferretería.
 5. `runBatch` → resultados.
 6. Si 0 resultados: registrar `sin_resultados`, marcar el combo como corrido, **no publicar**.
 7. `saveAuditoria` (resumen con Gemini) → `auditoriaId`.
-8. POST a Make (`MAKE_SOCIAL_WEBHOOK_URL`, fallback al webhook vigente) con
-   `{ type: 'keyword_report', text, networks }`.
+8. Verificar la captura del informe (GET a Microlink, `image/*`) y POST a Make (`MAKE_SOCIAL_WEBHOOK_URL`,
+   fallback al webhook vigente) con el contrato de `/api/publish-social` (`type: 'service'`, `networks` array, `imageUrl`, `link`).
 9. Registrar el run, marcar el combo como corrido, liberar candado.
 
 ## Contenido del post
@@ -105,11 +106,14 @@ Plomero, Pintor, Ferretería.
 Solo datos agregados, **sin nombres de negocios** (publicar automáticamente el score de un
 comercio con nombre puede traer problemas): título "Auditoría SEO: N <rubro> de <ciudad>",
 promedio, % con SEO débil (< 50), resumen corto y link a `/auditorias/[id]`.
-`networks`: `['linkedin', 'instagram', 'facebook']` por defecto; configurable en `config`.
-Imagen: Instagram no publica sin imagen, así que el payload siempre lleva `imageUrl`.
-En esta primera entrega es una imagen estática de marca en Cloudinary (1080×1080 JPG, mismo
-criterio que `serviceLogos.js`); la tarjeta dinámica con el promedio y el % débil (estilo
-`noticiaCard`) queda para una segunda entrega.
+El payload usa el mismo contrato que el botón "Publicar en redes" de Auditorías (helper
+`src/lib/socialAuditPost.js`): `type: 'service'`, `useAI: false`, `networks` como array
+(`['linkedin', 'instagram', 'facebook']` por defecto; configurable en `config`), `link`/`reportUrl`
+al informe y `text`/`caption` con el texto y hashtags.
+Imagen: Instagram no publica sin imagen, así que el payload siempre lleva `imageUrl`: la captura
+Microlink de `/auditorias/<id>?screenshot=1`. Antes de llamar a Make se pide esa URL (GET) y se
+verifica `image/*`; Microlink la renderiza en el primer pedido y la cachea, así que además la
+deja lista para Make.
 
 ## Manejo de errores
 
@@ -133,5 +137,5 @@ criterio que `serviceLogos.js`); la tarjeta dinámica con el promedio y el % dé
 
 - (Resuelto) El plan de Vercel es Hobby: 60 s por función. Las corridas programadas van por
   GitHub Actions; la manual desde el admin usa el presupuesto corto.
-- Cuál es la imagen estática de marca para la primera entrega (hoy el payload actual del panel,
-  `keyword_report`, no envía `imageUrl`; confirmar que el router de Make la acepta para ese `type`).
+- (Resuelto) Imagen del post: se descartó la imagen estática de marca; se usa la captura Microlink
+  del informe guardado, con el contrato probado de `/api/publish-social` (`type: 'service'`).

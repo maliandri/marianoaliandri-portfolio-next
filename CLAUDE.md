@@ -255,7 +255,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
     - Texto generado es editable (se muestra en <details> tras envio)
 - **Auditoría automática** (admin → Marketing → Auditoría automática):
   - Audita sola un rubro × ciudad (martes y viernes 09:00 ART), guarda el informe en `auditorias`
-    y lo anuncia en LinkedIn/Instagram/Facebook vía Make.com (`type: 'keyword_report'`, con `imageUrl`).
+    y lo anuncia en LinkedIn/Instagram/Facebook vía Make.com con el mismo contrato que el botón "Publicar en redes" de Auditorías (body de `/api/publish-social`: `type: 'service'`, `networks` array, `imageUrl` = captura Microlink de `/auditorias/<id>?screenshot=1`, `link`; helper `src/lib/socialAuditPost.js`).
   - Corre en **GitHub Actions** (`.github/workflows/auditoria-auto.yml`, `scripts/auto-audit.mjs`,
     ejecutado con `tsx --tsconfig jsconfig.json`), disparado por cron-job.org vía
     `workflow_dispatch` (igual que el bot de noticias). NO usa el cron de Vercel (plan Hobby: 60 s).
@@ -265,9 +265,9 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
     punto 3: oferta de sistema a medida). Cada resultado guarda `rubro` y `aptoSistemaMedida`.
   - Secrets de GitHub necesarios: `FIREBASE_*`, `GOOGLE_PLACES_API_KEY`, `GEMINI_API_KEY`,
     `GEMINI_API_KEY_1..3`, `MAKE_WEBHOOK_URL`.
-  - El secret de GitHub `MAKE_WEBHOOK_URL` (compartido con el bot de noticias) debe apuntar al webhook del Router de Make que tiene la rama `type: 'keyword_report'`; si fuera otro escenario, los posts de auditoría caen en el lugar equivocado.
-  - Instagram/Facebook fallan con `OAuthException 324 (Missing or invalid image file)` si el payload no trae `imageUrl` válido (https público, JPG/PNG 1080x1080). La auditoría automática siempre envía `imageUrl` (config.imageUrl, editable en el admin); el publicador manual del Lead Finder (`LeadFinderPanel.jsx`, `type: 'keyword_report'`) hoy NO lo envía.
-  - `estado: 'ok'` en el log de corridas solo significa que Make aceptó el payload (responde 200 antes de correr el escenario); antes de publicar se verifica que `config.imageUrl` responda con una imagen (HEAD/GET, `image/*`) y, si no, la corrida queda `post_fallido` sin llamar a Make.
+  - El secret de GitHub `MAKE_WEBHOOK_URL` (compartido con el bot de noticias) debe ser el webhook del Router del escenario principal de Make (el mismo que usa `/api/publish-social`); si fuera otro escenario, los posts de auditoría caen en el lugar equivocado.
+  - Instagram/Facebook fallan con `OAuthException 324 (Missing or invalid image file)` si el payload no trae `imageUrl` válido (https público, JPG/PNG 1080x1080). La auditoría automática siempre envía `imageUrl` (la captura del informe recién guardado); el checkbox de publicar del Lead Finder (`LeadFinderPanel.jsx`) usa ahora el mismo contrato vía `/api/publish-social`.
+  - `estado: 'ok'` en el log de corridas solo significa que Make aceptó el payload (responde 200 antes de correr el escenario); antes de publicar se verifica esa captura de Microlink (GET, `image/*`; Microlink la renderiza en el primer pedido, así que además la deja cacheada) y, si no responde con una imagen, la corrida queda `post_fallido` sin llamar a Make.
   - "Correr ahora" (admin) usa modo rápido por el límite de 60 s de Vercel Hobby: lote corto (hasta 8 sitios, 15 s) y resumen de plantilla sin Gemini; la corrida programada de GitHub Actions usa el presupuesto completo.
 - **Herramientas** (modales desde home + rutas propias con metadata SEO):
   - `/ats` — Analizador de CV con Gemini AI (PDF upload, analisis ATS)

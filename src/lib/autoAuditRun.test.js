@@ -16,7 +16,7 @@ const RUBRO = { label: 'Ferretería', kind: 'type', value: 'hardware_store', pri
 const COMBO_KEY = comboKey('Neuquén', RUBRO);
 const BASE_CONFIG = {
   activo: true, ciudades: ['Neuquén'], rubros: [RUBRO],
-  networks: ['linkedin', 'instagram', 'facebook'], imageUrl: 'https://img/x.jpg', ultimaCorrida: {},
+  networks: ['linkedin', 'instagram', 'facebook'], ultimaCorrida: {},
 };
 
 function merge(a, b) {
@@ -51,14 +51,14 @@ const results = [
   { id: 'b', nombre: 'B', seoScore: 70, email: null },
 ];
 
-const IMG_URL = 'https://img/x.jpg';
-const makeCalls = () => fetchMock.mock.calls.filter(c => c[0] !== IMG_URL);
+const MICROLINK = 'https://api.microlink.io/';
+const isShot = (url) => String(url).startsWith(MICROLINK);
+const okShot = () => ({ ok: true, status: 200, headers: { get: () => 'image/png' }, body: { cancel() {} } });
+const makeCalls = () => fetchMock.mock.calls.filter(c => !isShot(c[0]));
 let fetchMock;
 beforeEach(() => {
   vi.clearAllMocks();
-  fetchMock = vi.fn(async (url) => (url === IMG_URL
-    ? { ok: true, status: 200, headers: { get: () => 'image/jpeg' } }
-    : { ok: true, status: 200 }));
+  fetchMock = vi.fn(async (url) => (isShot(url) ? okShot() : { ok: true, status: 200 }));
   vi.stubGlobal('fetch', fetchMock);
   runBatch.mockResolvedValue({ results, status: 'ok', examined: 2 });
   saveAuditoria.mockResolvedValue({ id: 'aud-1', summary: 'Resumen guardado' });
@@ -142,9 +142,11 @@ describe('runAutoAudit — flujo', () => {
 
     expect(makeCalls()).toHaveLength(1);
     const body = JSON.parse(makeCalls()[0][1].body);
-    expect(body.type).toBe('keyword_report');
+    expect(body.type).toBe('service');
     expect(body.networks).toEqual(['linkedin', 'instagram', 'facebook']);
-    expect(body.imageUrl).toBe('https://img/x.jpg');
+    expect(body.imageUrl.startsWith('https://api.microlink.io/')).toBe(true);
+    expect(body.link).toBe('https://marianoaliandri.com.ar/auditorias/aud-1');
+    expect(body.text).toContain('https://marianoaliandri.com.ar/auditorias/aud-1');
     expect(body.text).toContain('/auditorias/aud-1');
     expect(body.text).not.toContain('"nombre"');
 
@@ -214,9 +216,7 @@ describe('runAutoAudit — flujo', () => {
   it('Make responde no-2xx: el informe queda guardado y el run queda post_fallido', async () => {
     const db = createFakeDb(BASE_CONFIG);
     getDb.mockReturnValue(db);
-    fetchMock.mockImplementation(async (url) => (url === IMG_URL
-      ? { ok: true, status: 200, headers: { get: () => 'image/jpeg' } }
-      : { ok: false, status: 500 }));
+    fetchMock.mockImplementation(async (url) => (isShot(url) ? okShot() : { ok: false, status: 500 }));
     const out = await runAutoAudit({ now: () => NOW });
     expect(out).toMatchObject({ estado: 'post_fallido', auditoriaId: 'aud-1' });
     expect(out.error).toContain('500');
@@ -233,51 +233,48 @@ describe('runAutoAudit — flujo', () => {
     expect(saveAuditoria).toHaveBeenLastCalledWith(expect.objectContaining({ useGemini: true }));
   });
 
-  it('imagen inaccesible (HEAD y GET fallan): no llama a Make, post_fallido, combo marcado', async () => {
-    const db = createFakeDb(BASE_CONFIG);
-    getDb.mockReturnValue(db);
-    fetchMock.mockImplementation(async (url) => (url === IMG_URL
-      ? { ok: false, status: 404, headers: { get: () => 'text/html' } }
-      : { ok: true, status: 200 }));
-    const out = await runAutoAudit({ now: () => NOW });
+  const expectShotFailure = (out, db, detail) => {
     expect(makeCalls()).toHaveLength(0);
     expect(out).toMatchObject({ estado: 'post_fallido', auditoriaId: 'aud-1' });
-    expect(out.error).toContain('imageUrl');
-    expect(out.error).toContain('404');
+    expect(out.error).toContain('captura');
+    if (detail) expect(out.error).toContain(detail);
     expect(db.state.config.lock.until).toBe(0);
     expect(db.state.config.ultimaCorrida[COMBO_KEY]).toBe(NOW);
+  };
+
+  it('captura GET 404: no llama a Make, post_fallido, combo marcado', async () => {
+    const db = createFakeDb(BASE_CONFIG);
+    getDb.mockReturnValue(db);
+    fetchMock.mockImplementation(async (url) => (isShot(url)
+      ? { ok: false, status: 404, headers: { get: () => 'text/html' }, body: { cancel() {} } }
+      : { ok: true, status: 200 }));
+    expectShotFailure(await runAutoAudit({ now: () => NOW }), db, '404');
   });
 
-  it('HEAD 405 pero GET devuelve imagen: publica en Make', async () => {
-    getDb.mockReturnValue(createFakeDb(BASE_CONFIG));
-    fetchMock.mockImplementation(async (url, opts) => {
-      if (url !== IMG_URL) return { ok: true, status: 200 };
-      return opts.method === 'HEAD'
-        ? { ok: false, status: 405, headers: { get: () => null } }
-        : { ok: true, status: 200, headers: { get: () => 'image/png' } };
-    });
-    const out = await runAutoAudit({ now: () => NOW });
-    expect(makeCalls()).toHaveLength(1);
-    expect(out.estado).toBe('ok');
+  it('captura 200 con content-type que no es imagen: no llama a Make, post_fallido', async () => {
+    const db = createFakeDb(BASE_CONFIG);
+    getDb.mockReturnValue(db);
+    fetchMock.mockImplementation(async (url) => (isShot(url)
+      ? { ok: true, status: 200, headers: { get: () => 'application/json' }, body: { cancel() {} } }
+      : { ok: true, status: 200 }));
+    expectShotFailure(await runAutoAudit({ now: () => NOW }), db, 'application/json');
   });
 
-  it('la verificación de imagen lanza excepción: no llama a Make, post_fallido', async () => {
-    getDb.mockReturnValue(createFakeDb(BASE_CONFIG));
+  it('la verificación de la captura lanza excepción (timeout): no llama a Make, post_fallido', async () => {
+    const db = createFakeDb(BASE_CONFIG);
+    getDb.mockReturnValue(db);
     fetchMock.mockImplementation(async (url) => {
-      if (url === IMG_URL) throw new Error('dns');
+      if (isShot(url)) throw new Error('timeout');
       return { ok: true, status: 200 };
     });
-    const out = await runAutoAudit({ now: () => NOW });
-    expect(makeCalls()).toHaveLength(0);
-    expect(out.estado).toBe('post_fallido');
-    expect(out.error).toContain('imageUrl');
+    expectShotFailure(await runAutoAudit({ now: () => NOW }), db, 'timeout');
   });
 
   it('Make lanza excepción: post_fallido y se libera el candado', async () => {
     const db = createFakeDb(BASE_CONFIG);
     getDb.mockReturnValue(db);
     fetchMock.mockImplementation(async (url) => {
-      if (url === IMG_URL) return { ok: true, status: 200, headers: { get: () => 'image/jpeg' } };
+      if (isShot(url)) return okShot();
       throw new Error('network down');
     });
     const out = await runAutoAudit({ now: () => NOW });
