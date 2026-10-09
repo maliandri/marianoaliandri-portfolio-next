@@ -128,7 +128,7 @@ async function saveLead(userId, channel, username, leadData, conversationHistory
 async function processWithGemini(userMessage, history, channel) {
   try {
     const genAI = new GoogleGenerativeAI(getGeminiKey());
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash', systemInstruction: CHANNEL_CONTEXTS[channel] });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash', systemInstruction: CHANNEL_CONTEXTS[channel] });
     const geminiHistory = history.map(msg => ({ role: msg.role === 'assistant' ? 'model' : 'user', parts: [{ text: msg.content }] }));
     const chat = model.startChat({ history: geminiHistory });
     const result = await chat.sendMessage(userMessage);

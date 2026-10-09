@@ -466,7 +466,7 @@ mensaje pre-cargado) ademas del screenshot del sitio y el badge de Score SEO.
 
 - **Bot de noticias — contrato con Make**: el payload que manda `scripts/noticias-bot.mjs` al webhook de Make usa `type: 'noticia'` — necesita su propia rama en el Router (igual patrón que `type: 'reel'` y `zone_analysis`), configurada a mano en Make, no en código. El script vive en `scripts/`, corre en GitHub Actions con sus propios secrets (duplicados de los de Vercel, cargados aparte en GitHub → Settings → Secrets) — **nunca** llama a rutas `/api/` del sitio. Si se cambian los nombres de variables de entorno que lee el script (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_UPLOAD_PRESET`, `MAKE_WEBHOOK_URL`), hay que actualizar `.github/workflows/noticias-bot.yml` y los secrets de GitHub en el mismo cambio.
 
-- **Modelo Gemini**: usar `gemini-2.5-flash` en todas las rutas. `gemini-2.0-flash`
+- **Modelo Gemini**: usar `gemini-3.8-flash` en todas las rutas. `gemini-2.0-flash`
   ya no esta disponible para nuevos usuarios.
 
 - **No hay contraseñas hardcodeadas**: las API routes que antes tenian
