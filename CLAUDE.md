@@ -253,6 +253,20 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
     - From: `Mariano Aliandri <notificaciones@marianoaliandri.com.ar>`
     - Incluye screenshot del sitio via Microlink + score SEO badge
     - Texto generado es editable (se muestra en <details> tras envio)
+- **Auditoría automática** (admin → Marketing → Auditoría automática):
+  - Audita sola un rubro × ciudad (martes y viernes 09:00 ART), guarda el informe en `auditorias`
+    y lo anuncia en LinkedIn/Instagram/Facebook vía Make.com (`type: 'keyword_report'`, con `imageUrl`).
+  - Corre en **GitHub Actions** (`.github/workflows/auditoria-auto.yml`, `scripts/auto-audit.mjs`,
+    ejecutado con `tsx --tsconfig jsconfig.json`), disparado por cron-job.org vía
+    `workflow_dispatch` (igual que el bot de noticias). NO usa el cron de Vercel (plan Hobby: 60 s).
+  - El post usa solo datos agregados (sin nombres de negocios). Arranca **apagada**: activar desde
+    la tarjeta tras probar "Correr ahora".
+  - Rubros prioritarios = negocios con etapas constructivas o de fabricación (candidatos al
+    punto 3: oferta de sistema a medida). Cada resultado guarda `rubro` y `aptoSistemaMedida`.
+  - Secrets de GitHub necesarios: `FIREBASE_*`, `GOOGLE_PLACES_API_KEY`, `GEMINI_API_KEY`,
+    `GEMINI_API_KEY_1..3`, `MAKE_WEBHOOK_URL`.
+  - El secret de GitHub `MAKE_WEBHOOK_URL` (compartido con el bot de noticias) debe apuntar al webhook del Router de Make que tiene la rama `type: 'keyword_report'`; si fuera otro escenario, los posts de auditoría caen en el lugar equivocado.
+  - Instagram/Facebook fallan con `OAuthException 324 (Missing or invalid image file)` si el payload no trae `imageUrl` válido (https público, JPG/PNG 1080x1080). La auditoría automática siempre envía `imageUrl` (config.imageUrl, editable en el admin); el publicador manual del Lead Finder (`LeadFinderPanel.jsx`, `type: 'keyword_report'`) hoy NO lo envía.
 - **Herramientas** (modales desde home + rutas propias con metadata SEO):
   - `/ats` — Analizador de CV con Gemini AI (PDF upload, analisis ATS)
   - `/roi` — Calculadora de ROI digital
@@ -309,6 +323,8 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 | `noticias` | Notas publicadas por el bot (título, cuerpo, caption, imagen, estado) | Solo `scripts/noticias-bot.mjs` (GitHub Actions) |
 | `noticias_topics` | Tópicos a seguir (activo/inactivo, tono, `usarFoto`, `destino`, `maxPorCorrida`) | Admin (tab Noticias) |
 | `noticias_config` | Interruptor on/off + tope diario opcional del bot | Admin (tab Noticias) |
+| `auditoria_auto` | Config de la auditoría automática (`config`: activo, ciudades, rubros, puntero, candado) | Admin SDK (server) / admin tab |
+| `auditoria_auto_runs` | Historial de corridas de la auditoría automática | Admin SDK (server) |
 
 **IMPORTANTE `entitlements/{uid}`**: el cliente NO puede escribirla (regla `write: if false`).
 El plan y el contador de busquedas solo los escribe el Admin SDK desde el server. Esto evita que
