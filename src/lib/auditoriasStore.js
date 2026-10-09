@@ -4,7 +4,7 @@ import { callGemini } from '@/lib/geminiClient';
 
 // Guarda una auditoría pública. Compartido por POST /api/auditorias (panel manual) y la
 // auditoría automática. Email se guarda para uso admin; dirección y teléfono se descartan.
-export async function saveAuditoria({ title, config, results, stats, summary: providedSummary }) {
+export async function saveAuditoria({ title, config, results, stats, summary: providedSummary, useGemini = true }) {
   const db = getDb();
   if (!db) throw new Error('DB no disponible');
 
@@ -39,7 +39,7 @@ export async function saveAuditoria({ title, config, results, stats, summary: pr
 
   let summary = (providedSummary && providedSummary.trim()) ? providedSummary.trim() : null;
   if (!summary) {
-    try {
+    if (useGemini !== false) try {
       summary = await callGemini(
         `Sos un analista de presencia digital argentina. Escribí un texto de 4 a 5 oraciones en español rioplatense (vos, no tú) que resuma los resultados de esta auditoría SEO de negocios locales con sitio web propio.
 

@@ -51,10 +51,14 @@ const results = [
   { id: 'b', nombre: 'B', seoScore: 70, email: null },
 ];
 
+const IMG_URL = 'https://img/x.jpg';
+const makeCalls = () => fetchMock.mock.calls.filter(c => c[0] !== IMG_URL);
 let fetchMock;
 beforeEach(() => {
   vi.clearAllMocks();
-  fetchMock = vi.fn(async () => ({ ok: true, status: 200 }));
+  fetchMock = vi.fn(async (url) => (url === IMG_URL
+    ? { ok: true, status: 200, headers: { get: () => 'image/jpeg' } }
+    : { ok: true, status: 200 }));
   vi.stubGlobal('fetch', fetchMock);
   runBatch.mockResolvedValue({ results, status: 'ok', examined: 2 });
   saveAuditoria.mockResolvedValue({ id: 'aud-1', summary: 'Resumen guardado' });
@@ -87,7 +91,7 @@ describe('runAutoAudit — guardas', () => {
     const out = await runAutoAudit({ now: () => NOW });
     expect(out).toEqual({ skipped: 'inactivo' });
     expect(runBatch).not.toHaveBeenCalled();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(makeCalls()).toHaveLength(0);
   });
 
   it('activo:false → skipped inactivo', async () => {
@@ -136,8 +140,8 @@ describe('runAutoAudit — flujo', () => {
       config: expect.objectContaining({ ciudades: ['Neuquén'], tiposLabels: ['Ferretería'], pais: 'Argentina' }),
     }));
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(makeCalls()).toHaveLength(1);
+    const body = JSON.parse(makeCalls()[0][1].body);
     expect(body.type).toBe('keyword_report');
     expect(body.networks).toEqual(['linkedin', 'instagram', 'facebook']);
     expect(body.imageUrl).toBe('https://img/x.jpg');
@@ -166,7 +170,7 @@ describe('runAutoAudit — flujo', () => {
     const out = await runAutoAudit({ now: () => NOW });
     expect(out.estado).toBe('sin_resultados');
     expect(saveAuditoria).not.toHaveBeenCalled();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(makeCalls()).toHaveLength(0);
     expect(db.state.config.ultimaCorrida[COMBO_KEY]).toBe(NOW);
     expect(db.state.config.lock.until).toBe(0);
   });
@@ -179,7 +183,7 @@ describe('runAutoAudit — flujo', () => {
     expect(out.estado).toBe('error');
     expect(out.error).toContain('Ciudad no encontrada');
     expect(db.state.config.ultimaCorrida?.[COMBO_KEY]).toBeUndefined();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(makeCalls()).toHaveLength(0);
     expect(db.state.config.lock.until).toBe(0);
   });
 
@@ -190,11 +194,11 @@ describe('runAutoAudit — flujo', () => {
     const out = await runAutoAudit({ now: () => NOW });
     expect(out.estado).toBe('cuota_agotada');
     expect(saveAuditoria).not.toHaveBeenCalled();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(makeCalls()).toHaveLength(0);
     expect(db.state.config.ultimaCorrida?.[COMBO_KEY]).toBeUndefined();
   });
 
-  it('cuota agotada con 5 o más resultados: guarda el informe pero NO publica en redes', async () => {
+  it('cuota agotada con 5 o más resultados: guarda el informe, marca la combinación y NO publica en redes', async () => {
     const db = createFakeDb(BASE_CONFIG);
     getDb.mockReturnValue(db);
     const many = Array.from({ length: 5 }, (_, i) => ({ id: `r${i}`, seoScore: 40, email: null }));
@@ -202,14 +206,17 @@ describe('runAutoAudit — flujo', () => {
     const out = await runAutoAudit({ now: () => NOW });
     expect(out).toMatchObject({ estado: 'cuota_agotada', auditoriaId: 'aud-1' });
     expect(saveAuditoria).toHaveBeenCalled();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(makeCalls()).toHaveLength(0);
+    expect(db.state.config.ultimaCorrida[COMBO_KEY]).toBe(NOW);
     expect(db.state.config.lock.until).toBe(0);
   });
 
   it('Make responde no-2xx: el informe queda guardado y el run queda post_fallido', async () => {
     const db = createFakeDb(BASE_CONFIG);
     getDb.mockReturnValue(db);
-    fetchMock.mockResolvedValue({ ok: false, status: 500 });
+    fetchMock.mockImplementation(async (url) => (url === IMG_URL
+      ? { ok: true, status: 200, headers: { get: () => 'image/jpeg' } }
+      : { ok: false, status: 500 }));
     const out = await runAutoAudit({ now: () => NOW });
     expect(out).toMatchObject({ estado: 'post_fallido', auditoriaId: 'aud-1' });
     expect(out.error).toContain('500');
@@ -217,10 +224,62 @@ describe('runAutoAudit — flujo', () => {
     expect(db.state.config.lock.until).toBe(0);
   });
 
+  it('useGemini se pasa a saveAuditoria (false cuando se pide, true por defecto)', async () => {
+    getDb.mockReturnValue(createFakeDb(BASE_CONFIG));
+    await runAutoAudit({ now: () => NOW, useGemini: false });
+    expect(saveAuditoria).toHaveBeenLastCalledWith(expect.objectContaining({ useGemini: false }));
+    getDb.mockReturnValue(createFakeDb(BASE_CONFIG));
+    await runAutoAudit({ now: () => NOW });
+    expect(saveAuditoria).toHaveBeenLastCalledWith(expect.objectContaining({ useGemini: true }));
+  });
+
+  it('imagen inaccesible (HEAD y GET fallan): no llama a Make, post_fallido, combo marcado', async () => {
+    const db = createFakeDb(BASE_CONFIG);
+    getDb.mockReturnValue(db);
+    fetchMock.mockImplementation(async (url) => (url === IMG_URL
+      ? { ok: false, status: 404, headers: { get: () => 'text/html' } }
+      : { ok: true, status: 200 }));
+    const out = await runAutoAudit({ now: () => NOW });
+    expect(makeCalls()).toHaveLength(0);
+    expect(out).toMatchObject({ estado: 'post_fallido', auditoriaId: 'aud-1' });
+    expect(out.error).toContain('imageUrl');
+    expect(out.error).toContain('404');
+    expect(db.state.config.lock.until).toBe(0);
+    expect(db.state.config.ultimaCorrida[COMBO_KEY]).toBe(NOW);
+  });
+
+  it('HEAD 405 pero GET devuelve imagen: publica en Make', async () => {
+    getDb.mockReturnValue(createFakeDb(BASE_CONFIG));
+    fetchMock.mockImplementation(async (url, opts) => {
+      if (url !== IMG_URL) return { ok: true, status: 200 };
+      return opts.method === 'HEAD'
+        ? { ok: false, status: 405, headers: { get: () => null } }
+        : { ok: true, status: 200, headers: { get: () => 'image/png' } };
+    });
+    const out = await runAutoAudit({ now: () => NOW });
+    expect(makeCalls()).toHaveLength(1);
+    expect(out.estado).toBe('ok');
+  });
+
+  it('la verificación de imagen lanza excepción: no llama a Make, post_fallido', async () => {
+    getDb.mockReturnValue(createFakeDb(BASE_CONFIG));
+    fetchMock.mockImplementation(async (url) => {
+      if (url === IMG_URL) throw new Error('dns');
+      return { ok: true, status: 200 };
+    });
+    const out = await runAutoAudit({ now: () => NOW });
+    expect(makeCalls()).toHaveLength(0);
+    expect(out.estado).toBe('post_fallido');
+    expect(out.error).toContain('imageUrl');
+  });
+
   it('Make lanza excepción: post_fallido y se libera el candado', async () => {
     const db = createFakeDb(BASE_CONFIG);
     getDb.mockReturnValue(db);
-    fetchMock.mockRejectedValue(new Error('network down'));
+    fetchMock.mockImplementation(async (url) => {
+      if (url === IMG_URL) return { ok: true, status: 200, headers: { get: () => 'image/jpeg' } };
+      throw new Error('network down');
+    });
     const out = await runAutoAudit({ now: () => NOW });
     expect(out).toMatchObject({ estado: 'post_fallido', auditoriaId: 'aud-1' });
     expect(out.error).toContain('network down');

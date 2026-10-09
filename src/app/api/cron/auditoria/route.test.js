@@ -35,7 +35,9 @@ describe('POST /api/cron/auditoria', () => {
     runAutoAudit.mockResolvedValue({ estado: 'ok', auditoriaId: 'x', auditados: 3 });
     const res = await POST({});
     expect(res.status).toBe(200);
-    expect(runAutoAudit).toHaveBeenCalledWith({ force: true });
+    expect(runAutoAudit).toHaveBeenCalledWith({
+      force: true, budgetMs: 15000, maxSites: 8, maxCandidates: 20, useGemini: false,
+    });
     expect(await res.json()).toEqual({ ok: true, estado: 'ok', auditoriaId: 'x', auditados: 3 });
   });
 

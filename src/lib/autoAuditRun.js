@@ -56,16 +56,36 @@ function fechaLarga(ms) {
   });
 }
 
-async function saveReport(combo, results, stats, nowMs) {
+async function saveReport(combo, results, stats, nowMs, useGemini) {
   const title = `Auditoría SEO de ${stats.total} sitios de ${combo.rubro.label} en ${combo.ciudad} (${fechaLarga(nowMs)})`;
   const config = { ciudades: [combo.ciudad], pais: 'Argentina', radioKm: 15, tiposLabels: [combo.rubro.label] };
-  return saveAuditoria({ title, config, results, stats });
+  return saveAuditoria({ title, config, results, stats, useGemini });
+}
+
+// Make responde 200 antes de correr el escenario: un imageUrl roto pasaría como 'ok'.
+// Verifica que la URL responda 2xx con content-type image/* (HEAD, y GET si el host rechaza HEAD).
+const imageCheck = { detail: '' };
+async function imageIsReachable(url) {
+  imageCheck.detail = '';
+  try {
+    for (const method of ['HEAD', 'GET']) {
+      const res = await fetch(url, { method, redirect: 'follow', signal: AbortSignal.timeout(8000) });
+      const type = res.headers?.get?.('content-type') || '';
+      if (method === 'GET') res.body?.cancel?.();
+      if (res.ok && type.startsWith('image/')) return true;
+      imageCheck.detail = res.ok ? `content-type ${type || 'vacío'}` : `HTTP ${res.status}`;
+    }
+    return false;
+  } catch (e) {
+    imageCheck.detail = e.message;
+    return false;
+  }
 }
 
 // Una corrida de la auditoría automática. La invocan el script de GitHub Actions
 // (scripts/auto-audit.mjs) y el botón "Correr ahora" del admin (force: true).
 export async function runAutoAudit({
-  force = false, now = Date.now, budgetMs = 45000, maxSites = 15, maxCandidates = 40,
+  force = false, now = Date.now, budgetMs = 45000, maxSites = 15, maxCandidates = 40, useGemini = true,
 } = {}) {
   const db = getDb();
   if (!db) throw new Error('DB no disponible');
@@ -97,15 +117,16 @@ export async function runAutoAudit({
         run.estado = 'cuota_agotada';
         if (batch.results.length >= MIN_SITES_TO_SAVE) {
           const stats = buildStats(batch.results);
-          const saved = await saveReport(combo, batch.results, stats, nowMs);
+          const saved = await saveReport(combo, batch.results, stats, nowMs, useGemini);
           run.auditoriaId = saved.id;
+          markRan = true;
         }
       } else if (!batch.results.length) {
         run.estado = 'sin_resultados';
         markRan = true;
       } else {
         const stats = buildStats(batch.results);
-        const saved = await saveReport(combo, batch.results, stats, nowMs);
+        const saved = await saveReport(combo, batch.results, stats, nowMs, useGemini);
         run.auditoriaId = saved.id;
         markRan = true;
 
@@ -113,7 +134,10 @@ export async function runAutoAudit({
           combo, stats, auditoriaId: saved.id, summary: saved.summary,
           imageUrl: config.imageUrl, networks: config.networks,
         });
-        try {
+        if (!(await imageIsReachable(config.imageUrl))) {
+          run.estado = 'post_fallido';
+          run.error = `imageUrl no responde con una imagen (revisar config.imageUrl): ${imageCheck.detail}`;
+        } else try {
           const res = await fetch(process.env.MAKE_SOCIAL_WEBHOOK_URL || MAKE_WEBHOOK_DEFAULT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

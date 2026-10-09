@@ -64,6 +64,23 @@ describe('saveAuditoria', () => {
     expect(db.added[0].doc.summary).toBe(r.summary);
   });
 
+  it('useGemini:false no llama a Gemini y usa la plantilla', async () => {
+    const db = fakeDb();
+    getDb.mockReturnValue(db);
+    const out = await saveAuditoria({ title: 'T', config, results, stats, useGemini: false });
+    expect(callGemini).not.toHaveBeenCalled();
+    expect(out.id).toBe('new-id');
+    expect(out.summary).toContain('Auditoría SEO de 2 negocios');
+  });
+
+  it('useGemini:false con summary provisto usa el provisto', async () => {
+    const db = fakeDb();
+    getDb.mockReturnValue(db);
+    const out = await saveAuditoria({ title: 'T', config, results, stats, summary: 'Mío', useGemini: false });
+    expect(callGemini).not.toHaveBeenCalled();
+    expect(out.summary).toBe('Mío');
+  });
+
   it('lanza si no hay Firestore', async () => {
     getDb.mockReturnValue(null);
     await expect(saveAuditoria({ title: 'T', config, results, stats })).rejects.toThrow('DB no disponible');
