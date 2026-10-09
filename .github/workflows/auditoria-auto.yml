@@ -1,0 +1,33 @@
+name: Auditoría automática
+
+on:
+  # Sin trigger `schedule`: el cron nativo de GitHub Actions demostró ser poco confiable en
+  # este repo (ver noticias-bot.yml). El scheduling real lo hace cron-job.org pegándole a la
+  # API de despacho de este workflow (POST .../dispatches) martes y viernes a las 09:00 ART.
+  workflow_dispatch: {}
+
+concurrency:
+  group: auditoria-auto
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx tsx --tsconfig jsconfig.json scripts/auto-audit.mjs
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY_1: ${{ secrets.GEMINI_API_KEY_1 }}
+          GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+          GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
+          MAKE_SOCIAL_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
