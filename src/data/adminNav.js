@@ -5,6 +5,7 @@
 // y mover de nivel, pero no inventar ids nuevos sin contenido detrás.
 export const ADMIN_NAV_DEFAULT = [
   { id: 'panel', label: 'Panel', icon: '📊', items: [
+    { id: 'inicio', label: 'Inicio', icon: '🏠' },
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
   ]},
   { id: 'tienda', label: 'Tienda', icon: '🛍️', items: [

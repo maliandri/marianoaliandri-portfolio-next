@@ -26,6 +26,25 @@ const PATHS = {
   'nav-config': 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM16 8l-2 6-6 2 2-6z',
   'rubros-buscados': 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3',
   'free-for-dev': 'M8 6l-6 6 6 6M16 6l6 6-6 6',
+  'auto-auditoria': 'M12 8V4H8M4 12h16v8H4zM2 16h2M20 16h2M9 15v2M15 15v2',
+  'keyword-publisher': 'M3 3v18h18M7 16v-4M12 16V8M17 16v-7',
+  inicio: 'M3 11l9-8 9 8M5 9v11h5v-6h4v6h5V9',
+  folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+  'mi-cuenta': 'M3 11l9-8 9 8M5 9v11h5v-6h4v6h5V9',
+  'mis-compras': 'M5 2h14v20l-3-2-2 2-2-2-2 2-2-2-3 2zM9 7h6M9 11h6M9 15h4',
+  perfil: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  buscar: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3',
+  demo: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  'analitica-zonal': 'M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14',
+  logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
+  external: 'M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6',
+  arrow: 'M5 12h14M13 6l6 6-6 6',
+};
+
+export const SECTION_ICON = {
+  panel: 'dashboard', tienda: 'products', redes: 'social', marketing: 'leads',
+  sitio: 'proyectos', herramientas: 'rubros-buscados', dev: 'free-for-dev',
+  cuenta: 'mi-cuenta', lfp: 'leads', analitica: 'analitica-zonal',
 };
 
 export default function AdminIcon({ id, fallback, size = 16 }) {

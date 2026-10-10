@@ -1,41 +1,39 @@
 'use client';
 
-import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import AppSidebar from './AppSidebar';
+import AppShell from './shell/AppShell';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { firebaseAuth } from '@/utils/firebaseservice';
 
-// Envuelve las páginas de la Sección 1 de la spec (mi-cuenta, mis-compras, perfil,
-// lead-finder-pro/buscar, analitica) con el mismo sidebar que usa /admin (AppSidebar),
-// para que se sientan un "sitio interno" del cliente en vez de una página más del sitio
-// público. El chrome público (Navbar/Footer/WhatsApp) se oculta aparte, en
-// providers.jsx (isClientArea), no acá.
-//
-// Sin usuario logueado no tiene sentido mostrar el sidebar (no hay a dónde navegar
-// todavía) -- se deja que el AuthGate de cada página (dentro de children) muestre su
-// propio prompt de login a pantalla completa.
-const TOOL_ITEMS = [
-  { id: 'lead-finder-pro',  label: 'Lead Finder Pro',    icon: '🎯', href: '/lead-finder-pro/buscar' },
-  { id: 'lfp-demo',         label: 'Demo gratis',        icon: '👀', href: '/lead-finder-pro/demo' },
-  { id: 'rubros-buscados',  label: 'Rubros buscados',    icon: '🔍', href: '/analitica' },
-  { id: 'analitica-zonal',  label: 'Analítica regional', icon: '🗺️', href: '/analitica?tab=zona' },
+// Envuelve mi-cuenta, mis-compras, perfil y lead-finder-pro/buscar con el mismo esqueleto
+// que /admin (AppShell, variante cliente). El chrome público (Navbar/Footer/WhatsApp) se
+// oculta aparte, en providers.jsx (isClientArea).
+// Sin usuario logueado se deja que el AuthGate de cada página muestre su propio login.
+const SECTIONS = [
+  { id: 'cuenta', label: 'Mi cuenta', items: [
+    { id: 'mi-cuenta',   label: 'Resumen',     href: '/mi-cuenta' },
+    { id: 'mis-compras', label: 'Mis compras', href: '/mis-compras' },
+    { id: 'perfil',      label: 'Mi perfil',   href: '/perfil' },
+  ]},
+  { id: 'lfp', label: 'Lead Finder Pro', items: [
+    { id: 'buscar', label: 'Buscar negocios', href: '/lead-finder-pro/buscar' },
+    { id: 'demo',   label: 'Demo gratis',     href: '/lead-finder-pro/demo' },
+  ]},
+  { id: 'analitica', label: 'Analítica', items: [
+    { id: 'rubros-buscados', label: 'Rubros buscados',    href: '/analitica' },
+    { id: 'analitica-zonal', label: 'Analítica regional', href: '/analitica?tab=zona' },
+  ]},
 ];
 
-const ACCOUNT_ITEMS = [
-  { id: 'mi-cuenta',   label: 'Mi cuenta',  icon: '🏠', href: '/mi-cuenta' },
-  { id: 'mis-compras', label: 'Mis compras', icon: '🧾', href: '/mis-compras' },
-  { id: 'perfil',      label: 'Mi perfil',  icon: '⚙️', href: '/perfil' },
-];
-
-const ALL_ITEMS = [...TOOL_ITEMS, ...ACCOUNT_ITEMS];
-
-function activeIdFor(pathname) {
-  const found = ALL_ITEMS.find(it => {
-    const base = it.href.split('?')[0];
-    return pathname === base || pathname.startsWith(`${base}/`);
-  });
-  return found?.id || null;
+function locate(pathname) {
+  for (const s of SECTIONS) {
+    const item = s.items.find(it => {
+      const base = it.href.split('?')[0];
+      return pathname === base || pathname.startsWith(`${base}/`);
+    });
+    if (item) return { sectionId: s.id, itemId: item.id };
+  }
+  return { sectionId: SECTIONS[0].id, itemId: null };
 }
 
 export default function ClientAreaShell({ children }) {
@@ -43,7 +41,6 @@ export default function ClientAreaShell({ children }) {
   const rawPathname = usePathname();
   const pathname = rawPathname.replace(/\/$/, '') || '/';
   const router = useRouter();
-  const [navOpen, setNavOpen] = useState(false);
 
   if (loading || !user) return children;
 
@@ -52,42 +49,26 @@ export default function ClientAreaShell({ children }) {
     router.push('/');
   };
 
-  return (
-    <div className="min-h-screen bg-[#0a0a0a] md:flex">
-      <AppSidebar
-        sections={[
-          { id: 'herramientas', label: 'Mis herramientas', items: TOOL_ITEMS },
-          { id: 'cuenta',       label: 'Mi cuenta',        items: ACCOUNT_ITEMS },
-        ]}
-        activeId={activeIdFor(pathname)}
-        navOpen={navOpen}
-        onNavOpenChange={setNavOpen}
-        storageKey="client_sidebar_collapsed"
-        headerTitle={user.displayName || 'Tu cuenta'}
-        headerSubtitle={user.email}
-        footer={
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-2.5 px-2.5 min-h-[34px] rounded-lg text-[13px] text-left text-red-500 hover:bg-red-500/10 transition-colors font-medium"
-          >
-            <span className="shrink-0 flex">🚪</span>
-            <span className="truncate">Cerrar sesión</span>
-          </button>
-        }
-      />
+  const name = user.displayName || 'Tu cuenta';
+  const initials = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const { sectionId, itemId } = locate(pathname);
 
-      <div className="flex-1 min-w-0">
-        <button
-          onClick={() => setNavOpen(v => !v)}
-          aria-label="Menú"
-          className="md:hidden flex flex-col gap-[3px] p-3 m-2 text-gray-300"
-        >
-          <span className={`block h-0.5 w-5 bg-current transition-transform ${navOpen ? 'translate-y-[5px] rotate-45' : ''}`} />
-          <span className={`block h-0.5 w-5 bg-current transition-opacity ${navOpen ? 'opacity-0' : ''}`} />
-          <span className={`block h-0.5 w-5 bg-current transition-transform ${navOpen ? '-translate-y-[5px] -rotate-45' : ''}`} />
-        </button>
-        {children}
-      </div>
-    </div>
+  return (
+    <AppShell
+      variant="client"
+      forceDark
+      brand={{ logo: initials.charAt(0) || 'M', title: name, subtitle: 'Tu cuenta' }}
+      sections={SECTIONS}
+      activeSectionId={sectionId}
+      activeItemId={itemId}
+      footer={{
+        initials,
+        name,
+        detail: user.email,
+        actions: [{ id: 'logout', label: 'Cerrar sesión', icon: 'logout', onClick: handleLogout, danger: true }],
+      }}
+    >
+      {children}
+    </AppShell>
   );
 }

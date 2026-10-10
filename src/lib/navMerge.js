@@ -27,19 +27,26 @@ export function mergeNavWithDefaults(saved, defaults, knownIds) {
   const present = allNavIds(sections);
 
   for (const defSection of defaults) {
-    for (const defItem of defSection.items) {
+    defSection.items.forEach((defItem, defIdx) => {
       if (!present.has(defItem.id)) {
-        if (known.has(defItem.id)) continue;
+        if (known.has(defItem.id)) return;
         let target = sections.find(s => s.id === defSection.id);
         if (!target) {
           target = { ...clone(defSection), items: [] };
           sections.push(target);
         }
-        target.items.push(clone(defItem));
-        continue;
+        // Va después del hermano anterior del código que ya esté en la sección; si no hay, primero.
+        let at = 0;
+        for (let k = defIdx - 1; k >= 0; k--) {
+          const idx = target.items.findIndex(i => i.id === defSection.items[k].id);
+          if (idx !== -1) { at = idx + 1; break; }
+        }
+        target.items.splice(at, 0, clone(defItem));
+        present.add(defItem.id);
+        return;
       }
 
-      if (!defItem.children?.length) continue;
+      if (!defItem.children?.length) return;
       for (const s of sections) {
         const item = s.items.find(i => i.id === defItem.id);
         if (!item) continue;
@@ -49,7 +56,7 @@ export function mergeNavWithDefaults(saved, defaults, knownIds) {
           item.children = [...(item.children || []), clone(defChild)];
         }
       }
-    }
+    });
   }
 
   const result = sections.filter(s => s.items.length > 0);

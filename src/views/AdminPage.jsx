@@ -36,7 +36,10 @@ import PlacesUsagePanel from '../components/admin/PlacesUsagePanel';
 import NavConfigEditor from '../components/admin/NavConfigEditor';
 import KeywordExplorer from '../components/audit/KeywordExplorer';
 import KeywordAnalyticsPublisher from '../components/admin/KeywordAnalyticsPublisher';
-import AppSidebar from '../components/AppSidebar';
+import AppShell from '../components/shell/AppShell';
+import PageHeader from '../components/shell/PageHeader';
+import SubTabs from '../components/shell/SubTabs';
+import AdminHome from '../components/admin/AdminHome';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import DashboardGrid from '../components/dashboard/DashboardGrid';
 
@@ -94,10 +97,9 @@ export default function AdminPage() {
   const [loginError, setLoginError] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeGroup, setActiveGroup] = useState('panel');
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('inicio');
   const [activeSubTab, setActiveSubTab] = useState(null);
   const [productsView, setProductsView] = useState('grid'); // 'grid' | 'list' (tab Productos)
-  const [navOpen, setNavOpen] = useState(false);
   const [navTree, setNavTree] = useState(ADMIN_NAV_DEFAULT);
 
   // Config editable desde Sitio > Configurar Interfaz — si hay una guardada en
@@ -120,16 +122,7 @@ export default function AdminPage() {
     setActiveGroup(loc.group.id);
     setActiveTab(tabId);
     setActiveSubTab(subId ?? loc.item.children?.[0]?.id ?? null);
-    setNavOpen(false);
   };
-
-  // Cerrar el drawer mobile con Escape
-  useEffect(() => {
-    if (!navOpen) return;
-    const onKey = e => { if (e.key === 'Escape') setNavOpen(false); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [navOpen]);
 
   // Data states
   const [users, setUsers] = useState([]);
@@ -566,90 +559,52 @@ export default function AdminPage() {
 
   // Admin Dashboard
   return (
-    <div className={`admin-theme ${jakarta.className} min-h-screen bg-gray-50 dark:bg-neutral-950 md:flex`}>
-      {/* Sidebar navy, colapsable en desktop, drawer en mobile (estilo almamod) --
-          componente compartido con el área de cliente, ver src/components/AppSidebar.jsx */}
-      <AppSidebar
-        sections={navTree.map(group => ({
-          id: group.id,
-          label: group.label,
-          items: group.items.map(it => ({ id: it.id, label: it.label, icon: it.icon, onClick: () => goToTab(it.id) })),
-        }))}
-        activeId={activeTab}
-        navOpen={navOpen}
-        onNavOpenChange={setNavOpen}
-        storageKey="admin_sidebar_collapsed"
-        headerTitle="Panel interno"
-        headerSubtitle={username}
-      />
+    <AppShell
+      variant="admin"
+      className={jakarta.className}
+      brand={{ logo: 'M', title: 'ALIANDRI', subtitle: 'Panel interno' }}
+      sections={navTree}
+      activeSectionId={activeGroup}
+      activeItemId={activeTab}
+      onNavigate={(_, itemId) => goToTab(itemId)}
+      searchable
+      footer={{
+        initials: (username || 'MA').slice(0, 2).toUpperCase(),
+        name: username || 'Admin',
+        detail: 'Administrador',
+        actions: [
+          { id: 'site', label: 'Ver sitio', icon: 'external', onClick: () => router.push('/') },
+          { id: 'logout', label: 'Salir', icon: 'logout', onClick: handleLogout, danger: true },
+        ],
+      }}
+    >
+        {activeTab !== 'inicio' && (
+          <PageHeader
+            crumbs={[
+              navTree.find(g => g.id === activeGroup)?.label,
+              findNavLocation(navTree, activeTab)?.item.label,
+              ...(activeSubTab ? [TAB_MAP[activeTab]?.children?.find(c => c.id === activeSubTab)?.label] : []),
+            ].filter(Boolean)}
+            iconId={activeTab}
+            title={findNavLocation(navTree, activeTab)?.item.label || TAB_MAP[activeTab]?.label || 'Panel'}
+            actions={activeTab === 'dashboard' && (
+              <a href="/dashboard" className="sh-btn sh-btn-ghost">Abrir a pantalla completa</a>
+            )}
+          />
+        )}
 
-      {/* Columna principal */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        {/* Header: título de la pantalla + acciones; los sub-items del tab activo van como pestañas */}
-        <header className="sticky top-0 z-20 bg-white/90 dark:bg-[#0b0f17]/90 backdrop-blur border-b border-gray-200 dark:border-[#243350]">
-          <div className="px-4 sm:px-8 py-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <button
-                onClick={() => setNavOpen(v => !v)}
-                aria-label="Menú"
-                className="md:hidden flex flex-col gap-[3px] p-2 -ml-2 text-gray-700 dark:text-gray-200"
-              >
-                <span className={`block h-0.5 w-5 bg-current transition-transform ${navOpen ? 'translate-y-[5px] rotate-45' : ''}`} />
-                <span className={`block h-0.5 w-5 bg-current transition-opacity ${navOpen ? 'opacity-0' : ''}`} />
-                <span className={`block h-0.5 w-5 bg-current transition-transform ${navOpen ? '-translate-y-[5px] -rotate-45' : ''}`} />
-              </button>
-              <div className="min-w-0">
-                <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">
-                  {findNavLocation(navTree, activeTab)?.item.label || 'Panel'}
-                </h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {navTree.find(g => g.id === activeGroup)?.label || ''}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <a
-                href="/dashboard"
-                className={`px-3 py-2 border border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 ${CUT_SM} hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors text-sm font-medium`}
-              >
-                📊 Dashboard
-              </a>
-              <button
-                onClick={() => router.push('/')}
-                className={`px-3 py-2 border border-gray-300 dark:border-[#243350] text-gray-700 dark:text-gray-300 ${CUT_SM} hover:bg-gray-50 dark:hover:bg-[#172033] transition-colors text-sm font-medium`}
-              >
-                Ver sitio
-              </button>
-              <button
-                onClick={handleLogout}
-                className={`px-3 py-2 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 ${CUT_SM} hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-sm font-medium`}
-              >
-                Salir
-              </button>
-            </div>
-          </div>
+        {TAB_MAP[activeTab]?.children && (
+          <SubTabs
+            label={TAB_MAP[activeTab].label}
+            items={(findNavLocation(navTree, activeTab)?.item.children || TAB_MAP[activeTab].children)}
+            activeId={activeSubTab}
+            onSelect={setActiveSubTab}
+          />
+        )}
 
-          {TAB_MAP[activeTab]?.children && (
-            <div className="px-4 sm:px-8 flex gap-1 overflow-x-auto">
-              {TAB_MAP[activeTab].children.map(child => (
-                <button
-                  key={child.id}
-                  onClick={() => setActiveSubTab(child.id)}
-                  className={`px-3.5 py-2.5 text-sm whitespace-nowrap -mb-px border-b-2 transition-colors ${
-                    activeSubTab === child.id
-                      ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium'
-                  }`}
-                >
-                  {child.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </header>
-
-        {/* Content */}
-        <main className="flex-1 px-4 sm:px-8 py-6">
+        {activeTab === 'inicio' && (
+          <AdminHome navTree={navTree} username={username} onGo={goToTab} />
+        )}
         {loading && (
           <div className="flex justify-center py-12">
             <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
@@ -901,9 +856,7 @@ export default function AdminPage() {
             <FreeForDevBrowser />
           </div>
         )}
-        </main>
-      </div>
-    </div>
+    </AppShell>
   );
 }
 

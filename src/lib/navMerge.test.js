@@ -39,6 +39,17 @@ describe('mergeNavWithDefaults', () => {
     expect(mk.items[0].label).toBe('Mis leads');
   });
 
+  it('inserta el item nuevo en su posición del código (después de su hermano anterior)', () => {
+    const defaults = [{ id: 'panel', label: 'P', items: [{ id: 'inicio', label: 'Inicio' }, { id: 'dashboard', label: 'D' }, { id: 'stats', label: 'S' }] }];
+    const saved = [{ id: 'panel', label: 'P', items: [{ id: 'stats', label: 'S' }, { id: 'dashboard', label: 'D' }] }];
+    const out = mergeNavWithDefaults(saved, defaults, ['dashboard', 'stats']);
+    expect(out[0].items.map(i => i.id)).toEqual(['inicio', 'stats', 'dashboard']);
+
+    const defaults2 = [{ id: 'panel', label: 'P', items: [{ id: 'dashboard', label: 'D' }, { id: 'nuevo', label: 'N' }, { id: 'stats', label: 'S' }] }];
+    const out2 = mergeNavWithDefaults(saved, defaults2, ['dashboard', 'stats']);
+    expect(out2[0].items.map(i => i.id)).toEqual(['stats', 'dashboard', 'nuevo']);
+  });
+
   it('crea la sección del default si la sección del item nuevo no existe en la config', () => {
     const saved = [{ id: 'marketing', label: 'M', items: [{ id: 'leads', label: 'L' }, { id: 'nuevo-item', label: 'N' }] }];
     const out = mergeNavWithDefaults(saved, DEFAULTS, ['leads', 'nuevo-item']);
