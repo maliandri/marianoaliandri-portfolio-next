@@ -31,6 +31,8 @@ import PlansManager from '../components/admin/PlansManager';
 import LeadFinderPanel from '../components/audit/LeadFinderPanel';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 import { ADMIN_NAV_DEFAULT } from '../data/adminNav';
+import { mergeNavWithDefaults } from '../lib/navMerge';
+import PlacesUsagePanel from '../components/admin/PlacesUsagePanel';
 import NavConfigEditor from '../components/admin/NavConfigEditor';
 import KeywordExplorer from '../components/audit/KeywordExplorer';
 import KeywordAnalyticsPublisher from '../components/admin/KeywordAnalyticsPublisher';
@@ -49,17 +51,6 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '
 // mapea a un bloque de contenido fijo en este archivo.
 const ADMIN_TABS = ADMIN_NAV_DEFAULT.flatMap(g => g.items);
 const TAB_MAP = Object.fromEntries(ADMIN_TABS.map(t => [t.id, t]));
-const KNOWN_TAB_IDS = new Set(ADMIN_TABS.map(t => t.id));
-
-// Valida una config cargada de Firestore contra los ids reales que existen en el código
-// (por si se borró un tab del código después de guardar una config vieja que lo mencionaba).
-function sanitizeNavConfig(sections) {
-  if (!Array.isArray(sections) || !sections.length) return null;
-  const cleaned = sections
-    .map(s => ({ ...s, items: (s.items || []).filter(i => KNOWN_TAB_IDS.has(i.id)) }))
-    .filter(s => s.items.length > 0);
-  return cleaned.length ? cleaned : null;
-}
 
 function findNavLocation(navTree, tabId) {
   for (const group of navTree) {
@@ -115,8 +106,8 @@ export default function AdminPage() {
     fetch('/api/nav-config?tree=admin')
       .then(r => r.json())
       .then(data => {
-        const clean = sanitizeNavConfig(data.sections);
-        if (clean) setNavTree(clean);
+        const merged = mergeNavWithDefaults(data.sections, ADMIN_NAV_DEFAULT, data.knownIds);
+        if (merged) setNavTree(merged);
       })
       .catch(() => {});
   }, []);
@@ -819,6 +810,8 @@ export default function AdminPage() {
         {activeTab === 'leads-map' && (
           <LeadMapPanel onClose={() => goToTab('leads')} />
         )}
+
+        {activeTab === 'places-usage' && <PlacesUsagePanel />}
 
         {activeTab === 'leadfinder-plans' && (
           <div>

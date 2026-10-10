@@ -18,7 +18,11 @@ export async function GET(request) {
     if (!snap.exists) return Response.json({ sections: null });
 
     const data = snap.data();
-    return Response.json({ sections: data.sections || null, updatedAt: data.updatedAt?.toDate?.()?.toISOString() || null });
+    return Response.json({
+      sections: data.sections || null,
+      knownIds: data.knownIds || null,
+      updatedAt: data.updatedAt?.toDate?.()?.toISOString() || null,
+    });
   } catch (error) {
     return Response.json({ error: 'Error leyendo configuración', details: error.message }, { status: 500 });
   }
@@ -27,7 +31,7 @@ export async function GET(request) {
 // POST admin-only — reemplaza el árbol completo de una vez (mismo patrón que leadfinder_plans).
 export async function POST(request) {
   try {
-    const { adminPassword, tree, sections } = await request.json();
+    const { adminPassword, tree, sections, knownIds } = await request.json();
     if (adminPassword !== ADMIN_PASSWORD || !ADMIN_PASSWORD) {
       return Response.json({ error: 'No autorizado' }, { status: 401 });
     }
@@ -36,7 +40,11 @@ export async function POST(request) {
 
     const db = getDb();
     await db.collection('nav_config').doc(tree).set(
-      { sections, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+      {
+        sections,
+        knownIds: Array.isArray(knownIds) ? knownIds.filter(x => typeof x === 'string') : [],
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
       { merge: false }
     );
 

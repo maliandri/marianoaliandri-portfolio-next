@@ -268,7 +268,17 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   - El secret de GitHub `MAKE_WEBHOOK_URL` (compartido con el bot de noticias) debe ser el webhook del Router del escenario principal de Make (el mismo que usa `/api/publish-social`); si fuera otro escenario, los posts de auditoría caen en el lugar equivocado.
   - Instagram/Facebook fallan con `OAuthException 324 (Missing or invalid image file)` si el payload no trae `imageUrl` válido (https público, JPG/PNG 1080x1080). La auditoría automática siempre envía `imageUrl` (la captura del informe recién guardado); el checkbox de publicar del Lead Finder (`LeadFinderPanel.jsx`) usa ahora el mismo contrato vía `/api/publish-social`.
   - `estado: 'ok'` en el log de corridas solo significa que Make aceptó el payload (responde 200 antes de correr el escenario); antes de publicar se verifica esa captura de Microlink (GET, `image/*`; Microlink la renderiza en el primer pedido, así que además la deja cacheada) y, si no responde con una imagen, la corrida queda `post_fallido` sin llamar a Make.
+  - La corrida programada examina como máximo 30 comercios (`maxCandidates` en `scripts/auto-audit.mjs`): con 4 corridas por semana (cron-job.org, lun/mié/vie/sáb 11:00 ART) son ~520 getDetails/mes, la mitad del cupo gratis de Places (decisión del usuario 2026-10-10).
   - "Correr ahora" (admin) usa modo rápido por el límite de 60 s de Vercel Hobby: lote corto (hasta 8 sitios, 15 s) y resumen de plantilla sin Gemini; la corrida programada de GitHub Actions usa el presupuesto completo.
+- **Consumo Google** (admin → Marketing → Consumo Google): tabla por día del mes con comercios
+  auditados (getDetails), búsquedas, acumulado y cuánto queda del cupo gratis mensual de Places
+  (1.000 detalles), proyección a fin de mes y costo estimado. Lee `leadfinder_usage` vía
+  `/api/places-usage` (admin). Cupos y precios estimados en `src/data/placesFreeTier.js`;
+  cálculo en `src/lib/placesUsage.js`.
+- **Menú del admin y pantallas nuevas**: `nav_config/admin` guarda `knownIds` (los ids que existían
+  en el código al guardar). `src/lib/navMerge.js` agrega solo los ítems/sub-ítems del código que
+  aparecieron después, así una pantalla nueva en `adminNav.js` aparece sola y lo que el usuario
+  quitó a mano no vuelve.
 - **Herramientas** (modales desde home + rutas propias con metadata SEO):
   - `/ats` — Analizador de CV con Gemini AI (PDF upload, analisis ATS)
   - `/roi` — Calculadora de ROI digital
