@@ -92,7 +92,14 @@ async function fetchRelatedQueries(keyword, geo) {
   } catch { return { rising: [], top: [] }; }
 }
 
-export async function GET() {
+// Solo el cron de Vercel: manda "Authorization: Bearer <CRON_SECRET>" solo. Abierta,
+// cualquier visita gastaba 8 créditos de SerpApi (el plan gratis son 250/mes).
+export async function GET(request) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return Response.json({ error: 'CRON_SECRET no configurada' }, { status: 500 });
+  if (request.headers.get('authorization') !== `Bearer ${secret}`) {
+    return Response.json({ error: 'No autorizado' }, { status: 401 });
+  }
   return handler();
 }
 
