@@ -17,12 +17,12 @@ export const CIUDADES_SEMILLA = [
 // (el tipo de sistema desarrollado en Almamod: requisiciones, stock, seguimiento, cómputo).
 export const RUBROS_SEMILLA = [
   // Prioritarios — tipos de Places
-  { label: 'Constructor',  kind: 'type', value: 'general_contractor', prioritario: true },
   { label: 'Electricista', kind: 'type', value: 'electrician',        prioritario: true },
   { label: 'Plomero',      kind: 'type', value: 'plumber',            prioritario: true },
   { label: 'Pintor',       kind: 'type', value: 'painter',            prioritario: true },
   { label: 'Ferretería',   kind: 'type', value: 'hardware_store',     prioritario: true },
-  // Prioritarios — texto libre
+  // Prioritarios — texto libre (general_contractor no existe en Places API New)
+  { label: 'Constructor',                kind: 'text', value: 'constructor',                prioritario: true },
   { label: 'Construcción en seco',       kind: 'text', value: 'construcción en seco',       prioritario: true },
   { label: 'Steel framing',              kind: 'text', value: 'steel framing',              prioritario: true },
   { label: 'Durlock',                    kind: 'text', value: 'durlock',                    prioritario: true },
