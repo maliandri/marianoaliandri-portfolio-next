@@ -1,8 +1,16 @@
 import Link from 'next/link';
+import { Archivo, IBM_Plex_Mono } from 'next/font/google';
 import { getDb } from '@/lib/firebase-admin';
 import PlansSection from '@/components/leadfinderpro/PlansSection';
+import { scoreDistribution, shortTitle, auditCities, mapPlate } from '@/lib/auditSummary';
+import ScoreDistribution from './ScoreDistribution';
+import ZonePlate from './ZonePlate';
+import s from './auditorias.module.css';
 
 export const dynamic = 'force-dynamic';
+
+const archivo = Archivo({ subsets: ['latin'], axes: ['wdth'], variable: '--font-archivo', display: 'swap' });
+const plexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-plex-mono', display: 'swap' });
 
 export const metadata = {
   title: 'Auditorías Web',
@@ -17,134 +25,161 @@ export const metadata = {
   },
 };
 
+const hostOf = url => {
+  try { return new URL(url).hostname.replace(/^www\./, '').toLowerCase(); } catch { return null; }
+};
+
+// Lee Firestore directo (nunca self-fetch, ver CLAUDE.md) y reduce cada informe a lo
+// que la lista muestra: textos, conteos por rango y la geometría del plano. Los
+// resultados por negocio (email, teléfono, nombre) no salen de esta función.
 async function getAuditorias() {
   try {
     const db = getDb();
-    if (!db) return [];
+    if (!db) return { items: [], overall: null };
     const snap = await db.collection('auditorias').orderBy('publishedAt', 'desc').limit(50).get();
-    return snap.docs.map(d => {
+
+    const seen = new Map(); // sitio → score, para el resumen general sin contar dos veces
+    const allCities = new Set();
+
+    const items = snap.docs.map(d => {
       const data = d.data();
+      const results = Array.isArray(data.results) ? data.results : [];
+      const cities = auditCities(data.config, results);
+      cities.forEach(c => allCities.add(c));
+      for (const r of results) {
+        if (typeof r?.seoScore !== 'number') continue;
+        const key = hostOf(r.siteUrl) || r.id;
+        if (key && !seen.has(key)) seen.set(key, r.seoScore);
+      }
+      const dist = scoreDistribution(results);
       return {
         id: d.id,
-        title:       data.title,
-        config:      data.config,
-        stats:       data.stats,
+        title: data.title || 'Auditoría SEO',
+        rubro: shortTitle(data.title, cities, results),
+        cities,
+        radioKm: data.config?.radioKm || null,
+        avg: data.stats?.avgSeoScore ?? null,
+        total: data.stats?.total ?? dist.total,
+        dist,
+        plate: mapPlate(results, data.config?.radioKm),
         publishedAt: data.publishedAt?.toDate?.()?.toISOString() || null,
       };
     });
-  } catch { return []; }
+
+    const overall = scoreDistribution([...seen.values()].map(seoScore => ({ seoScore })));
+    return { items, overall: { ...overall, cities: allCities.size } };
+  } catch {
+    return { items: [], overall: null };
+  }
 }
 
 function formatDate(iso) {
   if (!iso) return '';
-  return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' });
 }
 
 export default async function AuditoriasPage() {
-  const auditorias = await getAuditorias();
+  const { items, overall } = await getAuditorias();
+  const weak = overall?.buckets.find(b => b.key === '0');
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20">
-      <div className="max-w-5xl mx-auto px-4">
+    <main className={`${s.page} ${archivo.variable} ${plexMono.variable} min-h-screen pt-24`}>
+      <div className="max-w-5xl mx-auto px-4 pb-20">
 
-        {/* Header */}
-        <div className="mb-12">
-          <span className="text-xs font-semibold tracking-widest text-indigo-400 uppercase">Informes públicos</span>
-          <h1 className="text-4xl md:text-5xl font-black text-white mt-3 mb-4">
-            Auditorías Web
-          </h1>
-          <p className="text-gray-400 text-lg max-w-2xl">
-            Análisis del estado SEO de sitios web de negocios locales. Detectamos si los sitios aparecen correctamente en Google.
-          </p>
-        </div>
+        {/* Hero: la tesis es el estado real de los sitios auditados, con la misma barra que cada informe */}
+        <header className="mb-14 md:mb-16">
+          <p className={`${s.eyebrow} ${s.mono}`}>Auditorías SEO · informes públicos</p>
+          <h1 className={`${s.display} ${s.h1}`}>Auditorías SEO de negocios locales</h1>
+          {overall?.total ? (
+            <>
+              <p className={s.lede}>
+                Revisamos <strong>{overall.total.toLocaleString('es-AR')} sitios</strong> en{' '}
+                {overall.cities} {overall.cities === 1 ? 'ciudad' : 'ciudades'}: sitemap, robots.txt, meta description,
+                Open Graph y antigüedad. <strong>{weak.pct}% tiene un score por debajo de 50</strong>, lo que
+                significa que Google los muestra peor de lo que podría.
+              </p>
+              <div className="mt-8">
+                <p className={`${s.eyebrow} ${s.mono} mb-2.5`}>Score SEO de todos los sitios auditados</p>
+                <ScoreDistribution buckets={overall.buckets} total={overall.total} size="lg" />
+              </div>
+            </>
+          ) : (
+            <p className={s.lede}>
+              Análisis del estado SEO de sitios web de negocios locales: si aparecen bien en Google y qué les falta.
+            </p>
+          )}
+        </header>
 
-        {/* Lista */}
-        {auditorias.length === 0 ? (
-          <div className="text-center py-20 text-gray-600">
-            <p className="text-5xl mb-4">📊</p>
-            <p className="text-lg">No hay auditorías publicadas todavía.</p>
+        {items.length === 0 ? (
+          <div className="py-16 border-t" style={{ borderColor: 'var(--rule-strong)' }}>
+            <p className={`${s.display} text-3xl font-bold`}>Todavía no hay informes publicados</p>
+            <p className={`${s.lede} mt-2`}>
+              Cuando se publique la primera auditoría va a aparecer acá, con el mapa de la zona y cómo puntúan sus sitios.
+              Si querés una de tu rubro, podés generarla vos con los planes de abajo.
+            </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {auditorias.map(a => (
-              <Link
-                key={a.id}
-                href={`/auditorias/${a.id}`}
-                className="block bg-[#111] border border-white/10 hover:border-indigo-500/40 rounded-2xl p-6 transition-colors group"
-              >
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 mb-2">{formatDate(a.publishedAt)}</p>
-                    <h2 className="text-white font-bold text-lg group-hover:text-indigo-400 transition-colors">
-                      {a.title}
-                    </h2>
+          <section aria-labelledby="lista-informes">
+            <div className={s.listHead}>
+              <h2 id="lista-informes" className={`${s.eyebrow} ${s.mono} m-0`}>
+                {items.length} {items.length === 1 ? 'informe' : 'informes'}
+              </h2>
+              <span className={`${s.eyebrow} ${s.mono}`}>más reciente primero</span>
+            </div>
 
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {(a.config?.ciudades || []).map(c => (
-                        <span key={c} className="text-xs bg-white/5 border border-white/10 text-gray-400 px-2.5 py-1 rounded-full">
-                          📍 {c}
+            <ul className="list-none p-0 m-0 flex flex-col gap-5">
+              {items.map(a => {
+                const place = a.cities.length ? a.cities.join(' · ') : 'Argentina';
+                return (
+                  <li key={a.id}>
+                    <Link href={`/auditorias/${a.id}`} className={s.card} title={a.title}>
+                      <ZonePlate plate={a.plate} radioKm={a.radioKm} label={place} />
+                      <div className={s.body}>
+                        <p className={`${s.meta} ${s.mono} m-0`}>
+                          <time dateTime={a.publishedAt || undefined}>{formatDate(a.publishedAt)}</time>
+                          <span>{place}</span>
+                        </p>
+                        <h3 className={`${s.display} ${s.title}`}>{a.rubro}</h3>
+                        <p className={`${s.sub} m-0`}>
+                          <b>{a.total}</b> {a.total === 1 ? 'negocio auditado' : 'negocios auditados'}
+                          {a.avg != null && <> · score promedio <b>{a.avg}</b>/100</>}
+                        </p>
+                        {a.dist.total > 0 && <ScoreDistribution buckets={a.dist.buckets} total={a.dist.total} />}
+                        <span className={s.more}>
+                          Ver informe <span className={s.arrow} aria-hidden="true">→</span>
                         </span>
-                      ))}
-                      {a.config?.radioKm && (
-                        <span className="text-xs bg-white/5 border border-white/10 text-gray-400 px-2.5 py-1 rounded-full">
-                          📡 {a.config.radioKm} km
-                        </span>
-                      )}
-                      {(a.config?.tiposLabels || []).slice(0, 4).map(t => (
-                        <span key={t} className="text-xs bg-white/5 border border-white/10 text-gray-400 px-2.5 py-1 rounded-full">
-                          {t}
-                        </span>
-                      ))}
-                      {(a.config?.tiposLabels || []).length > 4 && (
-                        <span className="text-xs text-gray-600 px-2 py-1">
-                          +{a.config.tiposLabels.length - 4} más
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
 
-                  <div className="flex gap-6 shrink-0">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-white">{a.stats?.total ?? '—'}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">sitios</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-red-400">{a.stats?.lowSeoCount ?? '—'}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">SEO débil</div>
-                    </div>
-                    <div className="text-center">
-                      {a.stats?.avgSeoScore != null ? (
-                        <>
-                          <div className="text-2xl font-bold text-white">{a.stats.avgSeoScore}</div>
-                          <div className="text-xs text-gray-500 mt-0.5">score prom.</div>
-                        </>
-                      ) : (
-                        <div className="text-2xl font-bold text-gray-600">—</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 text-xs text-indigo-400 group-hover:text-indigo-300 transition-colors">
-                  Ver reporte completo →
-                </div>
-              </Link>
-            ))}
-          </div>
+            <p className={`${s.mono} mt-6 text-[11px]`} style={{ color: 'var(--ink-3)' }}>
+              Mapas: ©{' '}
+              <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">
+                colaboradores de OpenStreetMap
+              </a>
+              . Los puntos son los negocios auditados, con el color de su rango de score.
+            </p>
+          </section>
         )}
+      </div>
 
-        {/* Upsell: estos reportes salen de Lead Finder Pro — el mismo motor con el que
-            cualquiera puede auditar sus propios negocios eligiendo un plan. */}
-        <div className="mt-20">
+      {/* Upsell: estos reportes salen de Lead Finder Pro — el mismo motor con el que
+          cualquiera puede auditar sus propios negocios eligiendo un plan. Banda oscura
+          fija porque PlansSection solo tiene estilos para fondo oscuro. */}
+      <section className={`${s.plansBand} dark py-16`}>
+        <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-10">
             <span className="text-xs font-semibold tracking-widest text-indigo-400 uppercase">¿Querés tus propias auditorías?</span>
-            <p className="text-gray-500 text-sm max-w-xl mx-auto mt-2">
+            <p className="text-gray-400 text-sm max-w-xl mx-auto mt-2">
               Estos reportes se generan con Lead Finder Pro. Elegí un plan y auditá los negocios de tu propia zona.
             </p>
           </div>
           <PlansSection />
         </div>
-      </div>
+      </section>
     </main>
   );
 }

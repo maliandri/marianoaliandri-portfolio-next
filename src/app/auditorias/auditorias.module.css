@@ -1,0 +1,386 @@
+/* /auditorias — "láminas de relevamiento": cada informe es una lámina con su
+   plano de la zona y la distribución de Score SEO. Tokens por tema (el sitio usa
+   la clase .dark en <html>, por defecto activa). */
+
+.page {
+  --bg: #e8ecef;
+  --surface: #fbfcfd;
+  --ink: #111a20;
+  --ink-2: #44535d;
+  --ink-3: #6b7a84;
+  --rule: #cfd7dc;
+  --rule-strong: #9aa8b1;
+  --plate: #dfe5e9;
+  --tile-filter: grayscale(1) contrast(0.82) brightness(1.06);
+  --tile-opacity: 0.9;
+
+  /* Score SEO: diverging ordinal (azul = perfecto → rojo = débil). Validado con
+     el validador de dataviz contra #FBFCFD (light) y #141B20 (dark). */
+  --score-100: #1d63c9;
+  --score-80: #1fa58a;
+  --score-50: #db940c;
+  --score-0: #c8304a;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+:global(.dark) .page {
+  --bg: #0b1014;
+  --surface: #141b20;
+  --ink: #e8eef1;
+  --ink-2: #a3b1ba;
+  --ink-3: #74838d;
+  --rule: #24303a;
+  --rule-strong: #3a4954;
+  --plate: #10171c;
+  --tile-filter: grayscale(1) invert(1) brightness(0.7) contrast(1.2);
+  --tile-opacity: 0.85;
+
+  --score-100: #4c8df0;
+  --score-80: #1a9e83;
+  --score-50: #bf8410;
+  --score-0: #d9364f;
+}
+
+.display {
+  font-family: var(--font-archivo), var(--font-inter), sans-serif;
+  font-stretch: 72%;
+  font-variation-settings: 'wdth' 72;
+  letter-spacing: -0.01em;
+}
+
+.mono {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-feature-settings: 'tnum' 1;
+}
+
+.eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ---------- Hero ---------- */
+
+.h1 {
+  font-weight: 800;
+  font-size: clamp(2.6rem, 7.2vw, 5.2rem);
+  line-height: 0.92;
+  margin: 0.9rem 0 1.25rem;
+  max-width: 14ch;
+  text-wrap: balance;
+}
+
+.lede {
+  color: var(--ink-2);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  max-width: 58ch;
+}
+
+.lede strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---------- Barra apilada 100% (Recharts) ---------- */
+
+/* Altura fija inline: reserva el espacio antes de que Recharts mida (sin CLS). */
+.chart {
+  width: 100%;
+  position: relative;
+}
+
+/* Los colores van por CSS (var() no funciona en atributos SVG de Recharts).
+   El stroke del color de la superficie hace de separador de 2px entre tramos. */
+.fill100 path, .fill80 path, .fill50 path, .fill0 path {
+  stroke: var(--surface);
+  stroke-width: 2px;
+}
+.fill100 path { fill: var(--score-100); }
+.fill80 path  { fill: var(--score-80); }
+.fill50 path  { fill: var(--score-50); }
+.fill0 path   { fill: var(--score-0); }
+
+.tooltip {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.18);
+}
+
+.tooltip b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.35rem 1.5rem;
+  margin-top: 0.85rem;
+  font-size: 0.8rem;
+}
+
+@media (min-width: 520px) {
+  .legend {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.legendWide {
+  font-size: 0.85rem;
+}
+
+@media (min-width: 900px) {
+  .legendWide {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.legendRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+  align-self: center;
+}
+
+.range {
+  width: 3.4rem;
+  flex: none;
+  color: var(--ink);
+}
+
+.value {
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.value b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.empty {
+  opacity: 0.55;
+}
+
+/* ---------- Lista de informes ---------- */
+
+.listHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  border-bottom: 1px solid var(--rule-strong);
+  padding-bottom: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: 1fr;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.card:hover {
+  border-color: var(--rule-strong);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+@media (min-width: 760px) {
+  .card {
+    grid-template-columns: minmax(280px, 38%) 1fr;
+  }
+}
+
+.body {
+  padding: 1.15rem 1.15rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+@media (min-width: 760px) {
+  .body {
+    padding: 1.4rem 1.6rem 1.3rem;
+  }
+}
+
+.meta {
+  font-size: 0.74rem;
+  color: var(--ink-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.75rem;
+}
+
+.title {
+  font-weight: 700;
+  font-size: clamp(1.55rem, 4.6vw, 2.05rem);
+  line-height: 1.02;
+  margin: 0.45rem 0 0.35rem;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.card:hover .title {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.sub {
+  color: var(--ink-2);
+  font-size: 0.88rem;
+  margin-bottom: 1rem;
+}
+
+.sub b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.more {
+  margin-top: auto;
+  padding-top: 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.arrow {
+  transition: transform 160ms ease;
+}
+
+.card:hover .arrow {
+  transform: translateX(3px);
+}
+
+/* ---------- Plano de la zona ---------- */
+
+.plateCell {
+  position: relative;
+  background: var(--plate);
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-bottom: 1px solid var(--rule);
+  container-type: size;
+}
+
+@media (min-width: 760px) {
+  .plateCell {
+    aspect-ratio: auto;
+    min-height: 250px;
+    border-bottom: 0;
+    border-right: 1px solid var(--rule);
+  }
+}
+
+/* El plano tiene proporción 4:3 y "cubre" la celda como object-fit: cover
+   (con unidades de container query). Los puntos tienen margen de sobra, así que
+   el recorte no los deja afuera. */
+.plate {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100cqw, 133.334cqh);
+  height: max(100cqh, 75cqw);
+  transform: translate(-50%, -50%);
+}
+
+.tile {
+  position: absolute;
+  display: block;
+  max-width: none;
+  filter: var(--tile-filter);
+  opacity: var(--tile-opacity);
+  user-select: none;
+  pointer-events: none;
+}
+
+.ring {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 1px dashed color-mix(in srgb, var(--ink) 45%, transparent);
+  border-radius: 50%;
+}
+
+.dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1.5px var(--surface);
+}
+
+.plateLabel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding: 1.6rem 0.7rem 0.5rem;
+  font-size: 0.68rem;
+  color: var(--ink-2);
+  background: linear-gradient(to top, color-mix(in srgb, var(--plate) 92%, transparent), transparent);
+}
+
+.plateLabel span:first-child {
+  color: var(--ink);
+}
+
+.attrib {
+  font-size: 0.6rem;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+/* ---------- Banda de planes (siempre oscura: PlansSection solo tiene estilos dark) ---------- */
+
+.plansBand {
+  background: #0b1014;
+  border-top: 1px solid #24303a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .arrow {
+    transition: none;
+  }
+}
