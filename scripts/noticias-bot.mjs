@@ -333,9 +333,27 @@ export async function callGeminiRotating(prompt, { keys = geminiKeys(), fetchImp
       continue;
     }
     if (!resp.ok || data?.error) throw new Error(`Gemini ${resp.status}: ${data?.error?.message || 'error desconocido'}`);
+    if (keys.length > 1) console.log(`  Gemini: respondió la key ${i + 1} de ${keys.length}.`);
     return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
   }
   throw new Error(`Gemini: fallaron las ${keys.length} keys (último: ${lastError})`);
+}
+
+// Diagnóstico al arrancar cada corrida: consulta el modelo con cada key (GET de metadata,
+// no consume cuota de generación) y deja en el log cuáles responden. No corta la corrida.
+async function logGeminiKeysStatus({ keys = geminiKeys(), fetchImpl = fetch } = {}) {
+  const url = GEMINI_URL.replace(':generateContent', '');
+  const results = await Promise.all(keys.map(async (key, i) => {
+    try {
+      const resp = await fetchImpl(`${url}?key=${key}`, { signal: AbortSignal.timeout(15000) });
+      if (resp.ok) return `key ${i + 1}: ok`;
+      const data = await resp.json().catch(() => ({}));
+      return `key ${i + 1}: ${resp.status} ${data?.error?.message || ''}`.trim();
+    } catch (e) {
+      return `key ${i + 1}: ${e.message}`;
+    }
+  }));
+  console.log(`Keys de Gemini (${keys.length}): ${results.join(' | ') || 'ninguna configurada'}`);
 }
 
 async function generateContentGemini(item, topic, articleText) {
@@ -607,6 +625,7 @@ async function publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng
 async function main() {
   initAdmin();
   const db = admin.firestore();
+  await logGeminiKeysStatus();
 
   const config = await fetchConfig(db);
   if (!config.active) {
