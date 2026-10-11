@@ -53,48 +53,48 @@ export default async function NoticiaDetailPage({ params }) {
   if (!n) notFound();
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20 px-4 md:px-6">
+    <main className="min-h-screen bg-page pt-24 pb-20 px-4 md:px-6">
       <div className="max-w-3xl mx-auto">
-        <Link href="/noticias/" className="text-xs text-gray-600 hover:text-gray-400 transition-colors mb-6 inline-block">
+        <Link href="/noticias/" className="text-xs text-fg-600 hover:text-fg-400 transition-colors mb-6 inline-block">
           ← Todas las noticias
         </Link>
 
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-xs bg-white/5 border border-white/10 text-gray-400 px-2.5 py-1 rounded-full">
+          <span className="text-xs bg-fg/5 border border-fg/10 text-fg-400 px-2.5 py-1 rounded-full">
             {n.topicLabel}
           </span>
-          <span className="text-xs text-gray-600">{formatDate(n.publishedAt)}</span>
+          <span className="text-xs text-fg-600">{formatDate(n.publishedAt)}</span>
         </div>
 
-        <h1 className="text-3xl md:text-4xl font-black text-white mb-6">{n.title}</h1>
+        <h1 className="text-3xl md:text-4xl font-black text-fg mb-6">{n.title}</h1>
 
         {n.imageUrl && (
-          <div className="rounded-2xl overflow-hidden border border-white/10 mb-8">
+          <div className="rounded-2xl overflow-hidden border border-fg/10 mb-8">
             <img src={n.imageUrl} alt={n.title} className="w-full object-cover" />
           </div>
         )}
 
-        <div className="text-gray-300 text-base leading-relaxed space-y-4 mb-10">
+        <div className="text-fg-300 text-base leading-relaxed space-y-4 mb-10">
           {(n.contenido || n.body || '').split('\n').filter(Boolean).map((p, i) => <p key={i}>{p}</p>)}
         </div>
 
         {n.sourceUrl && (
-          <p className="text-xs text-gray-600 mb-10">
+          <p className="text-xs text-fg-600 mb-10">
             Fuente:{' '}
-            <a href={n.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 transition-colors">
+            <a href={n.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors">
               {n.sourceTitle || n.sourceUrl}
             </a>
           </p>
         )}
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-[#111] border border-white/10 rounded-2xl px-8 py-6">
+        <div className="glow-frame flex flex-col md:flex-row items-center justify-between gap-6 bg-card border border-fg/10 rounded-2xl px-8 py-6">
           <div>
-            <p className="text-white font-bold text-lg">¿Querés algo parecido para tu negocio?</p>
-            <p className="text-gray-500 text-sm mt-1">Hablemos. Primera consulta sin cargo.</p>
+            <p className="text-fg font-bold text-lg">¿Querés algo parecido para tu negocio?</p>
+            <p className="text-fg-500 text-sm mt-1">Hablemos. Primera consulta sin cargo.</p>
           </div>
           <Link
             href="/presupuesto/"
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 glow-btn whitespace-nowrap"
           >
             Pedir presupuesto <span aria-hidden>→</span>
           </Link>

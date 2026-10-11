@@ -159,7 +159,7 @@ export default function ProductQA({ productId, productName }) {
               <div className="flex items-center justify-between mt-2">
                 <div>
                   {error && <p className="text-sm text-red-500">{error}</p>}
-                  <p className="text-xs text-gray-400">{newQuestion.length}/500</p>
+                  <p className="text-xs text-fg-400">{newQuestion.length}/500</p>
                 </div>
                 <button
                   type="submit"
@@ -241,13 +241,13 @@ export default function ProductQA({ productId, productName }) {
                         {q.questionAuthorName}
                       </span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400 whitespace-nowrap">
+                        <span className="text-xs text-fg-400 whitespace-nowrap">
                           {timeAgo(q.createdAt)}
                         </span>
                         {isAdmin && (
                           <button
                             onClick={() => handleHideQuestion(q.id)}
-                            className="text-xs text-red-400 hover:text-red-600 transition-colors"
+                            className="text-xs text-red-600 dark:text-red-400 hover:text-red-600 transition-colors"
                             title="Ocultar pregunta"
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -271,7 +271,7 @@ export default function ProductQA({ productId, productName }) {
                         </svg>
                         {q.answeredBy || 'Mariano Aliandri'}
                       </span>
-                      <span className="text-xs text-gray-400">{timeAgo(q.answeredAt)}</span>
+                      <span className="text-xs text-fg-400">{timeAgo(q.answeredAt)}</span>
                     </div>
                     <p className="text-gray-700 dark:text-gray-300 text-sm">{q.answerText}</p>
                   </div>
@@ -317,7 +317,7 @@ export default function ProductQA({ productId, productName }) {
                     )}
                   </div>
                 ) : (
-                  <p className="mt-2 ml-11 text-xs text-gray-400 italic">Pendiente de respuesta</p>
+                  <p className="mt-2 ml-11 text-xs text-fg-400 italic">Pendiente de respuesta</p>
                 )}
               </motion.div>
             ))}

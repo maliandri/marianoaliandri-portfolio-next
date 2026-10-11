@@ -30,18 +30,18 @@ export default function NoticiasHome() {
   if (noticias.length === 0) return null;
 
   return (
-    <section className="bg-[#0a0a0a] px-6 py-16">
+    <section className="bg-page px-6 py-16">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-end justify-between mb-8 flex-wrap gap-2">
           <div>
-            <p className="text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-3">
+            <p className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-3">
               Bot de noticias
             </p>
-            <h2 className="text-3xl md:text-4xl font-black text-white leading-tight">
+            <h2 className="text-3xl md:text-4xl font-black text-fg leading-tight">
               De la última hora
             </h2>
           </div>
-          <Link href="/noticias/" className="text-sm text-gray-500 hover:text-white transition-colors">
+          <Link href="/noticias/" className="text-sm text-fg-500 hover:text-fg transition-colors">
             Ver todas →
           </Link>
         </div>
@@ -51,7 +51,7 @@ export default function NoticiasHome() {
             <Link
               key={n.id}
               href={`/noticias/${n.id}/`}
-              className="block bg-[#111] border border-white/10 hover:border-indigo-500/40 rounded-2xl overflow-hidden transition-colors group"
+              className="glow-frame block bg-card border border-fg/10 hover:border-indigo-500/40 rounded-2xl overflow-hidden transition-colors group"
             >
               {n.imageUrl && (
                 <div className="aspect-video overflow-hidden">
@@ -60,16 +60,16 @@ export default function NoticiasHome() {
               )}
               <div className="p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs bg-white/5 border border-white/10 text-gray-400 px-2 py-0.5 rounded-full">
+                  <span className="text-xs bg-fg/5 border border-fg/10 text-fg-400 px-2 py-0.5 rounded-full">
                     {n.topicLabel}
                   </span>
-                  <span className="text-xs text-gray-600">{formatTime(n.publishedAt)}</span>
+                  <span className="text-xs text-fg-600">{formatTime(n.publishedAt)}</span>
                 </div>
-                <h3 className="text-white font-bold text-sm leading-snug group-hover:text-indigo-400 transition-colors">
+                <h3 className="text-fg font-bold text-sm leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                   {n.title}
                 </h3>
                 {!n.makeError && (
-                  <p className="text-[11px] text-gray-600 mt-3">
+                  <p className="text-[11px] text-fg-600 mt-3">
                     Publicado en: Facebook · LinkedIn · Instagram
                   </p>
                 )}

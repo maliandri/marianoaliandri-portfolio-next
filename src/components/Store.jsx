@@ -174,16 +174,16 @@ export default function Store({ isOpen, onClose, asPage = false }) {
             </div>
             <div className="flex items-center gap-3">
               {/* Toggle Compra / Alquiler */}
-              <div className="flex items-center gap-1 bg-white/20 rounded-lg p-1">
+              <div className="flex items-center gap-1 bg-fg/20 rounded-lg p-1">
                 <button
                   onClick={() => setRentMode(false)}
-                  className={`px-3 py-1 rounded-md text-sm font-semibold transition-all ${!rentMode ? 'bg-white text-purple-700 shadow' : 'text-white'}`}
+                  className={`px-3 py-1 rounded-md text-sm font-semibold transition-all ${!rentMode ? 'bg-white text-purple-700 shadow' : 'text-fg'}`}
                 >
                   Compra
                 </button>
                 <button
                   onClick={() => setRentMode(true)}
-                  className={`px-3 py-1 rounded-md text-sm font-semibold transition-all ${rentMode ? 'bg-white text-purple-700 shadow' : 'text-white'}`}
+                  className={`px-3 py-1 rounded-md text-sm font-semibold transition-all ${rentMode ? 'bg-white text-purple-700 shadow' : 'text-fg'}`}
                 >
                   Alquiler
                 </button>
@@ -191,7 +191,7 @@ export default function Store({ isOpen, onClose, asPage = false }) {
               {/* Botón del carrito */}
               <button
                 onClick={() => setShowCart(true)}
-                className="relative p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
+                className="relative p-2 bg-fg/20 rounded-full hover:bg-fg/30 transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -205,7 +205,7 @@ export default function Store({ isOpen, onClose, asPage = false }) {
               {!asPage && (
                 <button
                   onClick={onClose}
-                  className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
+                  className="p-2 bg-fg/20 rounded-full hover:bg-fg/30 transition-colors"
                 >
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -225,7 +225,7 @@ export default function Store({ isOpen, onClose, asPage = false }) {
                 placeholder="Buscar productos..."
                 className="w-full px-4 py-3 pl-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-800 dark:text-white"
               />
-              <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-fg-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -344,7 +344,7 @@ export default function Store({ isOpen, onClose, asPage = false }) {
               )
             ) : (
               <div className="text-center py-16">
-                <svg className="w-24 h-24 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-24 h-24 mx-auto text-fg-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                 </svg>
                 <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No se encontraron productos</h3>

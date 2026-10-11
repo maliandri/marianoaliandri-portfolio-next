@@ -156,7 +156,7 @@ export default function Cart({ onClose }) {
             </div>
             <button
               onClick={onClose}
-              className="p-1 hover:bg-white/20 rounded-full transition-colors"
+              className="p-1 hover:bg-fg/20 rounded-full transition-colors"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

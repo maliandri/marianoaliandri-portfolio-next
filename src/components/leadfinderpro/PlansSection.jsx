@@ -14,9 +14,9 @@ function fmtARS(n) {
 // hasta que el checkout de Gumroad (USD) reemplace este CTA en /en/lead-finder-pro.
 function PlanCard({ plan, user, onLogin, getIdToken, t }) {
   const SCOPE_LABEL = {
-    localidad: { label: t.scopeLocalidad, className: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20' },
-    provincia: { label: t.scopeProvincia, className: 'bg-amber-500/10 text-amber-300 border-amber-500/20' },
-    pais:      { label: t.scopePais,      className: 'bg-red-500/10 text-red-300 border-red-500/20' },
+    localidad: { label: t.scopeLocalidad, className: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20' },
+    provincia: { label: t.scopeProvincia, className: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20' },
+    pais:      { label: t.scopePais,      className: 'bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/20' },
   };
   const scope = SCOPE_LABEL[plan.scope] || SCOPE_LABEL.localidad;
   const isSubscription = plan.billingType !== 'project';
@@ -44,26 +44,26 @@ function PlanCard({ plan, user, onLogin, getIdToken, t }) {
   };
 
   return (
-    <div className="bg-[#111] border border-white/10 rounded-2xl p-6 flex flex-col hover:border-indigo-500/30 transition-colors">
+    <div className="glow-frame bg-card border border-fg/10 rounded-2xl p-6 flex flex-col hover:border-indigo-500/30 transition-colors">
       <span className={`self-start text-[11px] font-medium px-2.5 py-1 rounded-full border mb-3 ${scope.className}`}>
         {scope.label}
       </span>
-      <h3 className="text-white font-bold text-lg mb-1">{plan.name}</h3>
-      {plan.description && <p className="text-gray-500 text-sm mb-4">{plan.description}</p>}
+      <h3 className="text-fg font-bold text-lg mb-1">{plan.name}</h3>
+      {plan.description && <p className="text-fg-500 text-sm mb-4">{plan.description}</p>}
 
       <div className="mt-auto">
-        <p className="text-2xl font-black text-white">
+        <p className="text-2xl font-black text-fg">
           {plan.priceARS > 0 ? fmtARS(plan.priceARS) : t.free}
           {plan.priceARS > 0 && (
-            <span className="text-sm font-normal text-gray-500">{isSubscription ? t.perMonth : ` ${t.oneTime}`}</span>
+            <span className="text-sm font-normal text-fg-500">{isSubscription ? t.perMonth : ` ${t.oneTime}`}</span>
           )}
         </p>
-        <p className="text-gray-500 text-xs mb-5">{t.creditsIncluded(plan.credits?.toLocaleString('es-AR'))}</p>
+        <p className="text-fg-500 text-xs mb-5">{t.creditsIncluded(plan.credits?.toLocaleString('es-AR'))}</p>
 
         {!user ? (
           <button
             onClick={onLogin}
-            className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm"
+            className="w-full flex items-center justify-center gap-2 bg-fg/5 hover:bg-fg/10 border border-fg/10 text-fg font-semibold py-2.5 rounded-xl transition-colors text-sm"
           >
             {t.loginToChoose}
           </button>
@@ -76,7 +76,7 @@ function PlanCard({ plan, user, onLogin, getIdToken, t }) {
             >
               {loading ? t.redirecting : t.choosePlan}
             </button>
-            {error && <p className="text-red-400 text-xs mt-2 text-center">{error}</p>}
+            {error && <p className="text-red-600 dark:text-red-400 text-xs mt-2 text-center">{error}</p>}
           </>
         )}
       </div>
@@ -126,30 +126,30 @@ export default function PlansSection({ anchorId = 'planes', lang = 'es' }) {
   return (
     <div id={anchorId} className="max-w-5xl mx-auto mb-16 scroll-mt-24">
       <div className="text-center mb-8">
-        <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-2">{t.eyebrow}</p>
-        <h2 className="text-2xl md:text-3xl font-black text-white">{t.title}</h2>
+        <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">{t.eyebrow}</p>
+        <h2 className="text-2xl md:text-3xl font-black text-fg">{t.title}</h2>
         {!user && !loading && (
-          <p className="text-gray-500 text-sm mt-2">{t.registerHint}</p>
+          <p className="text-fg-500 text-sm mt-2">{t.registerHint}</p>
         )}
       </div>
 
       {hasFreeAccess ? (
         <div className="max-w-xl mx-auto bg-indigo-600/10 border border-indigo-500/20 rounded-2xl p-6 text-center">
-          <p className="text-white font-bold text-lg mb-1">{t.compedTitle}</p>
-          <p className="text-gray-400 text-sm mb-5">{t.compedDesc}</p>
-          <a href={toolHref} className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm">
+          <p className="text-fg font-bold text-lg mb-1">{t.compedTitle}</p>
+          <p className="text-fg-400 text-sm mb-5">{t.compedDesc}</p>
+          <a href={toolHref} className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 glow-btn text-sm">
             {t.openTool}
           </a>
         </div>
       ) : access ? (
         <div className="max-w-xl mx-auto bg-green-600/10 border border-green-500/20 rounded-2xl p-6 text-center">
-          <p className="text-white font-bold text-lg mb-1">{t.activeTitle}</p>
-          <p className="text-gray-400 text-sm mb-5">{t.activeDesc}</p>
+          <p className="text-fg font-bold text-lg mb-1">{t.activeTitle}</p>
+          <p className="text-fg-400 text-sm mb-5">{t.activeDesc}</p>
           <div className="flex flex-wrap justify-center gap-2">
-            <a href={toolHref} className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm">
+            <a href={toolHref} className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 glow-btn text-sm">
               {t.openTool}
             </a>
-            <a href="/mi-cuenta" className="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm">
+            <a href="/mi-cuenta" className="inline-flex items-center gap-2 bg-fg/5 hover:bg-fg/10 text-fg font-semibold px-6 py-3 rounded-xl transition-colors text-sm">
               {t.myAccount}
             </a>
           </div>

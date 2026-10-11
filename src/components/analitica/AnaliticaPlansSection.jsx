@@ -68,10 +68,10 @@ export default function AnaliticaPlansSection({ anchorId = 'planes' }) {
   return (
     <div id={anchorId} className="max-w-5xl mx-auto scroll-mt-24">
       <div className="text-center mb-8">
-        <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-2">Planes</p>
-        <h2 className="text-2xl md:text-3xl font-black text-white">Elegí cuánto querés buscar</h2>
+        <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">Planes</p>
+        <h2 className="text-2xl md:text-3xl font-black text-fg">Elegí cuánto querés buscar</h2>
         {!user && (
-          <p className="text-gray-500 text-sm mt-2">Registrate gratis — incluye 1 búsqueda sin cargo.</p>
+          <p className="text-fg-500 text-sm mt-2">Registrate gratis — incluye 1 búsqueda sin cargo.</p>
         )}
       </div>
 
@@ -87,8 +87,8 @@ export default function AnaliticaPlansSection({ anchorId = 'planes' }) {
           return (
             <div
               key={id}
-              className={`relative bg-[#111] border rounded-2xl p-6 flex flex-col hover:border-indigo-500/30 transition-colors ${
-                def.highlight ? 'border-indigo-500' : 'border-white/10'
+              className={`relative bg-card border rounded-2xl p-6 flex flex-col hover:border-indigo-500/30 transition-colors ${
+                def.highlight ? 'border-indigo-500' : 'border-fg/10'
               }`}
             >
               {def.highlight && (
@@ -96,28 +96,28 @@ export default function AnaliticaPlansSection({ anchorId = 'planes' }) {
                   Más elegido
                 </span>
               )}
-              <h3 className="text-white font-bold text-lg mb-1">{def.name}</h3>
+              <h3 className="text-fg font-bold text-lg mb-1">{def.name}</h3>
               <div className="mt-1 mb-4">
-                <span className="text-2xl font-black text-white">{formatPlanPrice(price)}</span>
-                {price > 0 && <span className="text-sm font-normal text-gray-500">/mes</span>}
+                <span className="text-2xl font-black text-fg">{formatPlanPrice(price)}</span>
+                {price > 0 && <span className="text-sm font-normal text-fg-500">/mes</span>}
               </div>
-              <p className="text-gray-500 text-xs mb-4">
+              <p className="text-fg-500 text-xs mb-4">
                 {limit === null ? 'Búsquedas ilimitadas' : `${limit} ${limit === 1 ? 'búsqueda' : 'búsquedas'}${id === 'free' ? ' (única)' : '/mes'}`}
               </p>
               <ul className="space-y-2 mb-5 flex-1">
                 {def.features.map((f, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
-                    <span className="text-emerald-400 mt-0.5">✓</span> {f}
+                  <li key={i} className="flex items-start gap-2 text-sm text-fg-300">
+                    <span className="text-emerald-600 dark:text-emerald-400 mt-0.5">✓</span> {f}
                   </li>
                 ))}
               </ul>
 
               {!user ? (
-                <button onClick={login} className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">
+                <button onClick={login} className="w-full flex items-center justify-center gap-2 bg-fg/5 hover:bg-fg/10 border border-fg/10 text-fg font-semibold py-2.5 rounded-xl transition-colors text-sm">
                   Iniciar sesión para elegir
                 </button>
               ) : isCurrent ? (
-                <div className="text-center py-2.5 rounded-xl bg-white/5 text-gray-400 text-sm font-medium">Tu plan actual</div>
+                <div className="text-center py-2.5 rounded-xl bg-fg/5 text-fg-400 text-sm font-medium">Tu plan actual</div>
               ) : isPaid ? (
                 <button
                   onClick={() => subscribe(id)}
@@ -127,15 +127,15 @@ export default function AnaliticaPlansSection({ anchorId = 'planes' }) {
                   {loadingPlan === id ? 'Redirigiendo a MercadoPago...' : 'Elegir este plan →'}
                 </button>
               ) : (
-                <div className="text-center py-2.5 rounded-xl bg-white/5 text-gray-500 text-sm">Incluido al registrarte</div>
+                <div className="text-center py-2.5 rounded-xl bg-fg/5 text-fg-500 text-sm">Incluido al registrarte</div>
               )}
             </div>
           );
         })}
       </div>
 
-      {error && <p className="mt-4 text-sm text-rose-400 text-center">{error}</p>}
-      <p className="mt-5 text-xs text-gray-600 text-center">
+      {error && <p className="mt-4 text-sm text-rose-600 dark:text-rose-400 text-center">{error}</p>}
+      <p className="mt-5 text-xs text-fg-600 text-center">
         Pagos procesados por MercadoPago. Las suscripciones se renuevan automáticamente cada mes, cancelás cuando quieras.
       </p>
     </div>

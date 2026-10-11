@@ -32,12 +32,12 @@ export default function AnaliticaPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20">
+    <main className="min-h-screen bg-page pt-24 pb-20">
       {/* Hero header */}
-      <div className="max-w-6xl mx-auto px-4 mb-8">
-        <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-2">Panel de datos</p>
-        <h1 className="text-3xl md:text-4xl font-black text-white mb-3">Analítica Regional</h1>
-        <p className="text-gray-500 text-sm max-w-xl">
+      <div className="hero-glow max-w-6xl mx-auto px-4 mb-8">
+        <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">Panel de datos</p>
+        <h1 className="text-3xl md:text-4xl font-black text-fg mb-3">Analítica <span className="text-gradient">Regional</span></h1>
+        <p className="text-fg-500 text-sm max-w-xl">
           Datos actualizados diariamente sobre búsquedas, tendencias y presencia digital de comercios
           en Neuquén y Argentina. Fuente: Google Trends · Google Places.
         </p>
@@ -45,7 +45,7 @@ export default function AnaliticaPage() {
         {/* Última actualización */}
         {data?.trends?.date && (
           <p className="text-xs text-gray-700 mt-2">
-            Última actualización: <span className="text-gray-500">{data.trends.date}</span>
+            Última actualización: <span className="text-fg-500">{data.trends.date}</span>
             {data.trends.updatedAt && (
               <span className="text-gray-700 ml-2">
                 · {new Date(data.trends.updatedAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
@@ -61,7 +61,7 @@ export default function AnaliticaPage() {
       {/* Nav: tabs + selector de región */}
       <div className="max-w-6xl mx-auto px-4 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Tabs */}
-        <div className="flex gap-1 bg-[#111] border border-white/8 rounded-2xl p-1">
+        <div className="flex gap-1 bg-card border border-fg/8 rounded-2xl p-1">
           {TABS.map(t => (
             <button
               key={t.id}
@@ -69,12 +69,12 @@ export default function AnaliticaPage() {
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                 tab === t.id
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                  : 'text-gray-400 hover:text-white'
+                  : 'text-fg-400 hover:text-fg'
               }`}
             >
               <span>{t.icon}</span> {t.label}
               {t.planRequired && tab !== t.id && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 leading-none">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 leading-none">
                   Plan
                 </span>
               )}
@@ -84,11 +84,11 @@ export default function AnaliticaPage() {
 
         {/* Badge de cobertura */}
         {tab === 'tendencias' && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#111] border border-white/8 rounded-2xl">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-card border border-fg/8 rounded-2xl">
             <span className="text-xs">📍</span>
-            <span className="text-xs text-gray-400 font-medium">Neuquén / Comahue</span>
+            <span className="text-xs text-fg-400 font-medium">Neuquén / Comahue</span>
             <span className="text-gray-700 text-xs">·</span>
-            <span className="text-xs text-gray-600">Argentina nacional</span>
+            <span className="text-xs text-fg-600">Argentina nacional</span>
           </div>
         )}
       </div>
@@ -100,7 +100,7 @@ export default function AnaliticaPage() {
             <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : error ? (
-          <p className="text-red-400 text-sm text-center py-16">{error}</p>
+          <p className="text-red-600 dark:text-red-400 text-sm text-center py-16">{error}</p>
         ) : (
           <>
             {tab === 'tendencias' && <TrendsTab trends={data?.trends} region={region} />}

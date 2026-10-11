@@ -31,17 +31,17 @@ export default function CapabilitiesCarousel() {
   return (
     <section className="max-w-4xl mx-auto px-4 py-16">
       <div className="text-center mb-8">
-        <span className="inline-block text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-2">Lo que puedo construir</span>
-        <h2 className="text-3xl md:text-4xl font-bold text-white">
+        <span className="inline-block text-xs font-semibold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-2">Lo que puedo construir</span>
+        <h2 className="text-3xl md:text-4xl font-bold text-fg">
           Todo lo que tu negocio puede tener online
         </h2>
-        <p className="text-gray-400 mt-2 text-sm md:text-base">
+        <p className="text-fg-400 mt-2 text-sm md:text-base">
           Desde una tienda hasta automatizaciones — armado con tecnología moderna.
         </p>
       </div>
 
       <div
-        className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]"
+        className="relative overflow-hidden rounded-2xl border border-fg/10 bg-white/[0.03]"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
         onTouchStart={onTouchStart}
@@ -56,12 +56,12 @@ export default function CapabilitiesCarousel() {
             <div key={cap.id} className="shrink-0 basis-full p-8 md:p-12">
               <div className="flex flex-col items-center text-center">
                 <div className="text-5xl md:text-6xl mb-4" aria-hidden>{cap.emoji}</div>
-                <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">{cap.title}</h3>
-                <p className="text-gray-300 max-w-md">{cap.desc}</p>
-                <p className="text-indigo-300 font-medium mt-3 max-w-md">✓ {cap.benefit}</p>
+                <h3 className="text-2xl md:text-3xl font-bold text-fg mb-2">{cap.title}</h3>
+                <p className="text-fg-300 max-w-md">{cap.desc}</p>
+                <p className="text-indigo-700 dark:text-indigo-300 font-medium mt-3 max-w-md">✓ {cap.benefit}</p>
                 <div className="flex flex-wrap justify-center gap-1.5 mt-5">
                   {cap.techs.map(t => (
-                    <span key={t} className="text-xs px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300">{t}</span>
+                    <span key={t} className="text-xs px-2.5 py-1 rounded-full bg-fg/5 border border-fg/10 text-fg-300">{t}</span>
                   ))}
                 </div>
               </div>
@@ -92,7 +92,7 @@ export default function CapabilitiesCarousel() {
         </a>
         <a href={'https://wa.me/5492995414422?text=' + encodeURIComponent('Hola Mariano! Quiero mejorar la presencia digital de mi negocio.')}
           target="_blank" rel="noopener noreferrer"
-          className="w-full sm:w-auto text-center px-6 py-3 border border-green-500 text-green-400 rounded-xl font-medium hover:bg-green-500/10 transition-colors">
+          className="w-full sm:w-auto text-center px-6 py-3 border border-green-500 text-green-600 dark:text-green-400 rounded-xl font-medium hover:bg-green-500/10 transition-colors">
           💬 Hablar por WhatsApp
         </a>
       </div>

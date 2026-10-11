@@ -203,7 +203,7 @@ function Navbar({ pathname }) {
   const close = () => setOpen(false);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-[1000] bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/8">
+    <nav className="dark fixed top-0 left-0 right-0 z-[1000] bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/8">
       <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
 
         {/* Logo */}
@@ -317,7 +317,7 @@ function AppChromeInner({ children }) {
   }, [pathname]);
 
   return (
-    <div className="App font-sans min-h-screen text-gray-800 bg-gray-50 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-500 relative overflow-x-hidden">
+    <div className="App font-sans min-h-screen text-fg bg-page transition-colors duration-500 relative overflow-x-hidden">
 
       <Suspense fallback={null}><ScreenshotHider /></Suspense>
 

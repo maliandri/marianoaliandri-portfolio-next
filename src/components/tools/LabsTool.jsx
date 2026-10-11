@@ -116,18 +116,18 @@ export default function LabsTool({ isOpen: isOpenProp, onClose, hideFloatingButt
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-lg font-bold text-white">Navaja Suiza by Maliandri</h2>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-400 border border-teal-700/50">v1.0.0</span>
+                  <h2 className="text-lg font-bold text-fg">Navaja Suiza by Maliandri</h2>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-600 dark:text-teal-400 border border-teal-700/50">v1.0.0</span>
                 </div>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-900/60 text-emerald-400">Windows</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-900/60 text-blue-400">Portable .exe</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-orange-900/60 text-orange-400">Gratis</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-900/60 text-emerald-600 dark:text-emerald-400">Windows</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-900/60 text-blue-600 dark:text-blue-400">Portable .exe</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-orange-900/60 text-orange-600 dark:text-orange-400">Gratis</span>
                 </div>
               </div>
               <button
                 onClick={handleClose}
-                className="flex-shrink-0 w-9 h-9 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                className="flex-shrink-0 w-9 h-9 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center text-fg-400 hover:text-fg transition-colors"
               >
                 ✕
               </button>
@@ -136,7 +136,7 @@ export default function LabsTool({ isOpen: isOpenProp, onClose, hideFloatingButt
             {/* Contenido */}
             <div className="p-5 space-y-5">
               {/* Descripción */}
-              <p className="text-gray-300 text-sm leading-relaxed">
+              <p className="text-fg-300 text-sm leading-relaxed">
                 Herramienta de escritorio para analizar y gestionar el almacenamiento de tu celular Android
                 directamente desde la PC. Conectás el teléfono por USB, ves exactamente qué ocupa espacio,
                 hacés backups selectivos y eliminás archivos sin tocar el teléfono.
@@ -148,8 +148,8 @@ export default function LabsTool({ isOpen: isOpenProp, onClose, hideFloatingButt
                   <div key={f.title} className="flex items-start gap-3 p-3 rounded-xl bg-gray-800/60">
                     <span className="text-lg flex-shrink-0">{f.icon}</span>
                     <div>
-                      <p className="text-sm font-semibold text-gray-200">{f.title}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{f.desc}</p>
+                      <p className="text-sm font-semibold text-fg-200">{f.title}</p>
+                      <p className="text-xs text-fg-500 mt-0.5">{f.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -157,8 +157,8 @@ export default function LabsTool({ isOpen: isOpenProp, onClose, hideFloatingButt
 
               {/* Requisitos */}
               <div className="bg-amber-900/20 border border-amber-700/40 rounded-xl p-4">
-                <p className="text-sm font-semibold text-amber-400 mb-2">Requisitos previos</p>
-                <ul className="space-y-1.5 text-sm text-amber-300/80">
+                <p className="text-sm font-semibold text-amber-600 dark:text-amber-400 mb-2">Requisitos previos</p>
+                <ul className="space-y-1.5 text-sm text-amber-700 dark:text-amber-300/80">
                   {[
                     <><strong className="text-amber-200">Windows 10 / 11</strong> — portable .exe, no requiere instalación</>,
                     <><strong className="text-amber-200">Activar Depuración USB</strong>: Ajustes → Opciones de desarrollador → Depuración USB</>,
@@ -178,11 +178,11 @@ export default function LabsTool({ isOpen: isOpenProp, onClose, hideFloatingButt
                 {authLoading ? (
                   <div className="flex items-center justify-center gap-2 py-3">
                     <div className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm text-gray-500">Verificando sesión...</span>
+                    <span className="text-sm text-fg-500">Verificando sesión...</span>
                   </div>
                 ) : !user ? (
                   <div className="text-center">
-                    <p className="text-sm text-gray-400 mb-3">
+                    <p className="text-sm text-fg-400 mb-3">
                       Iniciá sesión con Google para descargar — registramos la descarga para notificarte actualizaciones.
                     </p>
                     <motion.button
@@ -202,13 +202,13 @@ export default function LabsTool({ isOpen: isOpenProp, onClose, hideFloatingButt
                 ) : (
                   <div>
                     {error && (
-                      <p className="text-sm text-red-400 mb-3 p-3 bg-red-900/20 rounded-lg">{error}</p>
+                      <p className="text-sm text-red-600 dark:text-red-400 mb-3 p-3 bg-red-900/20 rounded-lg">{error}</p>
                     )}
                     {downloadDone ? (
                       <div className="flex items-center justify-center gap-3 py-3 px-5 bg-emerald-900/20 border border-emerald-700/40 rounded-xl">
                         <span className="text-xl">✅</span>
                         <div>
-                          <p className="font-semibold text-emerald-400 text-sm">¡Descarga iniciada!</p>
+                          <p className="font-semibold text-emerald-600 dark:text-emerald-400 text-sm">¡Descarga iniciada!</p>
                           <p className="text-xs text-emerald-600">Registramos tu descarga.</p>
                         </div>
                       </div>
@@ -235,7 +235,7 @@ export default function LabsTool({ isOpen: isOpenProp, onClose, hideFloatingButt
                         )}
                       </motion.button>
                     )}
-                    <p className="text-xs text-center text-gray-600 mt-2">
+                    <p className="text-xs text-center text-fg-600 mt-2">
                       Portable — no requiere instalación · Solo Windows 10/11
                     </p>
                   </div>

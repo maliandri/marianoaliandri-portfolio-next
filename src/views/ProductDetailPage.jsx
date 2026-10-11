@@ -157,14 +157,14 @@ export default function ProductDetailPage({ productId: propProductId }) {
                 />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 text-white">
+              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 text-fg">
                 {product.featured && (
                   <span className="inline-block bg-gradient-to-r from-purple-600 to-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold mb-3">
                     DESTACADO
                   </span>
                 )}
                 <h1 className="text-3xl md:text-4xl font-bold mb-2">{product.name}</h1>
-                <p className="text-lg text-gray-200">{product.shortDescription}</p>
+                <p className="text-lg text-fg-200">{product.shortDescription}</p>
               </div>
             </div>
 
@@ -306,11 +306,11 @@ export default function ProductDetailPage({ productId: propProductId }) {
                           <div>
                             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                               Seña inicial: USD {sena}
-                              {senaARS && <span className="text-base font-normal text-gray-500 ml-2">({formatARS(senaARS)})</span>}
+                              {senaARS && <span className="text-base font-normal text-fg-500 ml-2">({formatARS(senaARS)})</span>}
                             </p>
                             <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                               USD {cuota}/mes
-                              {cuotaARS && <span className="text-base font-normal text-gray-500 ml-2">({formatARS(cuotaARS)}/mes)</span>}
+                              {cuotaARS && <span className="text-base font-normal text-fg-500 ml-2">({formatARS(cuotaARS)}/mes)</span>}
                             </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                               Duración mínima: {duracion} meses

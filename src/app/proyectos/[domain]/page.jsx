@@ -102,45 +102,45 @@ export default async function ProyectoDetailPage({ params }) {
   };
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20 px-4 md:px-6">
+    <main className="min-h-screen bg-page pt-24 pb-20 px-4 md:px-6">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
 
       <div className="max-w-4xl mx-auto">
-        <Link href="/#proyectos" className="text-xs text-gray-600 hover:text-gray-400 transition-colors mb-6 inline-block">
+        <Link href="/#proyectos" className="text-xs text-fg-600 hover:text-fg-400 transition-colors mb-6 inline-block">
           ← Todos los proyectos
         </Link>
 
-        <h1 className="text-3xl md:text-4xl font-black text-white mb-2">{nombre}</h1>
-        {p.descripcionCorta && <p className="text-gray-400 text-base mb-8">{p.descripcionCorta}</p>}
+        <h1 className="text-3xl md:text-4xl font-black text-fg mb-2">{nombre}</h1>
+        {p.descripcionCorta && <p className="text-fg-400 text-base mb-8">{p.descripcionCorta}</p>}
 
         {p.screenshotUrl && (
-          <div className="rounded-2xl overflow-hidden border border-white/10 mb-8">
+          <div className="rounded-2xl overflow-hidden border border-fg/10 mb-8">
             <img src={p.screenshotUrl} alt={nombre} className="w-full object-cover" />
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-4 mb-10">
-          <div className="bg-[#111] border border-white/10 rounded-xl p-5 text-center">
-            <div className="text-3xl font-bold text-white">{p.clicks}</div>
-            <div className="text-xs text-gray-500 mt-1">Clicks (28 días)</div>
+          <div className="bg-card border border-fg/10 rounded-xl p-5 text-center">
+            <div className="text-3xl font-bold text-fg">{p.clicks}</div>
+            <div className="text-xs text-fg-500 mt-1">Clicks (28 días)</div>
           </div>
-          <div className="bg-[#111] border border-white/10 rounded-xl p-5 text-center">
-            <div className="text-3xl font-bold text-white">{p.impressions}</div>
-            <div className="text-xs text-gray-500 mt-1">Impresiones (28 días)</div>
+          <div className="bg-card border border-fg/10 rounded-xl p-5 text-center">
+            <div className="text-3xl font-bold text-fg">{p.impressions}</div>
+            <div className="text-xs text-fg-500 mt-1">Impresiones (28 días)</div>
           </div>
         </div>
 
         {p.stack && (
           <div className="mb-8">
-            <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-2">Stack técnico</p>
-            <p className="text-gray-300 text-sm leading-relaxed">{p.stack}</p>
+            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">Stack técnico</p>
+            <p className="text-fg-300 text-sm leading-relaxed">{p.stack}</p>
           </div>
         )}
 
         {p.funcionalidades && (
           <div className="mb-8">
-            <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-2">Funcionalidades destacadas</p>
-            <ul className="text-gray-300 text-sm leading-relaxed space-y-1 list-disc list-inside">
+            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">Funcionalidades destacadas</p>
+            <ul className="text-fg-300 text-sm leading-relaxed space-y-1 list-disc list-inside">
               {p.funcionalidades.split('\n').filter(Boolean).map((linea, i) => (
                 <li key={i}>{linea.replace(/^→\s*/, '')}</li>
               ))}
@@ -150,17 +150,17 @@ export default async function ProyectoDetailPage({ params }) {
 
         {p.impacto && (
           <div className="mb-8 bg-indigo-600/10 border border-indigo-500/20 rounded-xl p-5">
-            <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-2">Impacto</p>
-            <p className="text-gray-300 text-sm leading-relaxed">{p.impacto}</p>
+            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">Impacto</p>
+            <p className="text-fg-300 text-sm leading-relaxed">{p.impacto}</p>
           </div>
         )}
 
         {p.media.length > 0 && (
           <div className="mb-10">
-            <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-3">Galería</p>
+            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-3">Galería</p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {p.media.map(m => (
-                <div key={m.id} className="rounded-xl overflow-hidden border border-white/10">
+                <div key={m.id} className="rounded-xl overflow-hidden border border-fg/10">
                   {m.type === 'video' ? (
                     <video src={m.url} controls className="w-full h-40 object-contain bg-black" />
                   ) : (
@@ -172,21 +172,21 @@ export default async function ProyectoDetailPage({ params }) {
           </div>
         )}
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-[#111] border border-white/10 rounded-2xl px-8 py-6">
+        <div className="glow-frame flex flex-col md:flex-row items-center justify-between gap-6 bg-card border border-fg/10 rounded-2xl px-8 py-6">
           <div>
-            <p className="text-white font-bold text-lg">¿Querés algo parecido para tu negocio?</p>
-            <p className="text-gray-500 text-sm mt-1">Hablemos. Primera consulta sin cargo.</p>
+            <p className="text-fg font-bold text-lg">¿Querés algo parecido para tu negocio?</p>
+            <p className="text-fg-500 text-sm mt-1">Hablemos. Primera consulta sin cargo.</p>
           </div>
           <Link
             href="/presupuesto"
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 glow-btn whitespace-nowrap"
           >
             Pedir presupuesto <span aria-hidden>→</span>
           </Link>
         </div>
 
         <p className="text-center text-xs text-gray-700 mt-8">
-          <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-300 transition-colors">
+          <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-fg-500 hover:text-fg-300 transition-colors">
             Ver sitio en vivo ↗
           </a>
         </p>

@@ -62,7 +62,7 @@ export default function KeywordsPage() {
               <div key={r.label} className="flex items-center gap-3">
                 <div className="w-28 shrink-0">
                   <p className="text-xs font-semibold text-gray-800 dark:text-white truncate">{r.label}</p>
-                  <p className="text-[10px] text-gray-500">{r.cat}</p>
+                  <p className="text-[10px] text-fg-500">{r.cat}</p>
                 </div>
                 <div className="flex-1 h-2 bg-gray-200 dark:bg-white/8 rounded-full overflow-hidden">
                   <div
@@ -70,7 +70,7 @@ export default function KeywordsPage() {
                     style={{ width: `${r.interes}%` }}
                   />
                 </div>
-                <span className="text-[11px] text-gray-500 w-12 text-right shrink-0">{r.sugerencias} frases</span>
+                <span className="text-[11px] text-fg-500 w-12 text-right shrink-0">{r.sugerencias} frases</span>
               </div>
             ))}
           </div>

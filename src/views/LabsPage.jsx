@@ -88,7 +88,7 @@ export default function LabsPage() {
             </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-3">
-            Mariano Aliandri Labs
+            Mariano Aliandri <span className="text-gradient">Labs</span>
           </h1>
           <p className="text-lg text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
             Herramientas de escritorio desarrolladas por Mariano Aliandri.
@@ -111,12 +111,12 @@ export default function LabsPage() {
               🔪
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Navaja Suiza by Maliandri</h2>
+              <h2 className="text-xl font-bold text-fg">Navaja Suiza by Maliandri</h2>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="text-xs text-gray-400">v1.0.0</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium">Windows</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium">Portable .exe</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 font-medium">Gratis</span>
+                <span className="text-xs text-fg-400">v1.0.0</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-medium">Windows</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 font-medium">Portable .exe</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-600 dark:text-orange-400 font-medium">Gratis</span>
               </div>
             </div>
           </div>
@@ -188,7 +188,7 @@ export default function LabsPage() {
               {authLoading ? (
                 <div className="flex items-center justify-center gap-3 py-4">
                   <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm text-gray-500">Verificando sesión...</span>
+                  <span className="text-sm text-fg-500">Verificando sesión...</span>
                 </div>
               ) : !user ? (
                 <div className="text-center">

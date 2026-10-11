@@ -108,7 +108,7 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
       />
-      <main className="bg-[#0a0a0a]">
+      <main className="bg-page">
         <HeroNew />
         <NoticiasHome />
         <ProyectosGrid />

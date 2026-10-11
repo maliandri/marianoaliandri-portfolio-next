@@ -252,7 +252,7 @@ export default function CVATSUploader({ isOpen: isOpenProp, onClose: onCloseProp
                   </div>
                   <button
                     onClick={closeAndCleanUrl} // Se usa la función adaptada
-                    className="text-white hover:text-red-100 transition-colors"
+                    className="text-fg hover:text-red-100 transition-colors"
                     aria-label="Cerrar"
                   >
                     <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -310,7 +310,7 @@ export default function CVATSUploader({ isOpen: isOpenProp, onClose: onCloseProp
                               <div className="flex items-center justify-between gap-2">
                                 <a href={wa} target="_blank" rel="noopener noreferrer" className="text-sm px-3 py-1 rounded-full bg-green-500 text-white hover:opacity-90">WhatsApp</a>
                                 <a href={li} target="_blank" rel="noopener noreferrer" className="text-sm px-3 py-1 rounded-full bg-blue-600 text-white hover:opacity-90">LinkedIn</a>
-                                <a href={xt} target="_blank" rel="noopener noreferrer" className="text-sm px-3 py-1 rounded-full bg-gray-900 text-white hover:opacity-90">X</a>
+                                <a href={xt} target="_blank" rel="noopener noreferrer" className="text-sm px-3 py-1 rounded-full bg-gray-900 text-fg hover:opacity-90">X</a>
                               </div>
                               <div className="mt-3">
                                 <button onClick={handleCopyLink} className="w-full text-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition">{copied ? "¡Copiado!" : "Copiar enlace"}</button>

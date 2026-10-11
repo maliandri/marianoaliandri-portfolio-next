@@ -74,7 +74,7 @@ export default function ProductDetailModal({ product, onClose }) {
             {/* Botón cerrar */}
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors text-white"
+              className="absolute top-4 right-4 p-2 bg-fg/20 backdrop-blur-sm rounded-full hover:bg-fg/30 transition-colors text-fg"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -82,9 +82,9 @@ export default function ProductDetailModal({ product, onClose }) {
             </button>
 
             {/* Título sobre la imagen */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+            <div className="absolute bottom-0 left-0 right-0 p-6 text-fg">
               <h2 className="text-3xl font-bold mb-2">{product.name}</h2>
-              <p className="text-lg text-gray-200">{product.shortDescription}</p>
+              <p className="text-lg text-fg-200">{product.shortDescription}</p>
             </div>
           </div>
 

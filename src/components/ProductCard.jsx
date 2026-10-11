@@ -27,7 +27,7 @@ function BrandedCover({ product }) {
       <div className="absolute inset-0 opacity-20"
         style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, white 1px, transparent 1px)', backgroundSize: '22px 22px' }} />
       <span className="text-5xl mb-2 drop-shadow-lg">{emoji}</span>
-      <span className="relative text-white font-bold text-lg leading-tight drop-shadow-md line-clamp-3">
+      <span className="relative text-fg font-bold text-lg leading-tight drop-shadow-md line-clamp-3">
         {product.name}
       </span>
     </div>

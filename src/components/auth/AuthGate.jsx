@@ -82,13 +82,13 @@ export default function AuthGate({ children, title = 'Contenido para usuarios re
         <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-indigo-600/15 border border-indigo-500/30 flex items-center justify-center text-3xl">
           🔒
         </div>
-        <h2 className="text-2xl font-black text-white mb-2">{title}</h2>
-        <p className="text-gray-500 text-sm mb-6">
+        <h2 className="text-2xl font-black text-fg mb-2">{title}</h2>
+        <p className="text-fg-500 text-sm mb-6">
           {subtitle || 'Registrate gratis para acceder a la Analítica. Incluye 1 búsqueda de rubros sin cargo.'}
         </p>
 
         {/* Selector de interés */}
-        <p className="text-gray-400 text-xs uppercase tracking-widest font-semibold mb-3">
+        <p className="text-fg-400 text-xs uppercase tracking-widest font-semibold mb-3">
           ¿Qué te trajo por acá?
         </p>
         <div className="grid grid-cols-2 gap-2 mb-6 text-left">
@@ -102,14 +102,14 @@ export default function AuthGate({ children, title = 'Contenido para usuarios re
                 className={`flex flex-col gap-1 p-3 rounded-xl border text-left transition-all ${
                   active
                     ? 'bg-indigo-600/20 border-indigo-500 ring-1 ring-indigo-500'
-                    : 'bg-white/5 border-white/10 hover:border-indigo-500/50 hover:bg-white/8'
+                    : 'bg-fg/5 border-fg/10 hover:border-indigo-500/50 hover:bg-fg/8'
                 }`}
               >
                 <span className="text-xl leading-none">{item.emoji}</span>
-                <span className={`text-xs font-semibold leading-tight ${active ? 'text-indigo-300' : 'text-white'}`}>
+                <span className={`text-xs font-semibold leading-tight ${active ? 'text-indigo-700 dark:text-indigo-300' : 'text-fg'}`}>
                   {item.label}
                 </span>
-                <span className="text-[11px] text-gray-400 leading-tight">{item.description}</span>
+                <span className="text-[11px] text-fg-400 leading-tight">{item.description}</span>
               </button>
             );
           })}
@@ -127,7 +127,7 @@ export default function AuthGate({ children, title = 'Contenido para usuarios re
           </svg>
           {loginLabel}
         </button>
-        <p className="text-gray-600 text-xs mt-4">{freeLabel}</p>
+        <p className="text-fg-600 text-xs mt-4">{freeLabel}</p>
       </div>
     );
   }

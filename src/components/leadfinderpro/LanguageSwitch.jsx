@@ -16,14 +16,14 @@ export default function LanguageSwitch() {
     <div className="flex items-center gap-1.5 text-xs">
       <Link
         href={isEn ? targetPath : pathname}
-        className={`px-2 py-1 rounded-md transition-colors ${!isEn ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+        className={`px-2 py-1 rounded-md transition-colors ${!isEn ? 'bg-fg/10 text-fg' : 'text-fg-500 hover:text-fg-300'}`}
       >
         ES
       </Link>
       <span className="text-gray-700">/</span>
       <Link
         href={isEn ? pathname : targetPath}
-        className={`px-2 py-1 rounded-md transition-colors ${isEn ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+        className={`px-2 py-1 rounded-md transition-colors ${isEn ? 'bg-fg/10 text-fg' : 'text-fg-500 hover:text-fg-300'}`}
       >
         EN
       </Link>

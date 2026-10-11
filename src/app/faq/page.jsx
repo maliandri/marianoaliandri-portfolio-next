@@ -119,18 +119,18 @@ export default function FaqPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
 
-      <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20">
+      <main className="min-h-screen bg-page pt-24 pb-20">
         <div className="max-w-3xl mx-auto px-4">
 
           {/* Header */}
-          <div className="mb-12">
-            <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-2">Preguntas frecuentes</p>
-            <h1 className="text-3xl md:text-4xl font-black text-white mb-4">
-              Todo lo que necesitás saber
+          <div className="hero-glow mb-12">
+            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">Preguntas frecuentes</p>
+            <h1 className="text-3xl md:text-4xl font-black text-fg mb-4">
+              Todo lo que <span className="text-gradient">necesitás saber</span>
             </h1>
-            <p className="text-gray-500 text-sm leading-relaxed">
+            <p className="text-fg-500 text-sm leading-relaxed">
               Respondemos las consultas más comunes sobre desarrollo web, tiendas online, SEO y
-              automatizaciones para empresas y comercios de <span className="text-white">Neuquén / Comahue</span>.
+              automatizaciones para empresas y comercios de <span className="text-fg">Neuquén / Comahue</span>.
             </p>
           </div>
 
@@ -138,26 +138,26 @@ export default function FaqPage() {
           <div className="space-y-10">
             {FAQS.map(cat => (
               <section key={cat.category}>
-                <h2 className="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-4">
+                <h2 className="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-4">
                   {cat.category}
                 </h2>
                 <div className="space-y-3">
                   {cat.items.map((item, i) => (
                     <details
                       key={i}
-                      className="group bg-[#111] border border-white/8 rounded-2xl overflow-hidden open:border-indigo-500/30"
+                      className="group bg-card border border-fg/8 rounded-2xl overflow-hidden open:border-indigo-500/30"
                     >
-                      <summary className="flex items-center justify-between gap-4 px-6 py-4 cursor-pointer list-none hover:bg-white/3 transition-colors">
-                        <h3 className="text-sm font-semibold text-white leading-snug">{item.q}</h3>
+                      <summary className="flex items-center justify-between gap-4 px-6 py-4 cursor-pointer list-none hover:bg-fg/3 transition-colors">
+                        <h3 className="text-sm font-semibold text-fg leading-snug">{item.q}</h3>
                         <svg
-                          className="w-4 h-4 text-gray-500 shrink-0 transition-transform group-open:rotate-180"
+                          className="w-4 h-4 text-fg-500 shrink-0 transition-transform group-open:rotate-180"
                           fill="none" viewBox="0 0 24 24" stroke="currentColor"
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </summary>
                       <div className="px-6 pb-5 pt-1">
-                        <p className="text-sm text-gray-400 leading-relaxed">{item.a}</p>
+                        <p className="text-sm text-fg-400 leading-relaxed">{item.a}</p>
                       </div>
                     </details>
                   ))}
@@ -168,8 +168,8 @@ export default function FaqPage() {
 
           {/* CTA */}
           <div className="mt-14 bg-indigo-600/10 border border-indigo-500/20 rounded-2xl p-8 text-center">
-            <p className="text-white font-bold text-lg mb-2">¿No encontraste tu respuesta?</p>
-            <p className="text-gray-400 text-sm mb-6">
+            <p className="text-fg font-bold text-lg mb-2">¿No encontraste tu respuesta?</p>
+            <p className="text-fg-400 text-sm mb-6">
               Contame tu proyecto y te respondo en menos de 24hs.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -181,7 +181,7 @@ export default function FaqPage() {
               </Link>
               <Link
                 href="/#contact"
-                className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white text-sm font-semibold rounded-xl transition-colors border border-white/10"
+                className="px-6 py-3 bg-fg/5 hover:bg-fg/10 text-fg text-sm font-semibold rounded-xl transition-colors border border-fg/10"
               >
                 Contacto directo
               </Link>

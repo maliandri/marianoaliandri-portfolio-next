@@ -208,7 +208,7 @@ export default function KeywordExplorer({ embedded = false }) {
       {!embedded && (
         <div className="text-center mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
-            Rubros más buscados en tu zona
+            Rubros más buscados <span className="text-gradient">en tu zona</span>
           </h1>
           <p className="mt-3 text-gray-600 dark:text-gray-400 max-w-xl mx-auto">
             Descubrí qué servicios busca la gente en Google en cualquier localidad de Argentina.
@@ -222,7 +222,7 @@ export default function KeywordExplorer({ embedded = false }) {
         <div className="mb-4 rounded-2xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/60 overflow-hidden">
           <button onClick={() => setShowHistory(v => !v)} className="w-full flex items-center justify-between px-4 py-3 text-left">
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">🕘 Búsquedas anteriores ({history.length})</span>
-            <span className="text-gray-400 text-xs">{showHistory ? '▲' : '▼'}</span>
+            <span className="text-fg-400 text-xs">{showHistory ? '▲' : '▼'}</span>
           </button>
           {showHistory && (
             <div className="divide-y divide-gray-100 dark:divide-neutral-800 border-t border-gray-100 dark:border-neutral-800">
@@ -239,7 +239,7 @@ export default function KeywordExplorer({ embedded = false }) {
                       className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors">
                       {loadingSavedId === h.id ? '⏳' : 'Ver'}
                     </button>
-                    <button onClick={() => deleteSaved(h.id)} className="px-2 py-1.5 text-gray-400 hover:text-red-500 text-xs transition-colors">🗑️</button>
+                    <button onClick={() => deleteSaved(h.id)} className="px-2 py-1.5 text-fg-400 hover:text-red-500 text-xs transition-colors">🗑️</button>
                   </div>
                 </div>
               ))}
@@ -279,7 +279,7 @@ export default function KeywordExplorer({ embedded = false }) {
         {/* Filtro de categorías */}
         <div className="mt-4">
           <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-            Categorías <span className="text-gray-400">(vacío = todas)</span>
+            Categorías <span className="text-fg-400">(vacío = todas)</span>
           </span>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {CATEGORIAS_RUBROS.map(c => {
@@ -310,7 +310,7 @@ export default function KeywordExplorer({ embedded = false }) {
           {loading ? 'Analizando zona…' : 'Analizar zona'}
         </button>
         {loading && (
-          <p className="mt-2 text-center text-xs text-gray-400">
+          <p className="mt-2 text-center text-xs text-fg-400">
             Consultando Google por cada rubro, puede tardar unos segundos…
           </p>
         )}
@@ -393,7 +393,7 @@ export default function KeywordExplorer({ embedded = false }) {
                   onClick={() => setExpanded(expanded === r.id ? null : r.id)}
                   className="w-full flex items-center gap-3 px-4 py-3 text-left"
                 >
-                  <span className="text-xs font-mono text-gray-400 w-6">{i + 1}</span>
+                  <span className="text-xs font-mono text-fg-400 w-6">{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">
@@ -411,13 +411,13 @@ export default function KeywordExplorer({ embedded = false }) {
                     </div>
                   </div>
                   {r.count > 0 && (
-                    <span className="text-gray-400 text-xs">{expanded === r.id ? '▲' : '▼'}</span>
+                    <span className="text-fg-400 text-xs">{expanded === r.id ? '▲' : '▼'}</span>
                   )}
                 </button>
 
                 {expanded === r.id && r.suggestions.length > 0 && (
                   <div className="px-4 pb-3 pt-1 border-t border-gray-100 dark:border-neutral-800">
-                    <p className="text-[11px] uppercase tracking-wide text-gray-400 mt-2 mb-1.5">
+                    <p className="text-[11px] uppercase tracking-wide text-fg-400 mt-2 mb-1.5">
                       Lo que busca la gente
                     </p>
                     <div className="flex flex-wrap gap-1.5">
@@ -436,7 +436,7 @@ export default function KeywordExplorer({ embedded = false }) {
             ))}
           </div>
 
-          <p className="mt-6 text-xs text-gray-400 leading-relaxed">
+          <p className="mt-6 text-xs text-fg-400 leading-relaxed">
             El <strong>interés</strong> (0–100) es relativo a esta consulta: combina cuántas variantes
             sugiere Google para el rubro en la zona y su relevancia. Un puntaje alto indica más demanda
             de búsqueda. Es una estimación basada en el autocompletado de Google, no un volumen exacto.

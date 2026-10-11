@@ -41,17 +41,17 @@ export default function PlanBadge() {
 
   return (
     <div className="mt-4 flex items-center gap-3 flex-wrap">
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs">
-        <span className="text-indigo-400 font-semibold">Plan {planName}</span>
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-fg/5 border border-fg/10 text-xs">
+        <span className="text-indigo-600 dark:text-indigo-400 font-semibold">Plan {planName}</span>
         {remaining !== undefined && remaining !== null && (
-          <span className="text-gray-500">· {remaining} {remaining === 1 ? 'búsqueda' : 'búsquedas'}</span>
+          <span className="text-fg-500">· {remaining} {remaining === 1 ? 'búsqueda' : 'búsquedas'}</span>
         )}
-        {remaining === null && <span className="text-emerald-400">· ilimitadas</span>}
+        {remaining === null && <span className="text-emerald-600 dark:text-emerald-400">· ilimitadas</span>}
       </span>
       {me?.plan !== 'full' && (
         <button
           onClick={() => setShowPlans(true)}
-          className="text-xs font-medium text-indigo-400 hover:text-indigo-300"
+          className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
         >
           Ver planes →
         </button>

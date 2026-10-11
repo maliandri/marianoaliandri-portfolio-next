@@ -3,10 +3,10 @@
 import { useState, useMemo } from 'react';
 
 function ScoreBadge({ score }) {
-  if (score == null) return <span className="text-gray-600 text-xs">—</span>;
-  const cls = score >= 70 ? 'bg-green-500/15 text-green-400 border-green-500/30'
-            : score >= 40 ? 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'
-                          : 'bg-red-500/15 text-red-400 border-red-500/30';
+  if (score == null) return <span className="text-fg-600 text-xs">—</span>;
+  const cls = score >= 70 ? 'bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30'
+            : score >= 40 ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/30'
+                          : 'bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30';
   return (
     <span className={`inline-flex items-center justify-center min-w-[2.25rem] text-xs font-bold px-2 py-1 rounded-full border ${cls}`}>
       {score}
@@ -97,21 +97,21 @@ export default function AuditTable({ results, ownDomains = [], showEmail = false
 
   const arrow = (key) => {
     if (!key || sortCol !== key) return <span className="text-gray-700 ml-1">↕</span>;
-    return <span className="text-indigo-400 ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+    return <span className="text-indigo-600 dark:text-indigo-400 ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span>;
   };
 
   return (
-    <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden">
+    <div className="glow-frame bg-card border border-fg/10 rounded-2xl overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="border-b border-white/10">
+            <tr className="border-b border-fg/10">
               {cols.map(col => (
                 <th
                   key={col.key}
                   onClick={() => handleSort(col.sortKey)}
-                  className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap
-                    ${col.sortKey ? 'cursor-pointer hover:text-gray-300 select-none' : ''}
+                  className={`px-4 py-3 text-xs font-semibold text-fg-500 uppercase tracking-wider whitespace-nowrap
+                    ${col.sortKey ? 'cursor-pointer hover:text-fg-300 select-none' : ''}
                     ${col.align === 'center' ? 'text-center' : 'text-left'}`}
                 >
                   {col.label}{col.sortKey && arrow(col.sortKey)}
@@ -119,24 +119,24 @@ export default function AuditTable({ results, ownDomains = [], showEmail = false
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody className="divide-y divide-fg/5">
             {sorted.map((neg, i) => {
               const own = isOwnSite(neg.siteUrl, ownDomains);
               return (
               <tr key={neg.id || i} className={`transition-colors ${own ? 'bg-indigo-500/[0.08] hover:bg-indigo-500/[0.14]' : `hover:bg-white/[0.05] ${i % 2 ? 'bg-white/[0.015]' : ''}`}`}>
-                <td className="px-4 py-3.5 text-gray-600 text-xs" style={{ boxShadow: `inset 3px 0 0 ${own ? '#6366f1' : bandColor(neg.seoScore)}` }}>{i + 1}</td>
+                <td className="px-4 py-3.5 text-fg-600 text-xs" style={{ boxShadow: `inset 3px 0 0 ${own ? '#6366f1' : bandColor(neg.seoScore)}` }}>{i + 1}</td>
                 <td className="px-4 py-3 max-w-[220px]">
-                  <div className="font-medium text-white truncate" title={neg.nombre}>{neg.nombre}</div>
+                  <div className="font-medium text-fg truncate" title={neg.nombre}>{neg.nombre}</div>
                   {own && (
-                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
                       ★ Hecho por mí
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-xs">{neg.ciudad || '—'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-fg-400 text-xs">{neg.ciudad || '—'}</td>
                 <td className="px-4 py-3 max-w-[200px]">
                   <a href={neg.siteUrl} target="_blank" rel="noopener noreferrer"
-                    className="text-indigo-400 hover:text-indigo-300 text-xs truncate block transition-colors"
+                    className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 text-xs truncate block transition-colors"
                     title={neg.siteUrl}>
                     {shortUrl(neg.siteUrl)}
                   </a>
@@ -148,7 +148,7 @@ export default function AuditTable({ results, ownDomains = [], showEmail = false
                 <td className="px-4 py-3 text-center"><Check val={neg.hasRobots} /></td>
                 <td className="px-4 py-3 text-center"><Check val={neg.metaDesc != null ? !!neg.metaDesc : null} /></td>
                 <td className="px-4 py-3 text-center"><Check val={neg.hasOG} /></td>
-                <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                <td className="px-4 py-3 text-xs text-fg-500 whitespace-nowrap">
                   {neg.lastModified
                     ? new Date(neg.lastModified).toLocaleDateString('es-AR', { month: 'short', year: 'numeric' })
                     : '—'}
@@ -157,7 +157,7 @@ export default function AuditTable({ results, ownDomains = [], showEmail = false
                   {neg.rating ? `★ ${neg.rating}` : '—'}
                 </td>
                 {showEmail && (
-                  <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap max-w-[180px] truncate" title={neg.email || ''}>
+                  <td className="px-4 py-3 text-xs text-fg-400 whitespace-nowrap max-w-[180px] truncate" title={neg.email || ''}>
                     {neg.email || '—'}
                   </td>
                 )}

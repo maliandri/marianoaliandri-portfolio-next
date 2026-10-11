@@ -130,13 +130,13 @@ function StepIndicator({ current }) {
         <div key={s} className="flex items-center gap-3">
           <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
             i === current ? 'bg-indigo-600 text-white' :
-            i < current  ? 'bg-indigo-600/20 text-indigo-400' :
-                           'bg-white/5 text-gray-600'
+            i < current  ? 'bg-indigo-600/20 text-indigo-600 dark:text-indigo-400' :
+                           'bg-fg/5 text-fg-600'
           }`}>
             <span>{i + 1}</span>
             <span>{s}</span>
           </div>
-          {i < STEPS.length - 1 && <div className="w-6 h-px bg-white/10" />}
+          {i < STEPS.length - 1 && <div className="w-6 h-px bg-fg/10" />}
         </div>
       ))}
     </div>
@@ -151,20 +151,20 @@ function ServiceCard({ item, selected, onToggle }) {
       className={`relative text-left p-4 rounded-xl border transition-all duration-200 ${
         selected
           ? 'border-indigo-500 bg-indigo-600/10'
-          : 'border-white/10 bg-[#111] hover:border-white/25'
+          : 'border-fg/10 bg-card hover:border-fg/25'
       }`}
     >
       {selected && (
         <span className="absolute top-2 right-2 w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center">
-          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3 h-3 text-fg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>
         </span>
       )}
-      <p className="font-semibold text-white text-sm pr-6">{item.label}</p>
-      <p className="text-gray-500 text-xs mt-1 leading-relaxed">{item.desc}</p>
+      <p className="font-semibold text-fg text-sm pr-6">{item.label}</p>
+      <p className="text-fg-500 text-xs mt-1 leading-relaxed">{item.desc}</p>
       {item.price && (
-        <p className={`text-xs font-semibold mt-2 ${selected ? 'text-indigo-400' : 'text-gray-600'}`}>
+        <p className={`text-xs font-semibold mt-2 ${selected ? 'text-indigo-600 dark:text-indigo-400' : 'text-fg-600'}`}>
           desde USD {item.price.toLocaleString()}
         </p>
       )}
@@ -235,15 +235,15 @@ export default function BudgetForm() {
         className="text-center py-20"
       >
         <div className="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-8 h-8 text-fg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-2xl font-bold text-white mb-3">¡Solicitud enviada!</h2>
-        <p className="text-gray-400 max-w-md mx-auto">
+        <h2 className="text-2xl font-bold text-fg mb-3">¡Solicitud enviada!</h2>
+        <p className="text-fg-400 max-w-md mx-auto">
           Recibí tu solicitud con {selectedItems.length} servicios seleccionados. Te respondo en menos de 24 horas con el presupuesto detallado.
         </p>
-        <p className="text-gray-600 text-sm mt-4">📧 Revisá {form.clientEmail}</p>
+        <p className="text-fg-600 text-sm mt-4">📧 Revisá {form.clientEmail}</p>
       </motion.div>
     );
   }
@@ -256,15 +256,15 @@ export default function BudgetForm() {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16">
         <p className="text-3xl mb-4">✅</p>
-        <h2 className="text-xl font-bold text-white mb-3">Ya enviaste una solicitud</h2>
-        <p className="text-gray-400 max-w-md mx-auto text-sm">
+        <h2 className="text-xl font-bold text-fg mb-3">Ya enviaste una solicitud</h2>
+        <p className="text-fg-400 max-w-md mx-auto text-sm">
           El {when} enviaste una solicitud con {lastSent.servicesCount} servicio{lastSent.servicesCount !== 1 ? 's' : ''}
-          {lastSent.email ? <> a nombre de <span className="text-white">{lastSent.email}</span></> : ''}.
+          {lastSent.email ? <> a nombre de <span className="text-fg">{lastSent.email}</span></> : ''}.
           Si todavía no te respondimos, dentro de las 24 horas te llega el presupuesto — no hace falta reenviarla.
         </p>
         <button
           onClick={() => setLastSent(null)}
-          className="mt-6 text-indigo-400 hover:text-indigo-300 text-sm underline"
+          className="mt-6 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 text-sm underline"
         >
           Necesito enviar una solicitud distinta →
         </button>
@@ -289,36 +289,36 @@ export default function BudgetForm() {
                 { name: 'clientCompany', label: 'Empresa / Negocio',  placeholder: 'Nombre de tu empresa',   type: 'text',  required: false },
               ].map(f => (
                 <div key={f.name}>
-                  <label className="block text-sm text-gray-400 mb-2">{f.label}</label>
+                  <label className="block text-sm text-fg-400 mb-2">{f.label}</label>
                   <input
                     type={f.type}
                     placeholder={f.placeholder}
                     value={form[f.name]}
                     onChange={e => setForm(p => ({ ...p, [f.name]: e.target.value }))}
-                    className="w-full bg-[#111] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none transition-colors"
+                    className="w-full bg-card border border-fg/10 rounded-xl px-4 py-3 text-fg placeholder-fg-600 focus:border-indigo-500 focus:outline-none transition-colors"
                     required={f.required}
                   />
                 </div>
               ))}
             </div>
             <div className="mb-4">
-              <label className="block text-sm text-gray-400 mb-2">Descripción del proyecto *</label>
+              <label className="block text-sm text-fg-400 mb-2">Descripción del proyecto *</label>
               <textarea
                 placeholder="Contame brevemente qué necesitás. Cuanto más detalle, mejor el presupuesto."
                 value={form.projectDescription}
                 onChange={e => setForm(p => ({ ...p, projectDescription: e.target.value }))}
                 rows={4}
-                className="w-full bg-[#111] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none transition-colors resize-none"
+                className="w-full bg-card border border-fg/10 rounded-xl px-4 py-3 text-fg placeholder-fg-600 focus:border-indigo-500 focus:outline-none transition-colors resize-none"
               />
             </div>
             <div className="mb-8">
-              <label className="block text-sm text-gray-400 mb-2">¿Tenés fecha límite?</label>
+              <label className="block text-sm text-fg-400 mb-2">¿Tenés fecha límite?</label>
               <input
                 type="text"
                 placeholder="Ej: Necesito el sitio para fin de mes, o sin fecha límite"
                 value={form.deadline}
                 onChange={e => setForm(p => ({ ...p, deadline: e.target.value }))}
-                className="w-full bg-[#111] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none transition-colors"
+                className="w-full bg-card border border-fg/10 rounded-xl px-4 py-3 text-fg placeholder-fg-600 focus:border-indigo-500 focus:outline-none transition-colors"
               />
             </div>
             <button
@@ -330,11 +330,11 @@ export default function BudgetForm() {
                 setError('');
                 setStep(1);
               }}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 rounded-xl transition-colors"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 glow-btn"
             >
               Siguiente → Elegir servicios
             </button>
-            {error && <p className="text-red-400 text-sm mt-3 text-center">{error}</p>}
+            {error && <p className="text-red-600 dark:text-red-400 text-sm mt-3 text-center">{error}</p>}
           </motion.div>
         )}
 
@@ -342,9 +342,9 @@ export default function BudgetForm() {
         {step === 1 && (
           <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
             <div className="flex items-center justify-center gap-4 mb-6 text-sm">
-              <span className="text-gray-500">Seleccioná todos los servicios que necesitás.</span>
+              <span className="text-fg-500">Seleccioná todos los servicios que necesitás.</span>
               {selected.size > 0 && (
-                <span className="bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 px-3 py-1 rounded-full text-xs font-semibold">
+                <span className="bg-indigo-600/20 border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-full text-xs font-semibold">
                   {selected.size} seleccionados · desde USD {estimatedTotal.toLocaleString()}
                 </span>
               )}
@@ -352,7 +352,7 @@ export default function BudgetForm() {
             <div className="space-y-8">
               {SERVICES.map(cat => (
                 <div key={cat.category}>
-                  <h3 className="text-indigo-400 text-sm font-semibold tracking-wide uppercase mb-3">{cat.category}</h3>
+                  <h3 className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold tracking-wide uppercase mb-3">{cat.category}</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {cat.items.map(item => (
                       <ServiceCard key={item.id} item={item} selected={selected.has(item.id)} onToggle={toggleService} />
@@ -362,7 +362,7 @@ export default function BudgetForm() {
               ))}
             </div>
             <div className="flex gap-3 mt-10">
-              <button onClick={() => setStep(0)} className="flex-1 border border-white/10 hover:border-white/25 text-white py-3.5 rounded-xl transition-colors">
+              <button onClick={() => setStep(0)} className="flex-1 border border-fg/10 hover:border-fg/25 text-fg py-3.5 rounded-xl transition-colors">
                 ← Volver
               </button>
               <button
@@ -371,71 +371,71 @@ export default function BudgetForm() {
                   setError('');
                   setStep(2);
                 }}
-                className="flex-[2] bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 rounded-xl transition-colors"
+                className="flex-[2] bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 glow-btn"
               >
                 Ver resumen →
               </button>
             </div>
-            {error && <p className="text-red-400 text-sm mt-3 text-center">{error}</p>}
+            {error && <p className="text-red-600 dark:text-red-400 text-sm mt-3 text-center">{error}</p>}
           </motion.div>
         )}
 
         {/* PASO 3 — Resumen */}
         {step === 2 && (
           <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-            <div className="bg-[#111] border border-white/10 rounded-2xl p-6 mb-6">
-              <h3 className="text-white font-bold mb-4">Resumen de tu solicitud</h3>
+            <div className="glow-frame bg-card border border-fg/10 rounded-2xl p-6 mb-6">
+              <h3 className="text-fg font-bold mb-4">Resumen de tu solicitud</h3>
               <div className="space-y-1 mb-5 text-sm">
-                <p><span className="text-gray-500">Nombre:</span> <span className="text-white">{form.clientName}</span></p>
-                <p><span className="text-gray-500">Email:</span> <span className="text-white">{form.clientEmail}</span></p>
-                {form.clientPhone && <p><span className="text-gray-500">Teléfono:</span> <span className="text-white">{form.clientPhone}</span></p>}
-                {form.clientCompany && <p><span className="text-gray-500">Empresa:</span> <span className="text-white">{form.clientCompany}</span></p>}
-                {form.deadline && <p><span className="text-gray-500">Fecha límite:</span> <span className="text-white">{form.deadline}</span></p>}
+                <p><span className="text-fg-500">Nombre:</span> <span className="text-fg">{form.clientName}</span></p>
+                <p><span className="text-fg-500">Email:</span> <span className="text-fg">{form.clientEmail}</span></p>
+                {form.clientPhone && <p><span className="text-fg-500">Teléfono:</span> <span className="text-fg">{form.clientPhone}</span></p>}
+                {form.clientCompany && <p><span className="text-fg-500">Empresa:</span> <span className="text-fg">{form.clientCompany}</span></p>}
+                {form.deadline && <p><span className="text-fg-500">Fecha límite:</span> <span className="text-fg">{form.deadline}</span></p>}
               </div>
-              <div className="border-t border-white/5 pt-4">
-                <p className="text-gray-500 text-xs uppercase tracking-wide mb-3">Servicios seleccionados ({selectedItems.length})</p>
+              <div className="border-t border-fg/5 pt-4">
+                <p className="text-fg-500 text-xs uppercase tracking-wide mb-3">Servicios seleccionados ({selectedItems.length})</p>
                 <div className="space-y-1.5 mb-4">
                   {selectedItems.map(s => (
                     <div key={s.id} className="flex items-center justify-between gap-3">
-                      <span className="text-gray-300 text-sm">{s.label}</span>
+                      <span className="text-fg-300 text-sm">{s.label}</span>
                       {s.price && (
-                        <span className="text-gray-500 text-xs whitespace-nowrap">desde USD {s.price.toLocaleString()}</span>
+                        <span className="text-fg-500 text-xs whitespace-nowrap">desde USD {s.price.toLocaleString()}</span>
                       )}
                     </div>
                   ))}
                 </div>
                 {estimatedTotal > 0 && (
-                  <div className="flex items-center justify-between pt-3 border-t border-white/8">
-                    <span className="text-sm text-gray-400 font-medium">Total estimado</span>
+                  <div className="flex items-center justify-between pt-3 border-t border-fg/8">
+                    <span className="text-sm text-fg-400 font-medium">Total estimado</span>
                     <div className="text-right">
-                      <span className="text-white font-bold text-lg">USD {estimatedTotal.toLocaleString()}</span>
+                      <span className="text-fg font-bold text-lg">USD {estimatedTotal.toLocaleString()}</span>
                       <p className="text-gray-700 text-[10px] mt-0.5">precio orientativo · puede variar según alcance</p>
                     </div>
                   </div>
                 )}
               </div>
               {form.projectDescription && (
-                <div className="border-t border-white/5 pt-4 mt-4">
-                  <p className="text-gray-500 text-xs uppercase tracking-wide mb-2">Descripción</p>
-                  <p className="text-gray-300 text-sm leading-relaxed">{form.projectDescription}</p>
+                <div className="border-t border-fg/5 pt-4 mt-4">
+                  <p className="text-fg-500 text-xs uppercase tracking-wide mb-2">Descripción</p>
+                  <p className="text-fg-300 text-sm leading-relaxed">{form.projectDescription}</p>
                 </div>
               )}
             </div>
 
-            <p className="text-gray-600 text-xs text-center mb-6">
+            <p className="text-fg-600 text-xs text-center mb-6">
               Al enviar aceptás que Mariano Aliandri te contacte para elaborar el presupuesto. Sin compromisos.
             </p>
 
-            {error && <p className="text-red-400 text-sm mb-4 text-center">{error}</p>}
+            {error && <p className="text-red-600 dark:text-red-400 text-sm mb-4 text-center">{error}</p>}
 
             <div className="flex gap-3">
-              <button onClick={() => setStep(1)} className="flex-1 border border-white/10 hover:border-white/25 text-white py-3.5 rounded-xl transition-colors">
+              <button onClick={() => setStep(1)} className="flex-1 border border-fg/10 hover:border-fg/25 text-fg py-3.5 rounded-xl transition-colors">
                 ← Modificar
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="flex-[2] bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-colors"
+                className="flex-[2] bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold py-3.5 glow-btn"
               >
                 {submitting ? 'Enviando...' : 'Enviar solicitud de presupuesto'}
               </button>

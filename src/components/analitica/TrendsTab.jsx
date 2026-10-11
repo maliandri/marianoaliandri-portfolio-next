@@ -11,8 +11,8 @@ const PALETTE = ['#6366f1', '#22d3ee', '#4ade80', '#f59e0b', '#f87171'];
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 text-xs shadow-xl">
-      <p className="text-gray-400 mb-1.5">{label}</p>
+    <div className="bg-card-2 border border-fg/10 rounded-xl px-4 py-3 text-xs shadow-xl">
+      <p className="text-fg-400 mb-1.5">{label}</p>
       {payload.map((p, i) => (
         <p key={i} style={{ color: p.color }} className="font-semibold">{p.name}: {p.value}</p>
       ))}
@@ -22,7 +22,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 function InterestChart({ data = [], keywords = [], color }) {
   if (!data.length) return (
-    <p className="text-xs text-gray-600 py-4">Sin datos suficientes para este grupo en Neuquén.</p>
+    <p className="text-xs text-fg-600 py-4">Sin datos suficientes para este grupo en Neuquén.</p>
   );
 
   const chartData = data.slice(-30).map(p => {
@@ -50,7 +50,7 @@ function InterestChart({ data = [], keywords = [], color }) {
             </linearGradient>
           ))}
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(127,127,127,0.2)" />
         <XAxis dataKey="date" tick={{ fill: '#6b7280', fontSize: 9 }} tickLine={false} axisLine={false}
           tickFormatter={d => d?.replace(/\s\d{4}$/, '')} />
         <YAxis tick={{ fill: '#6b7280', fontSize: 9 }} tickLine={false} axisLine={false} domain={[0, 100]} />
@@ -69,18 +69,18 @@ function RelatedBlock({ related = {}, label }) {
   const { rising = [], top = [] } = related;
   if (!rising.length && !top.length) return null;
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 pt-4 border-t border-white/6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 pt-4 border-t border-fg/6">
       {[
         { tag: '🚀 En ascenso', items: rising },
         { tag: '🔥 Más buscados', items: top },
       ].map(({ tag, items }) => (
         <div key={tag}>
-          <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider mb-2">{tag}</p>
+          <p className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">{tag}</p>
           <div className="space-y-1.5">
             {items.slice(0, 6).map((q, i) => (
               <div key={i} className="flex items-center justify-between gap-2">
-                <span className="text-xs text-gray-300 truncate">{q.query}</span>
-                <span className="text-[10px] text-gray-600 shrink-0">
+                <span className="text-xs text-fg-300 truncate">{q.query}</span>
+                <span className="text-[10px] text-fg-600 shrink-0">
                   {typeof q.value === 'number' && q.value > 0 ? `+${q.value}%` : ''}
                 </span>
               </div>
@@ -94,11 +94,11 @@ function RelatedBlock({ related = {}, label }) {
 
 function SectorCard({ icon, title, accent, data, keywords, related, colorId }) {
   return (
-    <div className={`bg-[#111] border rounded-2xl p-6 ${accent}`}>
+    <div className={`bg-card border rounded-2xl p-6 ${accent}`}>
       <div className="flex items-center gap-2 mb-5">
         <span className="text-xl">{icon}</span>
-        <p className="text-sm font-bold text-white">{title}</p>
-        <span className="ml-auto text-[10px] text-gray-600 uppercase tracking-wider">Neuquén / Comahue · 90 días</span>
+        <p className="text-sm font-bold text-fg">{title}</p>
+        <span className="ml-auto text-[10px] text-fg-600 uppercase tracking-wider">Neuquén / Comahue · 90 días</span>
       </div>
       <InterestChart data={data} keywords={keywords} color={colorId} />
       {related && <RelatedBlock related={related} />}
@@ -116,28 +116,28 @@ function GeneralTrends({ trends = [] }) {
   })).reverse();
 
   return (
-    <div className="bg-[#111] border border-white/8 rounded-2xl overflow-hidden">
+    <div className="bg-card border border-fg/8 rounded-2xl overflow-hidden">
       <button
         onClick={() => setOpen(p => !p)}
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-white/3 transition-colors"
+        className="w-full flex items-center justify-between px-6 py-4 hover:bg-fg/3 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <span className="text-gray-500 text-sm">📰</span>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <span className="text-fg-500 text-sm">📰</span>
+          <p className="text-xs font-semibold text-fg-500 uppercase tracking-wider">
             Tendencias generales de Argentina hoy
           </p>
         </div>
-        <svg className={`w-4 h-4 text-gray-600 transition-transform ${open ? 'rotate-180' : ''}`}
+        <svg className={`w-4 h-4 text-fg-600 transition-transform ${open ? 'rotate-180' : ''}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
       {open && (
         <div className="px-6 pb-6">
-          <p className="text-xs text-gray-600 mb-4">Noticias, deportes y cultura — contexto general, no comercial.</p>
+          <p className="text-xs text-fg-600 mb-4">Noticias, deportes y cultura — contexto general, no comercial.</p>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={data} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(127,127,127,0.2)" horizontal={false} />
               <XAxis type="number" tick={{ fill: '#6b7280', fontSize: 10 }} tickLine={false} axisLine={false} />
               <YAxis type="category" dataKey="name" tick={{ fill: '#9ca3af', fontSize: 11 }}
                 tickLine={false} axisLine={false} width={130} />
@@ -157,7 +157,7 @@ export default function TrendsTab({ trends, region = 'neuquen' }) {
   if (!trends || !data) return (
     <div className="text-center py-20">
       <p className="text-3xl mb-3">📡</p>
-      <p className="text-gray-500 text-sm">Sin datos de tendencias todavía.</p>
+      <p className="text-fg-500 text-sm">Sin datos de tendencias todavía.</p>
       <p className="text-gray-700 text-xs mt-2">El cron actualiza el cache diariamente a las 7am.</p>
     </div>
   );
@@ -209,11 +209,11 @@ export default function TrendsTab({ trends, region = 'neuquen' }) {
       {/* Header info */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-500">
-            Interés de búsqueda en <span className="text-white font-semibold">Neuquén / Comahue</span> · Últimos 90 días · Fuente: Google Trends
+          <p className="text-xs text-fg-500">
+            Interés de búsqueda en <span className="text-fg font-semibold">Neuquén / Comahue</span> · Últimos 90 días · Fuente: Google Trends
           </p>
         </div>
-        <p className="text-xs text-gray-600">Actualizado: {trends.date}</p>
+        <p className="text-xs text-fg-600">Actualizado: {trends.date}</p>
       </div>
 
       {/* 4 sectores */}

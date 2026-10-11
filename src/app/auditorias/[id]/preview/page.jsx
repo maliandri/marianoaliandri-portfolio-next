@@ -42,7 +42,7 @@ export default async function AuditoriaPreviewPage({ params }) {
 
   return (
     <main
-      className="bg-[#0a0a0a] min-h-screen"
+      className="bg-page min-h-screen"
       style={{ padding: '28px 32px 32px', fontFamily: 'system-ui,sans-serif' }}
     >
       {/* Header compacto */}

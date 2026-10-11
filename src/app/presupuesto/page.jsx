@@ -13,16 +13,16 @@ export const metadata = {
 
 export default function PresupuestoPage() {
   return (
-    <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20">
+    <main className="min-h-screen bg-page pt-24 pb-20">
       <div className="max-w-5xl mx-auto px-4">
-        <div className="text-center mb-12">
-          <span className="inline-block text-xs font-semibold tracking-widest text-indigo-400 uppercase mb-4">
+        <div className="hero-glow text-center mb-12">
+          <span className="inline-block text-xs font-semibold tracking-widest text-indigo-600 dark:text-indigo-400 uppercase mb-4">
             Sin compromiso
           </span>
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Pedí tu presupuesto
+          <h1 className="text-4xl md:text-5xl font-bold text-fg mb-4">
+            Pedí tu <span className="text-gradient">presupuesto</span>
           </h1>
-          <p className="text-gray-400 text-lg max-w-xl mx-auto">
+          <p className="text-fg-400 text-lg max-w-xl mx-auto">
             Elegí los servicios que necesitás y te respondo con un presupuesto detallado en menos de 24 horas.
           </p>
         </div>

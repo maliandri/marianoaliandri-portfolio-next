@@ -437,7 +437,7 @@ export default function DashboardStats({
                   Páginas más visitadas
                 </h3>
                 {loading ? (
-                  <p className="text-xs text-gray-500">Cargando...</p>
+                  <p className="text-xs text-fg-500">Cargando...</p>
                 ) : safeStats.topPages && safeStats.topPages.length > 0 ? (
                   <div className="space-y-2">
                     {safeStats.topPages.map((page, index) => (
@@ -446,7 +446,7 @@ export default function DashboardStats({
                         className="flex items-center justify-between text-xs bg-white dark:bg-gray-800 p-2 rounded-lg"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-gray-400 w-4">#{index + 1}</span>
+                          <span className="font-bold text-fg-400 w-4">#{index + 1}</span>
                           <span className="text-gray-700 dark:text-gray-300 truncate max-w-[180px]">
                             {page.title || page.path}
                           </span>
@@ -458,7 +458,7 @@ export default function DashboardStats({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-500">No hay datos disponibles</p>
+                  <p className="text-xs text-fg-500">No hay datos disponibles</p>
                 )}
               </div>
 
@@ -469,7 +469,7 @@ export default function DashboardStats({
                   Productos más visitados
                 </h3>
                 {loading ? (
-                  <p className="text-xs text-gray-500">Cargando...</p>
+                  <p className="text-xs text-fg-500">Cargando...</p>
                 ) : safeStats.topProducts && safeStats.topProducts.length > 0 ? (
                   <div className="space-y-2">
                     {safeStats.topProducts.map((product, index) => (
@@ -478,7 +478,7 @@ export default function DashboardStats({
                         className="flex items-center justify-between text-xs bg-white dark:bg-gray-800 p-2 rounded-lg"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-gray-400 w-4">#{index + 1}</span>
+                          <span className="font-bold text-fg-400 w-4">#{index + 1}</span>
                           <span className="text-gray-700 dark:text-gray-300 truncate max-w-[180px]">
                             {product.productName}
                           </span>
@@ -490,7 +490,7 @@ export default function DashboardStats({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-500">No hay datos disponibles</p>
+                  <p className="text-xs text-fg-500">No hay datos disponibles</p>
                 )}
               </div>
             </div>
@@ -562,7 +562,7 @@ function SearchConsoleSection({ data, loading, fmt }) {
         <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
           <span>🔍</span> Google Search Console
         </h3>
-        <p className="text-xs text-gray-500 animate-pulse">Cargando datos de Search Console...</p>
+        <p className="text-xs text-fg-500 animate-pulse">Cargando datos de Search Console...</p>
       </div>
     );
   }
@@ -628,9 +628,9 @@ function SearchConsoleSection({ data, loading, fmt }) {
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0 ml-2">
                   <span className={`text-xs font-bold ${colors.text}`}>{fmt(site.totals.clicks)} clicks</span>
-                  <span className="text-[10px] text-gray-400">{fmt(site.totals.impressions)} imp</span>
+                  <span className="text-[10px] text-fg-400">{fmt(site.totals.impressions)} imp</span>
                   <svg
-                    className={`w-3 h-3 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                    className={`w-3 h-3 text-fg-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                     fill="none" viewBox="0 0 24 24" stroke="currentColor"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

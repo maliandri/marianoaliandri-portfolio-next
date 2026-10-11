@@ -68,7 +68,7 @@ export default function AuditMap({ results = [], radioKm = 20, ownDomains = [], 
 
   return (
     <>
-      <div className="rounded-xl overflow-hidden border border-white/10" style={{ height }}>
+      <div className="rounded-xl overflow-hidden border border-fg/10" style={{ height }}>
         <MapContainer center={[points[0].lat, points[0].lon]} zoom={12} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
           <TileLayer
             attribution='&copy; OpenStreetMap contributors'
@@ -100,7 +100,7 @@ export default function AuditMap({ results = [], radioKm = 20, ownDomains = [], 
         </MapContainer>
       </div>
       {hidden > 0 && (
-        <p className="text-[11px] text-gray-600 mt-1.5">
+        <p className="text-[11px] text-fg-600 mt-1.5">
           {hidden} negocio{hidden !== 1 ? 's' : ''} fuera de la zona {hidden !== 1 ? 'no se muestran' : 'no se muestra'} en el mapa (ubicación lejana o mal cargada).
         </p>
       )}

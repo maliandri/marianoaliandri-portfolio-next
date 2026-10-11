@@ -151,9 +151,9 @@ export default function KpiRadar({ isOpen: isOpenProp, onClose: onCloseProp, hid
               <div className="bg-gradient-to-r from-fuchsia-600 to-purple-700 text-white p-6 flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">Radar de KPI Empresariales</h2>
-                  <p className="text-white/80">Seleccioná el sector y mirá los 5 indicadores clave que mueven la aguja.</p>
+                  <p className="text-fg/80">Seleccioná el sector y mirá los 5 indicadores clave que mueven la aguja.</p>
                 </div>
-                <button onClick={handleClose} className="hover:text-white/80">
+                <button onClick={handleClose} className="hover:text-fg/80">
                   <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
               </div>

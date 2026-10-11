@@ -85,17 +85,17 @@ export default async function AuditoriaDetailPage({ params }) {
     { key: 'bueno', label: 'Aceptable (70+)',   color: '#22c55e', n: scored.filter(r => r.seoScore >= 70).length },
   ];
   return (
-    <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20 px-2 md:px-4">
+    <main className="min-h-screen bg-page pt-24 pb-20 px-2 md:px-4">
 
-      <Link href="/auditorias" className="text-xs text-gray-600 hover:text-gray-400 transition-colors mb-6 inline-block">
+      <Link href="/auditorias" className="text-xs text-fg-600 hover:text-fg-400 transition-colors mb-6 inline-block">
         ← Todas las auditorías
       </Link>
 
       {/* Header */}
       <div className="mb-8">
-        <p className="text-xs text-gray-500 mb-2">{formatDate(a.publishedAt)}</p>
+        <p className="text-xs text-fg-500 mb-2">{formatDate(a.publishedAt)}</p>
         <div className="flex items-start justify-between gap-4 mb-4">
-          <h1 className="text-3xl md:text-4xl font-black text-white">{a.title}</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-fg">{a.title}</h1>
           <AuditPdfButton
             audit={{
               title: a.title,
@@ -111,13 +111,13 @@ export default async function AuditoriaDetailPage({ params }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {ciudades.map(c => (
-            <span key={c} className="text-sm bg-white/5 border border-white/10 text-gray-300 px-3 py-1.5 rounded-full">📍 {c}</span>
+            <span key={c} className="text-sm bg-fg/5 border border-fg/10 text-fg-300 px-3 py-1.5 rounded-full">📍 {c}</span>
           ))}
           {a.config?.radioKm && (
-            <span className="text-sm bg-white/5 border border-white/10 text-gray-300 px-3 py-1.5 rounded-full">📡 Radio {a.config.radioKm} km</span>
+            <span className="text-sm bg-fg/5 border border-fg/10 text-fg-300 px-3 py-1.5 rounded-full">📡 Radio {a.config.radioKm} km</span>
           )}
           {(a.config?.tiposLabels || []).map(t => (
-            <span key={t} className="text-sm bg-white/5 border border-white/10 text-gray-400 px-3 py-1.5 rounded-full">{t}</span>
+            <span key={t} className="text-sm bg-fg/5 border border-fg/10 text-fg-400 px-3 py-1.5 rounded-full">{t}</span>
           ))}
         </div>
       </div>
@@ -125,15 +125,15 @@ export default async function AuditoriaDetailPage({ params }) {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { value: a.stats?.total ?? '—',        label: 'Sitios analizados',  color: 'text-white',       icon: '🌐' },
-          { value: a.stats?.withEmail ?? '—',    label: 'Con email público',  color: 'text-green-400',   icon: '✉️' },
-          { value: a.stats?.lowSeoCount ?? '—',  label: 'SEO débil (< 50)',   color: 'text-red-400',     icon: '⚠️' },
-          { value: a.stats?.avgSeoScore ?? '—',  label: 'Score SEO promedio', color: 'text-indigo-400',  icon: '📊' },
+          { value: a.stats?.total ?? '—',        label: 'Sitios analizados',  color: 'text-fg',       icon: '🌐' },
+          { value: a.stats?.withEmail ?? '—',    label: 'Con email público',  color: 'text-green-600 dark:text-green-400',   icon: '✉️' },
+          { value: a.stats?.lowSeoCount ?? '—',  label: 'SEO débil (< 50)',   color: 'text-red-600 dark:text-red-400',     icon: '⚠️' },
+          { value: a.stats?.avgSeoScore ?? '—',  label: 'Score SEO promedio', color: 'text-indigo-600 dark:text-indigo-400',  icon: '📊' },
         ].map(s => (
-          <div key={s.label} className="bg-[#111] border border-white/10 rounded-xl p-5 text-center hover:border-white/20 transition-colors">
+          <div key={s.label} className="bg-card border border-fg/10 rounded-xl p-5 text-center hover:border-fg/20 transition-colors">
             <div className="text-lg mb-1 opacity-70" aria-hidden>{s.icon}</div>
             <div className={`text-3xl md:text-4xl font-bold ${s.color}`}>{s.value}</div>
-            <div className="text-xs text-gray-500 mt-1">{s.label}</div>
+            <div className="text-xs text-fg-500 mt-1">{s.label}</div>
           </div>
         ))}
       </div>
@@ -141,7 +141,7 @@ export default async function AuditoriaDetailPage({ params }) {
       {/* Distribución de Score SEO */}
       {nScored > 0 && (
         <div className="mb-8">
-          <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-3">Distribución de Score SEO</p>
+          <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-3">Distribución de Score SEO</p>
           <SeoScoreChart bands={bands} />
         </div>
       )}
@@ -149,14 +149,14 @@ export default async function AuditoriaDetailPage({ params }) {
       {/* Mapa — justo debajo del gráfico */}
       {results.some(r => typeof r.lat === 'number' && typeof r.lon === 'number') && (
         <div className="mb-10">
-          <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-3">Mapa de los negocios</p>
+          <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-3">Mapa de los negocios</p>
           <AuditMapLoader results={results} radioKm={a.config?.radioKm} ownDomains={ownDomains} />
-          <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-500">
+          <div className="flex flex-wrap gap-4 mt-3 text-xs text-fg-500">
             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#ef4444' }} /> SEO débil (&lt; 40)</span>
             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#f59e0b' }} /> Mejorable (40–69)</span>
             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#22c55e' }} /> Aceptable (70+)</span>
             {hasOwnSite && (
-              <span className="flex items-center gap-1.5 text-indigo-300"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#6366f1' }} /> ★ Hecho por mí</span>
+              <span className="flex items-center gap-1.5 text-indigo-700 dark:text-indigo-300"><span className="w-3 h-3 rounded-full inline-block" style={{ background: '#6366f1' }} /> ★ Hecho por mí</span>
             )}
           </div>
         </div>
@@ -164,15 +164,15 @@ export default async function AuditoriaDetailPage({ params }) {
 
       {/* Resumen Gemini */}
       {a.summary && (
-        <div className="bg-[#111] border border-white/10 rounded-xl p-6 mb-6">
-          <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-3">Análisis</p>
-          <p className="text-gray-300 leading-relaxed text-sm">{a.summary}</p>
+        <div className="bg-card border border-fg/10 rounded-xl p-6 mb-6">
+          <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-3">Análisis</p>
+          <p className="text-fg-300 leading-relaxed text-sm">{a.summary}</p>
         </div>
       )}
 
       {/* Explicación score */}
-      <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-xl p-4 mb-6 text-sm text-gray-400">
-        <span className="text-indigo-400 font-semibold">¿Qué mide el Score SEO?</span>{' '}
+      <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-xl p-4 mb-6 text-sm text-fg-400">
+        <span className="text-indigo-600 dark:text-indigo-400 font-semibold">¿Qué mide el Score SEO?</span>{' '}
         Evalúa sitemap (-25 si falta), robots.txt (-20), meta description (-25), Open Graph (-15) y antigüedad del sitio (-15 si más de 18 meses sin actualizar). Score 0–100: rojo = débil, amarillo = mejorable, verde = aceptable. Hacé click en los encabezados para ordenar.
       </div>
 
@@ -181,11 +181,11 @@ export default async function AuditoriaDetailPage({ params }) {
       {/* CTA — Solicitar auditoría propia */}
       <div className="mt-16 mb-8">
         <div className="text-center mb-6">
-          <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-2">¿Tu sitio está en esta lista?</p>
-          <h2 className="text-2xl md:text-3xl font-black text-white">
+          <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">¿Tu sitio está en esta lista?</p>
+          <h2 className="text-2xl md:text-3xl font-black text-fg">
             Pedí tu análisis gratuito
           </h2>
-          <p className="text-gray-500 text-sm mt-2 max-w-md mx-auto">
+          <p className="text-fg-500 text-sm mt-2 max-w-md mx-auto">
             Si tenés un negocio en Argentina, analizamos cómo aparece tu sitio en Google y te mandamos el informe sin costo.
           </p>
         </div>
@@ -196,7 +196,7 @@ export default async function AuditoriaDetailPage({ params }) {
 
       <p className="text-center text-xs text-gray-700 mt-8">
         Auditoría realizada por{' '}
-        <Link href="/" className="text-gray-500 hover:text-gray-300 transition-colors">Mariano Aliandri</Link>
+        <Link href="/" className="text-fg-500 hover:text-fg-300 transition-colors">Mariano Aliandri</Link>
         {' '}· {formatDate(a.publishedAt)}
       </p>
     </main>

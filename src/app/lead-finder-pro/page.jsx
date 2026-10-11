@@ -43,29 +43,29 @@ export default function LeadFinderProLanding() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
-      <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20 px-4">
+      <main className="min-h-screen bg-page pt-24 pb-20 px-4">
       <div className="max-w-4xl mx-auto flex justify-end mb-4">
         <LanguageSwitch />
       </div>
       <AudienceHero />
 
-      <div className="max-w-4xl mx-auto bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 mb-16">
-        <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-4">¿Cómo funcionan los créditos?</p>
+      <div className="glow-frame max-w-4xl mx-auto bg-card border border-fg/10 rounded-2xl p-6 md:p-8 mb-16">
+        <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-4">¿Cómo funcionan los créditos?</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <p className="text-white font-semibold text-sm mb-1.5">🎯 Vos elegís cuántos resultados querés</p>
-            <p className="text-gray-500 text-sm">
+            <p className="text-fg font-semibold text-sm mb-1.5">🎯 Vos elegís cuántos resultados querés</p>
+            <p className="text-fg-500 text-sm">
               Antes de buscar, poné la localidad, el término y cuántos negocios querés (1, 10, 50...). Eso es exactamente lo que se gasta de tu plan — ni más, ni menos.
             </p>
           </div>
           <div>
-            <p className="text-white font-semibold text-sm mb-1.5">✅ Resultados ya auditados, sin pasos extra</p>
-            <p className="text-gray-500 text-sm">
+            <p className="text-fg font-semibold text-sm mb-1.5">✅ Resultados ya auditados, sin pasos extra</p>
+            <p className="text-fg-500 text-sm">
               No hay que tildar "auditar" uno por uno: cada resultado llega directo con website, teléfono, horarios, rating y score SEO. Si un negocio ya lo habías auditado antes, no te vuelve a cobrar el crédito.
             </p>
           </div>
         </div>
-        <p className="text-gray-600 text-xs mt-5">
+        <p className="text-fg-600 text-xs mt-5">
           Con el plan Starter (100/mes) podés pedir hasta 100 negocios completamente auditados por mes.
         </p>
       </div>
@@ -73,9 +73,9 @@ export default function LeadFinderProLanding() {
       <PlansSection />
 
       <div className="max-w-4xl mx-auto text-center">
-        <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-2">Ejemplos reales</p>
-        <p className="text-gray-500 text-sm mb-6">Reportes ya publicados, del mismo tipo que vas a ver en la prueba gratuita.</p>
-        <Link href="/auditorias" className="text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors">
+        <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">Ejemplos reales</p>
+        <p className="text-fg-500 text-sm mb-6">Reportes ya publicados, del mismo tipo que vas a ver en la prueba gratuita.</p>
+        <Link href="/auditorias" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 text-sm font-medium transition-colors">
           Ver auditorías públicas →
         </Link>
       </div>

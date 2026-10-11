@@ -49,18 +49,18 @@ export default async function NoticiasPage() {
   const noticias = await getNoticias();
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] pt-24 pb-20">
+    <main className="min-h-screen bg-page pt-24 pb-20">
       <div className="max-w-5xl mx-auto px-4">
-        <div className="mb-12">
-          <span className="text-xs font-semibold tracking-widest text-indigo-400 uppercase">Canal de noticias</span>
-          <h1 className="text-4xl md:text-5xl font-black text-white mt-3 mb-4">Noticias</h1>
-          <p className="text-gray-400 text-lg max-w-2xl">
+        <div className="hero-glow mb-12">
+          <span className="text-xs font-semibold tracking-widest text-indigo-600 dark:text-indigo-400 uppercase">Canal de noticias</span>
+          <h1 className="text-4xl md:text-5xl font-black text-fg mt-3 mb-4"><span className="text-gradient">Noticias</span></h1>
+          <p className="text-fg-400 text-lg max-w-2xl">
             Novedades de los temas que sigo, resumidas y publicadas automáticamente.
           </p>
         </div>
 
         {noticias.length === 0 ? (
-          <div className="text-center py-20 text-gray-600">
+          <div className="text-center py-20 text-fg-600">
             <p className="text-5xl mb-4">📰</p>
             <p className="text-lg">Todavía no hay noticias publicadas.</p>
           </div>
@@ -70,7 +70,7 @@ export default async function NoticiasPage() {
               <Link
                 key={n.id}
                 href={`/noticias/${n.id}/`}
-                className="block bg-[#111] border border-white/10 hover:border-indigo-500/40 rounded-2xl overflow-hidden transition-colors group"
+                className="glow-frame block bg-card border border-fg/10 hover:border-indigo-500/40 rounded-2xl overflow-hidden transition-colors group"
               >
                 {n.imageUrl && (
                   <div className="aspect-video overflow-hidden">
@@ -79,12 +79,12 @@ export default async function NoticiasPage() {
                 )}
                 <div className="p-5">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs bg-white/5 border border-white/10 text-gray-400 px-2.5 py-1 rounded-full">
+                    <span className="text-xs bg-fg/5 border border-fg/10 text-fg-400 px-2.5 py-1 rounded-full">
                       {n.topicLabel}
                     </span>
-                    <span className="text-xs text-gray-600">{formatDate(n.publishedAt)}</span>
+                    <span className="text-xs text-fg-600">{formatDate(n.publishedAt)}</span>
                   </div>
-                  <h2 className="text-white font-bold text-lg group-hover:text-indigo-400 transition-colors">
+                  <h2 className="text-fg font-bold text-lg group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                     {n.title}
                   </h2>
                 </div>
