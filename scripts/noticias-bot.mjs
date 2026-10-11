@@ -175,7 +175,88 @@ export function fitBody(body, max = MAX_BODY_CHARS) {
   return `${cut.slice(0, space > 0 ? space : max).trim()}…`;
 }
 
-function buildPrompt(item, topic) {
+// El `body` (≤500) es lo que va a las redes; la página /noticias/{id} muestra `contenido`,
+// la versión completa que la IA escribe a partir del texto del artículo. Si no se pudo leer
+// el artículo (o la IA no lo devuelve) el sitio cae en el body.
+export const MAX_CONTENIDO_CHARS = 4000;
+const MAX_ARTICLE_CHARS = 8000; // lo que se le pasa a la IA del texto del artículo
+const MIN_PARAGRAPH_CHARS = 60; // más corto suele ser menú, pie de foto o "Compartir"
+
+const HTML_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', laquo: '«', raquo: '»', ldquo: '“', rdquo: '”', lsquo: '‘', rsquo: '’', ndash: '–', mdash: '—', hellip: '…' };
+
+function cleanText(text) {
+  return String(text ?? '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, code) => {
+      if (code[0] === '#') {
+        const n = code[1] === 'x' || code[1] === 'X' ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
+        return Number.isFinite(n) ? String.fromCodePoint(n) : m;
+      }
+      return HTML_ENTITIES[code.toLowerCase()] ?? m;
+    })
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// `articleBody` del JSON-LD (schema.org NewsArticle/Article) que Microlink ya devuelve
+// parseado. Suele venir sin saltos de línea y con oraciones pegadas ("artificial.La medida").
+function articleBodyFromLd(ld) {
+  const stack = [ld];
+  while (stack.length) {
+    const node = stack.pop();
+    if (Array.isArray(node)) { stack.push(...node); continue; }
+    if (typeof node === 'string') {
+      try { stack.push(JSON.parse(node)); } catch { /* no es JSON */ }
+      continue;
+    }
+    if (!node || typeof node !== 'object') continue;
+    if (typeof node.articleBody === 'string' && node.articleBody.trim()) {
+      return node.articleBody.replace(/([.!?])(?=[A-ZÁÉÍÓÚÑ¿¡"“])/g, '$1\n').split('\n').map(cleanText).filter(Boolean);
+    }
+    if (node['@graph']) stack.push(node['@graph']);
+  }
+  return [];
+}
+
+// Une párrafos con \n sin repetidos y sin pasarse de `max` (corta en un párrafo entero).
+function joinUpTo(paragraphs, max) {
+  const seen = new Set();
+  const out = [];
+  let total = 0;
+  for (const text of paragraphs) {
+    if (seen.has(text)) continue;
+    if (total + text.length + 1 > max) break;
+    seen.add(text);
+    out.push(text);
+    total += text.length + 1;
+  }
+  return out.join('\n');
+}
+
+const MIN_ARTICLE_CHARS = 300; // menos que esto en los <p> = la página no los tiene en <article>/<main>
+
+// Texto del artículo a partir de lo que extrae Microlink (`paras` = los <p> del <article>
+// o <main>, `ld` = los JSON-LD de la página). Se usan los párrafos si alcanzan; si no, el
+// articleBody del JSON-LD. Devuelve '' si no hay nada: la IA escribe solo con el titular.
+export function articleTextFrom({ paras, ld } = {}, max = MAX_ARTICLE_CHARS) {
+  const fromParas = joinUpTo((Array.isArray(paras) ? paras : [paras]).map(cleanText).filter(t => t.length >= MIN_PARAGRAPH_CHARS), max);
+  if (fromParas.length >= MIN_ARTICLE_CHARS) return fromParas;
+  return joinUpTo(articleBodyFromLd(ld), max) || fromParas;
+}
+
+export function pickContenido(contenido, body) {
+  const text = String(contenido ?? '').trim();
+  if (text.length <= String(body ?? '').length) return body;
+  return fitBody(text, MAX_CONTENIDO_CHARS);
+}
+
+function buildPrompt(item, topic, articleText = '') {
+  const fuente = articleText
+    ? `Texto del artículo original (usalo como única fuente de datos, NO copies oraciones textuales):
+"""
+${articleText}
+"""`
+    : 'No se pudo leer el artículo: solo tenés el titular.';
   return `Sos el redactor del canal de noticias de Mariano Aliandri (${SITE_URL}), desarrollador Full Stack y analista de datos de Neuquén, Argentina.
 
 Tenés este titular real como disparador:
@@ -183,8 +264,12 @@ Título: ${item.title}
 Fuente: ${item.link}
 Tópico que seguís: ${topic.label}
 
-Escribí, en español rioplatense (vos, no tú), un JSON con exactamente estas 3 claves, sin texto extra antes ni después ni bloques de código:
-{"title": "título propio para la nota, no copies el original tal cual", "body": "1 o 2 párrafos cortos (separados por \\n) que cuenten la noticia completa (qué pasó, quién, cuándo, por qué importa), en total NO más de 450 caracteres contando espacios, tono cercano y profesional, sin inventar datos que no estén en el titular", "caption": "1 a 2 oraciones cortas para un post de red social, SIN incluir ningún link ni URL"}
+${fuente}
+
+Escribí, en español rioplatense (vos, no tú), un JSON con exactamente estas 4 claves, sin texto extra antes ni después ni bloques de código:
+{"title": "título propio para la nota, no copies el original tal cual", "body": "1 o 2 párrafos cortos (separados por \\n) que cuenten la noticia completa (qué pasó, quién, cuándo, por qué importa), en total NO más de 450 caracteres contando espacios, tono cercano y profesional, sin inventar datos", "contenido": "la nota completa para el sitio web: de 3 a 6 párrafos (separados por \\n), entre 900 y 2500 caracteres, con todos los datos relevantes del artículo (contexto, cifras, declaraciones resumidas, consecuencias) contados con tus palabras. Si solo tenés el titular, repetí el body: no inventes", "caption": "1 a 2 oraciones cortas para un post de red social, SIN incluir ningún link ni URL"}
+
+No inventes datos que no estén en el titular o en el texto del artículo.
 
 IMPORTANTE sobre "body": tiene que contar la noticia COMPLETA — qué pasó, quién, cuándo,
 por qué importa. Nada de escribir un gancho vacío tipo "te contamos los detalles" o
@@ -209,35 +294,62 @@ function parseAndValidateContent(rawText, providerLabel) {
   }
   if (!parsed.title || !parsed.body || !parsed.caption) throw new Error(`JSON de ${providerLabel} incompleto (falta title, body o caption)`);
   parsed.body = fitBody(parsed.body); // el prompt lo pide corto, pero no hay garantía (Groq/Gemini se pasan)
+  parsed.contenido = pickContenido(parsed.contenido, parsed.body);
   if (parsed.caption.length > 2000) throw new Error(`Caption de ${providerLabel} demasiado larga (posible alucinación)`);
   if (/https?:\/\/|www\./i.test(parsed.caption)) throw new Error(`Caption de ${providerLabel} incluye un link — se descarta (rompe el requisito de post sin preview card)`);
   return parsed;
 }
 
-async function generateContentGemini(item, topic) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY no configurada');
+// Mismas keys y orden que src/lib/geminiClient.js (el bot no puede importarlo): primero las
+// de las cuentas satélite, la principal al final porque su cuota es compartida con el sitio.
+export function geminiKeys(env = process.env) {
+  const keys = [1, 2, 3, 4, 5].map(n => env[`GEMINI_API_KEY_${n}`]).concat(env.GEMINI_API_KEY);
+  return [...new Set(keys.map(k => (k || '').trim()).filter(Boolean))];
+}
 
-  const prompt = buildPrompt(item, topic);
-  const resp = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-  });
-  const data = await resp.json();
-  if (!resp.ok || data?.error) throw new Error(`Gemini ${resp.status}: ${data?.error?.message || 'error desconocido'}`);
+const GEMINI_TIMEOUT_MS = 60000; // la nota completa es larga; sin tope un pedido colgado traba la corrida
 
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+// Prueba las keys en orden: si una da 429 (cuota), 503 (sobrecarga) o se cuelga, pasa a la
+// siguiente. Cualquier otro error corta ahí (no es un problema de cuota: las demás fallarían igual).
+export async function callGeminiRotating(prompt, { keys = geminiKeys(), fetchImpl = fetch } = {}) {
+  if (!keys.length) throw new Error('GEMINI_API_KEY no configurada');
+  let lastError = '';
+  for (const [i, key] of keys.entries()) {
+    let resp;
+    try {
+      resp = await fetchImpl(`${GEMINI_URL}?key=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
+      });
+    } catch (e) {
+      lastError = `key ${i + 1}: ${e.name === 'TimeoutError' || e.name === 'AbortError' ? 'timeout' : e.message}`;
+      continue;
+    }
+    const data = await resp.json().catch(() => ({}));
+    if (resp.status === 429 || resp.status === 503) {
+      lastError = `key ${i + 1}: ${resp.status} ${data?.error?.message || ''}`.trim();
+      continue;
+    }
+    if (!resp.ok || data?.error) throw new Error(`Gemini ${resp.status}: ${data?.error?.message || 'error desconocido'}`);
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  }
+  throw new Error(`Gemini: fallaron las ${keys.length} keys (último: ${lastError})`);
+}
+
+async function generateContentGemini(item, topic, articleText) {
+  const text = await callGeminiRotating(buildPrompt(item, topic, articleText));
   return parseAndValidateContent(text, 'Gemini');
 }
 
-// Fallback cuando falla Gemini (cuota compartida con el resto del sitio, ver comentario
-// en main()). Groq tiene free tier sin tarjeta y sin relación con la cuota de Google.
-async function generateContentGroq(item, topic) {
+// Fallback cuando fallan todas las keys de Gemini (callGeminiRotating). Groq tiene free
+// tier sin tarjeta y sin relación con la cuota de Google.
+async function generateContentGroq(item, topic, articleText) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('GROQ_API_KEY no configurada');
 
-  const prompt = buildPrompt(item, topic);
+  const prompt = buildPrompt(item, topic, articleText);
   const resp = await fetch(GROQ_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -254,32 +366,42 @@ async function generateContentGroq(item, topic) {
   return parseAndValidateContent(text, 'Groq');
 }
 
-async function generateContent(item, topic) {
+async function generateContent(item, topic, articleText = '') {
   try {
-    const content = await generateContentGemini(item, topic);
+    const content = await generateContentGemini(item, topic, articleText);
     return { ...content, provider: 'gemini' };
   } catch (e) {
     if (!process.env.GROQ_API_KEY) throw e;
     console.warn(`  Gemini falló ("${e.message}"), reintentando con Groq...`);
-    const content = await generateContentGroq(item, topic);
+    const content = await generateContentGroq(item, topic, articleText);
     return { ...content, provider: 'groq' };
   }
 }
 
-// Foto principal del artículo (og:image) vía Microlink en modo meta: liviano, no
-// renderiza la página entera. Devuelve { url, width, height, pageUrl } (url/width/height
-// son null si el artículo no tiene og:image; pageUrl es la URL final del artículo, ya
-// resuelta la redirección de Google News) o null si Microlink falla.
+// Una sola consulta a Microlink por nota: la foto principal (og:image), la URL final del
+// artículo (ya resuelta la redirección de Google News) y su texto para la nota completa del
+// sitio. El texto se pide a Microlink y no con un fetch directo porque varios diarios (ej.
+// La Voz) están detrás de Cloudflare y a un fetch de Node le devuelven 403 "Just a moment...".
+// Devuelve { url, width, height, pageUrl, articleText } (url/width/height null si no hay
+// og:image, articleText '' si no se pudo leer) o null si Microlink falla.
 // (Antes se sacaba una captura de pantalla de la página, pero salía recortada y con
 // menús/banners de cookies: ilegible. Ahora la imagen es una tarjeta hecha por
 // scripts/noticiaCard.mjs, con la foto —si el tópico la usa— solo de fondo.)
-async function getArticlePhoto(url) {
+async function getArticleMeta(url) {
   try {
-    const apiUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=false&meta=true`;
-    const resp = await fetch(apiUrl, { signal: AbortSignal.timeout(15000) });
+    const params = new URLSearchParams({
+      url, screenshot: 'false', meta: 'true',
+      'data.paras.selectorAll': 'article p, main p', 'data.paras.attr': 'text',
+      'data.ld.selectorAll': 'script[type="application/ld+json"]', 'data.ld.attr': 'text',
+    });
+    const resp = await fetch(`https://api.microlink.io/?${params}`, { signal: AbortSignal.timeout(25000) });
     const data = await resp.json();
     const img = data?.data?.image;
-    return { url: img?.url ?? null, width: img?.width ?? null, height: img?.height ?? null, pageUrl: data?.data?.url ?? null };
+    return {
+      url: img?.url ?? null, width: img?.width ?? null, height: img?.height ?? null,
+      pageUrl: data?.data?.url ?? null,
+      articleText: articleTextFrom({ paras: data?.data?.paras, ld: data?.data?.ld }),
+    };
   } catch {
     return null;
   }
@@ -425,7 +547,7 @@ async function publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng
     } catch (e) {
       await db.collection('noticias').add({
         topicId: topic.id, topicLabel: topic.label,
-        title: content.title, body: content.body, caption: content.caption,
+        title: content.title, body: content.body, contenido: content.contenido, caption: content.caption,
         sourceUrl: item.link, sourceUrlHash, sourceTitle: item.title,
         imageUrl: null, status: 'error', makeError: `Cloudinary: ${e.message}`,
         publishedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -437,7 +559,7 @@ async function publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng
 
   const docRef = await db.collection('noticias').add({
     topicId: topic.id, topicLabel: topic.label,
-    title: content.title, body: content.body, caption: content.caption,
+    title: content.title, body: content.body, contenido: content.contenido, caption: content.caption,
     sourceUrl: item.link, sourceUrlHash, sourceTitle: item.title,
     imageUrl, imageMode: soloX ? null : (usedPhoto ? 'foto' : 'marca'), destino,
     // Las notas de un tópico "solo X" NO se muestran en el sitio (/noticias, detalle, API
@@ -537,11 +659,13 @@ async function main() {
         // Con la tarjeta la imagen ya no es un filtro: siempre hay una (la foto del
         // artículo de fondo si el tópico la usa y hay una buena, o el fondo de marca).
         // Por eso primero se genera el texto y después la tarjeta, que lleva el titular.
-        const content = await generateContent(item, topic);
         const soloX = topic.destino === 'x';
-        // Una sola consulta a Microlink por nota: da la foto (og:image) y la URL final del
-        // artículo (el link de X). Solo se hace si hace falta alguna de las dos cosas.
-        const meta = soloX || topic.usarFoto !== false ? await getArticlePhoto(item.link) : null;
+        // Foto, URL final (el link de X) y texto del artículo, en una sola consulta a Microlink.
+        const meta = await getArticleMeta(item.link);
+        // Solo-X no tiene página en el sitio: no hace falta la nota completa.
+        const articleText = soloX ? '' : meta?.articleText || '';
+        console.log(`  Artículo: ${articleText ? `${articleText.length} caracteres leídos` : 'no se pudo leer, se escribe con el titular'}.`);
+        const content = await generateContent(item, topic, articleText);
         let cardPng = null;
         let usedPhoto = false;
         if (!soloX) {

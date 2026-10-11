@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isWithinSchedule, nowArgentina, toInstagramSafeUrl, waitForImage, fetchPhotoDataUri, fitBody, MAX_BODY_CHARS, networksFor, itemsPerRunFor, buildXText, isVisibleOnSite } from './noticias-bot.mjs';
+import { isWithinSchedule, nowArgentina, toInstagramSafeUrl, waitForImage, fetchPhotoDataUri, fitBody, MAX_BODY_CHARS, networksFor, itemsPerRunFor, buildXText, isVisibleOnSite, articleTextFrom, pickContenido, MAX_CONTENIDO_CHARS, geminiKeys, callGeminiRotating } from './noticias-bot.mjs';
 
 // Enero de 1970: 1=jue, 2=vie, 3=sab, 4=dom, 5=lun, 6=mar, 7=mie.
 // Se usan estas fechas fijas para tener un getUTCDay() conocido sin ambigüedad.
@@ -270,5 +270,106 @@ describe('waitForImage', () => {
     const fetchImpl = vi.fn().mockResolvedValue(notReady);
     expect(await waitForImage('https://x/a.jpg', { fetchImpl, retries: 3, delayMs: 0 })).toBe(false);
     expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('articleTextFrom', () => {
+  const largo = (n) => `Párrafo número ${n}, con suficiente texto como para contar como contenido real del artículo.`;
+  const paras = (n) => Array.from({ length: n }, (_, i) => largo(i + 1));
+
+  it('usa los párrafos de Microlink, sin los cortos (menús, "Compartir") ni repetidos', () => {
+    const out = articleTextFrom({ paras: [largo(1), 'Compartir', largo(1), ...paras(5).slice(1)] });
+    expect(out).toBe(paras(5).join('\n'));
+  });
+
+  it('limpia etiquetas, entidades y espacios', () => {
+    const p = 'El <b>ministro</b> dijo &quot;basta&quot; &amp;   se fue, según informó la agencia oficial ayer a la tarde.';
+    expect(articleTextFrom({ paras: [p, ...paras(4)] }).split('\n')[0])
+      .toBe('El ministro dijo "basta" & se fue, según informó la agencia oficial ayer a la tarde.');
+  });
+
+  it('si los párrafos no alcanzan, usa el articleBody del JSON-LD (también dentro de @graph o como string) y separa oraciones pegadas', () => {
+    const ld = [{ '@type': 'Organization' }, JSON.stringify({ '@graph': [{ '@type': 'WebPage' }, { '@type': 'NewsArticle', articleBody: 'Anthropic anunció este jueves una actualización.La medida forma parte de una revisión mayor.' }] })];
+    expect(articleTextFrom({ paras: [largo(1)], ld }))
+      .toBe('Anthropic anunció este jueves una actualización.\nLa medida forma parte de una revisión mayor.');
+  });
+
+  it('sin articleBody se queda con los pocos párrafos que haya', () => {
+    expect(articleTextFrom({ paras: [largo(1)], ld: [{ '@type': 'Organization' }] })).toBe(largo(1));
+  });
+
+  it('respeta el tope de largo cortando en un párrafo entero', () => {
+    const out = articleTextFrom({ paras: paras(200) }, 1000);
+    expect(out.length).toBeLessThanOrEqual(1000);
+    expect(out.split('\n').at(-1)).toMatch(/del artículo\.$/);
+  });
+
+  it('sin datos devuelve string vacío', () => {
+    expect(articleTextFrom()).toBe('');
+    expect(articleTextFrom({ paras: null, ld: null })).toBe('');
+  });
+});
+
+describe('pickContenido', () => {
+  const body = 'Resumen corto para redes.';
+
+  it('usa el contenido largo cuando la IA lo devuelve', () => {
+    const contenido = 'Primer párrafo de la nota completa.\nSegundo párrafo con más datos.';
+    expect(pickContenido(contenido, body)).toBe(contenido);
+  });
+
+  it('si falta o es más corto que el body, cae en el body', () => {
+    expect(pickContenido(undefined, body)).toBe(body);
+    expect(pickContenido('Corto.', body)).toBe(body);
+  });
+
+  it('recorta un contenido desmedido al tope', () => {
+    const out = pickContenido('Una oración larga de relleno. '.repeat(400), body);
+    expect(out.length).toBeLessThanOrEqual(MAX_CONTENIDO_CHARS);
+  });
+});
+
+describe('geminiKeys', () => {
+  it('primero las satélite (_1.._5) y la principal al final, sin vacías ni repetidas', () => {
+    const env = { GEMINI_API_KEY: 'main', GEMINI_API_KEY_1: '', GEMINI_API_KEY_2: 'k2', GEMINI_API_KEY_3: 'main', GEMINI_API_KEY_4: 'k4' };
+    expect(geminiKeys(env)).toEqual(['k2', 'main', 'k4']);
+  });
+
+  it('sin ninguna configurada devuelve []', () => {
+    expect(geminiKeys({})).toEqual([]);
+  });
+});
+
+describe('callGeminiRotating', () => {
+  const resp = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
+  const okBody = { candidates: [{ content: { parts: [{ text: ' hola ' }] } }] };
+
+  it('si una key da 429/503 o se cuelga, pasa a la siguiente', async () => {
+    const calls = [];
+    const fetchImpl = vi.fn(async (url) => {
+      const key = new URL(url).searchParams.get('key');
+      calls.push(key);
+      if (key === 'a') return resp(429, { error: { message: 'quota' } });
+      if (key === 'b') throw Object.assign(new Error('timeout'), { name: 'TimeoutError' });
+      if (key === 'c') return resp(503, { error: { message: 'high demand' } });
+      return resp(200, okBody);
+    });
+    await expect(callGeminiRotating('p', { keys: ['a', 'b', 'c', 'd'], fetchImpl })).resolves.toBe('hola');
+    expect(calls).toEqual(['a', 'b', 'c', 'd']);
+  });
+
+  it('un error que no es de cuota corta sin probar las demás', async () => {
+    const fetchImpl = vi.fn(async () => resp(400, { error: { message: 'bad request' } }));
+    await expect(callGeminiRotating('p', { keys: ['a', 'b'], fetchImpl })).rejects.toThrow('Gemini 400: bad request');
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('si todas fallan por cuota, tira error con el último motivo', async () => {
+    const fetchImpl = vi.fn(async () => resp(429, { error: { message: 'quota' } }));
+    await expect(callGeminiRotating('p', { keys: ['a', 'b'], fetchImpl })).rejects.toThrow(/2 keys.*quota/);
+  });
+
+  it('sin keys tira error', async () => {
+    await expect(callGeminiRotating('p', { keys: [] })).rejects.toThrow('GEMINI_API_KEY no configurada');
   });
 });

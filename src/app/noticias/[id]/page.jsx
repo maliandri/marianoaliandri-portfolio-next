@@ -75,7 +75,7 @@ export default async function NoticiaDetailPage({ params }) {
         )}
 
         <div className="text-gray-300 text-base leading-relaxed space-y-4 mb-10">
-          {(n.body || '').split('\n').filter(Boolean).map((p, i) => <p key={i}>{p}</p>)}
+          {(n.contenido || n.body || '').split('\n').filter(Boolean).map((p, i) => <p key={i}>{p}</p>)}
         </div>
 
         {n.sourceUrl && (
