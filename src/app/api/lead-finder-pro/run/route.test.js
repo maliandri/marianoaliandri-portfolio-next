@@ -126,21 +126,112 @@ describe('POST /api/lead-finder-pro/run — gate de créditos', () => {
     expect(runLeadFinderAction).not.toHaveBeenCalled();
   });
 
-  it('con saldo de créditos: audita, descuenta 1 crédito y guarda el historial', async () => {
+  const WEB = { ok: true, hasWebsite: true, siteUrl: 'https://x.test', seoScore: 80 };
+  const SIN_NADA = { ok: true, hasWebsite: false, siteUrl: null, phone: '0299 442-1234', internationalPhone: '+54 299 442-1234' };
+  const HOY = new Date().toISOString().slice(0, 10);
+
+  it('un lead (con web) descuenta 1 crédito y guarda el historial con la clasificación', async () => {
     getUserFromRequest.mockResolvedValue(USER);
-    const { db, docs } = createFakeDb({
-      'leadfinder_entitlements/client-1': { credits: 3 },
-    });
+    const { db, docs } = createFakeDb({ 'leadfinder_entitlements/client-1': { credits: 3 } });
     getDb.mockReturnValue(db);
-    runLeadFinderAction.mockResolvedValue(Response.json({ ok: true, seoScore: 80 }));
+    runLeadFinderAction.mockResolvedValue(Response.json(WEB));
 
     const res = await POST(makeRequest({ action: 'auditPlace', placeId: 'p1' }));
     const data = await res.json();
 
     expect(res.status).toBe(200);
-    expect(data.ok).toBe(true);
+    expect(data).toMatchObject({ ok: true, esLead: true, canal: 'web', fromMyHistory: false });
     expect(docs['leadfinder_entitlements/client-1'].credits).toBe(2);
-    expect(docs['leadfinder_client_audits/client-1/audits/p1']).toBeDefined();
+    expect(docs['leadfinder_client_audits/client-1/audits/p1']).toMatchObject({ esLead: true, canal: 'web', siteUrl: 'https://x.test' });
+  });
+
+  it('un descartado (sin web ni WhatsApp) NO descuenta crédito y suma un descarte del día', async () => {
+    getUserFromRequest.mockResolvedValue(USER);
+    const { db, docs } = createFakeDb({ 'leadfinder_entitlements/client-1': { credits: 3 } });
+    getDb.mockReturnValue(db);
+    runLeadFinderAction.mockResolvedValue(Response.json(SIN_NADA));
+
+    const data = await (await POST(makeRequest({ action: 'auditPlace', placeId: 'p1' }))).json();
+
+    expect(data).toMatchObject({ ok: true, esLead: false, canal: null });
+    expect(docs['leadfinder_entitlements/client-1'].credits).toBe(3);
+    expect(docs['leadfinder_entitlements/client-1'].descartesHoy).toEqual({ fecha: HOY, n: 1 });
+    expect(docs['leadfinder_client_audits/client-1/audits/p1']).toMatchObject({ esLead: false });
+  });
+
+  it('con 100 descartes hoy responde 429 DISCARD_LIMIT sin llamar a Google', async () => {
+    getUserFromRequest.mockResolvedValue(USER);
+    getDb.mockReturnValue(createFakeDb({
+      'leadfinder_entitlements/client-1': { credits: 3, descartesHoy: { fecha: HOY, n: 100 } },
+    }).db);
+
+    const res = await POST(makeRequest({ action: 'auditPlace', placeId: 'p1' }));
+    expect(res.status).toBe(429);
+    expect((await res.json()).code).toBe('DISCARD_LIMIT');
+    expect(runLeadFinderAction).not.toHaveBeenCalled();
+  });
+
+  it('los descartes de otro día no cuentan', async () => {
+    getUserFromRequest.mockResolvedValue(USER);
+    const { db, docs } = createFakeDb({
+      'leadfinder_entitlements/client-1': { credits: 3, descartesHoy: { fecha: '2000-01-01', n: 100 } },
+    });
+    getDb.mockReturnValue(db);
+    runLeadFinderAction.mockResolvedValue(Response.json(SIN_NADA));
+
+    const res = await POST(makeRequest({ action: 'auditPlace', placeId: 'p1' }));
+    expect(res.status).toBe(200);
+    expect(docs['leadfinder_entitlements/client-1'].descartesHoy).toEqual({ fecha: HOY, n: 1 });
+  });
+
+  it('un usuario ilimitado no tiene tope de descartes', async () => {
+    getUserFromRequest.mockResolvedValue(USER);
+    const { db, docs } = createFakeDb({
+      'leadfinder_entitlements/client-1': { unlimited: true, status: 'active', descartesHoy: { fecha: HOY, n: 500 } },
+    });
+    getDb.mockReturnValue(db);
+    runLeadFinderAction.mockResolvedValue(Response.json(SIN_NADA));
+
+    const res = await POST(makeRequest({ action: 'auditPlace', placeId: 'p1' }));
+    expect(res.status).toBe(200);
+    expect(docs['leadfinder_entitlements/client-1'].descartesHoy.n).toBe(500);
+  });
+
+  it('si otra pestaña gastó el último crédito mientras se auditaba: 402 y no se entrega el lead', async () => {
+    getUserFromRequest.mockResolvedValue(USER);
+    const { db, docs } = createFakeDb({ 'leadfinder_entitlements/client-1': { credits: 1 } });
+    getDb.mockReturnValue(db);
+    runLeadFinderAction.mockImplementation(async () => {
+      docs['leadfinder_entitlements/client-1'] = { credits: 0 }; // la otra pestaña ganó
+      return Response.json(WEB);
+    });
+
+    const res = await POST(makeRequest({ action: 'auditPlace', placeId: 'p1' }));
+    expect(res.status).toBe(402);
+    expect(docs['leadfinder_client_audits/client-1/audits/p1']).toBeUndefined();
+  });
+
+  it('un descartado ya visto antes vuelve gratis desde el historial', async () => {
+    getUserFromRequest.mockResolvedValue(USER);
+    getDb.mockReturnValue(createFakeDb({
+      'leadfinder_entitlements/client-1': { credits: 0 },
+      'leadfinder_client_audits/client-1/audits/p1': { esLead: false, canal: null, auditedAt: 'x' },
+    }).db);
+
+    const data = await (await POST(makeRequest({ action: 'auditPlace', placeId: 'p1' }))).json();
+    expect(data).toMatchObject({ ok: true, esLead: false, fromMyHistory: true });
+    expect(runLeadFinderAction).not.toHaveBeenCalled();
+  });
+
+  it('un error de Google (cuota) se devuelve tal cual y no cobra', async () => {
+    getUserFromRequest.mockResolvedValue(USER);
+    const { db, docs } = createFakeDb({ 'leadfinder_entitlements/client-1': { credits: 3 } });
+    getDb.mockReturnValue(db);
+    runLeadFinderAction.mockResolvedValue(Response.json({ ok: false, error: 'cuota', code: 'QUOTA_EXCEEDED' }));
+
+    const data = await (await POST(makeRequest({ action: 'auditPlace', placeId: 'p1' }))).json();
+    expect(data.code).toBe('QUOTA_EXCEEDED');
+    expect(docs['leadfinder_entitlements/client-1'].credits).toBe(3);
   });
 
   it('si el negocio ya fue auditado antes por este cliente, devuelve el caché sin gastar crédito', async () => {
