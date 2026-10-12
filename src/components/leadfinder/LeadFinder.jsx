@@ -86,6 +86,11 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
       .catch(() => setBalance(0));
   }, [user]);
   useEffect(() => { refreshBalance(); }, [refreshBalance]);
+  // Si el saldo es menor a la cantidad elegida, se baja la cantidad al saldo.
+  useEffect(() => {
+    if (!isAdmin && balance !== null && balance !== Infinity && balance > 0 && form.cantidad > balance) setForm(f => ({ ...f, cantidad: balance }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [balance]);
 
   const authHeaders = useCallback(async () => {
     const idToken = await getIdToken();
@@ -144,14 +149,16 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
         }));
         setShowForm(false);
       }
-    } finally {
+    } catch { /* no se pudo abrir: queda el historial como estaba */ } finally {
       setLoadingSavedId(null);
     }
   };
 
   const deleteSaved = async (id) => {
-    await fetch(`/api/lead-finder-pro/searches?id=${id}`, { method: 'DELETE', headers: await authHeaders() });
-    setHistory(prev => prev.filter(h => h.id !== id));
+    try {
+      const resp = await fetch(`/api/lead-finder-pro/searches?id=${id}`, { method: 'DELETE', headers: await authHeaders() });
+      if (resp.ok) setHistory(prev => prev.filter(h => h.id !== id));
+    } catch { /* se queda en la lista */ }
   };
 
   const rows = useMemo(() => (isAdmin ? applyAdminFilters(search.leads, filters) : search.leads), [isAdmin, search.leads, filters]);
@@ -198,7 +205,7 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl px-5 py-4 text-sm text-amber-700 dark:text-amber-300" role="alert">{t.blockedTitle}</div>
         )}
 
-        <LeadSearchHistory items={history} onOpen={openSaved} onDelete={deleteSaved} loadingId={loadingSavedId} t={t} />
+        <LeadSearchHistory items={history} onOpen={openSaved} onDelete={deleteSaved} loadingId={loadingSavedId} disabled={isRunning} t={t} />
 
         <div className="bg-card border border-fg/10 rounded-2xl overflow-hidden">
           <button onClick={() => setShowForm(v => !v)} aria-expanded={showForm} className="w-full flex items-center justify-between px-5 py-4 hover:bg-fg/5">
@@ -224,7 +231,7 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
               <PublishReport leads={search.leads} form={form} tipoLabels={tipoLabels} disabled={isRunning} />
             )}
             {!canStart && !isRunning && form.zonas.length > 0 && !hasCriteria && <span className="text-xs text-fg-500">{t.needCriteria}</span>}
-            {search.phase === 'error' && search.stop && <span className="text-xs text-red-500 ml-auto" role="alert">{search.stop.message}</span>}
+            {search.stop && !isRunning && !('QUOTA_EXCEEDED DISCARD_LIMIT NO_PLAN'.split(' ').includes(stopCode)) && <span className="text-xs text-red-500 ml-auto" role="alert">{search.stop.message}</span>}
           </div>
         </div>
 

@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 
-export default function LeadSearchHistory({ items, onOpen, onDelete, loadingId, t }) {
+export default function LeadSearchHistory({ items, onOpen, onDelete, loadingId, disabled, t }) {
   const [open, setOpen] = useState(false);
   if (!items.length) return null;
   return (
@@ -26,11 +26,11 @@ export default function LeadSearchHistory({ items, onOpen, onDelete, loadingId, 
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <button onClick={() => onOpen(h.id)} disabled={loadingId === h.id}
+                <button onClick={() => onOpen(h.id)} disabled={disabled || loadingId === h.id}
                   className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-medium rounded-lg">
                   {loadingId === h.id ? '⏳' : t.historyView}
                 </button>
-                <button onClick={() => onDelete(h.id)} className="px-2 py-1.5 text-fg-500 hover:text-red-500 text-xs" aria-label="Borrar">🗑️</button>
+                <button onClick={() => onDelete(h.id)} disabled={disabled} className="px-2 py-1.5 text-fg-500 hover:text-red-500 disabled:opacity-40 text-xs" aria-label="Borrar">🗑️</button>
               </div>
             </div>
           ))}

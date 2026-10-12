@@ -82,6 +82,7 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [url, setUrl] = useState(null);
+  const [savedUrl, setSavedUrl] = useState(null); // informe ya guardado cuando falla la parte de redes
 
   const ciudades = form.zonas.map(z => parseZona(z).ciudad);
   const rubros = [...tipoLabels, ...form.terminos];
@@ -102,7 +103,7 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
       `El relevamiento evidencia oportunidades concretas de mejora en la presencia digital de los comercios de la zona.\n\n` +
       `🔍 Conocé el servicio Lead Finder Pro: https://marianoaliandri.com.ar/keywords`
     );
-    setMsg('');
+    setMsg(''); setSavedUrl(null);
     setModal(true);
   };
 
@@ -120,7 +121,8 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
       });
       const data = await resp.json();
       if (!resp.ok || !data.id) throw new Error(data.error || 'Error al publicar');
-      setUrl(`/auditorias/${data.id}`);
+      const informeUrl = `/auditorias/${data.id}`;
+      setSavedUrl(informeUrl);
 
       const networks = Object.keys(nets).filter(k => nets[k]);
       if (toSocial && networks.length) {
@@ -131,11 +133,12 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
         });
         const pub = await res.json().catch(() => ({}));
         if (!res.ok || pub.success === false) {
-          setMsg(`Informe guardado, pero falló la publicación en redes: ${pub.error || `HTTP ${res.status}`}`);
+          setMsg(`falló la publicación en redes: ${pub.error || `HTTP ${res.status}`}`);
           setBusy(false);
           return;
         }
       }
+      setUrl(informeUrl);
       setModal(false);
     } catch (e) {
       setMsg(e.message);
@@ -158,7 +161,7 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
       </button>
       {!puede && !disabled && <span className="text-xs text-fg-500">Mínimo {MIN_SITIOS_INFORME} sitios con web para publicar</span>}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !busy && setModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => { if (busy) return; if (savedUrl) setUrl(savedUrl); setModal(false); }}>
           <div role="dialog" aria-modal="true" aria-labelledby="pub-title" className="bg-card text-fg rounded-2xl border border-fg/10 w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <h3 id="pub-title" className="font-semibold mb-1">Publicar auditoría</h3>
             <p className="text-xs text-fg-500 mb-4">Incluye solo los {total} leads con web. Revisá el título y la descripción.</p>
@@ -180,9 +183,13 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
                 </div>
               )}
             </div>
-            {msg && <p className="mt-3 text-sm text-red-500" role="alert">{msg}</p>}
+            {msg && (
+              <p className="mt-3 text-sm text-red-500" role="alert">
+                {savedUrl && <>Informe guardado: <a href={savedUrl} target="_blank" rel="noopener noreferrer" className="underline">Ver informe</a>, pero </>}{msg}
+              </p>
+            )}
             <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setModal(false)} disabled={busy} className="px-4 py-2 text-sm text-fg-400 hover:bg-fg/5 rounded-lg">Cancelar</button>
+              <button onClick={() => { if (savedUrl) setUrl(savedUrl); setModal(false); }} disabled={busy} className="px-4 py-2 text-sm text-fg-400 hover:bg-fg/5 rounded-lg">Cancelar</button>
               <button onClick={publicar} disabled={busy || !title.trim()} className="px-5 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg disabled:opacity-50">
                 {busy ? 'Publicando…' : 'Publicar'}
               </button>

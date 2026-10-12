@@ -1,7 +1,7 @@
 // src/components/leadfinder/useLeadSearch.js
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { searchLeads } from '@/lib/leadSearch';
 
 const CERO = { encontrados: 0, examinados: 0, leads: 0, conWeb: 0, descartados: 0 };
@@ -20,6 +20,7 @@ export function useLeadSearch(call) {
   const [log, setLog] = useState([]);
   const cancelRef = useRef(false);
   const leadsRef = useRef([]);
+  useEffect(() => () => { cancelRef.current = true; }, []);
 
   const commit = (fn) => { leadsRef.current = fn(leadsRef.current); setLeads(leadsRef.current); };
   const addLog = (msg, level = 'info') => setLog(prev => [...prev.slice(-(MAX_LOG - 1)), { time: hora(), msg, level }]);
