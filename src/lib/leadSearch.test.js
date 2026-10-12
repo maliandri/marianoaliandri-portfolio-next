@@ -127,6 +127,13 @@ describe('searchLeads', () => {
     expect(audited(call)).toEqual(['a', 'b']);
   });
 
+  it('un error fatal después de emitir leads con conteo pendiente igual entrega el conteo', async () => {
+    const call = fakeCall({ places: { 'gomería, Neuquén': [['a', 'b']] }, audits: { a: WEB, b: fatal('DISCARD_LIMIT') } });
+    const { evs, error } = await collect(searchLeads(base({ perfil: 'empresa', producto: 'cubierta' }), deps(call)));
+    expect(error.code).toBe('DISCARD_LIMIT');
+    expect(evs.find(e => e.type === 'productos' && e.id === 'a')).toMatchObject({ prodState: 'done' });
+  });
+
   it('una ciudad que no se ubica avisa y sigue con la próxima', async () => {
     const call = fakeCall({
       places: { 'gomería, Plottier': [['a']] }, audits: { a: WEB },

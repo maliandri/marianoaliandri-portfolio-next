@@ -77,89 +77,96 @@ export async function* searchLeads(params, deps) {
     ...terminos.map(term => ({ etiqueta: term, action: 'searchText', texto: term })),
   ];
 
-  for (const zona of zonas) {
-    if (listo()) break;
-    yield { type: 'zona', ciudad: zona.ciudad };
-
-    let geo;
-    try {
-      geo = await call('geocode', { city: zona.ciudad, country: zona.pais || '' });
-    } catch (e) {
-      if (isFatal(e)) throw e;
-      yield { type: 'aviso', ciudad: zona.ciudad, mensaje: `No se pudo ubicar "${zona.ciudad}": ${e.message}` };
-      continue;
-    }
-
-    for (const b of busquedas) {
+  try {
+    for (const zona of zonas) {
       if (listo()) break;
-      yield { type: 'busqueda', ciudad: zona.ciudad, etiqueta: b.etiqueta };
+      yield { type: 'zona', ciudad: zona.ciudad };
 
-      let pageToken = null;
-      for (let page = 0; page < MAX_PAGINAS && !listo(); page++) {
-        let res;
-        try {
-          res = await call(b.action, b.action === 'searchText'
-            ? { lat: geo.lat, lon: geo.lon, query: `${b.texto}, ${zona.ciudad}`, radiusM, pageToken }
-            : { lat: geo.lat, lon: geo.lon, type: b.tipo, radiusM, pageToken });
-        } catch (e) {
-          if (isFatal(e)) throw e;
-          yield { type: 'aviso', ciudad: zona.ciudad, etiqueta: b.etiqueta, mensaje: `Falló la búsqueda "${b.etiqueta}" en ${zona.ciudad}: ${e.message}` };
-          break;
-        }
+      let geo;
+      try {
+        geo = await call('geocode', { city: zona.ciudad, country: zona.pais || '' });
+      } catch (e) {
+        if (isFatal(e)) throw e;
+        yield { type: 'aviso', ciudad: zona.ciudad, mensaje: `No se pudo ubicar "${zona.ciudad}": ${e.message}` };
+        continue;
+      }
 
-        const nuevos = (res.places || []).filter(p => !seen.has(p.id));
-        nuevos.forEach(p => seen.add(p.id));
-        totals.encontrados += nuevos.length;
+      for (const b of busquedas) {
+        if (listo()) break;
+        yield { type: 'busqueda', ciudad: zona.ciudad, etiqueta: b.etiqueta };
 
-        for (const place of nuevos) {
-          if (listo()) break;
-          const negocio = {
-            id: place.id,
-            nombre: place.displayName?.text || 'Sin nombre',
-            ciudad: zona.ciudad,
-            tipo: b.etiqueta,
-            lat: place.location?.latitude ?? null,
-            lon: place.location?.longitude ?? null,
-            previewRating: place.rating ? Number(place.rating).toFixed(1) : null,
-          };
-          yield { type: 'negocio', negocio };
-          totals.examinados++;
-
-          let audit;
+        let pageToken = null;
+        for (let page = 0; page < MAX_PAGINAS && !listo(); page++) {
+          let res;
           try {
-            audit = await call('auditPlace', { placeId: place.id });
+            res = await call(b.action, b.action === 'searchText'
+              ? { lat: geo.lat, lon: geo.lon, query: `${b.texto}, ${zona.ciudad}`, radiusM, pageToken }
+              : { lat: geo.lat, lon: geo.lon, type: b.tipo, radiusM, pageToken });
           } catch (e) {
             if (isFatal(e)) throw e;
-            yield { type: 'aviso', negocioId: place.id, mensaje: `No se pudo auditar "${negocio.nombre}": ${e.message}` };
-            continue;
+            yield { type: 'aviso', ciudad: zona.ciudad, etiqueta: b.etiqueta, mensaje: `Falló la búsqueda "${b.etiqueta}" en ${zona.ciudad}: ${e.message}` };
+            break;
           }
 
-          // El server de Lead Finder Pro ya clasifica (y cobra según eso); la automática y las
-          // entradas viejas del historial no traen clasificación, se calcula acá con la misma regla.
-          const { ok: _ok, fromCache: _fc, esLead, canal, whatsapp, placeId: _p, auditedAt: _a, ...datos } = audit;
-          const cls = esLead === undefined
-            ? clasificarLead(audit)
-            : { esLead, canal: canal ?? null, whatsapp: whatsapp ?? null };
-          const ficha = { ...negocio, ...datos, ...cls };
+          const nuevos = (res.places || []).filter(p => !seen.has(p.id));
+          nuevos.forEach(p => seen.add(p.id));
+          totals.encontrados += nuevos.length;
 
-          if (!cls.esLead || (soloConWeb && cls.canal !== 'web')) {
-            totals.descartados++;
-            yield { type: 'descartado', negocio: ficha };
-          } else {
-            totals.leads++;
-            if (cls.canal === 'web') totals.conWeb++;
-            const cuenta = !!keyword && cls.canal === 'web';
-            yield { type: 'lead', lead: cuenta ? { ...ficha, prodState: 'loading' } : ficha };
-            if (cuenta) contar(ficha);
+          for (const place of nuevos) {
+            if (listo()) break;
+            const negocio = {
+              id: place.id,
+              nombre: place.displayName?.text || 'Sin nombre',
+              ciudad: zona.ciudad,
+              tipo: b.etiqueta,
+              lat: place.location?.latitude ?? null,
+              lon: place.location?.longitude ?? null,
+              previewRating: place.rating ? Number(place.rating).toFixed(1) : null,
+            };
+            yield { type: 'negocio', negocio };
+            totals.examinados++;
+
+            let audit;
+            try {
+              audit = await call('auditPlace', { placeId: place.id });
+            } catch (e) {
+              if (isFatal(e)) throw e;
+              yield { type: 'aviso', negocioId: place.id, mensaje: `No se pudo auditar "${negocio.nombre}": ${e.message}` };
+              continue;
+            }
+
+            // El server de Lead Finder Pro ya clasifica (y cobra según eso); la automática y las
+            // entradas viejas del historial no traen clasificación, se calcula acá con la misma regla.
+            const { ok: _ok, fromCache: _fc, esLead, canal, whatsapp, placeId: _p, auditedAt: _a, ...datos } = audit;
+            const cls = esLead === undefined
+              ? clasificarLead(audit)
+              : { esLead, canal: canal ?? null, whatsapp: whatsapp ?? null };
+            const ficha = { ...negocio, ...datos, ...cls };
+
+            if (!cls.esLead || (soloConWeb && cls.canal !== 'web')) {
+              totals.descartados++;
+              yield { type: 'descartado', negocio: ficha };
+            } else {
+              totals.leads++;
+              if (cls.canal === 'web') totals.conWeb++;
+              const cuenta = !!keyword && cls.canal === 'web';
+              yield { type: 'lead', lead: cuenta ? { ...ficha, prodState: 'loading' } : ficha };
+              if (cuenta) contar(ficha);
+            }
+            yield* drenar();
           }
-          yield* drenar();
+
+          pageToken = res.nextPageToken || null;
+          if (!pageToken) break;
+          if (page < MAX_PAGINAS - 1 && !listo()) await sleep(PAUSA_PAGINA_MS);
         }
-
-        pageToken = res.nextPageToken || null;
-        if (!pageToken) break;
-        if (page < MAX_PAGINAS - 1 && !listo()) await sleep(PAUSA_PAGINA_MS);
       }
     }
+  } catch (e) {
+    // Un corte fatal no deja conteos colgados en 'loading': se esperan y entregan antes de propagar.
+    await Promise.all(pendientes.map(p => p.promise));
+    yield* drenar();
+    throw e;
   }
 
   await Promise.all(pendientes.map(p => p.promise));
