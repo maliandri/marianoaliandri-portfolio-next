@@ -251,6 +251,21 @@ describe('POST /api/lead-finder-pro/run — gate de créditos', () => {
     expect(runLeadFinderAction).not.toHaveBeenCalled();
     expect(docs['leadfinder_entitlements/client-1'].credits).toBe(5); // sin descontar
   });
+
+  it('un historial viejo (sin clasificación) se clasifica al leerlo, sin tocar créditos ni reescribir el doc', async () => {
+    getUserFromRequest.mockResolvedValue(USER);
+    const { db, docs } = createFakeDb({
+      'leadfinder_entitlements/client-1': { credits: 3 },
+      'leadfinder_client_audits/client-1/audits/p1': { hasWebsite: true, siteUrl: 'https://x.test', auditedAt: 'x' },
+    });
+    getDb.mockReturnValue(db);
+
+    const data = await (await POST(makeRequest({ action: 'auditPlace', placeId: 'p1' }))).json();
+    expect(data).toMatchObject({ ok: true, esLead: true, canal: 'web', fromMyHistory: true });
+    expect(runLeadFinderAction).not.toHaveBeenCalled();
+    expect(docs['leadfinder_entitlements/client-1'].credits).toBe(3);
+    expect(docs['leadfinder_client_audits/client-1/audits/p1'].esLead).toBeUndefined();
+  });
 });
 
 describe('POST /api/lead-finder-pro/run — countProducts', () => {

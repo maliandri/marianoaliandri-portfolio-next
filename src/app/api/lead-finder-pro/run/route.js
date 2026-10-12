@@ -121,7 +121,9 @@ export async function POST(request) {
     const myAuditSnap = await myAuditRef.get();
     if (myAuditSnap.exists) {
       const { auditedAt: _o, ...rest } = myAuditSnap.data();
-      return Response.json({ ok: true, ...rest, fromCache: true, fromMyHistory: true });
+      // Docs anteriores a la clasificación no traen esLead: se deriva al leer, sin reescribir el doc.
+      const cls = rest.esLead === undefined ? clasificarLead(rest) : {};
+      return Response.json({ ok: true, ...rest, ...cls, fromCache: true, fromMyHistory: true });
     }
 
     const ref = db.collection('leadfinder_entitlements').doc(authUser.uid);
