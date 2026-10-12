@@ -144,6 +144,25 @@ y devuelve `{ results, status, examined, found }`. `autoAuditRun.js` (mínimo 3 
 con otra combinación, hecho el 2026-10-12) no cambia. El catálogo `RUBROS_SEMILLA` sigue siendo
 propio de la automática.
 
+### Cantidad configurable desde el admin
+
+Hoy los topes están fijos en `scripts/auto-audit.mjs` (15 sitios con web, 30 examinados).
+Pasan a `auditoria_auto/config`:
+
+- `cantidad`: sitios con web por corrida. Default 15, rango 3 a 30. Se edita en la tarjeta
+  (`AutoAuditCard.jsx`) con un campo "Cantidad de sitios por corrida".
+- `maxExaminados` = `2 × cantidad` (con 15 da los 30 de hoy). No es editable aparte.
+- Junto al campo, una estimación del consumo: `maxExaminados × 4 corridas × 4,3 semanas`
+  consultas de detalle por mes contra el cupo gratis de 1.000 (con 15 → ~520/mes; con 30 →
+  ~1.030/mes, en rojo porque supera el cupo). Las 4 corridas semanales salen del cron de
+  cron-job.org (lun/mié/vie/sáb).
+- El mínimo para publicar (3, `MIN_SITES_TO_PUBLISH`) no cambia.
+- `scripts/auto-audit.mjs` deja de pasar `maxSites`/`maxCandidates` fijos; `runAutoAudit` los
+  toma de la config. "Correr ahora" usa `min(cantidad, 8)` por el límite de 60 s de Vercel.
+- Validación server-side en la ruta que guarda la config (`/api/auditoria-auto`): entero entre
+  3 y 30; fuera de rango → 400.
+- El texto de la tarjeta "martes y viernes" se corrige a los días reales del cron.
+
 ## Textos
 
 El cobro cambia de "cada resultado = 1 crédito" a "pagás solo por los leads entregados; los
@@ -166,7 +185,7 @@ de cantidad (`src/data/i18n/leadFinderPro.js`), landing de Lead Finder Pro y té
 - `src/app/api/lead-finder-pro/run/route.test.js`: cobra solo leads, descartado no descuenta,
   tope de 100 descartes/día, ilimitado sin tope, historial devuelve gratis también descartados,
   carrera sin saldo al descontar.
-- `src/lib/autoAuditBatch.test.js` adaptado; `autoAuditRun.test.js` sin cambios.
+- `src/lib/autoAuditBatch.test.js` adaptado; `autoAuditRun.test.js` suma: toma `cantidad` de la config (default 15), `maxExaminados = 2 × cantidad`, "Correr ahora" usa `min(cantidad, 8)`; la ruta de config rechaza valores fuera de 3–30.
 - Navegador: búsqueda real chica (Neuquén, cantidad 3) como admin y como cliente, ES y EN,
   perfiles dev y empresa.
 
@@ -176,7 +195,7 @@ Rama aparte, un commit por paso, el sitio funciona después de cada uno:
 
 1. Regla de lead + `internationalPhoneNumber` + cobro por lead en `run` + `searches` con origen.
 2. Motor `leadSearch.js`.
-3. Automática al motor (incluye el arreglo de Formosa del 2026-10-12).
+3. Automática al motor (incluye el arreglo de Formosa del 2026-10-12) + cantidad configurable desde la tarjeta.
 4. Pantalla única: primero `/lead-finder-pro/buscar` (ES/EN), después el admin.
 5. Textos de cobro (ES/EN, buscador, landing, términos), revisados por el usuario.
 6. Borrar `CustomerLeadFinderPanel.jsx` y `audit/LeadFinderPanel.jsx`; actualizar CLAUDE.md.
