@@ -1,3 +1,4 @@
+// src/lib/autoAuditBatch.test.js
 import { describe, it, expect, vi } from 'vitest';
 
 // Evita cargar firebase-admin/authServer reales; runBatch recibe `run` inyectado.
@@ -5,31 +6,29 @@ vi.mock('@/app/api/lead-finder/route', () => ({ runLeadFinderAction: vi.fn() }))
 
 import { runBatch } from './autoAuditBatch.js';
 
-const json = (o) => Response.json(o);
 const TYPE = { ciudad: 'Mendoza', rubro: { label: 'Ferretería', kind: 'type', value: 'hardware_store', prioritario: true } };
-const TEXT = { ciudad: 'Salta', rubro: { label: 'Steel framing', kind: 'text', value: 'steel framing', prioritario: true } };
+const TEXT = { ciudad: 'Salta', rubro: { label: 'Steel framing', kind: 'text', value: 'steel framing', prioritario: false } };
 const place = (id, name = id) => ({ id, displayName: { text: name }, location: { latitude: 1, longitude: 2 } });
 const audited = (over = {}) => ({
   ok: true, hasWebsite: true, siteUrl: 'https://x.com', seoScore: 40, hasSitemap: false, hasRobots: true,
   metaDesc: null, hasOG: false, email: null, lastUpdated: null, rating: 4.2, ...over,
 });
-
-function makeRun(handlers) {
-  return vi.fn(async (action, params) => json(await handlers[action](params)));
-}
+const noWeb = { ok: true, hasWebsite: false, siteUrl: null, internationalPhone: '+54 9 261 555-1234' };
+const makeRun = (h) => vi.fn(async (action, params) => Response.json(await h[action](params)));
 const noSleep = async () => {};
+const geoOk = () => ({ ok: true, lat: -32.9, lon: -68.8 });
 
 describe('runBatch', () => {
   it('rubro type: usa searchNearby con el tipo y arma los resultados con rubro y apto', async () => {
     const run = makeRun({
-      geocode: () => ({ ok: true, lat: -32.9, lon: -68.8 }),
+      geocode: geoOk,
       searchNearby: () => ({ ok: true, places: [place('p1', 'Ferretería Uno')], nextPageToken: null }),
       auditPlace: () => audited({ siteUrl: 'https://uno.com', email: 'a@uno.com' }),
     });
     const out = await runBatch(TYPE, { run, sleep: noSleep });
+    expect(run).toHaveBeenCalledWith('geocode', { city: 'Mendoza', country: 'Argentina' });
     expect(run).toHaveBeenCalledWith('searchNearby', expect.objectContaining({ type: 'hardware_store', radiusM: 15000 }));
-    expect(out.status).toBe('ok');
-    expect(out.results).toHaveLength(1);
+    expect(out).toMatchObject({ status: 'ok', examined: 1, found: 1 });
     expect(out.results[0]).toMatchObject({
       id: 'p1', nombre: 'Ferretería Uno', ciudad: 'Mendoza', tipo: 'Ferretería', rubro: 'Ferretería',
       aptoSistemaMedida: true, siteUrl: 'https://uno.com', email: 'a@uno.com', seoScore: 40,
@@ -38,23 +37,21 @@ describe('runBatch', () => {
 
   it('rubro text: usa searchText con "<término>, <ciudad>"', async () => {
     const run = makeRun({
-      geocode: () => ({ ok: true, lat: 1, lon: 2 }),
+      geocode: geoOk,
       searchText: () => ({ ok: true, places: [place('p1')], nextPageToken: null }),
       auditPlace: () => audited(),
     });
-    await runBatch(TEXT, { run, sleep: noSleep });
+    const out = await runBatch(TEXT, { run, sleep: noSleep });
     expect(run).toHaveBeenCalledWith('searchText', expect.objectContaining({ query: 'steel framing, Salta' }));
+    expect(out.results[0]).toMatchObject({ tipo: 'Steel framing', aptoSistemaMedida: false });
   });
 
-  it('descarta lugares sin sitio web o con seoScore nulo', async () => {
+  it('descarta los sin web (aunque tengan WhatsApp) y los de seoScore nulo', async () => {
+    const audits = { a: noWeb, b: audited({ seoScore: null }), c: audited() };
     const run = makeRun({
-      geocode: () => ({ ok: true, lat: 1, lon: 2 }),
+      geocode: geoOk,
       searchNearby: () => ({ ok: true, places: [place('a'), place('b'), place('c')], nextPageToken: null }),
-      auditPlace: ({ placeId }) => ({
-        a: audited({ hasWebsite: false, siteUrl: null, seoScore: null }),
-        b: audited({ seoScore: null }),
-        c: audited(),
-      }[placeId]),
+      auditPlace: ({ placeId }) => audits[placeId],
     });
     const out = await runBatch(TYPE, { run, sleep: noSleep });
     expect(out.results.map(r => r.id)).toEqual(['c']);
@@ -62,45 +59,45 @@ describe('runBatch', () => {
   });
 
   it('respeta maxSites', async () => {
-    const places = ['a', 'b', 'c', 'd'].map(id => place(id));
     const run = makeRun({
-      geocode: () => ({ ok: true, lat: 1, lon: 2 }),
-      searchNearby: () => ({ ok: true, places, nextPageToken: null }),
+      geocode: geoOk,
+      searchNearby: () => ({ ok: true, places: ['a', 'b', 'c'].map(id => place(id)), nextPageToken: null }),
       auditPlace: () => audited(),
     });
     const out = await runBatch(TYPE, { run, sleep: noSleep, maxSites: 2 });
     expect(out.results).toHaveLength(2);
   });
 
-  it('respeta maxCandidates (cuida el tope diario de getDetails)', async () => {
-    const places = ['a', 'b', 'c', 'd'].map(id => place(id));
+  it('respeta maxCandidates (cuida el cupo de getDetails)', async () => {
     const run = makeRun({
-      geocode: () => ({ ok: true, lat: 1, lon: 2 }),
-      searchNearby: () => ({ ok: true, places, nextPageToken: null }),
-      auditPlace: () => audited({ hasWebsite: false, seoScore: null }),
+      geocode: geoOk,
+      searchNearby: () => ({ ok: true, places: ['a', 'b', 'c', 'd'].map(id => place(id)), nextPageToken: null }),
+      auditPlace: () => noWeb,
     });
     const out = await runBatch(TYPE, { run, sleep: noSleep, maxCandidates: 3 });
     expect(out.examined).toBe(3);
+    expect(run.mock.calls.filter(c => c[0] === 'auditPlace')).toHaveLength(3);
   });
 
   it('QUOTA_EXCEEDED corta y conserva lo auditado hasta ahí', async () => {
-    const calls = { n: 0 };
+    const audits = { a: audited(), b: { ok: false, error: 'cuota', code: 'QUOTA_EXCEEDED' } };
     const run = makeRun({
-      geocode: () => ({ ok: true, lat: 1, lon: 2 }),
+      geocode: geoOk,
       searchNearby: () => ({ ok: true, places: [place('a'), place('b'), place('c')], nextPageToken: null }),
-      auditPlace: () => (++calls.n === 2 ? { ok: false, code: 'QUOTA_EXCEEDED', error: 'límite' } : audited()),
+      auditPlace: ({ placeId }) => audits[placeId] || audited(),
     });
     const out = await runBatch(TYPE, { run, sleep: noSleep });
     expect(out.status).toBe('cuota_agotada');
     expect(out.results.map(r => r.id)).toEqual(['a']);
+    expect(out.examined).toBe(2);
   });
 
   it('un error de auditPlace que no es de cuota se saltea y sigue', async () => {
-    const calls = { n: 0 };
+    const audits = { a: { ok: false, error: 'timeout' }, b: audited() };
     const run = makeRun({
-      geocode: () => ({ ok: true, lat: 1, lon: 2 }),
+      geocode: geoOk,
       searchNearby: () => ({ ok: true, places: [place('a'), place('b')], nextPageToken: null }),
-      auditPlace: () => (++calls.n === 1 ? { ok: false, error: 'boom' } : audited()),
+      auditPlace: ({ placeId }) => audits[placeId],
     });
     const out = await runBatch(TYPE, { run, sleep: noSleep });
     expect(out.status).toBe('ok');
@@ -109,44 +106,41 @@ describe('runBatch', () => {
 
   it('corta al agotar el presupuesto de tiempo', async () => {
     let t = 0;
+    const now = () => t;
     const run = makeRun({
-      geocode: () => ({ ok: true, lat: 1, lon: 2 }),
-      searchNearby: () => ({ ok: true, places: [place('a'), place('b'), place('c')], nextPageToken: null }),
+      geocode: geoOk,
+      searchNearby: () => ({ ok: true, places: ['a', 'b', 'c'].map(id => place(id)), nextPageToken: null }),
       auditPlace: () => { t += 20000; return audited(); },
     });
-    const out = await runBatch(TYPE, { run, sleep: noSleep, budgetMs: 30000, now: () => t });
-    expect(out.results).toHaveLength(2);
+    const out = await runBatch(TYPE, { run, sleep: noSleep, now, budgetMs: 30000 });
+    expect(out.results.map(r => r.id)).toEqual(['a', 'b']);
   });
 
   it('si la ciudad no se geocodifica devuelve status error sin buscar', async () => {
     const run = makeRun({ geocode: () => ({ ok: false, error: 'Ciudad no encontrada: Mendoza' }) });
     const out = await runBatch(TYPE, { run, sleep: noSleep });
-    expect(out).toMatchObject({ status: 'error', results: [], examined: 0 });
-    expect(out.error).toContain('Ciudad no encontrada');
+    expect(out.status).toBe('error');
+    expect(out.error).toContain('Mendoza');
     expect(run).toHaveBeenCalledTimes(1);
   });
 
   it('si la búsqueda falla en la primera página devuelve status error', async () => {
-    const run = makeRun({
-      geocode: () => ({ ok: true, lat: 1, lon: 2 }),
-      searchNearby: () => ({ ok: false, error: 'Error de Google Places' }),
-    });
+    const run = makeRun({ geocode: geoOk, searchNearby: () => ({ ok: false, error: 'Unsupported types: x.' }) });
     const out = await runBatch(TYPE, { run, sleep: noSleep });
     expect(out.status).toBe('error');
+    expect(out.error).toContain('Unsupported types');
   });
 
-  it('pagina una vez más con nextPageToken y deduplica por id', async () => {
-    const pages = [
-      { ok: true, places: [place('a'), place('b')], nextPageToken: 'T2' },
-      { ok: true, places: [place('b'), place('c')], nextPageToken: 'T3' },
-    ];
-    let i = 0;
+  it('pagina con nextPageToken y deduplica por id', async () => {
     const run = makeRun({
-      geocode: () => ({ ok: true, lat: 1, lon: 2 }),
-      searchNearby: () => pages[i++],
+      geocode: geoOk,
+      searchNearby: ({ pageToken }) => (pageToken
+        ? { ok: true, places: [place('b'), place('c')], nextPageToken: null }
+        : { ok: true, places: [place('a'), place('b')], nextPageToken: 'T1' }),
       auditPlace: () => audited(),
     });
-    const out = await runBatch(TYPE, { run, sleep: noSleep, pages: 2 });
+    const out = await runBatch(TYPE, { run, sleep: noSleep });
     expect(out.results.map(r => r.id)).toEqual(['a', 'b', 'c']);
+    expect(out.found).toBe(3);
   });
 });

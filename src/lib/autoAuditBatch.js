@@ -1,79 +1,63 @@
+// src/lib/autoAuditBatch.js
 import { runLeadFinderAction } from '@/app/api/lead-finder/route';
+import { searchLeads, leadToAuditRow } from '@/lib/leadSearch';
 
-export const RADIO_M = 15000;
+export const RADIO_KM = 15;
 
-const defaultSleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// runLeadFinderAction devuelve un Response; el motor espera datos o un Error con .code.
+function makeCall(run) {
+  return async (action, params) => {
+    const data = await (await run(action, params)).json();
+    if (!data.ok) throw Object.assign(new Error(data.error || 'Error'), { code: data.code });
+    return data;
+  };
+}
 
-// Audita un lote de negocios de una combinación ciudad × rubro, sin pasar por HTTP ni por el
-// navegador. Reutiliza runLeadFinderAction: auditPlace trae caché de 30 días por placeId, así
-// que un negocio ya auditado no vuelve a costar una llamada a Google.
+// Audita un lote de negocios de una combinación ciudad × rubro con el motor compartido
+// (src/lib/leadSearch.js), sin pasar por HTTP. El informe es de SEO: solo leads con web.
 export async function runBatch(combo, opts = {}) {
   const {
-    budgetMs = 45000, maxSites = 15, maxCandidates = 40, pages = 2,
-    run = runLeadFinderAction, now = Date.now, sleep = defaultSleep,
+    budgetMs = 45000, maxSites = 15, maxCandidates = 30,
+    run = runLeadFinderAction, now = Date.now, sleep,
   } = opts;
   const deadline = now() + budgetMs;
   const { ciudad, rubro } = combo;
 
-  // runLeadFinderAction devuelve un Response; se lee su JSON.
-  const call = async (action, params) => (await run(action, params)).json();
-
-  const geo = await call('geocode', { city: ciudad, country: 'Argentina' });
-  if (!geo.ok) return { results: [], status: 'error', error: geo.error || 'No se pudo geocodificar', examined: 0 };
-
-  const places = [];
-  const seen = new Set();
-  let pageToken = null;
-  for (let page = 0; page < pages; page++) {
-    const search = rubro.kind === 'text'
-      ? await call('searchText', { lat: geo.lat, lon: geo.lon, query: `${rubro.value}, ${ciudad}`, radiusM: RADIO_M, pageToken })
-      : await call('searchNearby', { lat: geo.lat, lon: geo.lon, type: rubro.value, radiusM: RADIO_M, pageToken });
-    if (!search.ok) {
-      if (!places.length) return { results: [], status: 'error', error: search.error || 'Error de búsqueda', examined: 0 };
-      break;
-    }
-    for (const p of search.places || []) {
-      if (!seen.has(p.id)) { seen.add(p.id); places.push(p); }
-    }
-    pageToken = search.nextPageToken || null;
-    if (!pageToken || page === pages - 1) break;
-    await sleep(2000); // Google necesita un instante para habilitar el token de la página siguiente
-  }
-
   const results = [];
   let examined = 0;
+  let found = null;
+  let primerAviso = null;
   let status = 'ok';
-  for (const place of places) {
-    if (results.length >= maxSites || examined >= maxCandidates || now() >= deadline) break;
-    examined++;
+  let error;
 
-    const a = await call('auditPlace', { placeId: place.id });
-    if (!a.ok) {
-      if (a.code === 'QUOTA_EXCEEDED') { status = 'cuota_agotada'; break; }
-      continue;
+  try {
+    const gen = searchLeads({
+      zonas: [{ ciudad, pais: 'Argentina' }],
+      terminos: rubro.kind === 'text' ? [rubro.value] : [],
+      tipos: rubro.kind === 'text' ? [] : [{ id: rubro.value, label: rubro.label }],
+      radioKm: RADIO_KM, cantidad: maxSites, maxExaminados: maxCandidates, soloConWeb: true,
+    }, { call: makeCall(run), isCancelled: () => now() >= deadline, ...(sleep ? { sleep } : {}) });
+
+    for await (const ev of gen) {
+      if (ev.type === 'negocio') examined++;
+      if (ev.type === 'aviso' && !ev.negocioId && !primerAviso) primerAviso = ev.mensaje;
+      if (ev.type === 'fin') found = ev.totals.encontrados;
+      if (ev.type === 'lead' && typeof ev.lead.seoScore === 'number') {
+        results.push({
+          ...leadToAuditRow(ev.lead),
+          tipo: rubro.label,
+          rubro: rubro.label,
+          aptoSistemaMedida: rubro.prioritario === true,
+        });
+      }
     }
-    if (!a.hasWebsite || typeof a.seoScore !== 'number') continue;
-
-    results.push({
-      id:           place.id,
-      nombre:       place.displayName?.text || 'Sin nombre',
-      ciudad,
-      tipo:         rubro.label,
-      rubro:        rubro.label,
-      aptoSistemaMedida: rubro.prioritario === true,
-      lat:          place.location?.latitude ?? null,
-      lon:          place.location?.longitude ?? null,
-      siteUrl:      a.siteUrl,
-      email:        a.email || null,
-      seoScore:     a.seoScore,
-      hasSitemap:   a.hasSitemap,
-      hasRobots:    a.hasRobots,
-      metaDesc:     a.metaDesc,
-      hasOG:        a.hasOG,
-      lastModified: a.lastUpdated || a.lastModified || null,
-      rating:       a.rating ?? null,
-    });
+  } catch (e) {
+    if (e.code === 'QUOTA_EXCEEDED') status = 'cuota_agotada';
+    else { status = 'error'; error = e.message; }
   }
 
-  return { results, status, examined, found: places.length };
+  // Sin ningún negocio examinado y con un aviso de ciudad/búsqueda: la combinación falló.
+  if (status === 'ok' && examined === 0 && primerAviso) { status = 'error'; error = primerAviso; }
+
+  return { results, status, ...(status === 'error' ? { error } : {}), examined, found: found ?? examined };
 }
