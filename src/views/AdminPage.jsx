@@ -28,7 +28,7 @@ import StyleQuizManager from '../components/admin/StyleQuizManager';
 import LeadMapPanel from '../components/admin/LeadMapPanel';
 import FreeForDevBrowser from '../components/admin/FreeForDevBrowser';
 import PlansManager from '../components/admin/PlansManager';
-import LeadFinderPanel from '../components/audit/LeadFinderPanel';
+import LeadFinder from '../components/leadfinder/LeadFinder';
 import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAnalytics, useLinkedInConnect, useLinkedInDisconnect } from '../hooks/useLinkedIn';
 import { ADMIN_NAV_DEFAULT } from '../data/adminNav';
 import { mergeNavWithDefaults } from '../lib/navMerge';
@@ -759,7 +759,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'leads' && (
-          <LeadFinderPanel />
+          <LeadFinder variant="admin" lang="es" />
         )}
 
         {activeTab === 'leads-map' && (
