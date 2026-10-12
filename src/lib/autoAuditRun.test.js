@@ -49,6 +49,7 @@ function createFakeDb(initialConfig) {
 const results = [
   { id: 'a', nombre: 'A', seoScore: 30, email: 'a@a.com' },
   { id: 'b', nombre: 'B', seoScore: 70, email: null },
+  { id: 'c', nombre: 'C', seoScore: 50, email: null },
 ];
 
 const MICROLINK = 'https://api.microlink.io/';
@@ -60,7 +61,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   fetchMock = vi.fn(async (url) => (isShot(url) ? okShot() : { ok: true, status: 200 }));
   vi.stubGlobal('fetch', fetchMock);
-  runBatch.mockResolvedValue({ results, status: 'ok', examined: 2 });
+  runBatch.mockResolvedValue({ results, status: 'ok', examined: 3, found: 3 });
   saveAuditoria.mockResolvedValue({ id: 'aud-1', summary: 'Resumen guardado' });
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -133,10 +134,10 @@ describe('runAutoAudit — flujo', () => {
     getDb.mockReturnValue(db);
     const out = await runAutoAudit({ now: () => NOW });
 
-    expect(out).toMatchObject({ estado: 'ok', auditoriaId: 'aud-1', auditados: 2 });
+    expect(out).toMatchObject({ estado: 'ok', auditoriaId: 'aud-1', auditados: 3 });
     expect(saveAuditoria).toHaveBeenCalledWith(expect.objectContaining({
       results,
-      stats: { total: 2, avgSeoScore: 50, lowSeoCount: 1, withEmail: 1 },
+      stats: { total: 3, avgSeoScore: 50, lowSeoCount: 1, withEmail: 1 },
       config: expect.objectContaining({ ciudades: ['Neuquén'], tiposLabels: ['Ferretería'], pais: 'Argentina' }),
     }));
 
@@ -291,6 +292,53 @@ describe('runAutoAudit — flujo', () => {
     expect(out).toMatchObject({ estado: 'error', error: 'explotó' });
     expect(db.state.runs[0].estado).toBe('error');
     expect(db.state.config.lock.until).toBe(0);
+  });
+
+  describe('combinación con muy pocos sitios (ej. Durlock × Formosa: 2 comercios, 1 con web)', () => {
+    const RUBRO2 = { label: 'Plomero', kind: 'type', value: 'plumber', prioritario: true };
+    const KEY2 = comboKey('Neuquén', RUBRO2);
+    const TWO = { ...BASE_CONFIG, rubros: [RUBRO, RUBRO2] };
+
+    it('la descarta, la marca y publica la siguiente combinación en la misma corrida', async () => {
+      const db = createFakeDb(TWO);
+      getDb.mockReturnValue(db);
+      runBatch
+        .mockResolvedValueOnce({ results: results.slice(0, 1), status: 'ok', examined: 2, found: 2 })
+        .mockResolvedValueOnce({ results, status: 'ok', examined: 5, found: 20 });
+      const out = await runAutoAudit({ now: () => NOW, maxCandidates: 30 });
+
+      expect(runBatch).toHaveBeenCalledTimes(2);
+      // el tope de getDetails es por corrida, no por intento
+      expect(runBatch.mock.calls[1][1].maxCandidates).toBe(28);
+      expect(saveAuditoria).toHaveBeenCalledTimes(1);
+      expect(makeCalls()).toHaveLength(1);
+      expect(out.estado).toBe('ok');
+      expect(out.intentos).toHaveLength(2);
+      expect(out.intentos[0]).toMatchObject({ encontrados: 2, examinados: 2, conWeb: 1 });
+      expect(db.state.config.ultimaCorrida[COMBO_KEY]).toBe(NOW);
+      expect(db.state.config.ultimaCorrida[KEY2]).toBe(NOW);
+    });
+
+    it('si ninguna llega al mínimo: no guarda ni publica, marca todas y queda sin_resultados', async () => {
+      const db = createFakeDb(TWO);
+      getDb.mockReturnValue(db);
+      runBatch.mockResolvedValue({ results: results.slice(0, 2), status: 'ok', examined: 4, found: 4 });
+      const out = await runAutoAudit({ now: () => NOW });
+
+      expect(runBatch).toHaveBeenCalledTimes(2);
+      expect(out.estado).toBe('sin_resultados');
+      expect(saveAuditoria).not.toHaveBeenCalled();
+      expect(makeCalls()).toHaveLength(0);
+      expect(db.state.config.ultimaCorrida[COMBO_KEY]).toBe(NOW);
+      expect(db.state.config.ultimaCorrida[KEY2]).toBe(NOW);
+    });
+
+    it('no reintenta si ya se gastó el tope de getDetails', async () => {
+      getDb.mockReturnValue(createFakeDb(TWO));
+      runBatch.mockResolvedValue({ results: [], status: 'ok', examined: 30, found: 30 });
+      await runAutoAudit({ now: () => NOW, maxCandidates: 30 });
+      expect(runBatch).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('lanza si no hay Firestore', async () => {

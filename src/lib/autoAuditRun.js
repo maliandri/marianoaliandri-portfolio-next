@@ -9,6 +9,10 @@ const CONFIG_COLLECTION = 'auditoria_auto';
 const RUNS_COLLECTION = 'auditoria_auto_runs';
 const LOCK_MS = 15 * 60 * 1000;          // un candado huérfano vence solo a los 15 min
 const MIN_SITES_TO_SAVE = 5;             // con cuota agotada solo se guarda si hay al menos 5
+// Un informe de 1 o 2 sitios no dice nada (pasó con Durlock × Formosa: Google tenía 2 comercios).
+// Por debajo de esto la combinación se marca como hecha y se prueba otra en la misma corrida.
+const MIN_SITES_TO_PUBLISH = 3;
+const MAX_COMBO_ATTEMPTS = 3;
 const MAKE_WEBHOOK_DEFAULT = 'https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi';
 
 export function defaultConfig() {
@@ -98,13 +102,32 @@ export async function runAutoAudit({
   let markRan = false;
   let skipped = null;
 
+  const descartadas = {}; // combinaciones con muy pocos sitios: se marcan para no repetirlas
+
   try {
-    combo = pickNext(config, nowMs);
+    // Tiempo y getDetails (maxCandidates) son un presupuesto por corrida, compartido entre intentos.
+    const deadline = nowMs + budgetMs;
+    let candidatesLeft = maxCandidates;
+    let batch = null;
+    for (let i = 0; i < MAX_COMBO_ATTEMPTS; i++) {
+      if (i > 0 && (candidatesLeft <= 0 || deadline - now() <= 0)) break;
+      const next = pickNext({ ...config, ultimaCorrida: { ...config.ultimaCorrida, ...descartadas } }, nowMs);
+      if (!next) break;
+      combo = next;
+      batch = await runBatch(combo, { budgetMs: deadline - now(), maxSites, maxCandidates: candidatesLeft });
+      candidatesLeft -= batch.examined || 0;
+      (run.intentos ||= []).push({
+        ciudad: combo.ciudad, rubro: combo.rubro.label,
+        encontrados: batch.found ?? null, examinados: batch.examined ?? 0, conWeb: batch.results.length,
+      });
+      if (batch.status !== 'ok' || batch.results.length >= MIN_SITES_TO_PUBLISH) break;
+      descartadas[comboKey(combo.ciudad, combo.rubro)] = nowMs;
+    }
+
     if (!combo) {
       skipped = 'sin_combos';
     } else {
       run.combo = { ciudad: combo.ciudad, rubro: combo.rubro.label };
-      const batch = await runBatch(combo, { budgetMs, maxSites, maxCandidates });
       run.auditados = batch.results.length;
 
       if (batch.status === 'error') {
@@ -118,7 +141,7 @@ export async function runAutoAudit({
           run.auditoriaId = saved.id;
           markRan = true;
         }
-      } else if (!batch.results.length) {
+      } else if (batch.results.length < MIN_SITES_TO_PUBLISH) {
         run.estado = 'sin_resultados';
         markRan = true;
       } else {
@@ -167,7 +190,9 @@ export async function runAutoAudit({
       console.error('[auto-audit] no se pudo registrar el run:', e.message);
     }
     const patch = { lock: { until: 0 } };
-    if (markRan && combo) patch.ultimaCorrida = { [comboKey(combo.ciudad, combo.rubro)]: nowMs };
+    const marcar = { ...descartadas };
+    if (markRan && combo) marcar[comboKey(combo.ciudad, combo.rubro)] = nowMs;
+    if (Object.keys(marcar).length) patch.ultimaCorrida = marcar;
 
     // Proteger la liberación del candado: reintentar una vez si falla
     let attempts = 0;

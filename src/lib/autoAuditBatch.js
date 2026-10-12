@@ -75,5 +75,5 @@ export async function runBatch(combo, opts = {}) {
     });
   }
 
-  return { results, status, examined };
+  return { results, status, examined, found: places.length };
 }

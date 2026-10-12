@@ -214,6 +214,11 @@ export default function AutoAuditCard() {
                   {r.createdAt && <span className="text-gray-400 text-xs">{new Date(r.createdAt).toLocaleString('es-AR')}</span>}
                   {r.auditoriaId && <a className="text-indigo-600 underline text-xs" href={`/auditorias/${r.auditoriaId}`} target="_blank" rel="noreferrer">ver informe</a>}
                   {r.error && <span className="text-xs text-red-600 dark:text-red-400">{r.error}</span>}
+                  {r.intentos?.length > 0 && (
+                    <span className="basis-full text-xs text-gray-500">
+                      {r.intentos.map(t => `${t.rubro} · ${t.ciudad}: ${t.encontrados ?? '?'} encontrados, ${t.conWeb} con web`).join(' → ')}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
