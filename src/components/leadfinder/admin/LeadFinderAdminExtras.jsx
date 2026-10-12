@@ -83,6 +83,7 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
   const [msg, setMsg] = useState('');
   const [url, setUrl] = useState(null);
   const [savedUrl, setSavedUrl] = useState(null); // informe ya guardado cuando falla la parte de redes
+  const [savedId, setSavedId] = useState(null);
 
   const ciudades = form.zonas.map(z => parseZona(z).ciudad);
   const rubros = [...tipoLabels, ...form.terminos];
@@ -103,33 +104,39 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
       `El relevamiento evidencia oportunidades concretas de mejora en la presencia digital de los comercios de la zona.\n\n` +
       `🔍 Conocé el servicio Lead Finder Pro: https://marianoaliandri.com.ar/keywords`
     );
-    setMsg(''); setSavedUrl(null);
+    setMsg(''); setSavedUrl(null); setSavedId(null);
     setModal(true);
   };
 
   const publicar = async () => {
     setBusy(true); setMsg('');
     try {
-      const resp = await fetch('/api/auditorias', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: title.trim(), summary: desc.trim(), results: filas,
-          stats: { total, withEmail, lowSeoCount: low, avgSeoScore: avg },
-          config: { ciudades, pais: 'Argentina', radioKm: form.radioKm, tiposLabels: rubros },
-        }),
-      });
-      const data = await resp.json();
-      if (!resp.ok || !data.id) throw new Error(data.error || 'Error al publicar');
-      const informeUrl = `/auditorias/${data.id}`;
-      setSavedUrl(informeUrl);
+      let auditoriaId = savedId;
+      // Si el informe ya se guardó (falló solo la parte de redes), no se duplica: solo se reintenta redes.
+      if (!savedUrl || !auditoriaId) {
+        const resp = await fetch('/api/auditorias', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: title.trim(), summary: desc.trim(), results: filas,
+            stats: { total, withEmail, lowSeoCount: low, avgSeoScore: avg },
+            config: { ciudades, pais: 'Argentina', radioKm: form.radioKm, tiposLabels: rubros },
+          }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.id) throw new Error(data.error || 'Error al publicar');
+        auditoriaId = data.id;
+        setSavedId(auditoriaId);
+        setSavedUrl(`/auditorias/${auditoriaId}`);
+      }
+      const informeUrl = `/auditorias/${auditoriaId}`;
 
       const networks = Object.keys(nets).filter(k => nets[k]);
       if (toSocial && networks.length) {
         const res = await fetch('/api/publish-social', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(buildAuditPublishPayload({ caption: `${title}\n\n${desc}`, networks, auditoriaId: data.id })),
+          body: JSON.stringify(buildAuditPublishPayload({ caption: `${title}\n\n${desc}`, networks, auditoriaId })),
         });
         const pub = await res.json().catch(() => ({}));
         if (!res.ok || pub.success === false) {

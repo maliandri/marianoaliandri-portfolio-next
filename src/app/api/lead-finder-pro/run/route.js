@@ -173,7 +173,7 @@ export async function POST(request) {
     // 4. Historial personal (también los descartados, para no volver a pagarlos).
     try {
       await myAuditRef.set({ ...audit, ...cls, placeId, auditedAt: FieldValue.serverTimestamp() }, { merge: true });
-    } catch { /* no romper la respuesta si falla el guardado del historial */ }
+    } catch (e) { console.error('[lead-finder-pro/run] no se pudo guardar el historial:', e.message); /* no romper la respuesta */ }
 
     return Response.json({ ok: true, ...audit, ...cls, fromCache: !!fromCache, fromMyHistory: false });
   }

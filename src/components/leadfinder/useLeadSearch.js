@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { searchLeads } from '@/lib/leadSearch';
+import { searchLeads, normalizarLeadsGuardados } from '@/lib/leadSearch';
 
 const CERO = { encontrados: 0, examinados: 0, leads: 0, conWeb: 0, descartados: 0 };
 const MAX_LOG = 200;
@@ -88,15 +88,21 @@ export function useLeadSearch(call) {
     return { leads: leadsRef.current, totals: { ...local } };
   }, [call]);
 
+  // Actualiza una fila (ej. reintento del conteo de productos).
+  const patchLead = useCallback((id, patch) => {
+    commit(prev => prev.map(r => (r.id === id ? { ...r, ...patch } : r)));
+  }, []);
+
   const cancel = useCallback(() => { cancelRef.current = true; }, []);
 
   // Muestra una búsqueda guardada del historial.
   const load = useCallback((saved, savedTotals) => {
-    commit(() => saved || []);
-    setTotals(savedTotals || { ...CERO, leads: (saved || []).length, conWeb: (saved || []).filter(l => l.canal === 'web' || l.hasWebsite).length });
+    const rows = normalizarLeadsGuardados(saved);
+    commit(() => rows);
+    setTotals(savedTotals || { ...CERO, leads: rows.length, conWeb: rows.filter(l => l.canal === 'web').length });
     setAvisos([]); setStop(null); setLog([]);
     setPhase('done');
   }, []);
 
-  return { phase, leads, pendiente, progress, totals, avisos, stop, log, run, cancel, load };
+  return { phase, leads, pendiente, progress, totals, avisos, stop, log, run, cancel, load, patchLead };
 }

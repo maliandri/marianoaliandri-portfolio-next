@@ -191,7 +191,7 @@ describe('runAutoAudit — flujo', () => {
   it('sin resultados: no guarda ni publica, pero marca la combinación', async () => {
     const db = createFakeDb(BASE_CONFIG);
     getDb.mockReturnValue(db);
-    runBatch.mockResolvedValue({ results: [], status: 'ok', examined: 5 });
+    runBatch.mockResolvedValue({ results: [], status: 'ok', examined: 5, agotado: true });
     const out = await runAutoAudit({ now: () => NOW });
     expect(out.estado).toBe('sin_resultados');
     expect(saveAuditoria).not.toHaveBeenCalled();
@@ -325,7 +325,7 @@ describe('runAutoAudit — flujo', () => {
       const db = createFakeDb(TWO);
       getDb.mockReturnValue(db);
       runBatch
-        .mockResolvedValueOnce({ results: results.slice(0, 1), status: 'ok', examined: 2, found: 2 })
+        .mockResolvedValueOnce({ results: results.slice(0, 1), status: 'ok', examined: 2, found: 2, agotado: true })
         .mockResolvedValueOnce({ results, status: 'ok', examined: 5, found: 20 });
       const out = await runAutoAudit({ now: () => NOW });
 
@@ -344,7 +344,7 @@ describe('runAutoAudit — flujo', () => {
     it('si ninguna llega al mínimo: no guarda ni publica, marca todas y queda sin_resultados', async () => {
       const db = createFakeDb(TWO);
       getDb.mockReturnValue(db);
-      runBatch.mockResolvedValue({ results: results.slice(0, 2), status: 'ok', examined: 4, found: 4 });
+      runBatch.mockResolvedValue({ results: results.slice(0, 2), status: 'ok', examined: 4, found: 4, agotado: true });
       const out = await runAutoAudit({ now: () => NOW });
 
       expect(runBatch).toHaveBeenCalledTimes(2);
@@ -353,6 +353,17 @@ describe('runAutoAudit — flujo', () => {
       expect(makeCalls()).toHaveLength(0);
       expect(db.state.config.ultimaCorrida[COMBO_KEY]).toBe(NOW);
       expect(db.state.config.ultimaCorrida[KEY2]).toBe(NOW);
+    });
+
+    it('si el lote se cortó por presupuesto (no agotado): no reintenta ni marca la combinación', async () => {
+      const db = createFakeDb(TWO);
+      getDb.mockReturnValue(db);
+      runBatch.mockResolvedValue({ results: results.slice(0, 1), status: 'ok', examined: 30, found: 40, agotado: false });
+      const out = await runAutoAudit({ now: () => NOW });
+      expect(runBatch).toHaveBeenCalledTimes(1);
+      expect(out.estado).toBe('sin_resultados');
+      expect(db.state.config.ultimaCorrida?.[COMBO_KEY]).toBeUndefined();
+      expect(db.state.config.ultimaCorrida?.[KEY2]).toBeUndefined();
     });
 
     it('no reintenta si ya se gastó el tope de getDetails', async () => {

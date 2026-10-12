@@ -77,6 +77,7 @@ describe('runBatch', () => {
     const out = await runBatch(TYPE, { run, sleep: noSleep, maxCandidates: 3 });
     expect(out.examined).toBe(3);
     expect(run.mock.calls.filter(c => c[0] === 'auditPlace')).toHaveLength(3);
+    expect(out.agotado).toBe(false);
   });
 
   it('QUOTA_EXCEEDED corta y conserva lo auditado hasta ahí', async () => {
@@ -114,6 +115,18 @@ describe('runBatch', () => {
     });
     const out = await runBatch(TYPE, { run, sleep: noSleep, now, budgetMs: 30000 });
     expect(out.results.map(r => r.id)).toEqual(['a', 'b']);
+    expect(out.agotado).toBe(false);
+  });
+
+  it('agotado es true cuando se examinaron todos los negocios que había', async () => {
+    const run = makeRun({
+      geocode: geoOk,
+      searchNearby: () => ({ ok: true, places: ['a', 'b'].map(id => place(id)), nextPageToken: null }),
+      auditPlace: () => noWeb,
+    });
+    const out = await runBatch(TYPE, { run, sleep: noSleep });
+    expect(out.examined).toBe(2);
+    expect(out.agotado).toBe(true);
   });
 
   it('si la ciudad no se geocodifica devuelve status error sin buscar', async () => {

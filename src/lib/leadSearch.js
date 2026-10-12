@@ -36,6 +36,23 @@ export function filasParaInforme(leads) {
   return leads.filter(l => l.canal === 'web' && typeof l.seoScore === 'number').map(leadToAuditRow);
 }
 
+// Respuesta de countProducts -> campos de la fila.
+export function productosPatch(d) {
+  return (d.applicable === false || d.count === null || d.count === undefined)
+    ? { prodState: d.partial ? 'error' : 'none' }
+    : { prodState: 'done', prodCount: d.count, prodConfidence: d.confidence, prodPartial: !!d.partial };
+}
+
+// Filas del historial: las viejas no traen clasificación; se calcula con la misma regla y se
+// descartan las que no son leads.
+export function normalizarLeadsGuardados(rows) {
+  return (rows || []).flatMap(row => {
+    if (row.canal !== undefined && row.canal !== null) return [row];
+    const cls = clasificarLead(row);
+    return cls.esLead ? [{ ...row, ...cls }] : [];
+  });
+}
+
 export async function* searchLeads(params, deps) {
   const {
     zonas = [], terminos = [], tipos = [], radioKm = 10, cantidad = 10,
@@ -56,9 +73,7 @@ export async function* searchLeads(params, deps) {
   const contar = (lead) => {
     const item = { ev: null };
     item.promise = call('countProducts', { placeId: lead.id, keyword })
-      .then(d => (d.applicable === false || d.count === null || d.count === undefined)
-        ? { prodState: d.partial ? 'error' : 'none' }
-        : { prodState: 'done', prodCount: d.count, prodConfidence: d.confidence, prodPartial: !!d.partial })
+      .then(productosPatch)
       .catch(() => ({ prodState: 'error' }))
       .then(patch => { item.ev = { type: 'productos', id: lead.id, ...patch }; });
     pendientes.push(item);

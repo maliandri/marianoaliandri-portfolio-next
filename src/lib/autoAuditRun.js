@@ -124,6 +124,8 @@ export async function runAutoAudit({
         encontrados: batch.found ?? null, examinados: batch.examined ?? 0, conWeb: batch.results.length,
       });
       if (batch.status !== 'ok' || batch.results.length >= MIN_SITES_TO_PUBLISH) break;
+      // Cortado por presupuesto (tiempo/getDetails): no se sabe si la combinación rinde, no se descarta.
+      if (batch.agotado !== true) break;
       descartadas[comboKey(combo.ciudad, combo.rubro)] = nowMs;
     }
 
@@ -146,7 +148,7 @@ export async function runAutoAudit({
         }
       } else if (batch.results.length < MIN_SITES_TO_PUBLISH) {
         run.estado = 'sin_resultados';
-        markRan = true;
+        markRan = batch.agotado === true; // cortado por presupuesto: no se descarta la combinación
       } else {
         const stats = buildStats(batch.results);
         const saved = await saveReport(combo, batch.results, stats, nowMs, useGemini);

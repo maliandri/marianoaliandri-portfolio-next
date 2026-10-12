@@ -37,7 +37,7 @@ export function exportLeadsCSV(rows, t) {
   URL.revokeObjectURL(url);
 }
 
-export default function LeadResultsTable({ rows, perfil, t }) {
+export default function LeadResultsTable({ rows, perfil, t, onRetryProducts, retryDisabled }) {
   const headers = [t.tableHeaders[0], t.tableHeaders[1], t.colRubro, t.colWeb, 'SEO', t.colContacto, t.colUpdated,
     ...(perfil === 'empresa' ? [t.colProducts] : []), '★', 'Maps'];
 
@@ -91,7 +91,11 @@ export default function LeadResultsTable({ rows, perfil, t }) {
                             {neg.prodConfidence === 'catalogo' ? t.productsCatalog : t.productsEstimated}
                           </span>
                         </span>
-                      ) : neg.prodState === 'error' ? <span className="text-red-500">—</span>
+                      ) : neg.prodState === 'error' ? (
+                        onRetryProducts
+                          ? <button type="button" disabled={retryDisabled} onClick={() => onRetryProducts(neg)} className="px-2 py-1 bg-red-600/20 text-red-500 rounded-lg text-xs disabled:opacity-40">{t.retryProducts}</button>
+                          : <span className="text-red-500">—</span>
+                      )
                       : <span className="text-fg-600">—</span>}
                   </td>
                 )}

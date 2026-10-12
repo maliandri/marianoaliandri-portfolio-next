@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { searchLeads, parseZona, filasParaInforme, leadToAuditRow, isFatal, PAUSA_PAGINA_MS } from './leadSearch.js';
+import { searchLeads, parseZona, filasParaInforme, leadToAuditRow, isFatal, PAUSA_PAGINA_MS, normalizarLeadsGuardados, productosPatch } from './leadSearch.js';
 
 const WEB = { hasWebsite: true, siteUrl: 'https://x.test', seoScore: 40 };
 const NADA = { hasWebsite: false, siteUrl: null, phone: '0299 442-1234', internationalPhone: '+54 299 442-1234' };
@@ -202,5 +202,28 @@ describe('filasParaInforme / leadToAuditRow', () => {
     expect(filas[0]).toEqual(leadToAuditRow(lead));
     expect(filas[0].phone).toBeUndefined();
     expect(filas[0].lastModified).toBe('2025-01-01');
+  });
+});
+
+describe('normalizarLeadsGuardados', () => {
+  it('clasifica filas viejas, descarta las que no son leads y respeta las ya clasificadas', () => {
+    const out = normalizarLeadsGuardados([
+      { id: 'a', hasWebsite: true, siteUrl: 'https://x.test' },
+      { id: 'b', hasWebsite: false, siteUrl: null },
+      { id: 'c', hasWebsite: false, internationalPhone: '+54 9 299 541-4422' },
+      { id: 'd', canal: 'whatsapp', whatsapp: '5492995414422' },
+    ]);
+    expect(out.map(r => [r.id, r.canal])).toEqual([['a', 'web'], ['c', 'whatsapp'], ['d', 'whatsapp']]);
+    expect(out[0].esLead).toBe(true);
+    expect(out[1].whatsapp).toBe('5492995414422');
+    expect(normalizarLeadsGuardados(null)).toEqual([]);
+  });
+});
+
+describe('productosPatch', () => {
+  it('mapea la respuesta de countProducts', () => {
+    expect(productosPatch({ count: 12, confidence: 'catalogo' })).toEqual({ prodState: 'done', prodCount: 12, prodConfidence: 'catalogo', prodPartial: false });
+    expect(productosPatch({ applicable: false })).toEqual({ prodState: 'none' });
+    expect(productosPatch({ count: null, partial: true })).toEqual({ prodState: 'error' });
   });
 });

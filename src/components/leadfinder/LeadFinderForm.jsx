@@ -69,6 +69,7 @@ export default function LeadFinderForm({ value, onChange, disabled, lang, varian
   const [showTipos, setShowTipos] = useState(false);
   const set = (patch) => onChange({ ...value, ...patch });
   const maxCantidad = balance === null || balance === Infinity ? undefined : Math.max(1, balance);
+  const [cantidadTxt, setCantidadTxt] = useState(null); // texto crudo mientras se edita
 
   return (
     <div className="space-y-4">
@@ -161,11 +162,13 @@ export default function LeadFinderForm({ value, onChange, disabled, lang, varian
         </div>
         <div>
           <label className={label} htmlFor="lf-cantidad">{t.cantidadLabel} <span className="text-fg-600 font-normal">{t.cantidadHint}</span></label>
-          <input id="lf-cantidad" type="number" min={1} max={maxCantidad} value={value.cantidad} disabled={disabled}
+          <input id="lf-cantidad" type="number" min={1} max={maxCantidad} value={cantidadTxt ?? value.cantidad} disabled={disabled}
             onChange={e => {
-              const v = Math.max(1, parseInt(e.target.value, 10) || 1);
-              set({ cantidad: maxCantidad ? Math.min(v, maxCantidad) : v });
+              setCantidadTxt(e.target.value);
+              const v = parseInt(e.target.value, 10);
+              if (Number.isInteger(v) && v >= 1) set({ cantidad: maxCantidad ? Math.min(v, maxCantidad) : v });
             }}
+            onBlur={() => setCantidadTxt(null)}
             className={`w-28 ${field}`} />
         </div>
         <span className="pb-2 text-xs text-fg-500">

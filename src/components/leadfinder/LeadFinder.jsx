@@ -9,7 +9,7 @@ import { db } from '@/utils/firebaseservice';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { lfpT } from '@/data/i18n/leadFinderPro';
 import { RUBROS, rubroLabel } from '@/data/rubros';
-import { parseZona } from '@/lib/leadSearch';
+import { parseZona, productosPatch } from '@/lib/leadSearch';
 import { useLeadSearch } from './useLeadSearch';
 import LeadFinderForm from './LeadFinderForm';
 import LeadResultsTable, { exportLeadsCSV } from './LeadResultsTable';
@@ -58,6 +58,7 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
   const [history, setHistory] = useState([]);
   const [loadingSavedId, setLoadingSavedId] = useState(null);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [searchKey, setSearchKey] = useState(0); // cambia con cada búsqueda/historial abierto: reinicia el informe
 
   useEffect(() => { if (isAdmin) setForm(loadAdminForm()); }, [isAdmin]);
 
@@ -111,6 +112,7 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
     if (isAdmin) { try { localStorage.setItem(ADMIN_FORM_KEY, JSON.stringify(form)); } catch { /* sin storage */ } }
     setShowForm(false);
     setFilters(EMPTY_FILTERS);
+    setSearchKey(k => k + 1);
     const { leads, totals } = await search.run({
       zonas: form.zonas.map(parseZona),
       terminos: form.terminos,
@@ -143,14 +145,26 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
       const data = await resp.json().catch(() => ({}));
       if (data.results) {
         search.load(data.results, data.stats || null);
+        setSearchKey(k => k + 1);
         setForm(f => ({
           ...f, zonas: data.ciudades || [], terminos: data.terminos || [], tipos: data.tipos || [],
-          radioKm: data.radioKm || 10, perfil: data.perfil || 'dev',
+          radioKm: data.radioKm || 10,
+          perfil: data.perfil || (data.results.some(r => r.prodState) ? 'empresa' : 'dev'),
         }));
         setShowForm(false);
       }
     } catch { /* no se pudo abrir: queda el historial como estaba */ } finally {
       setLoadingSavedId(null);
+    }
+  };
+
+  const retryProducts = async (lead) => {
+    search.patchLead(lead.id, { prodState: 'loading' });
+    try {
+      const d = await call('countProducts', { placeId: lead.id, keyword: form.producto.trim() });
+      search.patchLead(lead.id, productosPatch(d));
+    } catch {
+      search.patchLead(lead.id, { prodState: 'error' });
     }
   };
 
@@ -165,7 +179,7 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
   const emails = useMemo(() => search.leads.map(r => r.email).filter(Boolean), [search.leads]);
   const tipoLabels = form.tipos.map(id => rubroLabel(RUBROS.find(r => r.id === id), lang) || id);
   const hasCriteria = form.terminos.length > 0 || form.tipos.length > 0;
-  const canStart = form.zonas.length > 0 && hasCriteria && form.cantidad > 0 && (form.perfil !== 'empresa' || form.producto.trim());
+  const canStart = form.zonas.length > 0 && hasCriteria && form.cantidad > 0 && (form.perfil !== 'empresa' || form.producto.trim().length >= 2);
   const noCredits = !isAdmin && balance !== null && balance !== Infinity && balance <= 0;
   const stopCode = search.stop?.code;
 
@@ -228,7 +242,7 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
               <button onClick={() => exportLeadsCSV(search.leads, t)} className="px-4 py-2.5 bg-fg/5 hover:bg-fg/10 text-fg rounded-xl text-sm font-medium">{t.csvBtn}</button>
             )}
             {isAdmin && search.leads.length > 0 && (
-              <PublishReport leads={search.leads} form={form} tipoLabels={tipoLabels} disabled={isRunning} />
+              <PublishReport key={searchKey} leads={search.leads} form={form} tipoLabels={tipoLabels} disabled={isRunning} />
             )}
             {!canStart && !isRunning && form.zonas.length > 0 && !hasCriteria && <span className="text-xs text-fg-500">{t.needCriteria}</span>}
             {search.stop && !isRunning && !('QUOTA_EXCEEDED DISCARD_LIMIT NO_PLAN'.split(' ').includes(stopCode)) && <span className="text-xs text-red-500 ml-auto" role="alert">{search.stop.message}</span>}
@@ -259,7 +273,7 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
           <AdminFilters rows={search.leads} filters={filters} setFilters={setFilters} shown={rows.length} />
         )}
 
-        {rows.length > 0 && <LeadResultsTable rows={rows} perfil={form.perfil} t={t} />}
+        {rows.length > 0 && <LeadResultsTable rows={rows} perfil={form.perfil} t={t} onRetryProducts={retryProducts} retryDisabled={isRunning} />}
 
         {isAdmin && <AdminLog log={search.log} />}
       </div>

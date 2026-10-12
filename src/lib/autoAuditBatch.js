@@ -59,5 +59,9 @@ export async function runBatch(combo, opts = {}) {
   // Sin ningún negocio examinado y con un aviso de ciudad/búsqueda: la combinación falló.
   if (status === 'ok' && examined === 0 && primerAviso) { status = 'error'; error = primerAviso; }
 
-  return { results, status, ...(status === 'error' ? { error } : {}), examined, found: found ?? examined };
+  // agotado: Google se quedó sin negocios (no se cortó por tiempo ni por el tope de getDetails).
+  const cortadoPorTiempo = now() >= deadline;
+  const agotado = status === 'ok' && !cortadoPorTiempo && examined < maxCandidates;
+
+  return { results, status, ...(status === 'error' ? { error } : {}), examined, found: found ?? examined, agotado };
 }
