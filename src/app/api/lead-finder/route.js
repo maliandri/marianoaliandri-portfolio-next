@@ -52,7 +52,9 @@ const SEARCH_FIELDS  = 'places.id,places.displayName,places.rating,places.locati
 // Campos del detail: website + teléfono/horarios/rating. Todos confirmados en el mismo
 // tier "Enterprise" de Google ($20/1.000) que websiteUri solo — agregarlos no sube el
 // costo por negocio. Evitar "reviews"/campos de "Atmosphere" (esos sí suben de tier).
-const DETAIL_FIELDS  = 'id,websiteUri,nationalPhoneNumber,regularOpeningHours,rating,userRatingCount';
+// internationalPhoneNumber está en el mismo SKU de contacto que nationalPhoneNumber (sin costo
+// extra): con él se distingue un celular argentino (+54 9 …) para la regla de lead (leadRule.js).
+const DETAIL_FIELDS  = 'id,websiteUri,nationalPhoneNumber,internationalPhoneNumber,regularOpeningHours,rating,userRatingCount';
 
 function isSocialUrl(url) {
   try {
@@ -328,11 +330,13 @@ export async function runLeadFinderAction(action, params, clientKey) {
         await bumpUsage('getPlaceRequests');
 
         const websiteUri = detData.websiteUri && !isSocialUrl(detData.websiteUri) ? detData.websiteUri : null;
+        const socialUrl = detData.websiteUri && isSocialUrl(detData.websiteUri) ? detData.websiteUri : null;
         let result = {
-          hasWebsite: !!websiteUri, siteUrl: websiteUri,
+          hasWebsite: !!websiteUri, siteUrl: websiteUri, socialUrl,
           seoScore: null, hasSitemap: null, hasRobots: null, metaDesc: null, hasOG: false, email: null,
           lastUpdated: null,
           phone: detData.nationalPhoneNumber || null,
+          internationalPhone: detData.internationalPhoneNumber || null,
           openingHours: detData.regularOpeningHours?.weekdayDescriptions || null,
           rating: detData.rating ?? null,
           ratingCount: detData.userRatingCount ?? null,
