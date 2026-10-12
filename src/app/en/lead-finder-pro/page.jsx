@@ -61,7 +61,7 @@ export default function LeadFinderProLandingEn() {
           <div>
             <p className="text-fg font-semibold text-sm mb-1.5">✅ Fully audited results, no extra steps</p>
             <p className="text-fg-500 text-sm">
-              No need to click &quot;audit&quot; one by one: every result comes back with website, phone, hours, rating and SEO score already included. If you&apos;d already audited a business before, it won&apos;t use another credit.
+              Each lead comes with its website and SEO score, or its WhatsApp if it has no website. Businesses with neither are discarded automatically and not charged. Businesses you already saw are never charged twice.
             </p>
           </div>
         </div>

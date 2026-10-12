@@ -61,7 +61,7 @@ export default function LeadFinderProLanding() {
           <div>
             <p className="text-fg font-semibold text-sm mb-1.5">✅ Resultados ya auditados, sin pasos extra</p>
             <p className="text-fg-500 text-sm">
-              No hay que tildar "auditar" uno por uno: cada resultado llega directo con website, teléfono, horarios, rating y score SEO. Si un negocio ya lo habías auditado antes, no te vuelve a cobrar el crédito.
+              Cada lead llega con su web y puntaje SEO, o con su WhatsApp si no tiene web. Los negocios sin web ni WhatsApp se descartan solos y no se cobran. Si ya habías visto un negocio, no se vuelve a cobrar.
             </p>
           </div>
         </div>

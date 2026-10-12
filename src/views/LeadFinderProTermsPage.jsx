@@ -37,9 +37,11 @@ export default function LeadFinderProTermsPage() {
             <p>
               Lead Finder Pro te permite buscar negocios locales por zona y auditarlos (presencia
               de sitio web, score SEO, datos de contacto) usando datos de Google Places. Antes de
-              cada búsqueda elegís cuántos resultados querés — esa cantidad consume esa misma
-              cantidad de créditos de tu plan. Si un negocio ya lo habías auditado antes, no vuelve
-              a consumir un crédito.
+              cada búsqueda elegís cuántos leads querés. Se consume 1 crédito de tu plan por cada
+              negocio entregado como lead (con sitio web, o con un teléfono celular apto para
+              WhatsApp cuando no tiene sitio). Los negocios descartados no consumen créditos; para
+              evitar abusos, se pueden revisar hasta 100 negocios descartados por día. Un negocio
+              que ya habías visto no vuelve a consumir un crédito.
             </p>
           </section>
 

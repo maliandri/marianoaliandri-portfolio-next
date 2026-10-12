@@ -37,9 +37,11 @@ export default function LeadFinderProTermsPageEn() {
             <p>
               Lead Finder Pro lets you search local businesses by location and audit them
               (website presence, SEO score, contact info) using data sourced from Google Places.
-              Before each search you choose how many results you want — that number is the number
-              of credits it consumes from your plan. If you&apos;d already audited a business
-              before, it won&apos;t consume another credit.
+              Before each search you choose how many leads you want. 1 credit from your plan is used for
+              each business delivered as a lead (with a website, or with a mobile phone usable for
+              WhatsApp when it has no website). Discarded businesses use no credits; to prevent
+              abuse, up to 100 discarded businesses can be reviewed per day. A business you
+              already saw never uses another credit.
             </p>
           </section>
 

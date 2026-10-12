@@ -17,7 +17,7 @@ export default function LeadFinderProBuscarPageEn() {
           <LanguageSwitch />
         </div>
         <h1 className="text-2xl md:text-3xl font-black text-white mt-2">Search businesses</h1>
-        <p className="text-gray-500 text-sm mt-1">Choose how many results you want — that number is what gets used from your credits.</p>
+        <p className="text-gray-500 text-sm mt-1">Choose how many leads you want. You only pay for the ones we deliver: businesses with no website or WhatsApp are free.</p>
       </div>
 
       <div className="max-w-6xl mx-auto px-4">
