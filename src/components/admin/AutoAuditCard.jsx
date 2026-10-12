@@ -22,7 +22,7 @@ export default function AutoAuditCard() {
   const [ciudadesText, setCiudadesText] = useState('');
   const [rubros, setRubros] = useState([]);
   const [newRubro, setNewRubro] = useState({ label: '', kind: 'text', value: '', prioritario: true });
-  const [cantidad, setCantidad] = useState(CANTIDAD_DEFAULT);
+  const [cantidadText, setCantidadText] = useState(String(CANTIDAD_DEFAULT));
   const [busy, setBusy] = useState(false);
   const [running, setRunning] = useState(false);
   const [msg, setMsg] = useState('');
@@ -50,7 +50,7 @@ export default function AutoAuditCard() {
       setRuns(data.runs || []);
       setCiudadesText((data.config.ciudades || []).join('\n'));
       setRubros(data.config.rubros || []);
-      setCantidad(data.config.cantidad ?? CANTIDAD_DEFAULT);
+      setCantidadText(String(data.config.cantidad ?? CANTIDAD_DEFAULT));
     } catch (e) {
       setErrorMsg(e.message);
     }
@@ -103,7 +103,9 @@ export default function AutoAuditCard() {
     patch({ rubros: next }, 'Rubro agregado');
   };
 
-  const consumo = consumoMensual(cantidad);
+  const cantidadNum = parseInt(cantidadText, 10);
+  const cantidadValida = Number.isInteger(cantidadNum) && cantidadNum >= CANTIDAD_MIN && cantidadNum <= CANTIDAD_MAX;
+  const consumo = cantidadValida ? consumoMensual(cantidadNum) : 0;
   const cupo = PLACES_LIMITS.details.free;
 
   if (authLoading) return <p className="text-sm text-gray-500">Cargando…</p>;
@@ -167,16 +169,20 @@ export default function AutoAuditCard() {
             </p>
             <div className="flex items-center gap-3">
               <label className="sr-only" htmlFor="aa-cantidad">Cantidad de sitios por corrida</label>
-              <input id="aa-cantidad" type="number" min={CANTIDAD_MIN} max={CANTIDAD_MAX} value={cantidad}
-                onChange={e => setCantidad(Math.min(CANTIDAD_MAX, Math.max(CANTIDAD_MIN, parseInt(e.target.value, 10) || CANTIDAD_MIN)))}
+              <input id="aa-cantidad" type="number" min={CANTIDAD_MIN} max={CANTIDAD_MAX} value={cantidadText}
+                onChange={e => setCantidadText(e.target.value)}
                 className={`${input} w-24`} />
-              <button onClick={() => patch({ cantidad }, 'Cantidad guardada')} disabled={busy || cantidad === config.cantidad}
+              <button onClick={() => patch({ cantidad: cantidadNum }, 'Cantidad guardada')} disabled={busy || !cantidadValida || cantidadNum === config.cantidad}
                 className="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm disabled:opacity-50">Guardar</button>
             </div>
-            <p className={`mt-2 text-sm ${consumo > cupo ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
-              Hasta {2 * cantidad} comercios por corrida ≈ {consumo} consultas de detalle por mes
-              (cupo gratis: {cupo.toLocaleString('es-AR')}{consumo > cupo ? ' — lo supera, Google empieza a cobrar' : ''}).
-            </p>
+            {cantidadValida ? (
+              <p className={`mt-2 text-sm ${consumo > cupo ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
+                Hasta {2 * cantidadNum} comercios por corrida ≈ {consumo} consultas de detalle por mes
+                (cupo gratis: {cupo.toLocaleString('es-AR')}{consumo > cupo ? ' — lo supera, Google empieza a cobrar' : ''}).
+              </p>
+            ) : (
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">{`Entre ${CANTIDAD_MIN} y ${CANTIDAD_MAX}`}</p>
+            )}
           </div>
 
           <div className={card}>

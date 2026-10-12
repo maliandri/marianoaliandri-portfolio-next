@@ -1,7 +1,7 @@
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { CIUDADES_SEMILLA, RUBROS_SEMILLA } from '@/data/auditoriaAuto';
-import { pickNext, comboKey, buildStats, buildPost, DEFAULT_NETWORKS, CANTIDAD_DEFAULT, FAST_MAX_SITES } from '@/lib/autoAudit';
+import { pickNext, comboKey, buildStats, buildPost, DEFAULT_NETWORKS, CANTIDAD_DEFAULT, CANTIDAD_MIN, CANTIDAD_MAX, FAST_MAX_SITES } from '@/lib/autoAudit';
 import { runBatch } from '@/lib/autoAuditBatch';
 import { saveAuditoria } from '@/lib/auditoriasStore';
 
@@ -38,7 +38,7 @@ export async function loadConfig(db) {
     ciudades: d.ciudades?.length ? d.ciudades : base.ciudades,
     rubros: d.rubros?.length ? d.rubros : base.rubros,
     networks: d.networks?.length ? d.networks : base.networks,
-    cantidad: Number.isInteger(d.cantidad) ? d.cantidad : base.cantidad,
+    cantidad: Number.isInteger(d.cantidad) ? Math.min(CANTIDAD_MAX, Math.max(CANTIDAD_MIN, d.cantidad)) : base.cantidad,
     ultimaCorrida: d.ultimaCorrida || {},
   };
 }

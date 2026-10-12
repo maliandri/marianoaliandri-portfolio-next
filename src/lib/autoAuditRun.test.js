@@ -172,6 +172,16 @@ describe('runAutoAudit — flujo', () => {
     expect(runBatch.mock.calls[0][1]).toMatchObject({ maxSites: 15, maxCandidates: 30 });
   });
 
+  it('acota una cantidad guardada fuera de 3-30', async () => {
+    getDb.mockReturnValue(createFakeDb({ ...BASE_CONFIG, cantidad: 500 }));
+    await runAutoAudit({ now: () => NOW });
+    expect(runBatch.mock.calls[0][1]).toMatchObject({ maxSites: 30, maxCandidates: 60 });
+    runBatch.mockClear();
+    getDb.mockReturnValue(createFakeDb({ ...BASE_CONFIG, cantidad: 0 }));
+    await runAutoAudit({ now: () => NOW });
+    expect(runBatch.mock.calls[0][1]).toMatchObject({ maxSites: 3, maxCandidates: 6 });
+  });
+
   it('fast ("Correr ahora") usa como máximo 8 sitios', async () => {
     getDb.mockReturnValue(createFakeDb({ ...BASE_CONFIG, cantidad: 20 }));
     await runAutoAudit({ now: () => NOW, fast: true });
