@@ -53,20 +53,20 @@ export default function LeadFinderProLandingEn() {
         <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-4">How do credits work?</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <p className="text-fg font-semibold text-sm mb-1.5">🎯 You choose how many results you want</p>
+            <p className="text-fg font-semibold text-sm mb-1.5">🎯 You choose how many leads you want</p>
             <p className="text-fg-500 text-sm">
-              Before searching, set the location, the search term, and how many businesses you want (1, 10, 50...). That&apos;s exactly what gets used from your plan — no more, no less.
+              Before searching, set the location, the search term and how many leads you want. Only 1 credit is used per lead delivered.
             </p>
           </div>
           <div>
-            <p className="text-fg font-semibold text-sm mb-1.5">✅ Fully audited results, no extra steps</p>
+            <p className="text-fg font-semibold text-sm mb-1.5">✅ Ready-to-use leads, no extra steps</p>
             <p className="text-fg-500 text-sm">
               Each lead comes with its website and SEO score, or its WhatsApp if it has no website. Businesses with neither are discarded automatically and not charged. Businesses you already saw are never charged twice.
             </p>
           </div>
         </div>
         <p className="text-fg-600 text-xs mt-5">
-          With the Starter plan (100/month) you can request up to 100 fully-audited businesses a month.
+          With the Starter plan (100/month) you can get up to 100 leads a month.
         </p>
       </div>
 

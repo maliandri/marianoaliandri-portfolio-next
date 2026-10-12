@@ -53,20 +53,20 @@ export default function LeadFinderProLanding() {
         <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-4">¿Cómo funcionan los créditos?</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <p className="text-fg font-semibold text-sm mb-1.5">🎯 Vos elegís cuántos resultados querés</p>
+            <p className="text-fg font-semibold text-sm mb-1.5">🎯 Vos elegís cuántos leads querés</p>
             <p className="text-fg-500 text-sm">
-              Antes de buscar, poné la localidad, el término y cuántos negocios querés (1, 10, 50...). Eso es exactamente lo que se gasta de tu plan — ni más, ni menos.
+              Antes de buscar, poné la localidad, el término y cuántos leads querés. Solo se descuenta 1 crédito por cada lead entregado.
             </p>
           </div>
           <div>
-            <p className="text-fg font-semibold text-sm mb-1.5">✅ Resultados ya auditados, sin pasos extra</p>
+            <p className="text-fg font-semibold text-sm mb-1.5">✅ Leads listos, sin pasos extra</p>
             <p className="text-fg-500 text-sm">
               Cada lead llega con su web y puntaje SEO, o con su WhatsApp si no tiene web. Los negocios sin web ni WhatsApp se descartan solos y no se cobran. Si ya habías visto un negocio, no se vuelve a cobrar.
             </p>
           </div>
         </div>
         <p className="text-fg-600 text-xs mt-5">
-          Con el plan Starter (100/mes) podés pedir hasta 100 negocios completamente auditados por mes.
+          Con el plan Starter (100/mes) podés recibir hasta 100 leads por mes.
         </p>
       </div>
 
