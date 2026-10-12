@@ -130,7 +130,7 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
           headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
           body: JSON.stringify({
             ciudades: form.zonas, terminos: form.terminos, tipos: form.tipos, radioKm: form.radioKm,
-            perfil: form.perfil, stats: totals, origen: isAdmin ? 'admin' : 'cliente', results: leads,
+            perfil: form.perfil, producto: form.producto, stats: totals, origen: isAdmin ? 'admin' : 'cliente', results: leads,
           }),
         });
         loadHistory();
@@ -148,7 +148,7 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
         setSearchKey(k => k + 1);
         setForm(f => ({
           ...f, zonas: data.ciudades || [], terminos: data.terminos || [], tipos: data.tipos || [],
-          radioKm: data.radioKm || 10,
+          radioKm: data.radioKm || 10, producto: data.producto || '',
           perfil: data.perfil || (data.results.some(r => r.prodState) ? 'empresa' : 'dev'),
         }));
         setShowForm(false);

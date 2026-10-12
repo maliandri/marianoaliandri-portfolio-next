@@ -56,7 +56,7 @@ export async function POST(request) {
 
   let body;
   try { body = await request.json(); } catch { return Response.json({ error: 'JSON inválido' }, { status: 400 }); }
-  const { ciudades, tipos, terminos, radioKm, results, perfil, stats, origen } = body;
+  const { ciudades, tipos, terminos, radioKm, results, perfil, producto, stats, origen } = body;
   if (!Array.isArray(results) || !results.length) return Response.json({ error: 'results vacío' }, { status: 400 });
 
   // El origen "admin" solo lo puede marcar la cuenta admin: así el historial distingue las
@@ -66,6 +66,7 @@ export async function POST(request) {
   const ref = await db.collection(COL).doc(user.uid).collection('items').add({
     ciudades: ciudades || [], tipos: tipos || [], terminos: terminos || [], radioKm: radioKm || null,
     perfil: perfil === 'empresa' ? 'empresa' : 'dev',
+    producto: typeof producto === 'string' ? producto.trim().slice(0, 60) : '',
     origen: origen === 'admin' && esAdmin ? 'admin' : 'cliente',
     stats: cleanStats(stats),
     results: results.slice(0, MAX_RESULTS_STORED),

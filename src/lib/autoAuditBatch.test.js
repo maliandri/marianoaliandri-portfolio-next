@@ -116,6 +116,7 @@ describe('runBatch', () => {
     const out = await runBatch(TYPE, { run, sleep: noSleep, now, budgetMs: 30000 });
     expect(out.results.map(r => r.id)).toEqual(['a', 'b']);
     expect(out.agotado).toBe(false);
+    expect(out.cortadoPorTiempo).toBe(true);
   });
 
   it('agotado es true cuando se examinaron todos los negocios que había', async () => {

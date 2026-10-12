@@ -355,10 +355,30 @@ describe('runAutoAudit — flujo', () => {
       expect(db.state.config.ultimaCorrida[KEY2]).toBe(NOW);
     });
 
-    it('si el lote se cortó por presupuesto (no agotado): no reintenta ni marca la combinación', async () => {
+    it('corrida programada que gastó todo su cupo sin llegar al mínimo: concluyente, se marca', async () => {
       const db = createFakeDb(TWO);
       getDb.mockReturnValue(db);
-      runBatch.mockResolvedValue({ results: results.slice(0, 1), status: 'ok', examined: 30, found: 40, agotado: false });
+      runBatch.mockResolvedValue({ results: results.slice(0, 1), status: 'ok', examined: 30, found: 40, agotado: false, cortadoPorTiempo: false });
+      const out = await runAutoAudit({ now: () => NOW });
+      expect(runBatch).toHaveBeenCalledTimes(1);
+      expect(out.estado).toBe('sin_resultados');
+      expect(db.state.config.ultimaCorrida[COMBO_KEY] ?? db.state.config.ultimaCorrida[KEY2]).toBe(NOW);
+    });
+
+    it('modo rápido con cupo reducido: inconclusivo, no se marca', async () => {
+      const db = createFakeDb(TWO);
+      getDb.mockReturnValue(db);
+      runBatch.mockResolvedValue({ results: results.slice(0, 1), status: 'ok', examined: 16, found: 40, agotado: false, cortadoPorTiempo: false });
+      const out = await runAutoAudit({ now: () => NOW, fast: true });
+      expect(out.estado).toBe('sin_resultados');
+      expect(db.state.config.ultimaCorrida?.[COMBO_KEY]).toBeUndefined();
+      expect(db.state.config.ultimaCorrida?.[KEY2]).toBeUndefined();
+    });
+
+    it('si el lote se cortó por tiempo: no reintenta ni marca la combinación', async () => {
+      const db = createFakeDb(TWO);
+      getDb.mockReturnValue(db);
+      runBatch.mockResolvedValue({ results: results.slice(0, 1), status: 'ok', examined: 30, found: 40, agotado: false, cortadoPorTiempo: true });
       const out = await runAutoAudit({ now: () => NOW });
       expect(runBatch).toHaveBeenCalledTimes(1);
       expect(out.estado).toBe('sin_resultados');

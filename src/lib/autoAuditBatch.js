@@ -63,5 +63,5 @@ export async function runBatch(combo, opts = {}) {
   const cortadoPorTiempo = now() >= deadline;
   const agotado = status === 'ok' && !cortadoPorTiempo && examined < maxCandidates;
 
-  return { results, status, ...(status === 'error' ? { error } : {}), examined, found: found ?? examined, agotado };
+  return { results, status, ...(status === 'error' ? { error } : {}), examined, found: found ?? examined, agotado, cortadoPorTiempo };
 }

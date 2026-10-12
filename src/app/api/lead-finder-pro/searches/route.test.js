@@ -39,6 +39,14 @@ describe('POST /api/lead-finder-pro/searches', () => {
     expect(added[0].origen).toBe('cliente');
   });
 
+  it('guarda el producto recortado', async () => {
+    const { db, added } = fakeDb();
+    getDb.mockReturnValue(db);
+    getUserFromRequest.mockResolvedValue({ uid: 'c', email: 'cliente@example.com' });
+    await POST(req({ ...BASE, perfil: 'empresa', producto: '  tornillos  ' }));
+    expect(added[0].producto).toBe('tornillos');
+  });
+
   it('normaliza perfil y stats', async () => {
     const { db, added } = fakeDb();
     getDb.mockReturnValue(db);

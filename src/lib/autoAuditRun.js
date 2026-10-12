@@ -110,8 +110,10 @@ export async function runAutoAudit({
     // Tiempo y getDetails (maxCandidates) son un presupuesto por corrida, compartido entre intentos.
     const deadline = nowMs + budgetMs;
     const cantidad = fast ? Math.min(config.cantidad, FAST_MAX_SITES) : config.cantidad;
-    let candidatesLeft = 2 * cantidad;
+    const fullCap = 2 * cantidad;
+    let candidatesLeft = fullCap;
     let batch = null;
+    const conclusivo = (b) => b.agotado === true || (!fast && b.cortadoPorTiempo !== true && (b.examined || 0) >= fullCap);
     for (let i = 0; i < MAX_COMBO_ATTEMPTS; i++) {
       if (i > 0 && (candidatesLeft <= 0 || deadline - now() <= 0)) break;
       const next = pickNext({ ...config, ultimaCorrida: { ...config.ultimaCorrida, ...descartadas } }, nowMs);
@@ -124,8 +126,9 @@ export async function runAutoAudit({
         encontrados: batch.found ?? null, examinados: batch.examined ?? 0, conWeb: batch.results.length,
       });
       if (batch.status !== 'ok' || batch.results.length >= MIN_SITES_TO_PUBLISH) break;
-      // Cortado por presupuesto (tiempo/getDetails): no se sabe si la combinación rinde, no se descarta.
-      if (batch.agotado !== true) break;
+      // Concluyente: Google se quedó sin negocios, o una corrida programada gastó todo su cupo.
+      // Cortes por tiempo o por cupo reducido (modo rápido, 2º intento) no dicen nada de la combinación.
+      if (!conclusivo(batch)) break;
       descartadas[comboKey(combo.ciudad, combo.rubro)] = nowMs;
     }
 
@@ -148,7 +151,7 @@ export async function runAutoAudit({
         }
       } else if (batch.results.length < MIN_SITES_TO_PUBLISH) {
         run.estado = 'sin_resultados';
-        markRan = batch.agotado === true; // cortado por presupuesto: no se descarta la combinación
+        markRan = conclusivo(batch); // cortado por presupuesto: no se descarta la combinación
       } else {
         const stats = buildStats(batch.results);
         const saved = await saveReport(combo, batch.results, stats, nowMs, useGemini);
