@@ -49,7 +49,9 @@ Notas:
 - Si `websiteUri` es una red social (Instagram/Facebook, `isSocialUrl`), se guarda como
   `socialUrl` y se muestra como contacto, pero **no** alcanza para ser lead.
 - Un fijo con WhatsApp Business queda afuera (limitación aceptada).
-- País: se deduce de la zona buscada (`parseZona`); la automática siempre es Argentina.
+- País: se deduce del prefijo del teléfono internacional que da Google (`+54` = Argentina), no de la
+  zona buscada: es más confiable y se decide en el servidor. Entradas viejas del caché sin formato
+  internacional usan el formato nacional argentino (`0<área> 15-…`).
 
 ## Servidor
 
@@ -68,8 +70,8 @@ Notas:
 4. Si es lead → transacción que **descuenta** 1 (misma prioridad que hoy: ilimitado → suscripción
    → créditos). Si en ese instante ya no hay saldo (carrera entre pestañas) → 402 y no se entrega.
 5. Si es descartado → transacción que incrementa `descartesHoy: { fecha, n }` en
-   `leadfinder_entitlements/{uid}`. Tope **100 por día UTC por usuario** (~US$1,70 de Google en
-   el peor caso). Superado → 429 `DISCARD_LIMIT` con mensaje "límite diario alcanzado".
+   `leadfinder_entitlements/{uid}`. Tope **100 por día UTC por usuario** (~US$2 de Google en
+   el peor caso: 100 × US$0,02). Superado → 429 `DISCARD_LIMIT` con mensaje "límite diario alcanzado".
    Usuarios ilimitados (admin) sin tope.
 6. Guarda en el historial: `esLead`, `canal`, `whatsapp`, `socialUrl` además de lo actual.
 7. La respuesta incluye `esLead` y `canal`.
