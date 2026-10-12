@@ -254,7 +254,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
     - Incluye screenshot del sitio via Microlink + score SEO badge
     - Texto generado es editable (se muestra en <details> tras envio)
 - **Auditoría automática** (admin → Marketing → Auditoría automática):
-  - Audita sola un rubro × ciudad (martes y viernes 09:00 ART), guarda el informe en `auditorias`
+  - Audita sola un rubro × ciudad (lun/mié/vie/sáb 11:00 ART vía cron-job.org), guarda el informe en `auditorias`
     y lo anuncia en LinkedIn/Instagram/Facebook vía Make.com con el mismo contrato que el botón "Publicar en redes" de Auditorías (body de `/api/publish-social`: `type: 'service'`, `networks` array, `imageUrl` = captura Microlink de `/auditorias/<id>?screenshot=1`, `link`; helper `src/lib/socialAuditPost.js`).
   - Corre en **GitHub Actions** (`.github/workflows/auditoria-auto.yml`, `scripts/auto-audit.mjs`,
     ejecutado con `tsx --tsconfig jsconfig.json`), disparado por cron-job.org vía
@@ -268,7 +268,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   - El secret de GitHub `MAKE_WEBHOOK_URL` (compartido con el bot de noticias) debe ser el webhook del Router del escenario principal de Make (el mismo que usa `/api/publish-social`); si fuera otro escenario, los posts de auditoría caen en el lugar equivocado.
   - Instagram/Facebook fallan con `OAuthException 324 (Missing or invalid image file)` si el payload no trae `imageUrl` válido (https público, JPG/PNG 1080x1080). La auditoría automática siempre envía `imageUrl` (la captura del informe recién guardado); el checkbox de publicar del Lead Finder (`LeadFinderPanel.jsx`) usa ahora el mismo contrato vía `/api/publish-social`.
   - `estado: 'ok'` en el log de corridas solo significa que Make aceptó el payload (responde 200 antes de correr el escenario); antes de publicar se verifica esa captura de Microlink (GET, `image/*`; Microlink la renderiza en el primer pedido, así que además la deja cacheada) y, si no responde con una imagen, la corrida queda `post_fallido` sin llamar a Make.
-  - La corrida programada examina como máximo 30 comercios (`maxCandidates` en `scripts/auto-audit.mjs`): con 4 corridas por semana (cron-job.org, lun/mié/vie/sáb 11:00 ART) son ~520 getDetails/mes, la mitad del cupo gratis de Places (decisión del usuario 2026-10-10).
+  - Cantidad de sitios por corrida: `cantidad` en `auditoria_auto/config` (default 15, rango 3–30, se edita en la tarjeta). Se examinan hasta `2 × cantidad` comercios (getDetails); con 15 son ~516/mes con 4 corridas por semana, la mitad del cupo gratis de Places. La tarjeta muestra el consumo estimado y lo pinta en rojo si supera 1.000/mes.
   - Mínimo 3 sitios con web para guardar/publicar (`MIN_SITES_TO_PUBLISH` en `src/lib/autoAuditRun.js`): si una combinación da menos (pasó el 2026-10-12 con Durlock × Formosa: Google tenía 2 comercios, 1 con web, y se publicó un informe de 1 sitio), se marca como hecha y se prueba otra en la misma corrida (hasta 3 intentos, compartiendo el tope de `maxCandidates` y el tiempo). Cada corrida guarda `intentos` (encontrados / examinados / con web por combinación), visible en la tarjeta del admin.
   - "Correr ahora" (admin) usa modo rápido por el límite de 60 s de Vercel Hobby: lote corto (hasta 8 sitios, 15 s) y resumen de plantilla sin Gemini; la corrida programada de GitHub Actions usa el presupuesto completo.
 - **Consumo Google** (admin → Marketing → Consumo Google): tabla por día del mes con comercios

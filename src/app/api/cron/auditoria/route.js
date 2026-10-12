@@ -11,9 +11,9 @@ export async function POST(request) {
   if (auth.response) return auth.response;
 
   try {
-    const result = await // Modo rápido: Vercel Hobby corta a los 60 s, así que lote corto y resumen de plantilla
-    // (sin Gemini). La corrida programada va por GitHub Actions con el presupuesto completo.
-    runAutoAudit({ force: true, budgetMs: 15000, maxSites: 8, maxCandidates: 20, useGemini: false });
+    // Modo rápido: Vercel Hobby corta a los 60 s, así que lote corto (como máximo 8 sitios) y
+    // resumen de plantilla (sin Gemini). La corrida programada va por GitHub Actions.
+    const result = await runAutoAudit({ force: true, budgetMs: 15000, fast: true, useGemini: false });
     return Response.json({ ok: true, ...result });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });

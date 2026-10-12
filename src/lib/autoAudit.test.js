@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  COOLDOWN_MS, DEFAULT_NETWORKS, comboKey, pickNext, buildStats, buildPost, validateConfigPatch,
+  COOLDOWN_MS, DEFAULT_NETWORKS, comboKey, pickNext, buildStats, buildPost, validateConfigPatch, consumoMensual,
 } from './autoAudit.js';
 import { auditScreenshotUrl } from './socialAuditPost.js';
 
@@ -163,7 +163,24 @@ describe('validateConfigPatch', () => {
     expect(validateConfigPatch({ networks: [] }).error).toMatch(/networks/);
   });
 
+  it('acepta cantidad entera entre 3 y 30', () => {
+    expect(validateConfigPatch({ cantidad: 20 })).toEqual({ update: { cantidad: 20 } });
+    expect(validateConfigPatch({ cantidad: 3 })).toEqual({ update: { cantidad: 3 } });
+    expect(validateConfigPatch({ cantidad: 30 })).toEqual({ update: { cantidad: 30 } });
+  });
+
+  it('rechaza cantidad fuera de rango o no entera', () => {
+    for (const c of [2, 31, 10.5, '15', null]) expect(validateConfigPatch({ cantidad: c }).error).toMatch(/cantidad/);
+  });
+
   it('rechaza un body sin campos conocidos', () => {
     expect(validateConfigPatch({ otraCosa: 1 }).error).toMatch(/Nada para actualizar/);
+  });
+});
+
+describe('consumoMensual', () => {
+  it('estima las consultas de detalle por mes (2 × cantidad × 4 corridas × 4,3 semanas)', () => {
+    expect(consumoMensual(15)).toBe(516);
+    expect(consumoMensual(30)).toBe(1032);
   });
 });

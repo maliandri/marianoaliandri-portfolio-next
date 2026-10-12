@@ -36,7 +36,7 @@ describe('POST /api/cron/auditoria', () => {
     const res = await POST({});
     expect(res.status).toBe(200);
     expect(runAutoAudit).toHaveBeenCalledWith({
-      force: true, budgetMs: 15000, maxSites: 8, maxCandidates: 20, useGemini: false,
+      force: true, budgetMs: 15000, fast: true, useGemini: false,
     });
     expect(await res.json()).toEqual({ ok: true, estado: 'ok', auditoriaId: 'x', auditados: 3 });
   });

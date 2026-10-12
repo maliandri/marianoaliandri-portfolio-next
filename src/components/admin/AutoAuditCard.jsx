@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthUser } from '@/hooks/useAuthUser';
+import { CANTIDAD_DEFAULT, CANTIDAD_MIN, CANTIDAD_MAX, consumoMensual } from '@/lib/autoAudit';
+import { PLACES_LIMITS } from '@/data/placesFreeTier';
 
 const ESTADO_STYLE = {
   ok: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
@@ -20,6 +22,7 @@ export default function AutoAuditCard() {
   const [ciudadesText, setCiudadesText] = useState('');
   const [rubros, setRubros] = useState([]);
   const [newRubro, setNewRubro] = useState({ label: '', kind: 'text', value: '', prioritario: true });
+  const [cantidad, setCantidad] = useState(CANTIDAD_DEFAULT);
   const [busy, setBusy] = useState(false);
   const [running, setRunning] = useState(false);
   const [msg, setMsg] = useState('');
@@ -47,6 +50,7 @@ export default function AutoAuditCard() {
       setRuns(data.runs || []);
       setCiudadesText((data.config.ciudades || []).join('\n'));
       setRubros(data.config.rubros || []);
+      setCantidad(data.config.cantidad ?? CANTIDAD_DEFAULT);
     } catch (e) {
       setErrorMsg(e.message);
     }
@@ -99,6 +103,9 @@ export default function AutoAuditCard() {
     patch({ rubros: next }, 'Rubro agregado');
   };
 
+  const consumo = consumoMensual(cantidad);
+  const cupo = PLACES_LIMITS.details.free;
+
   if (authLoading) return <p className="text-sm text-gray-500">Cargando…</p>;
   if (!user) {
     return (
@@ -118,7 +125,7 @@ export default function AutoAuditCard() {
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Auditoría automática</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Audita un rubro en una ciudad, publica el informe y lo anuncia en redes. Se dispara martes y viernes por GitHub Actions.
+              Audita un rubro en una ciudad, publica el informe y lo anuncia en redes. Corre lunes, miércoles, viernes y sábado (cron-job.org → GitHub Actions).
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -151,6 +158,25 @@ export default function AutoAuditCard() {
                 </label>
               ))}
             </div>
+          </div>
+
+          <div className={card}>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Cantidad de sitios por corrida</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+              Sitios con web que entran al informe. Se examinan hasta el doble de comercios.
+            </p>
+            <div className="flex items-center gap-3">
+              <label className="sr-only" htmlFor="aa-cantidad">Cantidad de sitios por corrida</label>
+              <input id="aa-cantidad" type="number" min={CANTIDAD_MIN} max={CANTIDAD_MAX} value={cantidad}
+                onChange={e => setCantidad(Math.min(CANTIDAD_MAX, Math.max(CANTIDAD_MIN, parseInt(e.target.value, 10) || CANTIDAD_MIN)))}
+                className={`${input} w-24`} />
+              <button onClick={() => patch({ cantidad }, 'Cantidad guardada')} disabled={busy || cantidad === config.cantidad}
+                className="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm disabled:opacity-50">Guardar</button>
+            </div>
+            <p className={`mt-2 text-sm ${consumo > cupo ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
+              Hasta {2 * cantidad} comercios por corrida ≈ {consumo} consultas de detalle por mes
+              (cupo gratis: {cupo.toLocaleString('es-AR')}{consumo > cupo ? ' — lo supera, Google empieza a cobrar' : ''}).
+            </p>
           </div>
 
           <div className={card}>

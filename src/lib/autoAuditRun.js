@@ -1,7 +1,7 @@
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { CIUDADES_SEMILLA, RUBROS_SEMILLA } from '@/data/auditoriaAuto';
-import { pickNext, comboKey, buildStats, buildPost, DEFAULT_NETWORKS } from '@/lib/autoAudit';
+import { pickNext, comboKey, buildStats, buildPost, DEFAULT_NETWORKS, CANTIDAD_DEFAULT, FAST_MAX_SITES } from '@/lib/autoAudit';
 import { runBatch } from '@/lib/autoAuditBatch';
 import { saveAuditoria } from '@/lib/auditoriasStore';
 
@@ -21,6 +21,7 @@ export function defaultConfig() {
     ciudades: [...CIUDADES_SEMILLA],
     rubros: RUBROS_SEMILLA.map(r => ({ ...r })),
     networks: [...DEFAULT_NETWORKS],
+    cantidad: CANTIDAD_DEFAULT,
     ultimaCorrida: {},
   };
 }
@@ -37,6 +38,7 @@ export async function loadConfig(db) {
     ciudades: d.ciudades?.length ? d.ciudades : base.ciudades,
     rubros: d.rubros?.length ? d.rubros : base.rubros,
     networks: d.networks?.length ? d.networks : base.networks,
+    cantidad: Number.isInteger(d.cantidad) ? d.cantidad : base.cantidad,
     ultimaCorrida: d.ultimaCorrida || {},
   };
 }
@@ -86,7 +88,7 @@ async function imageIsReachable(url) {
 // Una corrida de la auditoría automática. La invocan el script de GitHub Actions
 // (scripts/auto-audit.mjs) y el botón "Correr ahora" del admin (force: true).
 export async function runAutoAudit({
-  force = false, now = Date.now, budgetMs = 45000, maxSites = 15, maxCandidates = 40, useGemini = true,
+  force = false, now = Date.now, budgetMs = 45000, fast = false, useGemini = true,
 } = {}) {
   const db = getDb();
   if (!db) throw new Error('DB no disponible');
@@ -107,14 +109,15 @@ export async function runAutoAudit({
   try {
     // Tiempo y getDetails (maxCandidates) son un presupuesto por corrida, compartido entre intentos.
     const deadline = nowMs + budgetMs;
-    let candidatesLeft = maxCandidates;
+    const cantidad = fast ? Math.min(config.cantidad, FAST_MAX_SITES) : config.cantidad;
+    let candidatesLeft = 2 * cantidad;
     let batch = null;
     for (let i = 0; i < MAX_COMBO_ATTEMPTS; i++) {
       if (i > 0 && (candidatesLeft <= 0 || deadline - now() <= 0)) break;
       const next = pickNext({ ...config, ultimaCorrida: { ...config.ultimaCorrida, ...descartadas } }, nowMs);
       if (!next) break;
       combo = next;
-      batch = await runBatch(combo, { budgetMs: deadline - now(), maxSites, maxCandidates: candidatesLeft });
+      batch = await runBatch(combo, { budgetMs: deadline - now(), maxSites: cantidad, maxCandidates: candidatesLeft });
       candidatesLeft -= batch.examined || 0;
       (run.intentos ||= []).push({
         ciudad: combo.ciudad, rubro: combo.rubro.label,

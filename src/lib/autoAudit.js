@@ -9,6 +9,18 @@ export const DEFAULT_NETWORKS = ['linkedin', 'instagram', 'facebook'];
 const VALID_NETWORKS = ['linkedin', 'instagram', 'facebook'];
 const SUMMARY_MAX = 240;
 
+// Sitios con web por corrida (configurable desde la tarjeta del admin). El tope de comercios
+// examinados es el doble: cada uno es una consulta de detalle paga de Google Places.
+export const CANTIDAD_DEFAULT = 15;
+export const CANTIDAD_MIN = 3;
+export const CANTIDAD_MAX = 30;
+export const FAST_MAX_SITES = 8; // "Correr ahora" corre en Vercel Hobby (corte a los 60 s)
+export const CORRIDAS_POR_MES = 4 * 4.3; // cron-job.org: lun/mié/vie/sáb
+
+export function consumoMensual(cantidad) {
+  return Math.round(2 * cantidad * CORRIDAS_POR_MES);
+}
+
 export function comboKey(ciudad, rubro) {
   return `${ciudad}|${rubro.label}`;
 }
@@ -128,8 +140,15 @@ export function validateConfigPatch(body) {
     update.networks = [...new Set(body.networks)];
   }
 
+  if ('cantidad' in body) {
+    const c = body.cantidad;
+    if (!Number.isInteger(c) || c < CANTIDAD_MIN || c > CANTIDAD_MAX) {
+      return { error: `cantidad: debe ser un entero entre ${CANTIDAD_MIN} y ${CANTIDAD_MAX}` };
+    }
+    update.cantidad = c;
+  }
   if (!Object.keys(update).length) {
-    return { error: 'Nada para actualizar (activo, ciudades, rubros o networks)' };
+    return { error: 'Nada para actualizar (activo, ciudades, rubros, networks o cantidad)' };
   }
   return { update };
 }

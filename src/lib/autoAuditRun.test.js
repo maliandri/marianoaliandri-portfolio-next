@@ -157,13 +157,25 @@ describe('runAutoAudit — flujo', () => {
     expect(db.state.config.lock.until).toBe(0);
   });
 
-  it('pasa budgetMs/maxSites/maxCandidates al lote', async () => {
-    getDb.mockReturnValue(createFakeDb(BASE_CONFIG));
-    await runAutoAudit({ now: () => NOW, budgetMs: 480000, maxSites: 30, maxCandidates: 60 });
+  it('toma la cantidad de la config: maxSites = cantidad, maxCandidates = 2 × cantidad', async () => {
+    getDb.mockReturnValue(createFakeDb({ ...BASE_CONFIG, cantidad: 20 }));
+    await runAutoAudit({ now: () => NOW, budgetMs: 480000 });
     expect(runBatch).toHaveBeenCalledWith(
       expect.objectContaining({ ciudad: 'Neuquén' }),
-      { budgetMs: 480000, maxSites: 30, maxCandidates: 60 },
+      { budgetMs: 480000, maxSites: 20, maxCandidates: 40 },
     );
+  });
+
+  it('sin cantidad en la config usa 15 (30 examinados)', async () => {
+    getDb.mockReturnValue(createFakeDb(BASE_CONFIG));
+    await runAutoAudit({ now: () => NOW });
+    expect(runBatch.mock.calls[0][1]).toMatchObject({ maxSites: 15, maxCandidates: 30 });
+  });
+
+  it('fast ("Correr ahora") usa como máximo 8 sitios', async () => {
+    getDb.mockReturnValue(createFakeDb({ ...BASE_CONFIG, cantidad: 20 }));
+    await runAutoAudit({ now: () => NOW, fast: true });
+    expect(runBatch.mock.calls[0][1]).toMatchObject({ maxSites: 8, maxCandidates: 16 });
   });
 
   it('sin resultados: no guarda ni publica, pero marca la combinación', async () => {
@@ -305,7 +317,7 @@ describe('runAutoAudit — flujo', () => {
       runBatch
         .mockResolvedValueOnce({ results: results.slice(0, 1), status: 'ok', examined: 2, found: 2 })
         .mockResolvedValueOnce({ results, status: 'ok', examined: 5, found: 20 });
-      const out = await runAutoAudit({ now: () => NOW, maxCandidates: 30 });
+      const out = await runAutoAudit({ now: () => NOW });
 
       expect(runBatch).toHaveBeenCalledTimes(2);
       // el tope de getDetails es por corrida, no por intento
@@ -336,7 +348,7 @@ describe('runAutoAudit — flujo', () => {
     it('no reintenta si ya se gastó el tope de getDetails', async () => {
       getDb.mockReturnValue(createFakeDb(TWO));
       runBatch.mockResolvedValue({ results: [], status: 'ok', examined: 30, found: 30 });
-      await runAutoAudit({ now: () => NOW, maxCandidates: 30 });
+      await runAutoAudit({ now: () => NOW });
       expect(runBatch).toHaveBeenCalledTimes(1);
     });
   });
