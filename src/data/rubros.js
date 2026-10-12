@@ -2,7 +2,8 @@
 // `id` = identificador interno → mapeado a tags OSM en lead-finder/route.js (OSM_TAGS).
 // `label` = nombre en español (se usa como término de búsqueda en el Keyword Explorer).
 // `cat` = agrupación para el UI.
-// Usado por: LeadFinderPanel (admin) y KeywordExplorer (/keywords).
+// `query` (opcional) = el rubro se busca por texto en vez de por tipo de Places.
+// Usado por: LeadFinderPanel (admin), KeywordExplorer (/keywords), el buscador de Lead Finder (src/components/leadfinder) y la auditoría automática.
 export const RUBROS = [
   // Gastronomía
   { id: 'restaurant',           label: 'Restaurante',       cat: 'Gastronomía' },
@@ -62,7 +63,7 @@ export const RUBROS = [
   { id: 'electrician',          label: 'Electricista',      cat: 'Hogar & Oficios' },
   { id: 'plumber',              label: 'Plomero',           cat: 'Hogar & Oficios' },
   { id: 'painter',              label: 'Pintor',            cat: 'Hogar & Oficios' },
-  { id: 'general_contractor',   label: 'Constructor',       cat: 'Hogar & Oficios' },
+  { id: 'general_contractor',   label: 'Constructor',       cat: 'Hogar & Oficios', query: 'constructora' }, // tipo no soportado por Places API New → búsqueda por texto
   { id: 'locksmith',            label: 'Cerrajero',         cat: 'Hogar & Oficios' },
   { id: 'laundry',              label: 'Lavandería',        cat: 'Hogar & Oficios' },
   { id: 'moving_company',       label: 'Mudanzas',          cat: 'Hogar & Oficios' },
@@ -90,3 +91,42 @@ export const DEFAULT_TIPOS = [
   'beauty_salon', 'gym', 'dentist', 'real_estate_agency', 'lawyer', 'accounting',
   'car_repair', 'pharmacy', 'pet_store', 'veterinary_care', 'lodging',
 ];
+
+// Nombres en inglés para /en/lead-finder-pro (el resto del sitio usa `label`).
+export const RUBRO_LABEL_EN = {
+  restaurant: 'Restaurant', cafe: 'Café', bar: 'Bar', bakery: 'Bakery', pizza_restaurant: 'Pizzeria',
+  ice_cream_shop: 'Ice cream shop', meal_takeaway: 'Takeaway', meal_delivery: 'Delivery',
+  store: 'Store', clothing_store: 'Clothing', shoe_store: 'Shoe store', jewelry_store: 'Jewelry',
+  hardware_store: 'Hardware store', florist: 'Florist', pet_store: 'Pet store', supermarket: 'Supermarket',
+  convenience_store: 'Convenience store', furniture_store: 'Furniture', electronics_store: 'Electronics',
+  home_goods_store: 'Home goods', book_store: 'Bookstore', gift_shop: 'Gift shop',
+  sporting_goods_store: 'Sporting goods', bicycle_store: 'Bike shop', cell_phone_store: 'Phone store',
+  liquor_store: 'Liquor store', shopping_mall: 'Shopping mall',
+  hair_care: 'Hair salon', beauty_salon: 'Beauty salon', barber_shop: 'Barber shop', nail_salon: 'Nail salon',
+  spa: 'Spa', gym: 'Gym', dentist: 'Dentist', doctor: 'Doctor', physiotherapist: 'Physiotherapist',
+  pharmacy: 'Pharmacy', veterinary_care: 'Veterinarian',
+  real_estate_agency: 'Real estate', lawyer: 'Lawyer', accounting: 'Accounting', insurance_agency: 'Insurance',
+  travel_agency: 'Travel agency', photographer: 'Photographer',
+  car_repair: 'Auto repair', car_dealer: 'Car dealer', car_wash: 'Car wash', car_rental: 'Car rental',
+  gas_station: 'Gas station',
+  electrician: 'Electrician', plumber: 'Plumber', painter: 'Painter', general_contractor: 'Contractor',
+  locksmith: 'Locksmith', laundry: 'Laundry', moving_company: 'Moving company',
+  school: 'School', primary_school: 'Primary school', secondary_school: 'Secondary school',
+  preschool: 'Preschool', university: 'University',
+  lodging: 'Lodging', hotel: 'Hotel', motel: 'Motel', campground: 'Campground',
+};
+
+export const CATEGORIA_EN = {
+  'Gastronomía': 'Food & drink', 'Comercios': 'Retail', 'Salud & Belleza': 'Health & beauty',
+  'Serv. Profesionales': 'Professional services', 'Automotor': 'Automotive', 'Hogar & Oficios': 'Home & trades',
+  'Educación': 'Education', 'Alojamiento': 'Lodging & travel',
+};
+
+export function rubroLabel(rubro, lang = 'es') {
+  if (!rubro) return '';
+  return lang === 'en' ? (RUBRO_LABEL_EN[rubro.id] || rubro.label) : rubro.label;
+}
+
+export function categoriaLabel(cat, lang = 'es') {
+  return lang === 'en' ? (CATEGORIA_EN[cat] || cat) : cat;
+}
