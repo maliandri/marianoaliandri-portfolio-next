@@ -89,7 +89,8 @@ src/
     ProyectosGrid.jsx   # Grid dinamico de proyectos con stats de GSC
     SocialPublisher.jsx # Publicador de servicios en redes (admin) — envia a Make.com
     BudgetForm.jsx      # Formulario de presupuesto (3 pasos: datos, servicios, resumen)
-    LeadFinderPanel.jsx # Lead finder multi-ciudad con progreso, log, CSV, publicar a Firestore
+    leadfinder/         # Buscador unico de Lead Finder (cliente y admin): LeadFinder.jsx (variant),
+                        # useLeadSearch, LeadFinderForm, LeadResultsTable, LeadSearchHistory, admin/
     admin/
       CanvasReelGenerator.jsx  # Generador de reels canvas — flujo 5 pasos (ver abajo)
       AuditoriasManager.jsx    # Lista/elimina auditorias, expande detalle con tabla+email
@@ -115,6 +116,8 @@ src/
     firebase-admin.js   # Firebase Admin SDK — usa FIREBASE_PROJECT_ID/CLIENT_EMAIL/PRIVATE_KEY
                         # getDb() reintenta init si falló en cold start (ver seccion abajo)
     gscClient.js        # Google Search Console client + getVerifiedSites()
+    leadRule.js         # Regla de lead: web → lead; sin web → solo si tiene WhatsApp (celular AR +54 9)
+    leadSearch.js       # Motor unico de busqueda (generador): pantallas + auditoria automatica
   schemas/              # firebaseSchemas.js
   data/
     products.js         # Catalogo estatico de productos (IDs canonicos, fallback)
@@ -237,14 +240,19 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   - Formulario publico de 3 pasos: datos del cliente → grilla de servicios (checkboxes) → resumen + envio
   - Guarda en Firestore coleccion `presupuestos` con estado `pending`
   - Admin tab "Presupuestos": asigna monto USD/ARS, genera link MercadoPago, envia por email o WhatsApp
-- **Lead Finder** (admin — multi-ciudad):
-  - Selector provincia → localidad con tags (agregar/quitar ciudades)
-  - Itera cada ciudad secuencialmente via Google Places API + scraping de emails
-  - Cada negocio tiene campo `ciudad`; `seenIds` evita duplicados entre ciudades
-  - Barra de progreso muestra ciudad actual
-  - Exporta CSV con columna Ciudad
-  - Boton "Publicar Reporte": guarda en Firestore coleccion `auditorias` + llama a Gemini para resumen
-- **Auditorias** (`/auditorias`):
+- **Lead Finder** (un solo buscador, `src/components/leadfinder/LeadFinder.jsx`):
+  - Lo usan `/lead-finder-pro/buscar` (`variant="cliente"`, ES/EN) y el admin (`variant="admin"`),
+    los dos contra `/api/lead-finder-pro/run` (la cuenta admin tiene acceso ilimitado). La
+    auditoría automática usa el mismo motor (`src/lib/leadSearch.js`) desde GitHub Actions.
+  - Regla de lead (`src/lib/leadRule.js`): con web → se audita; sin web → sirve solo si tiene
+    celular (WhatsApp); si no, se descarta. Se cobra 1 crédito solo por lead; los descartados
+    no se cobran (tope 100/día por usuario, `descartesHoy` en `leadfinder_entitlements`).
+  - Busca por términos libres y por rubros de Google Maps (`src/data/rubros.js`), varias
+    localidades, perfil dev/empresa (empresa cuenta productos en cada sitio con web).
+  - `cantidad` = leads a entregar; se examinan como máximo 3 × cantidad negocios.
+  - Admin suma filtros, log, selector provincia → localidad y "Publicar informe" (solo leads con
+    web y puntaje SEO, mínimo 3) + redes.
+  - Historial en `leadfinder_searches` con `origen: 'admin' | 'cliente'`.
   - Listado publico de reportes SEO (`/auditorias`) — server component, lee Firestore directo
   - Detalle de reporte (`/auditorias/[id]`) — full width, tabla ordenable por columna
   - Tabla publica NO muestra email/telefono/direccion (privacidad)
@@ -266,7 +274,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   - Secrets de GitHub necesarios: `FIREBASE_*`, `GOOGLE_PLACES_API_KEY`, `GEMINI_API_KEY`,
     `GEMINI_API_KEY_1..3`, `MAKE_WEBHOOK_URL`.
   - El secret de GitHub `MAKE_WEBHOOK_URL` (compartido con el bot de noticias) debe ser el webhook del Router del escenario principal de Make (el mismo que usa `/api/publish-social`); si fuera otro escenario, los posts de auditoría caen en el lugar equivocado.
-  - Instagram/Facebook fallan con `OAuthException 324 (Missing or invalid image file)` si el payload no trae `imageUrl` válido (https público, JPG/PNG 1080x1080). La auditoría automática siempre envía `imageUrl` (la captura del informe recién guardado); el checkbox de publicar del Lead Finder (`LeadFinderPanel.jsx`) usa ahora el mismo contrato vía `/api/publish-social`.
+  - Instagram/Facebook fallan con `OAuthException 324 (Missing or invalid image file)` si el payload no trae `imageUrl` válido (https público, JPG/PNG 1080x1080). La auditoría automática siempre envía `imageUrl` (la captura del informe recién guardado); el checkbox de publicar del Lead Finder (`leadfinder/LeadFinder.jsx`) usa ahora el mismo contrato vía `/api/publish-social`.
   - `estado: 'ok'` en el log de corridas solo significa que Make aceptó el payload (responde 200 antes de correr el escenario); antes de publicar se verifica esa captura de Microlink (GET, `image/*`; Microlink la renderiza en el primer pedido, así que además la deja cacheada) y, si no responde con una imagen, la corrida queda `post_fallido` sin llamar a Make.
   - Cantidad de sitios por corrida: `cantidad` en `auditoria_auto/config` (default 15, rango 3–30, se edita en la tarjeta). Se examinan hasta `2 × cantidad` comercios (getDetails); con 15 son ~516/mes con 4 corridas por semana, la mitad del cupo gratis de Places. La tarjeta muestra el consumo estimado y lo pinta en rojo si supera 1.000/mes.
   - Mínimo 3 sitios con web para guardar/publicar (`MIN_SITES_TO_PUBLISH` en `src/lib/autoAuditRun.js`): si una combinación da menos (pasó el 2026-10-12 con Durlock × Formosa: Google tenía 2 comercios, 1 con web, y se publicó un informe de 1 sitio), se marca como hecha y se prueba otra en la misma corrida (hasta 3 intentos, compartiendo el tope de `maxCandidates` y el tiempo). Cada corrida guarda `intentos` (encontrados / examinados / con web por combinación), visible en la tarjeta del admin.
@@ -501,9 +509,9 @@ mensaje pre-cargado) ademas del screenshot del sitio y el badge de Score SEO.
 - **No hay contraseñas hardcodeadas**: las API routes que antes tenian
   `process.env.ADMIN_PASSWORD || 'hardcoded'` fueron corregidas. Solo usar env vars.
 
-- **Lead Finder — campo `ciudad`**: cada resultado del scraping tiene `neg.ciudad`.
-  El CSV exportado tiene columna Ciudad. El `seenIds` Set persiste entre ciudades para
-  evitar duplicados. No quitar el campo `ciudad` del objeto `neg`.
+- **Lead Finder — cobro por lead**: la regla de lead se decide en el server
+  (`/api/lead-finder-pro/run` usa `clasificarLead`); nunca mover esa decisión al cliente. Cada
+  lead tiene `ciudad`, `canal` y `whatsapp`; el `seen` del motor evita duplicados entre ciudades.
 
 ---
 

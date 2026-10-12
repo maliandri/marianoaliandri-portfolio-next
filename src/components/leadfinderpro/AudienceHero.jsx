@@ -6,7 +6,7 @@ import Link from 'next/link';
 // Hero + features de la landing de Lead Finder Pro con toggle de audiencia.
 // "dev" es el default (lo que se renderiza en el HTML del servidor); "empresa" explica
 // para qué le sirve la herramienta a un negocio que vende un producto (mismos dos perfiles
-// que el panel de búsqueda, ver CustomerLeadFinderPanel).
+// que el panel de búsqueda, ver leadfinder/LeadFinder.jsx).
 const COPY = {
   es: {
     toggleLabel: '¿Para qué lo vas a usar?',

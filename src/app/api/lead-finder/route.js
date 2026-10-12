@@ -362,7 +362,7 @@ export async function runLeadFinderAction(action, params, clientKey) {
   }
 }
 
-// Ruta interna del admin (panel /admin — LeadFinderPanel y LeadMapPanel). Sin esto,
+// Ruta interna del admin (panel /admin — LeadMapPanel). Sin esto,
 // cualquiera que encuentre esta URL puede llamarla directo y gastar la cuota de Google
 // Places sin login ni nada. Solo la cuenta admin registrada puede usarla directo -- el
 // resto pasa por /api/lead-finder-pro/run, que sí descuenta créditos.

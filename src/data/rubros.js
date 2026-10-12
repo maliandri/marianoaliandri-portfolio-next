@@ -3,7 +3,7 @@
 // `label` = nombre en español (se usa como término de búsqueda en el Keyword Explorer).
 // `cat` = agrupación para el UI.
 // `query` (opcional) = el rubro se busca por texto en vez de por tipo de Places.
-// Usado por: LeadFinderPanel (admin), KeywordExplorer (/keywords), el buscador de Lead Finder (src/components/leadfinder) y la auditoría automática.
+// Usado por: KeywordExplorer (/keywords), el buscador de Lead Finder (src/components/leadfinder) y la auditoría automática.
 export const RUBROS = [
   // Gastronomía
   { id: 'restaurant',           label: 'Restaurante',       cat: 'Gastronomía' },
@@ -84,7 +84,7 @@ export const RUBROS = [
 export const CATEGORIAS_RUBROS = [...new Set(RUBROS.map(r => r.cat))];
 
 // Selección por defecto: los rubros de negocio local más comunes.
-// Usado por LeadFinderPanel (admin) y LeadMapPanel (mapa móvil) para no tener
+// Usado por LeadMapPanel (mapa móvil) para no tener
 // que tildar los 65 rubros a mano en cada búsqueda.
 export const DEFAULT_TIPOS = [
   'restaurant', 'cafe', 'bar', 'bakery', 'store', 'clothing_store', 'hair_care',
