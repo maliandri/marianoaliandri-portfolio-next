@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import AuthGate from '@/components/auth/AuthGate';
-import CustomerLeadFinderPanel from '@/components/leadfinderpro/CustomerLeadFinderPanel';
+import LeadFinder from '@/components/leadfinder/LeadFinder';
 import ClientNavShell from '@/components/leadfinderpro/ClientNavShell';
 import LanguageSwitch from '@/components/leadfinderpro/LanguageSwitch';
 
@@ -27,7 +27,7 @@ export default function LeadFinderProBuscarPageEn() {
           lang="en"
         >
           <ClientNavShell lang="en" />
-          <CustomerLeadFinderPanel lang="en" />
+          <LeadFinder variant="cliente" lang="en" forceDark />
         </AuthGate>
       </div>
     </main>

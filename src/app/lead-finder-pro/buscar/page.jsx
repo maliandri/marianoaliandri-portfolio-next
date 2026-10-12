@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import AuthGate from '@/components/auth/AuthGate';
-import CustomerLeadFinderPanel from '@/components/leadfinderpro/CustomerLeadFinderPanel';
+import LeadFinder from '@/components/leadfinder/LeadFinder';
 import LanguageSwitch from '@/components/leadfinderpro/LanguageSwitch';
 import ClientAreaShell from '@/components/ClientAreaShell';
 
@@ -26,7 +26,7 @@ export default function LeadFinderProBuscarPage() {
             title="Buscar negocios"
             subtitle="Registrate gratis para acceder a la herramienta."
           >
-            <CustomerLeadFinderPanel />
+            <LeadFinder variant="cliente" lang="es" forceDark />
           </AuthGate>
         </div>
       </main>
