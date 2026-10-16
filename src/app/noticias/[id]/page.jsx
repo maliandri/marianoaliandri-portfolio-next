@@ -1,31 +1,36 @@
+import { cache } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getDb } from '@/lib/firebase-admin';
 
-export const dynamic = 'force-dynamic';
+// ISR on-demand: cada nota se genera en su primera visita y queda en el CDN (no cambia).
+export const revalidate = 86400;
+// Sin páginas en el build: lista vacía = cada una se genera en su primera visita
+// y queda cacheada (sin esto Next las renderiza en cada request).
+export async function generateStaticParams() { return []; }
 
 function formatDate(iso) {
   if (!iso) return '';
   return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
-async function getNoticia(id) {
-  try {
-    const db = getDb();
-    if (!db) return null;
-    const doc = await db.collection('noticias').doc(id).get();
-    if (!doc.exists) return null;
-    const data = doc.data();
-    // Las notas de tópicos "solo X" existen en Firestore (dedup, tope diario, log del admin)
-    // pero no se muestran en el sitio: responden 404 aunque alguien tenga el id.
-    if (data.status !== 'published' || data.visibleEnSitio === false) return null;
-    return {
-      id: doc.id,
-      ...data,
-      publishedAt: data.publishedAt?.toDate?.()?.toISOString() || null,
-    };
-  } catch { return null; }
-}
+// cache(): generateMetadata y la página comparten una sola lectura de Firestore.
+// Un error se propaga (no se cachea un 404 falso); Next conserva la versión anterior.
+const getNoticia = cache(async (id) => {
+  const db = getDb();
+  if (!db) return null;
+  const doc = await db.collection('noticias').doc(id).get();
+  if (!doc.exists) return null;
+  const data = doc.data();
+  // Las notas de tópicos "solo X" existen en Firestore (dedup, tope diario, log del admin)
+  // pero no se muestran en el sitio: responden 404 aunque alguien tenga el id.
+  if (data.status !== 'published' || data.visibleEnSitio === false) return null;
+  return {
+    id: doc.id,
+    ...data,
+    publishedAt: data.publishedAt?.toDate?.()?.toISOString() || null,
+  };
+});
 
 export async function generateMetadata({ params }) {
   const { id } = await params;

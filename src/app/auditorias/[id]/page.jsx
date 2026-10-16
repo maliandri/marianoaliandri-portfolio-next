@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getDb } from '@/lib/firebase-admin';
@@ -8,7 +9,12 @@ import AuditRequestForm from '@/components/audit/AuditRequestForm';
 import AuditPdfButton from '@/components/audit/AuditPdfButton';
 import SeoScoreChart from './SeoScoreChart';
 
-export const dynamic = 'force-dynamic';
+// ISR on-demand: cada informe se genera en su primera visita y queda en el CDN.
+// /api/auditorias lo invalida si se edita o se borra.
+export const revalidate = 86400;
+// Sin páginas en el build: lista vacía = cada una se genera en su primera visita
+// y queda cacheada (sin esto Next las renderiza en cada request).
+export async function generateStaticParams() { return []; }
 
 // Dominios verificados en GSC = sitios del portfolio de Mariano (para destacarlos)
 async function getOwnDomains() {
@@ -20,21 +26,21 @@ async function getOwnDomains() {
   }
 }
 
-async function getAuditoria(id) {
-  try {
-    const db = getDb();
-    if (!db) return null;
-    const doc = await db.collection('auditorias').doc(id).get();
-    if (!doc.exists) return null;
-    const data = doc.data();
-    return {
-      id: doc.id,
-      ...data,
-      publishedAt: data.publishedAt?.toDate?.()?.toISOString() || null,
-      createdAt:   data.createdAt?.toDate?.()?.toISOString()   || null,
-    };
-  } catch { return null; }
-}
+// cache(): generateMetadata y la página comparten una sola lectura de Firestore.
+// Un error se propaga (no se cachea un 404 falso); Next conserva la versión anterior.
+const getAuditoria = cache(async (id) => {
+  const db = getDb();
+  if (!db) return null;
+  const doc = await db.collection('auditorias').doc(id).get();
+  if (!doc.exists) return null;
+  const data = doc.data();
+  return {
+    id: doc.id,
+    ...data,
+    publishedAt: data.publishedAt?.toDate?.()?.toISOString() || null,
+    createdAt:   data.createdAt?.toDate?.()?.toISOString()   || null,
+  };
+});
 
 export async function generateMetadata({ params }) {
   const { id } = await params;

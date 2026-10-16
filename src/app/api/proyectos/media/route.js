@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import crypto from 'crypto';
 import { getDb } from '@/lib/firebase-admin';
+import { revalidatePath } from 'next/cache';
 
 export async function POST(request) {
   try {
@@ -31,6 +32,7 @@ export async function POST(request) {
 
     await docRef.set({ media }, { merge: true });
 
+    revalidatePath('/proyectos/[domain]', 'page'); // la galería pública es ISR
     return Response.json({ success: true, media });
   } catch (error) {
     return Response.json({ error: 'Error subiendo medio', details: error.message }, { status: 500 });
@@ -58,6 +60,7 @@ export async function PATCH(request) {
     const media = existingMedia.map(m => (m.id === mediaId ? { ...m, publicable } : m));
     await docRef.set({ media }, { merge: true });
 
+    revalidatePath('/proyectos/[domain]', 'page'); // la galería pública es ISR
     return Response.json({ success: true, media });
   } catch (error) {
     return Response.json({ error: 'Error actualizando medio', details: error.message }, { status: 500 });

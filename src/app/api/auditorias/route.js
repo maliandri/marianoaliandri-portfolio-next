@@ -1,8 +1,16 @@
 export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { revalidatePath } from 'next/cache';
 
 import { saveAuditoria } from '@/lib/auditoriasStore';
+
+// /auditorias y /auditorias/[id] son ISR: al cambiar un informe desde el admin se
+// regeneran ya, sin esperar el revalidate.
+function revalidateAuditorias() {
+  revalidatePath('/auditorias');
+  revalidatePath('/auditorias/[id]', 'page');
+}
 
 export async function GET(request) {
   try {
@@ -61,6 +69,7 @@ export async function POST(request) {
     }
 
     const { id } = await saveAuditoria({ title, config, results, stats, summary });
+    revalidateAuditorias();
     return Response.json({ success: true, id });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });
@@ -85,6 +94,7 @@ export async function PATCH(request) {
     update.updatedAt = FieldValue.serverTimestamp();
 
     await db.collection('auditorias').doc(id).update(update);
+    revalidateAuditorias();
     return Response.json({ success: true });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });
@@ -100,6 +110,7 @@ export async function DELETE(request) {
     if (!id) return Response.json({ error: 'id requerido' }, { status: 400 });
 
     await db.collection('auditorias').doc(id).delete();
+    revalidateAuditorias();
     return Response.json({ success: true });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });

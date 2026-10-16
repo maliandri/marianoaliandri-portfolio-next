@@ -1,13 +1,16 @@
 import Link from 'next/link';
 import { Archivo, IBM_Plex_Mono } from 'next/font/google';
 import { getDb } from '@/lib/firebase-admin';
+import { isBuildPhase } from '@/lib/isr';
 import PlansSection from '@/components/leadfinderpro/PlansSection';
 import { scoreDistribution, shortTitle, auditCities, mapPlate } from '@/lib/auditSummary';
 import ScoreDistribution from './ScoreDistribution';
 import ZonePlate from './ZonePlate';
 import s from './auditorias.module.css';
 
-export const dynamic = 'force-dynamic';
+// ISR: se regenera como mucho una vez por hora (las auditorías salen ~4 por semana).
+// /api/auditorias invalida esta página al crear, editar o borrar un informe.
+export const revalidate = 3600;
 
 const archivo = Archivo({ subsets: ['latin'], axes: ['wdth'], variable: '--font-archivo', display: 'swap' });
 const plexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-plex-mono', display: 'swap' });
@@ -68,8 +71,9 @@ async function getAuditorias() {
 
     const overall = scoreDistribution([...seen.values()].map(seoScore => ({ seoScore })));
     return { items, overall: { ...overall, cities: allCities.size } };
-  } catch {
-    return { items: [], overall: null };
+  } catch (e) {
+    if (isBuildPhase()) return { items: [], overall: null };
+    throw e;
   }
 }
 

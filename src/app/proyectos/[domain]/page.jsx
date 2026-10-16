@@ -1,10 +1,16 @@
+import { cache } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { google } from 'googleapis';
 import { getGSCAuth, getVerifiedSites } from '@/lib/gscClient';
 import { getDb } from '@/lib/firebase-admin';
 
-export const dynamic = 'force-dynamic';
+// ISR: los clicks/impresiones de GSC son de 28 días, alcanza con regenerar cada 6 h.
+// /api/proyectos y /api/proyectos/media la invalidan cuando se edita desde el admin.
+export const revalidate = 21600;
+// Sin páginas en el build: lista vacía = cada una se genera en su primera visita
+// y queda cacheada (sin esto Next las renderiza en cada request).
+export async function generateStaticParams() { return []; }
 
 const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
@@ -19,7 +25,8 @@ function getDateRange(days = 28, lag = 3) {
   };
 }
 
-async function getProyecto(domain) {
+// cache(): generateMetadata y la página comparten las llamadas a GSC y Firestore.
+const getProyecto = cache(async (domain) => {
   const auth = getGSCAuth();
   const sites = await getVerifiedSites(auth);
   const site = sites.find(s => s.domain === domain);
@@ -62,7 +69,7 @@ async function getProyecto(domain) {
     clicks,
     impressions,
   };
-}
+});
 
 export async function generateMetadata({ params }) {
   const { domain } = await params;

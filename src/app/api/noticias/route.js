@@ -45,7 +45,10 @@ export async function GET(request) {
         .map(({ makeError, ...rest }) => rest);
     }
 
-    return Response.json({ noticias });
+    // La versión pública (NoticiasHome) se cachea en el CDN; el log del admin nunca.
+    return Response.json({ noticias }, {
+      headers: { 'Cache-Control': isPublic ? 'public, s-maxage=600, stale-while-revalidate=3600' : 'private, no-store' },
+    });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });
   }

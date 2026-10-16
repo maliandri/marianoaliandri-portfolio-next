@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { google } from 'googleapis';
 import { getGSCAuth, getVerifiedSites } from '@/lib/gscClient';
 import { getDb } from '@/lib/firebase-admin';
+import { revalidatePath } from 'next/cache';
 
 function getDateRange(days = 28, lag = 3) {
   const end = new Date();
@@ -102,7 +103,12 @@ export async function GET(request) {
       .filter(p => showAll || p.visible)
       .sort((a, b) => a.orden - b.orden || a.domain.localeCompare(b.domain));
 
-    return Response.json({ success: true, proyectos });
+    // La lista pública (grid del home) se cachea en el CDN de Vercel: cada visita al home
+    // la pedía de nuevo y llamaba a GSC por cada sitio. ?all=1 es el admin: siempre fresca.
+    const cacheControl = showAll
+      ? 'no-store'
+      : 'public, s-maxage=3600, stale-while-revalidate=86400';
+    return Response.json({ success: true, proyectos }, { headers: { 'Cache-Control': cacheControl } });
   } catch (error) {
     return Response.json({ error: 'Error obteniendo proyectos', details: error.message }, { status: 500 });
   }
@@ -118,6 +124,7 @@ export async function PATCH(request) {
       { descripcionCorta, stack, funcionalidades, impacto, orden: Number(orden), visible, updatedAt: new Date() },
       { merge: true }
     );
+    revalidatePath('/proyectos/[domain]', 'page');
 
     return Response.json({ success: true });
   } catch (error) {

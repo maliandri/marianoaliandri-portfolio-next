@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { getDb } from '@/lib/firebase-admin';
+import { isBuildPhase } from '@/lib/isr';
 
-export const dynamic = 'force-dynamic';
+// ISR: el bot publica como mucho una vez por hora; 15 min de atraso en la lista alcanza.
+export const revalidate = 900;
 
 export const metadata = {
   title: 'Noticias',
@@ -42,7 +44,10 @@ async function getNoticias() {
       })
       .filter(n => n.status === 'published' && n.visibleEnSitio)
       .slice(0, 30);
-  } catch { return []; }
+  } catch (e) {
+    if (isBuildPhase()) return [];
+    throw e;
+  }
 }
 
 export default async function NoticiasPage() {
