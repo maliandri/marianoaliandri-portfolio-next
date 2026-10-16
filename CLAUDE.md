@@ -70,7 +70,7 @@ src/
       resend-webhook/   # Webhook de Resend (email.sent/delivered/opened/bounced) → col "sent_emails"
       gumroad-webhook/  # Ping de Gumroad → re-verifica venta via API Gumroad (GUMROAD_ACCESS_TOKEN)
                         # antes de acreditar → "leadfinder_entitlements" (packs USD Lead Finder Pro)
-    auditorias/         # Paginas publicas de auditorias SEO (server components, force-dynamic)
+    auditorias/         # Paginas publicas de auditorias SEO (server components, ISR — ver seccion Active CPU)
       page.jsx          # Lista de auditorias — lee Firestore via getDb() directamente
       [id]/
         page.jsx        # Detalle de auditoria — lee Firestore via getDb() directamente
@@ -223,7 +223,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 
 - **Home**: Hero animado con editor de codigo en vivo, carrusel de servicios, skills, Proyectos Realizados (grid dinamico con GSC), contacto
 - **Detalle de proyecto** (`/proyectos/[domain]` — sin barra final, ver seccion de trailingSlash):
-  pagina publica por sitio del portfolio (server component, `force-dynamic`, lee GSC + Firestore
+  pagina publica por sitio del portfolio (server component, ISR 6 h, lee GSC + Firestore
   directo). Muestra stack, funcionalidades, impacto, stats de GSC y una galeria de fotos/videos
   (`proyectos/{domain}.media`, solo los items con `publicable: true`). Se sube contenido a esa
   galeria desde el admin (tab Proyectos → "Fotos y videos"), via `/api/proyectos/media`
@@ -379,6 +379,16 @@ de server components durante build). Este patron evita los 404 con "no outgoing 
 Las paginas `/auditorias/page.jsx` y `/auditorias/[id]/page.jsx` usan `getDb()` directamente.
 Antes usaban `fetch(url_propia)` lo que causaba 404 intermitentes (el fetch HTTP fallaba
 antes de que el deploy estuviera listo). Regla: server components → Firebase Admin directo.
+
+### Paginas publicas con ISR (Active CPU de Vercel, desde 2026-10-15)
+`/auditorias` (1 h), `/noticias` (15 min), `/auditorias/[id]`, `/noticias/[id]` (24 h) y
+`/proyectos/[domain]` (6 h) usan `export const revalidate` + `generateStaticParams() { return [] }`
+en vez de `force-dynamic`: antes corrian una funcion (Firestore + GSC) en cada visita/crawl y se
+comian el cupo de Active CPU compartido entre todos los proyectos de la cuenta. `/api/proyectos`
+(sin `all=1`) y `/api/noticias?public=1` devuelven `Cache-Control: s-maxage`. Las escrituras del
+admin (`/api/auditorias`, `/api/proyectos`, `/api/proyectos/media`) llaman `revalidatePath`.
+Los fetchers tiran el error en vez de devolver vacio (`src/lib/isr.js`): asi Next conserva la
+ultima version buena. **No volver a `force-dynamic` en paginas publicas.**
 
 ### Dark mode sin flash
 Script sincrono en `<head>` aplica la clase `dark` antes de que React hidrate.
