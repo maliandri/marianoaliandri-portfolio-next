@@ -473,7 +473,7 @@ function Estilos() {
     <style>{`
 .mf-root{--paper:#EEF0F4;--card:#FFFFFF;--ink:#16181D;--muted:#6A7080;--line:#D9DCE3;--mag:#C8175D;--mag-ink:#FFFFFF;--kraft:#DCC79E;--kraft-ink:#2B2416;--ok:#127A4A;--warn:#B4530A;
   background:var(--paper);color:var(--ink);font-family:var(--mf-body),system-ui,sans-serif;min-height:100vh;padding:24px 16px 96px}
-:root.dark .mf-root, .dark .mf-root{--paper:#111318;--card:#1A1D24;--ink:#ECEEF2;--muted:#9AA1AF;--line:#2A2E37;--mag:#F0498A;--kraft:#C9B38A;--kraft-ink:#211B10;--ok:#4ACB8B;--warn:#F59E52}
+:root.dark .mf-root, .dark .mf-root, .sh-force-dark .mf-root{--paper:#111318;--card:#1A1D24;--ink:#ECEEF2;--muted:#9AA1AF;--line:#2A2E37;--mag:#F0498A;--kraft:#C9B38A;--kraft-ink:#211B10;--ok:#4ACB8B;--warn:#F59E52}
 .mf-root *{box-sizing:border-box}
 .mf-display{font-family:var(--mf-display),sans-serif;letter-spacing:.01em}
 .mf-mono{font-family:var(--mf-mono),ui-monospace,monospace}
@@ -491,7 +491,7 @@ function Estilos() {
 .mf-chip-cambio{background:var(--warn);color:#fff}
 .mf-layout{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
 @media(min-width:1024px){.mf-layout{grid-template-columns:minmax(0,1fr) 380px}}
-.mf-toolbar{display:flex;flex-direction:column;gap:10px;position:sticky;top:64px;z-index:5;background:var(--paper);padding:8px 0}
+.mf-toolbar{display:flex;flex-direction:column;gap:10px;position:sticky;top:0;z-index:5;background:var(--paper);padding:8px 0}
 .mf-input{width:100%;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font:inherit;font-size:15px}
 .mf-input:focus-visible,.mf-root button:focus-visible{outline:2px solid var(--mag);outline-offset:2px}
 .mf-colecciones{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
@@ -534,7 +534,7 @@ function Estilos() {
 .mf-info figcaption{padding:10px;white-space:pre-line}
 /* Remito */
 .mf-remito-wrap{display:none}
-@media(min-width:1024px){.mf-remito-wrap{display:block;position:sticky;top:72px;align-self:start;max-height:calc(100vh - 88px);overflow:auto}}
+@media(min-width:1024px){.mf-remito-wrap{display:block;position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto}}
 .mf-remito-wrap.is-open{display:block;position:fixed;inset:0;z-index:60;background:var(--paper);overflow:auto;padding:16px}
 @media(min-width:1024px){.mf-remito-wrap.is-open{position:sticky;inset:auto;padding:0;z-index:auto}}
 .mf-remito{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;

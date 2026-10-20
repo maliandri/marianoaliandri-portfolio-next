@@ -7,6 +7,7 @@ import { db } from '@/utils/firebaseservice';
 import AuthGate from '@/components/auth/AuthGate';
 import ClientAreaShell from '@/components/ClientAreaShell';
 import { useAuthUser } from '@/hooks/useAuthUser';
+import { useProveedorAcceso } from '@/hooks/useProveedorAcceso';
 import { PLANS } from '@/data/plans';
 
 function LeadFinderProCard({ user }) {
@@ -164,8 +165,29 @@ function AnaliticaRegionalCard() {
   );
 }
 
+function ComprasMoodfitCard() {
+  return (
+    <div className="bg-[#111] border border-pink-500/30 rounded-2xl p-6 sm:col-span-2">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <p className="text-xs font-semibold text-pink-400 uppercase tracking-widest mb-1">Compras</p>
+          <h3 className="text-white font-bold text-lg">🏷️ Catálogo Mood Fit</h3>
+        </div>
+        <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-pink-500/10 text-pink-300">Privado</span>
+      </div>
+      <p className="text-gray-400 text-sm mb-4">
+        Todos los productos de Mood Fit con precio por mayor y precio sugerido de venta. Armá el pedido por talle y descargalo en Excel.
+      </p>
+      <Link href="/compras/moodfit" className="inline-block px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white text-sm font-medium rounded-xl transition-colors">
+        Abrir catálogo →
+      </Link>
+    </div>
+  );
+}
+
 function MiCuentaContent() {
   const { user, getIdToken } = useAuthUser();
+  const accesoCompras = useProveedorAcceso();
 
   return (
     <div className="max-w-4xl mx-auto px-4">
@@ -179,6 +201,11 @@ function MiCuentaContent() {
 
       {/* Accesos rápidos */}
       <div className="flex flex-wrap gap-2 mb-10">
+        {accesoCompras && (
+          <Link href="/compras/moodfit" className="inline-flex items-center gap-1.5 px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white text-sm font-semibold rounded-xl transition-colors">
+            🏷️ Catálogo Mood Fit
+          </Link>
+        )}
         <Link href="/lead-finder-pro/buscar" className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors">
           🎯 Buscar negocios
         </Link>
@@ -192,6 +219,7 @@ function MiCuentaContent() {
 
       <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-4">Tus productos</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+        {accesoCompras && <ComprasMoodfitCard />}
         <LeadFinderProCard user={user} />
         <RubrosBuscadosCard user={user} getIdToken={getIdToken} />
         <AnaliticaRegionalCard />

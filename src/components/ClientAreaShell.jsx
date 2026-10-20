@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import AppShell from './shell/AppShell';
 import { useAuthUser } from '@/hooks/useAuthUser';
+import { useProveedorAcceso } from '@/hooks/useProveedorAcceso';
 import { firebaseAuth } from '@/utils/firebaseservice';
 
 // Envuelve mi-cuenta, mis-compras, perfil y lead-finder-pro/buscar con el mismo esqueleto
@@ -25,19 +26,25 @@ const SECTIONS = [
   ]},
 ];
 
-function locate(pathname) {
-  for (const s of SECTIONS) {
+// Solo para quien tiene acceso al catálogo del proveedor (ver useProveedorAcceso).
+const COMPRAS_SECTION = { id: 'compras', label: 'Compras', items: [
+  { id: 'moodfit', label: 'Catálogo Mood Fit', href: '/compras/moodfit' },
+]};
+
+function locate(pathname, sections) {
+  for (const s of sections) {
     const item = s.items.find(it => {
       const base = it.href.split('?')[0];
       return pathname === base || pathname.startsWith(`${base}/`);
     });
     if (item) return { sectionId: s.id, itemId: item.id };
   }
-  return { sectionId: SECTIONS[0].id, itemId: null };
+  return { sectionId: sections[0].id, itemId: null };
 }
 
 export default function ClientAreaShell({ children }) {
   const { user, loading } = useAuthUser();
+  const accesoCompras = useProveedorAcceso();
   const rawPathname = usePathname();
   const pathname = rawPathname.replace(/\/$/, '') || '/';
   const router = useRouter();
@@ -51,14 +58,15 @@ export default function ClientAreaShell({ children }) {
 
   const name = user.displayName || 'Tu cuenta';
   const initials = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
-  const { sectionId, itemId } = locate(pathname);
+  const sections = accesoCompras ? [SECTIONS[0], COMPRAS_SECTION, ...SECTIONS.slice(1)] : SECTIONS;
+  const { sectionId, itemId } = locate(pathname, sections);
 
   return (
     <AppShell
       variant="client"
       forceDark
       brand={{ logo: initials.charAt(0) || 'M', title: name, subtitle: 'Tu cuenta' }}
-      sections={SECTIONS}
+      sections={sections}
       activeSectionId={sectionId}
       activeItemId={itemId}
       footer={{

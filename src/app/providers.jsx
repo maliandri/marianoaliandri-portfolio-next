@@ -301,7 +301,7 @@ function AppChromeInner({ children }) {
   // NO incluye /analitica: esa ruta es mixta (Tendencias es pública, solo "Rubros
   // buscados" pide login) -- ocultar el chrome ahí dejaría a un visitante anónimo sin
   // ninguna navegación. Ver docs/superpowers/specs/2026-09-22-area-cliente-design.md.
-  const CLIENT_AREA_PATHS = ['/mi-cuenta', '/mis-compras', '/perfil', '/lead-finder-pro/buscar'];
+  const CLIENT_AREA_PATHS = ['/mi-cuenta', '/mis-compras', '/perfil', '/lead-finder-pro/buscar', '/compras'];
   const isClientArea = CLIENT_AREA_PATHS.some(p => pathname === p || pathname.startsWith(`${p}/`));
 
   const closeTool = () => router.push('/');
