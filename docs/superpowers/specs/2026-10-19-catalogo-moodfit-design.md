@@ -13,7 +13,7 @@ recorrer y la copia se actualiza.
 
 ## Quién lo usa
 
-- **Johana** (`johanabreyes@gmail.com`, ya tiene cuenta en el sitio con Google) — usuaria principal.
+- **Johana** (`reyesjohanab@gmail.com`, ya tiene cuenta en el sitio con Google) — usuaria principal.
 - **Mariano** (cuenta admin, `ADMIN_EMAIL`).
 - Nadie más. Es una sección privada dentro de marianoaliandri.com.ar.
 
