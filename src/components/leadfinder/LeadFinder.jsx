@@ -10,6 +10,7 @@ import { useAuthUser } from '@/hooks/useAuthUser';
 import { lfpT } from '@/data/i18n/leadFinderPro';
 import { RUBROS, rubroLabel } from '@/data/rubros';
 import { parseZona, productosPatch } from '@/lib/leadSearch';
+import { oportunidad } from '@/lib/rubroDemand';
 import { useLeadSearch } from './useLeadSearch';
 import LeadFinderForm from './LeadFinderForm';
 import LeadResultsTable, { exportLeadsCSV } from './LeadResultsTable';
@@ -41,6 +42,41 @@ function loadAdminForm() {
   return FORM_ADMIN;
 }
 
+// Demanda del rubro de un lead: { [ciudad]: respuesta de rubroDemand }. Los rubros de Maps se
+// buscan por id (la etiqueta cambia con el idioma); los términos libres, por el texto.
+function demandaDe(lead, demanda, labelToId) {
+  if (lead.demanda) return lead.demanda; // ya guardada en el historial
+  const d = demanda[lead.ciudad];
+  if (!d) return null;
+  const id = labelToId[lead.tipo];
+  return (id ? d.porRubro?.[id] : d.porTermino?.[lead.tipo]) || null;
+}
+
+// Prefill desde "Rubros buscados" (?zona=…&rubro=… o sessionStorage en el admin).
+const PREFILL_KEY = 'lf_prefill';
+function readPrefill() {
+  try {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('zona') || q.get('rubro')) return { zona: q.get('zona'), rubro: q.get('rubro') };
+    const s = sessionStorage.getItem(PREFILL_KEY);
+    if (s) { sessionStorage.removeItem(PREFILL_KEY); return JSON.parse(s); }
+  } catch { /* sin storage */ }
+  return null;
+}
+function applyPrefill(form, p) {
+  if (!p) return form;
+  return {
+    ...form,
+    zonas: p.zona ? [p.zona] : form.zonas,
+    tipos: p.rubro && RUBROS.some(r => r.id === p.rubro) ? [p.rubro] : form.tipos,
+    terminos: p.rubro ? [] : form.terminos,
+  };
+}
+
+function labelToIdFor(ids, lang) {
+  return Object.fromEntries(tipoParams(ids, lang).map(p => [p.label, p.id]));
+}
+
 function tipoParams(ids, lang) {
   return ids.map(id => {
     const r = RUBROS.find(x => x.id === id);
@@ -61,7 +97,15 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [searchKey, setSearchKey] = useState(0); // cambia con cada búsqueda/historial abierto: reinicia el informe
 
-  useEffect(() => { if (isAdmin) setForm(loadAdminForm()); }, [isAdmin]);
+  const [demanda, setDemanda] = useState({}); // ciudad → { porRubro, porTermino, top }
+  const [porOportunidad, setPorOportunidad] = useState(true);
+  const addDemanda = useCallback((ciudad, d) => setDemanda(m => ({ ...m, [ciudad]: d })), []);
+
+  useEffect(() => {
+    const prefill = readPrefill();
+    if (isAdmin) setForm(applyPrefill(loadAdminForm(), prefill));
+    else if (prefill) setForm(f => applyPrefill(f, prefill));
+  }, [isAdmin]);
 
   const call = useCallback(async (action, params = {}) => {
     const idToken = await getIdToken();
@@ -114,8 +158,14 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
     setShowForm(false);
     setFilters(EMPTY_FILTERS);
     setSearchKey(k => k + 1);
+    const zonas = form.zonas.map(parseZona);
+    // Demanda por zona en paralelo a la búsqueda (gratis; si falla, los leads salen sin ella).
+    const demandaPromise = Promise.all(zonas.map(z =>
+      call('rubroDemand', { localidad: z.ciudad, terminos: form.terminos })
+        .then(d => { addDemanda(z.ciudad, d); return [z.ciudad, d]; })
+        .catch(() => null)));
     const { leads, totals } = await search.run({
-      zonas: form.zonas.map(parseZona),
+      zonas,
       terminos: form.terminos,
       tipos: tipoParams(form.tipos, lang),
       radioKm: form.radioKm,
@@ -125,13 +175,16 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
     });
     refreshBalance();
     if (leads.length) {
+      const dmap = Object.fromEntries((await demandaPromise).filter(Boolean));
+      const l2id = labelToIdFor(form.tipos, lang);
+      const conDemanda = leads.map(l => ({ ...l, demanda: demandaDe(l, dmap, l2id) }));
       try {
         await fetch('/api/lead-finder-pro/searches', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
           body: JSON.stringify({
             ciudades: form.zonas, terminos: form.terminos, tipos: form.tipos, radioKm: form.radioKm,
-            perfil: form.perfil, producto: form.producto, stats: totals, origen: isAdmin ? 'admin' : 'cliente', results: leads,
+            perfil: form.perfil, producto: form.producto, stats: totals, origen: isAdmin ? 'admin' : 'cliente', results: conDemanda,
           }),
         });
         loadHistory();
@@ -176,7 +229,15 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
     } catch { /* se queda en la lista */ }
   };
 
-  const rows = useMemo(() => (isAdmin ? applyAdminFilters(search.leads, filters) : search.leads), [isAdmin, search.leads, filters]);
+  const labelToId = useMemo(() => labelToIdFor(form.tipos, lang), [form.tipos, lang]);
+  const leadsConDemanda = useMemo(
+    () => search.leads.map(l => { const d = demandaDe(l, demanda, labelToId); return d ? { ...l, demanda: d } : l; }),
+    [search.leads, demanda, labelToId]);
+  const hayDemanda = leadsConDemanda.some(l => l.demanda);
+  const rows = useMemo(() => {
+    const base = isAdmin ? applyAdminFilters(leadsConDemanda, filters) : leadsConDemanda;
+    return porOportunidad && hayDemanda ? [...base].sort((a, b) => oportunidad(b) - oportunidad(a)) : base;
+  }, [isAdmin, leadsConDemanda, filters, porOportunidad, hayDemanda]);
   const emails = useMemo(() => search.leads.map(r => r.email).filter(Boolean), [search.leads]);
   const tipoLabels = form.tipos.map(id => rubroLabel(RUBROS.find(r => r.id === id), lang) || id);
   const hasCriteria = form.terminos.length > 0 || form.tipos.length > 0;
@@ -229,7 +290,8 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
           </button>
           {showForm && (
             <div className="p-5 border-t border-fg/10">
-              <LeadFinderForm value={form} onChange={setForm} disabled={isRunning} lang={lang} variant={variant} balance={balance} t={t} />
+              <LeadFinderForm value={form} onChange={setForm} disabled={isRunning} lang={lang} variant={variant} balance={balance} t={t}
+                call={user ? call : null} onDemand={addDemanda} />
             </div>
           )}
           <div className="flex flex-wrap items-center gap-3 px-5 py-4 bg-fg/5 border-t border-fg/10">
@@ -240,7 +302,7 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
               <button onClick={search.cancel} className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl font-semibold text-sm">{t.stopBtn}</button>
             )}
             {search.leads.length > 0 && (
-              <button onClick={() => exportLeadsCSV(search.leads, t)} className="px-4 py-2.5 bg-fg/5 hover:bg-fg/10 text-fg rounded-xl text-sm font-medium">{t.csvBtn}</button>
+              <button onClick={() => exportLeadsCSV(leadsConDemanda, t)} className="px-4 py-2.5 bg-fg/5 hover:bg-fg/10 text-fg rounded-xl text-sm font-medium">{t.csvBtn}</button>
             )}
             {isAdmin && search.leads.length > 0 && (
               <PublishReport key={searchKey} leads={search.leads} form={form} tipoLabels={tipoLabels} disabled={isRunning} />
@@ -258,7 +320,15 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
         )}
 
         {(search.leads.length > 0 || search.phase === 'done') && (
-          <p className="text-sm text-fg-300" aria-live="polite">{t.summary(search.totals)}</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <p className="text-sm text-fg-300" aria-live="polite">{t.summary(search.totals)}</p>
+            {hayDemanda && (
+              <label className="flex items-center gap-2 text-xs text-fg-400 cursor-pointer">
+                <input type="checkbox" checked={porOportunidad} onChange={e => setPorOportunidad(e.target.checked)} className="accent-orange-500" />
+                🔥 {t.sortOpportunity}
+              </label>
+            )}
+          </div>
         )}
 
         {search.avisos.length > 0 && !isRunning && (
@@ -276,7 +346,7 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
 
         {rows.length > 0 && <LeadResultsTable rows={rows} perfil={form.perfil} t={t} onRetryProducts={retryProducts} retryDisabled={isRunning} />}
 
-        {isAdmin && !isRunning && search.leads.length > 0 && <InstagramProspects leads={search.leads} />}
+        {isAdmin && !isRunning && search.leads.length > 0 && <InstagramProspects leads={rows} />}
 
         {isAdmin && <AdminLog log={search.log} />}
       </div>

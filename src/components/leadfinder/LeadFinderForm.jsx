@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { RUBROS, CATEGORIAS_RUBROS, rubroLabel, categoriaLabel } from '@/data/rubros';
 import { PROVINCIAS_AR } from '@/data/localidadesAR';
+import { parseZona } from '@/lib/leadSearch';
 
 const field = 'px-3 py-2 bg-page border border-fg/10 rounded-lg text-fg text-sm placeholder:text-fg-600 disabled:opacity-60';
 const label = 'block text-xs font-medium text-fg-400 mb-2';
@@ -64,8 +65,61 @@ function ProvinciaPicker({ onAdd, disabled }) {
   );
 }
 
+// Cruce con "Rubros buscados": top 10 de rubros con más demanda en Google en la primera
+// localidad elegida; un clic los suma/saca de la búsqueda. Gratis (acción rubroDemand).
+function DemandSuggest({ zona, tipos, onToggle, onDemand, call, disabled, lang, t }) {
+  const [state, setState] = useState({ zona: null, loading: false, top: null, error: null });
+  const ciudad = zona ? parseZona(zona).ciudad : '';
+  const actual = state.zona === zona;
+
+  const cargar = async () => {
+    setState({ zona, loading: true, top: null, error: null });
+    try {
+      const d = await call('rubroDemand', { localidad: ciudad });
+      setState({ zona, loading: false, top: d.top || [], error: null });
+      onDemand?.(ciudad, d);
+    } catch (e) {
+      setState({ zona, loading: false, top: null, error: e.message });
+    }
+  };
+
+  if (!zona) return <p className="text-xs text-fg-600">{t.demandNeedZona}</p>;
+
+  return (
+    <div className="space-y-2">
+      <button type="button" onClick={cargar} disabled={disabled || (actual && state.loading)}
+        className="px-3 py-1.5 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 text-xs font-semibold disabled:opacity-50">
+        {actual && state.loading ? t.demandLoading : t.demandBtn(ciudad)}
+      </button>
+      {actual && state.error && <p className="text-xs text-red-500" role="alert">{state.error}</p>}
+      {actual && state.top && (state.top.length === 0 ? <p className="text-xs text-fg-500">{t.demandEmpty}</p> : (
+        <>
+          <p className="text-[11px] text-fg-500">{t.demandHint}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {state.top.map(r => {
+              const on = tipos.includes(r.id);
+              return (
+                <button key={r.id} type="button" disabled={disabled} onClick={() => onToggle(r.id)} aria-pressed={on}
+                  title={t.demandTitle(r)}
+                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs disabled:opacity-50
+                    ${on ? 'border-orange-500/50 bg-orange-500/15 text-orange-700 dark:text-orange-300' : 'border-fg/10 text-fg-300 hover:border-fg/20'}`}>
+                  <span>{on ? '✓ ' : '+ '}{rubroLabel(RUBROS.find(x => x.id === r.id), lang) || r.label}</span>
+                  <span className="relative w-10 h-1.5 rounded-full bg-fg/10 overflow-hidden">
+                    <span className="absolute inset-y-0 left-0 bg-orange-500" style={{ width: `${r.interes}%` }} />
+                  </span>
+                  <span className="tabular-nums text-fg-500">{r.interes}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      ))}
+    </div>
+  );
+}
+
 // value = { perfil, producto, zonas: string[], terminos: string[], tipos: string[], radioKm, cantidad }
-export default function LeadFinderForm({ value, onChange, disabled, lang, variant, balance, t }) {
+export default function LeadFinderForm({ value, onChange, disabled, lang, variant, balance, t, call, onDemand }) {
   const [showTipos, setShowTipos] = useState(false);
   const set = (patch) => onChange({ ...value, ...patch });
   const maxCantidad = balance === null || balance === Infinity ? undefined : Math.max(1, balance);
@@ -113,6 +167,11 @@ export default function LeadFinderForm({ value, onChange, disabled, lang, varian
         <ChipInput items={value.terminos} onChange={terminos => set({ terminos })} placeholder={t.terminosPlaceholder}
           addLabel={t.addBtn} disabled={disabled} icon="🔎" chipClass="bg-blue-500/10 text-blue-600 dark:text-blue-300" />
       </div>
+
+      {call && (
+        <DemandSuggest zona={value.zonas[0]} tipos={value.tipos} call={call} onDemand={onDemand} disabled={disabled} lang={lang} t={t}
+          onToggle={id => set({ tipos: value.tipos.includes(id) ? value.tipos.filter(x => x !== id) : [...value.tipos, id] })} />
+      )}
 
       <div>
         <button type="button" onClick={() => setShowTipos(v => !v)} aria-expanded={showTipos}

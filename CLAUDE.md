@@ -253,6 +253,13 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   - Admin suma filtros, log, selector provincia → localidad y "Publicar informe" (solo leads con
     web y puntaje SEO, mínimo 3) + redes.
   - Historial en `leadfinder_searches` con `origen: 'admin' | 'cliente'`.
+  - **Cruce con "Rubros buscados"** (decisión 2026-10-23: incluido gratis en Lead Finder Pro): acción
+    `rubroDemand` de `/api/lead-finder-pro/run` (`src/lib/rubroDemand.js`, mismo autocompletado de Google
+    que `/api/keyword-explorer`, caché 7 días en `rubro_demanda/{ciudad}`). Devuelve solo el top 10 + 3
+    frases por rubro (la lista completa y el CSV siguen siendo del producto Keywords). El formulario
+    sugiere los rubros más buscados; cada lead lleva `demanda` y se ordena por oportunidad (demanda ×
+    web floja); el DM de Instagram cita la frase real. Desde Keywords, "Buscar negocios de este rubro"
+    abre el Lead Finder con `?zona=&rubro=` (admin: `sessionStorage.lf_prefill`).
   - Saca el @ de Instagram de cada negocio (`src/lib/instagramHandle.js`: links de la home/contacto o la web de Maps si es el perfil). En el admin, panel "Prospectos de Instagram" bajo los resultados + pantalla Marketing → Prospectos Instagram: DM sugerido por Gemini (`src/lib/igProspectos.js`), "Copiar y abrir chat" (ig.me/m/handle, marca contactado) y seguimiento en `ig_prospectos`. Los DMs se mandan a mano: nada de envío automático (Instagram banea).
   - Listado publico de reportes SEO (`/auditorias`) — server component, lee Firestore directo
   - Detalle de reporte (`/auditorias/[id]`) — full width, tabla ordenable por columna

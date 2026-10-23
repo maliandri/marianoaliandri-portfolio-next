@@ -16,7 +16,13 @@ function interesColor(v) {
   return 'bg-rose-400';
 }
 
-export default function KeywordExplorer({ embedded = false }) {
+// Cruce con el Lead Finder: de un rubro con demanda a los negocios de ese rubro en la zona.
+// En el admin llega `onBuscarNegocios` (cambia de pestaña); en el sitio público va a Lead Finder Pro.
+function irALeadFinder(zona, rubroId) {
+  window.location.href = `/lead-finder-pro/buscar?zona=${encodeURIComponent(zona)}&rubro=${encodeURIComponent(rubroId)}`;
+}
+
+export default function KeywordExplorer({ embedded = false, onBuscarNegocios = irALeadFinder }) {
   const [provincia, setProvincia] = useState('Neuquén');
   const [localidad, setLocalidad] = useState('Neuquén');
   const [cats, setCats] = useState([]); // vacío = todas
@@ -430,6 +436,13 @@ export default function KeywordExplorer({ embedded = false }) {
                         </span>
                       ))}
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => onBuscarNegocios(`${data.localidad}, Argentina`, r.id)}
+                      className="mt-3 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                      🎯 Buscar negocios de {r.label} en {data.localidad} con web floja o sin web →
+                    </button>
                   </div>
                 )}
               </div>

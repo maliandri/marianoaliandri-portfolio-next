@@ -39,6 +39,9 @@ function Fila({ row, saved, busy, onGenerar, onPatch }) {
         <span className="text-xs text-fg-500">{[row.ciudad, row.tipo].filter(Boolean).join(' · ')}</span>
         {typeof row.seoScore === 'number' && <span className="text-xs text-fg-500">SEO {row.seoScore}</span>}
         {!row.siteUrl && <span className="text-xs text-purple-600 dark:text-purple-400">sin web</span>}
+        {typeof row.demanda?.interes === 'number' && (
+          <span className="text-xs text-orange-600 dark:text-orange-400" title={(row.demanda.ejemplos || []).join(' · ')}>🔥 {row.demanda.interes}</span>
+        )}
         <select value={estado} disabled={!saved} onChange={e => onPatch(handle, { estado: e.target.value })}
           aria-label={`Estado de @${handle}`}
           className={`ml-auto text-xs rounded-lg px-2 py-1 border-0 disabled:opacity-40 ${ESTADO_CLS[estado]}`}>

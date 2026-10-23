@@ -23,6 +23,7 @@ export function prospectoFromLead(lead) {
     tipo: lead.tipo || null,
     siteUrl: lead.siteUrl || null,
     seoScore: typeof lead.seoScore === 'number' ? lead.seoScore : null,
+    demanda: lead.demanda ? { interes: lead.demanda.interes ?? null, ejemplos: (lead.demanda.ejemplos || []).slice(0, 3) } : null,
   };
 }
 
@@ -52,11 +53,16 @@ export function hallazgoPrincipal(lead) {
   return null;
 }
 
+// Frase real que la gente busca en Google para su rubro (del cruce con "Rubros buscados").
+export const busquedaEjemplo = (lead) => lead?.demanda?.ejemplos?.[0] || null;
+
 export function buildDmPrompt(lead) {
   const hallazgo = hallazgoPrincipal(lead);
+  const busqueda = busquedaEjemplo(lead);
   return `Escribí un mensaje directo de Instagram (DM) de Mariano Aliandri, desarrollador de Neuquén que hace páginas web y sistemas a medida para pymes, para el negocio "${lead.nombre}"${lead.tipo ? ` (rubro: ${lead.tipo})` : ''}${lead.ciudad ? ` de ${lead.ciudad}` : ''}.
 
 ${hallazgo ? `Lo que Mariano notó revisando su presencia online: ${hallazgo}.` : 'Su web está bastante bien; el mensaje ofrece ideas para conseguir más consultas desde Instagram y Google.'}
+${busqueda ? `Dato real de Google: en la zona la gente busca "${busqueda}". Usalo como gancho (esa gente está buscando lo que ellos venden y los puede encontrar o no), citando la frase tal cual.` : ''}
 
 Reglas:
 - Español rioplatense, con voseo, tono de persona real y cercano (no de agencia ni de vendedor).
@@ -73,10 +79,12 @@ Devolvé solo el texto del mensaje.`;
 export function dmTemplate(lead) {
   const hallazgo = hallazgoPrincipal(lead);
   const saludo = `¡Hola, ${lead.nombre}! Soy Mariano, desarrollador de Neuquén: hago webs y sistemas para pymes.`;
+  const busqueda = busquedaEjemplo(lead);
   const medio = hallazgo
     ? `Estuve mirando cómo aparecen online y vi que ${hallazgo}.`
     : 'Estuve mirando cómo aparecen online y tengo un par de ideas para que les lleguen más consultas.';
-  return `${saludo} ${medio} Les armé un mini informe gratis con qué mejoraría, ¿se lo paso?`;
+  const gancho = busqueda ? ` Y en Google la gente de la zona busca "${busqueda}": son clientes que los están buscando.` : '';
+  return `${saludo} ${medio}${gancho} Les armé un mini informe gratis con qué mejoraría, ¿se lo paso?`;
 }
 
 // Gemini a veces devuelve comillas envolventes o se pasa de largo.

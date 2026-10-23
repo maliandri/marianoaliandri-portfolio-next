@@ -789,7 +789,10 @@ export default function AdminPage() {
 
         {activeTab === 'rubros-buscados' && (
           <div>
-            <KeywordExplorer embedded />
+            <KeywordExplorer embedded onBuscarNegocios={(zona, rubro) => {
+              try { sessionStorage.setItem('lf_prefill', JSON.stringify({ zona, rubro })); } catch { /* sin storage */ }
+              goToTab('leads');
+            }} />
           </div>
         )}
 

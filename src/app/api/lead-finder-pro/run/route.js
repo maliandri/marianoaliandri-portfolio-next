@@ -6,6 +6,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { runLeadFinderAction } from '../../lead-finder/route';
 import { countProducts, normalizeKeyword } from '@/lib/productCounter';
 import { clasificarLead } from '@/lib/leadRule';
+import { demandaParaLeads, MAX_TERMINOS } from '@/lib/rubroDemand';
 
 // El conteo de productos rastrea varios archivos del sitio del negocio (presupuesto
 // interno ~20 s), más que un fetch normal.
@@ -22,6 +23,24 @@ const PAID_ACTION = 'auditPlace';
 const COUNT_ACTION = 'countProducts';
 const PRODUCT_CACHE_COLLECTION = 'places_product_count';
 const PRODUCT_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Demanda de búsqueda por rubro en la localidad (autocompletado de Google, gratis): incluida
+// sin costo en Lead Finder Pro (decisión 2026-10-23). Solo el top 10 + 3 frases por rubro; la
+// lista completa y el CSV siguen siendo del producto "Rubros buscados".
+const DEMAND_ACTION = 'rubroDemand';
+
+async function handleRubroDemand(body) {
+  const localidad = typeof body.localidad === 'string' ? body.localidad.trim() : '';
+  if (localidad.length < 2 || localidad.length > 120) return badRequest('localidad inválida');
+  const terminos = Array.isArray(body.terminos)
+    ? body.terminos.filter(t => typeof t === 'string' && t.trim().length >= 2 && t.length <= 60).slice(0, MAX_TERMINOS)
+    : [];
+  try {
+    return Response.json({ ok: true, ...(await demandaParaLeads(getDb(), localidad, terminos)) });
+  } catch (e) {
+    return Response.json({ ok: false, error: e.message }, { status: 500 });
+  }
+}
 
 const badRequest = (msg) => Response.json({ ok: false, error: msg }, { status: 400 });
 
@@ -104,6 +123,7 @@ export async function POST(request) {
   const { action } = body;
 
   if (action === COUNT_ACTION) return handleCountProducts(authUser, body);
+  if (action === DEMAND_ACTION) return handleRubroDemand(body);
 
   if (action !== PAID_ACTION && !FREE_ACTIONS.includes(action)) {
     return Response.json({ ok: false, error: 'Acción no permitida' }, { status: 400 });

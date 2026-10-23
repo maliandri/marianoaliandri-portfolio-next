@@ -31,6 +31,13 @@ describe('dmTemplate / prompt', () => {
     expect(dm.length).toBeLessThanOrEqual(MAX_DM_CHARS);
   });
 
+  it('con demanda, el prompt y la plantilla usan la frase real de Google', () => {
+    const lead = { ...base, demanda: { interes: 90, ejemplos: ['muebleria a medida neuquen'] } };
+    expect(buildDmPrompt(lead)).toContain('"muebleria a medida neuquen"');
+    expect(dmTemplate(lead)).toContain('"muebleria a medida neuquen"');
+    expect(dmTemplate(lead).length).toBeLessThanOrEqual(MAX_DM_CHARS);
+  });
+
   it('el prompt lleva nombre, rubro y hallazgo', () => {
     const p = buildDmPrompt(base);
     expect(p).toContain('Mueblería Sur');
@@ -55,6 +62,6 @@ describe('cleanDm', () => {
 describe('prospectoFromLead', () => {
   it('guarda solo lo necesario', () => {
     const p = prospectoFromLead({ ...base, phone: '123', seoScore: 40, siteUrl: 'https://x.com' });
-    expect(p).toEqual({ handle: 'muebleriasur', placeId: 'p1', nombre: 'Mueblería Sur', ciudad: 'Neuquén', tipo: 'Mueblería', siteUrl: 'https://x.com', seoScore: 40 });
+    expect(p).toEqual({ handle: 'muebleriasur', placeId: 'p1', nombre: 'Mueblería Sur', ciudad: 'Neuquén', tipo: 'Mueblería', siteUrl: 'https://x.com', seoScore: 40, demanda: null });
   });
 });

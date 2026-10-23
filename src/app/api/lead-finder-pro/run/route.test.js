@@ -387,3 +387,44 @@ describe('POST /api/lead-finder-pro/run — countProducts', () => {
     expect(countProducts).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('POST /api/lead-finder-pro/run — rubroDemand', () => {
+  // Google autocomplete fake: "panaderia" tiene más sugerencias que el resto.
+  const suggest = (q) => {
+    const n = q.startsWith('Panadería') ? 5 : q.startsWith('Gomería') ? 2 : 0;
+    return Array.from({ length: n }, (_, i) => `${q.toLowerCase()} ${i}`);
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getUserFromRequest.mockResolvedValue(USER);
+    vi.stubGlobal('fetch', vi.fn(async (url) => {
+      const q = new URL(url).searchParams.get('q');
+      return { ok: true, text: async () => JSON.stringify([q, suggest(q), [], [], { 'google:suggestrelevance': suggest(q).map(() => 500) }]) };
+    }));
+  });
+
+  it('rechaza sin autenticación (401) y sin localidad (400)', async () => {
+    getUserFromRequest.mockResolvedValueOnce(null);
+    expect((await POST(makeRequest({ action: 'rubroDemand', localidad: 'Neuquén' }))).status).toBe(401);
+    expect((await POST(makeRequest({ action: 'rubroDemand' }))).status).toBe(400);
+  });
+
+  it('es gratis: no toca créditos, rankea rubros y cachea la localidad', async () => {
+    const fake = createFakeDb();
+    getDb.mockReturnValue(fake.db);
+    const res = await POST(makeRequest({ action: 'rubroDemand', localidad: 'Neuquén, Argentina', terminos: ['Gomería'] }));
+    const data = await res.json();
+    expect(data.ok).toBe(true);
+    expect(data.ciudad).toBe('Neuquén');
+    expect(data.top[0]).toMatchObject({ label: 'Panadería', interes: 100 });
+    expect(data.porTermino['Gomería'].interes).toBeGreaterThan(0);
+    expect(fake.docs['rubro_demanda/neuquen']).toBeTruthy();
+    expect(Object.keys(fake.docs).some(k => k.startsWith('leadfinder_entitlements'))).toBe(false);
+
+    // segunda vez: los rubros salen del caché (solo se consulta el término libre)
+    fetch.mockClear();
+    await POST(makeRequest({ action: 'rubroDemand', localidad: 'Neuquén', terminos: ['Gomería'] }));
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+});

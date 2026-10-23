@@ -28,6 +28,7 @@ export function exportLeadsCSV(rows, t) {
     r.lastUpdated ? String(r.lastUpdated).slice(0, 10) : '',
     r.prodState === 'done' ? r.prodCount : '',
     r.prodState === 'done' ? (r.prodConfidence === 'catalogo' ? t.productsCatalog : t.productsEstimated) : '',
+    r.demanda?.interes ?? '', (r.demanda?.ejemplos || []).join(' | '),
   ]);
   const csv = [t.csvHeadersLeads, ...body].map(row => row.map(esc).join(',')).join('\n');
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -58,7 +59,12 @@ export default function LeadResultsTable({ rows, perfil, t, onRetryProducts, ret
               <tr key={neg.id} className="hover:bg-fg/5">
                 <td className="px-3 py-2.5 max-w-[180px]"><div className="text-fg truncate text-xs font-medium" title={neg.nombre}>{neg.nombre}</div></td>
                 <td className="px-3 py-2.5 text-xs text-fg-500 whitespace-nowrap">{neg.ciudad}</td>
-                <td className="px-3 py-2.5"><span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 rounded-full text-xs whitespace-nowrap">{neg.tipo}</span></td>
+                <td className="px-3 py-2.5">
+                  <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 rounded-full text-xs whitespace-nowrap">{neg.tipo}</span>
+                  {typeof neg.demanda?.interes === 'number' && (
+                    <span title={t.demandTitle(neg.demanda)} className="block mt-1 text-[11px] text-orange-600 dark:text-orange-400 whitespace-nowrap">🔥 {neg.demanda.interes}</span>
+                  )}
+                </td>
                 <td className="px-3 py-2.5 max-w-[160px]">
                   {neg.siteUrl
                     ? <a href={neg.siteUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline text-xs truncate block" title={neg.siteUrl}>{shortUrl(neg.siteUrl)}</a>
