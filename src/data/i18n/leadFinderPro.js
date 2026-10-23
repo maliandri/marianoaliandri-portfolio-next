@@ -76,6 +76,7 @@ export const LFP_I18N = {
       noSiteShort: 'Sin web',
       whatsappBtn: 'WhatsApp',
       socialLink: 'Red social',
+      instagramTitle: 'Abrir su Instagram para escribirles por DM',
       summary: (s) => `${s.leads} lead${s.leads === 1 ? '' : 's'} · ${s.conWeb} con web · ${s.leads - s.conWeb} por WhatsApp · ${s.descartados} descartado${s.descartados === 1 ? '' : 's'}`,
       progress: (p) => `📍 ${p.ciudad || '…'} · ${p.etiqueta || '…'} · ${p.leads}/${p.cantidad} leads · ${p.examinados} revisados`,
       checking: (nombre) => `Revisando ${nombre}…`,
@@ -85,7 +86,7 @@ export const LFP_I18N = {
       adminTag: 'admin',
       channelWeb: 'web',
       channelWhatsapp: 'WhatsApp',
-      csvHeadersLeads: ['Nombre', 'Ciudad', 'Rubro', 'Canal', 'WhatsApp', 'Teléfono', 'Email', 'Sitio web', 'SEO', 'Red social', 'Rating', 'Reseñas', 'Horarios', 'Última actualización', 'Productos', 'Confianza del conteo'],
+      csvHeadersLeads: ['Nombre', 'Ciudad', 'Rubro', 'Canal', 'WhatsApp', 'Teléfono', 'Email', 'Instagram', 'Sitio web', 'SEO', 'Red social', 'Rating', 'Reseñas', 'Horarios', 'Última actualización', 'Productos', 'Confianza del conteo'],
       mail: {
         title: '✉️ Escribirles a todos',
         hint: (n) => `${n} negocio${n === 1 ? '' : 's'} con email encontrado. Se abre tu gestor de correo con las casillas en copia oculta (CCO), así no se ven entre sí.`,
@@ -196,6 +197,7 @@ export const LFP_I18N = {
       noSiteShort: 'No website',
       whatsappBtn: 'WhatsApp',
       socialLink: 'Social',
+      instagramTitle: 'Open their Instagram to send a DM',
       summary: (s) => `${s.leads} lead${s.leads === 1 ? '' : 's'} · ${s.conWeb} with website · ${s.leads - s.conWeb} via WhatsApp · ${s.descartados} discarded`,
       progress: (p) => `📍 ${p.ciudad || '…'} · ${p.etiqueta || '…'} · ${p.leads}/${p.cantidad} leads · ${p.examinados} checked`,
       checking: (nombre) => `Checking ${nombre}…`,
@@ -205,7 +207,7 @@ export const LFP_I18N = {
       adminTag: 'admin',
       channelWeb: 'website',
       channelWhatsapp: 'WhatsApp',
-      csvHeadersLeads: ['Name', 'City', 'Category', 'Channel', 'WhatsApp', 'Phone', 'Email', 'Website', 'SEO', 'Social', 'Rating', 'Reviews', 'Opening hours', 'Last updated', 'Products', 'Count confidence'],
+      csvHeadersLeads: ['Name', 'City', 'Category', 'Channel', 'WhatsApp', 'Phone', 'Email', 'Instagram', 'Website', 'SEO', 'Social', 'Rating', 'Reviews', 'Opening hours', 'Last updated', 'Products', 'Count confidence'],
       mail: {
         title: '✉️ Email them all',
         hint: (n) => `${n} business${n === 1 ? '' : 'es'} with an email found. Your mail app opens with the addresses in BCC, so they can’t see each other.`,

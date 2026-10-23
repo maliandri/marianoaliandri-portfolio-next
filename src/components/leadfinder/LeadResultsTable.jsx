@@ -22,7 +22,8 @@ export function exportLeadsCSV(rows, t) {
   const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const body = rows.map(r => [
     r.nombre, r.ciudad, r.tipo, r.canal === 'web' ? t.channelWeb : t.channelWhatsapp,
-    r.whatsapp ? `+${r.whatsapp}` : '', r.phone || '', r.email || '', r.siteUrl || '', r.seoScore ?? '',
+    r.whatsapp ? `+${r.whatsapp}` : '', r.phone || '', r.email || '',
+    r.instagram ? `https://instagram.com/${r.instagram}` : '', r.siteUrl || '', r.seoScore ?? '',
     r.socialUrl || '', r.rating ?? '', r.ratingCount ?? '', (r.openingHours || []).join(' | '),
     r.lastUpdated ? String(r.lastUpdated).slice(0, 10) : '',
     r.prodState === 'done' ? r.prodCount : '',
@@ -70,10 +71,14 @@ export default function LeadResultsTable({ rows, perfil, t, onRetryProducts, ret
                       <a href={`https://wa.me/${neg.whatsapp}`} target="_blank" rel="noopener noreferrer"
                         className="px-2 py-0.5 rounded-md bg-green-600 hover:bg-green-500 text-white text-xs font-medium">{t.whatsappBtn}</a>
                     )}
+                    {neg.instagram && (
+                      <a href={`https://instagram.com/${neg.instagram}`} target="_blank" rel="noopener noreferrer"
+                        title={t.instagramTitle} className="px-2 py-0.5 rounded-md bg-pink-600 hover:bg-pink-500 text-white text-xs font-medium">@{neg.instagram}</a>
+                    )}
                     {neg.email && <a href={`mailto:${neg.email}`} title={neg.email} className="text-indigo-600 dark:text-indigo-400 text-xs truncate max-w-[160px]">{neg.email}</a>}
                     {!neg.whatsapp && neg.phone && <span className="text-fg-400 text-xs whitespace-nowrap">{neg.phone}</span>}
-                    {neg.socialUrl && <a href={neg.socialUrl} target="_blank" rel="noopener noreferrer" className="text-fg-500 hover:text-fg text-xs underline">{t.socialLink}</a>}
-                    {!neg.whatsapp && !neg.email && !neg.phone && !neg.socialUrl && <span className="text-fg-600 text-xs">—</span>}
+                    {neg.socialUrl && !neg.instagram && <a href={neg.socialUrl} target="_blank" rel="noopener noreferrer" className="text-fg-500 hover:text-fg text-xs underline">{t.socialLink}</a>}
+                    {!neg.whatsapp && !neg.email && !neg.phone && !neg.socialUrl && !neg.instagram && <span className="text-fg-600 text-xs">—</span>}
                   </div>
                 </td>
                 <td className="px-3 py-2.5 text-xs whitespace-nowrap">

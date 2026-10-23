@@ -4,6 +4,7 @@ import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { getUserFromRequest } from '@/lib/authServer';
 import { extractLatestLastmod } from '@/lib/sitemapUtils';
+import { extractInstagram, handleFromUrl } from '@/lib/instagramHandle';
 
 // Cuenta registrada (Firebase Auth) reconocida como admin para esta ruta interna.
 // No es un password aparte -- es la MISMA cuenta con la que Mariano se loguea en el
@@ -163,35 +164,38 @@ async function auditSite(url) {
       if (xml !== null) { hasSitemap = true; sitemapXml = xml; break; }
     }
 
-    let lastModified = null, metaDesc = null, hasOG = false, emailFromHome = null;
+    let lastModified = null, metaDesc = null, hasOG = false, emailFromHome = null, igFromHome = null;
     if (mainRes.status === 'fulfilled' && mainRes.value.ok) {
       lastModified = mainRes.value.headers.get('last-modified') || null;
       try {
         const html = await mainRes.value.text();
         emailFromHome = extractEmails(html)[0] || null;
+        igFromHome    = extractInstagram(html);
         metaDesc      = extractMetaDesc(html);
         hasOG         = detectOG(html);
       } catch { /* ignore */ }
     }
 
-    let emailFromContact = null;
+    let emailFromContact = null, igFromContact = null;
     if (contactRes.status === 'fulfilled' && contactRes.value?.ok) {
       try {
         const contactHtml = await contactRes.value.text();
         emailFromContact = extractEmails(contactHtml)[0] || null;
+        igFromContact    = extractInstagram(contactHtml);
       } catch { /* ignore */ }
     }
 
     const email    = emailFromHome || emailFromContact || null;
+    const instagram = igFromHome || igFromContact || null;
     const seoScore = calcSeoScore({ hasSitemap, hasRobots, metaDesc, hasOG, lastModified });
     // "Última actualización" para mostrar al cliente: el header Last-Modified casi nunca
     // viene en sitios dinámicos, así que se prefiere el <lastmod> más reciente del sitemap.
     const lastUpdated = extractLatestLastmod(sitemapXml)
       || (lastModified && Number.isFinite(Date.parse(lastModified)) ? new Date(lastModified).toISOString() : null);
 
-    return { hasSitemap, hasRobots, lastModified, lastUpdated, email, metaDesc, hasOG, seoScore };
+    return { hasSitemap, hasRobots, lastModified, lastUpdated, email, instagram, metaDesc, hasOG, seoScore };
   } catch {
-    return { hasSitemap: false, hasRobots: false, lastModified: null, lastUpdated: null, email: null, metaDesc: null, hasOG: false, seoScore: null };
+    return { hasSitemap: false, hasRobots: false, lastModified: null, lastUpdated: null, email: null, instagram: null, metaDesc: null, hasOG: false, seoScore: null };
   }
 }
 
@@ -309,10 +313,15 @@ export async function runLeadFinderAction(action, params, clientKey) {
                 const { checkedAt: _omit, ...rest } = cached;
                 // Entradas guardadas antes de existir `lastUpdated`: se completa acá con la
                 // auditoría del sitio (gratis, sin Google) para no esperar 30 días al vencimiento.
-                if (rest.siteUrl && rest.lastUpdated === undefined) {
+                // Igual con `instagram` (agregado 2026-10-23).
+                if (rest.siteUrl && (rest.lastUpdated === undefined || rest.instagram === undefined)) {
                   const site = await auditSite(rest.siteUrl);
                   rest.lastUpdated = site.lastUpdated;
-                  await cacheRef.set({ lastUpdated: site.lastUpdated }, { merge: true }).catch(() => {});
+                  rest.instagram = site.instagram || handleFromUrl(rest.socialUrl);
+                  await cacheRef.set({ lastUpdated: rest.lastUpdated, instagram: rest.instagram }, { merge: true }).catch(() => {});
+                } else if (rest.instagram === undefined) {
+                  rest.instagram = handleFromUrl(rest.socialUrl);
+                  await cacheRef.set({ instagram: rest.instagram }, { merge: true }).catch(() => {});
                 }
                 return ok({ ...rest, fromCache: true });
               }
@@ -334,6 +343,8 @@ export async function runLeadFinderAction(action, params, clientKey) {
         let result = {
           hasWebsite: !!websiteUri, siteUrl: websiteUri, socialUrl,
           seoScore: null, hasSitemap: null, hasRobots: null, metaDesc: null, hasOG: false, email: null,
+          // Perfil de Instagram cargado como "web" en Maps; si tiene sitio, auditSite lo busca ahí.
+          instagram: handleFromUrl(socialUrl),
           lastUpdated: null,
           phone: detData.nationalPhoneNumber || null,
           internationalPhone: detData.internationalPhoneNumber || null,
@@ -344,7 +355,7 @@ export async function runLeadFinderAction(action, params, clientKey) {
 
         if (websiteUri) {
           const site = await auditSite(websiteUri);
-          result = { ...result, ...site };
+          result = { ...result, ...site, instagram: site.instagram || result.instagram };
         }
 
         if (cacheRef) {
