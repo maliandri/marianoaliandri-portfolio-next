@@ -253,6 +253,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   - Admin suma filtros, log, selector provincia → localidad y "Publicar informe" (solo leads con
     web y puntaje SEO, mínimo 3) + redes.
   - Historial en `leadfinder_searches` con `origen: 'admin' | 'cliente'`.
+  - Saca el @ de Instagram de cada negocio (`src/lib/instagramHandle.js`: links de la home/contacto o la web de Maps si es el perfil). En el admin, panel "Prospectos de Instagram" bajo los resultados + pantalla Marketing → Prospectos Instagram: DM sugerido por Gemini (`src/lib/igProspectos.js`), "Copiar y abrir chat" (ig.me/m/handle, marca contactado) y seguimiento en `ig_prospectos`. Los DMs se mandan a mano: nada de envío automático (Instagram banea).
   - Listado publico de reportes SEO (`/auditorias`) — server component, lee Firestore directo
   - Detalle de reporte (`/auditorias/[id]`) — full width, tabla ordenable por columna
   - Tabla publica NO muestra email/telefono/direccion (privacidad)
@@ -375,6 +376,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 | `noticias_config` | Interruptor on/off + tope diario opcional del bot | Admin (tab Noticias) |
 | `auditoria_auto` | Config de la auditoría automática (`config`: activo, ciudades, rubros, puntero, candado) | Admin SDK (server) / admin tab |
 | `auditoria_auto_runs` | Historial de corridas de la auditoría automática | Admin SDK (server) |
+| `ig_prospectos` | Negocios con @ de Instagram a contactar por DM: DM sugerido (Gemini, fallback plantilla), estado (pendiente/contactado/respondio/cliente/descartado), notas. Doc id = handle | Solo Admin SDK vía `/api/ig-prospectos` (admin) |
 
 **IMPORTANTE `entitlements/{uid}`**: el cliente NO puede escribirla (regla `write: if false`).
 El plan y el contador de busquedas solo los escribe el Admin SDK desde el server. Esto evita que

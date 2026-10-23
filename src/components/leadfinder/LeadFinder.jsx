@@ -16,6 +16,7 @@ import LeadResultsTable, { exportLeadsCSV } from './LeadResultsTable';
 import LeadSearchHistory from './LeadSearchHistory';
 import MailBatchPanel from '@/components/leadfinderpro/MailBatchPanel';
 import { AdminFilters, AdminLog, PublishReport, applyAdminFilters, EMPTY_FILTERS } from './admin/LeadFinderAdminExtras';
+import InstagramProspects from './admin/InstagramProspects';
 
 const FORM_CLIENTE = { perfil: 'dev', producto: '', zonas: [], terminos: [], tipos: [], radioKm: 10, cantidad: 10 };
 const FORM_ADMIN = { ...FORM_CLIENTE, zonas: ['Neuquén, Argentina'], cantidad: 20 };
@@ -274,6 +275,8 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
         )}
 
         {rows.length > 0 && <LeadResultsTable rows={rows} perfil={form.perfil} t={t} onRetryProducts={retryProducts} retryDisabled={isRunning} />}
+
+        {isAdmin && !isRunning && search.leads.length > 0 && <InstagramProspects leads={search.leads} />}
 
         {isAdmin && <AdminLog log={search.log} />}
       </div>

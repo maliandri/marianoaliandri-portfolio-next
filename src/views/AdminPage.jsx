@@ -33,6 +33,7 @@ import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAna
 import { ADMIN_NAV_DEFAULT } from '../data/adminNav';
 import { mergeNavWithDefaults } from '../lib/navMerge';
 import PlacesUsagePanel from '../components/admin/PlacesUsagePanel';
+import InstagramProspects from '../components/leadfinder/admin/InstagramProspects';
 import NavConfigEditor from '../components/admin/NavConfigEditor';
 import KeywordExplorer from '../components/audit/KeywordExplorer';
 import KeywordAnalyticsPublisher from '../components/admin/KeywordAnalyticsPublisher';
@@ -767,6 +768,8 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'places-usage' && <PlacesUsagePanel />}
+
+        {activeTab === 'ig-prospectos' && <InstagramProspects />}
 
         {activeTab === 'leadfinder-plans' && (
           <div>
