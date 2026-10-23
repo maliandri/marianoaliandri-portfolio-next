@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/firebase-admin';
 import { getGSCAuth, getVerifiedSites } from '@/lib/gscClient';
 import { google } from 'googleapis';
-import { BetaAnalyticsDataClient } from '@google-analytics/data';
+import { GA4_BOT_CITIES, GA4_PRIVATE_PATH_PREFIXES } from '@/data/ga4Bots';
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
@@ -214,44 +214,112 @@ async function fetchGSC() {
   };
 }
 
+// Sesiones que NO vienen de un data center (ver src/data/ga4Bots.js).
+const SIN_BOTS = {
+  notExpression: {
+    filter: { fieldName: 'city', inListFilter: { values: GA4_BOT_CITIES } },
+  },
+};
+
+const SIN_BOTS_NI_PRIVADAS = {
+  andGroup: {
+    expressions: [
+      SIN_BOTS,
+      ...GA4_PRIVATE_PATH_PREFIXES.map(prefix => ({
+        notExpression: {
+          filter: { fieldName: 'pagePath', stringFilter: { matchType: 'BEGINS_WITH', value: prefix } },
+        },
+      })),
+    ],
+  },
+};
+
 async function fetchGA4() {
   const propertyId = process.env.GA4_PROPERTY_ID;
   if (!propertyId) return { sesiones: 0, usuarios: 0, paginasVistas: 0, serie: [], noData: true };
 
-  const client = new BetaAnalyticsDataClient({
-    credentials: {
-      client_email: process.env.FIREBASE_CLIENT_EMAIL,
-      private_key: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+  // REST (googleapis) en vez de @google-analytics/data: el cliente gRPC se colgaba.
+  const auth = new google.auth.JWT({
+    email: process.env.FIREBASE_CLIENT_EMAIL,
+    key: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    scopes: ['https://www.googleapis.com/auth/analytics.readonly'],
+  });
+  const analyticsdata = google.analyticsdata({ version: 'v1beta', auth });
+  const dateRanges = [{ startDate: '28daysAgo', endDate: 'yesterday' }];
+  const byMetric = metricName => [{ metric: { metricName }, desc: true }];
+
+  const { data } = await analyticsdata.properties.batchRunReports({
+    property: `properties/${propertyId}`,
+    requestBody: {
+      requests: [
+        // 0: serie diaria, solo personas
+        {
+          dateRanges, dimensionFilter: SIN_BOTS,
+          dimensions: [{ name: 'date' }],
+          metrics: [{ name: 'sessions' }, { name: 'activeUsers' }, { name: 'screenPageViews' }],
+          metricAggregations: ['TOTAL'], // totales deduplicados (un usuario que vuelve cuenta 1)
+        },
+        // 1: totales con bots incluidos
+        { dateRanges, metrics: [{ name: 'activeUsers' }] },
+        // 2: páginas públicas más vistas
+        {
+          dateRanges, dimensionFilter: SIN_BOTS_NI_PRIVADAS,
+          dimensions: [{ name: 'pagePath' }, { name: 'pageTitle' }],
+          metrics: [{ name: 'screenPageViews' }, { name: 'activeUsers' }],
+          orderBys: byMetric('screenPageViews'), limit: 10,
+        },
+        // 3: de dónde llegan
+        {
+          dateRanges, dimensionFilter: SIN_BOTS,
+          dimensions: [{ name: 'sessionSourceMedium' }],
+          metrics: [{ name: 'sessions' }],
+          orderBys: byMetric('sessions'), limit: 8,
+        },
+        // 4: ciudades
+        {
+          dateRanges, dimensionFilter: SIN_BOTS,
+          dimensions: [{ name: 'city' }],
+          metrics: [{ name: 'activeUsers' }],
+          orderBys: byMetric('activeUsers'), limit: 8,
+        },
+      ],
     },
   });
 
-  const [response] = await client.runReport({
-    property: `properties/${propertyId}`,
-    dateRanges: [{ startDate: '28daysAgo', endDate: 'yesterday' }],
-    metrics: [
-      { name: 'sessions' },
-      { name: 'activeUsers' },
-      { name: 'screenPageViews' },
-    ],
-    dimensions: [{ name: 'date' }],
-  });
+  const [serieRep, totalRep, paginasRep, fuentesRep, ciudadesRep] = data.reports || [];
+  const num = v => parseInt(v || '0', 10);
 
-  let sesiones = 0, usuarios = 0, paginasVistas = 0;
-  const serie = [];
+  const usuariosTotales = num(totalRep?.rows?.[0]?.metricValues?.[0]?.value);
+  const paginas = (paginasRep?.rows || []).map(r => ({
+    path: r.dimensionValues[0].value,
+    titulo: r.dimensionValues[1].value,
+    vistas: num(r.metricValues[0].value),
+    usuarios: num(r.metricValues[1].value),
+  }));
+  const fuentes = (fuentesRep?.rows || []).map(r => ({
+    fuente: r.dimensionValues[0].value,
+    sesiones: num(r.metricValues[0].value),
+  }));
+  const ciudades = (ciudadesRep?.rows || []).map(r => ({
+    ciudad: r.dimensionValues[0].value,
+    usuarios: num(r.metricValues[0].value),
+  }));
 
-  for (const row of response.rows || []) {
+  const totales = serieRep?.totals?.[0]?.metricValues || [];
+  const sesiones = num(totales[0]?.value);
+  const usuarios = num(totales[1]?.value);
+  const paginasVistas = num(totales[2]?.value);
+  const bots = Math.max(0, usuariosTotales - usuarios);
+
+  const serie = (serieRep?.rows || []).map(row => {
     const date = row.dimensionValues[0].value;
-    const s = parseInt(row.metricValues[0].value || '0');
-    const u = parseInt(row.metricValues[1].value || '0');
-    const p = parseInt(row.metricValues[2].value || '0');
-    sesiones += s;
-    usuarios += u;
-    paginasVistas += p;
     // GA4 date is YYYYMMDD → YYYY-MM-DD
-    const formatted = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
-    serie.push({ date: formatted, sesiones: s, usuarios: u });
-  }
-
+    return {
+      date: `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`,
+      sesiones: num(row.metricValues[0].value),
+      usuarios: num(row.metricValues[1].value),
+    };
+  });
   serie.sort((a, b) => a.date.localeCompare(b.date));
-  return { sesiones, usuarios, paginasVistas, serie };
+  return { sesiones, usuarios, paginasVistas, bots, serie, paginas, fuentes, ciudades };
 }

@@ -1,6 +1,7 @@
 'use client';
 import GSCWidget from './widgets/GSCWidget';
 import GA4Widget from './widgets/GA4Widget';
+import GA4DetailWidget from './widgets/GA4DetailWidget';
 import NoticiasBotWidget from './widgets/NoticiasBotWidget';
 import LeadsWidget from './widgets/LeadsWidget';
 import AuditoriasWidget from './widgets/AuditoriasWidget';
@@ -63,7 +64,7 @@ export default function DashboardGrid({ data }) {
         <KpiCard
           label="Sesiones GA4"
           value={ga4?.sesiones != null ? ga4.sesiones.toLocaleString('es-AR') : '—'}
-          sub="últimos 28 días"
+          sub={ga4?.bots ? `personas, 28 días (+${ga4.bots} bots)` : 'últimos 28 días'}
           accentColor={ACCENT.amber}
         />
         <KpiCard
@@ -100,6 +101,12 @@ export default function DashboardGrid({ data }) {
           <NoticiasBotWidget data={noticias} />
         </Card>
       </div>
+
+      {ga4 && !ga4.noData && (
+        <Card>
+          <GA4DetailWidget data={ga4} />
+        </Card>
+      )}
 
       {/* Leads + Auditorías/Presupuestos/Reels */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
