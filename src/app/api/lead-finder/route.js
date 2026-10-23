@@ -210,11 +210,23 @@ export async function runLeadFinderAction(action, params, clientKey) {
     switch (action) {
       case 'geocode': {
         const { city, country } = params;
-        const q = encodeURIComponent(country ? `${city}, ${country}` : city);
-        const resp = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
-          headers: { 'User-Agent': 'LeadFinderAdmin/1.0' }, signal: AbortSignal.timeout(9000),
-        });
-        const data = await resp.json();
+        // Búsqueda estructurada por ciudad primero: con texto libre, "Neuquén, Argentina" devolvía
+        // el centro de la PROVINCIA (a 150 km de la ciudad) y searchNearby (rubros de Maps, radio
+        // estricto) daba 0 resultados. "Ciudad, Provincia" → city + state.
+        const [ciudad, ...resto] = String(city).split(',').map(s => s.trim()).filter(Boolean);
+        const nominatim = async (qs) => {
+          const resp = await fetch(`https://nominatim.openstreetmap.org/search?${qs}&format=json&limit=1`, {
+            headers: { 'User-Agent': 'LeadFinderAdmin/1.0' }, signal: AbortSignal.timeout(9000),
+          });
+          return resp.json();
+        };
+        const structured = new URLSearchParams({ city: ciudad || city });
+        if (resto.length) structured.set('state', resto.join(', '));
+        if (country) structured.set('country', country);
+        let data = await nominatim(structured.toString());
+        if (!data.length) {
+          data = await nominatim(`q=${encodeURIComponent(country ? `${city}, ${country}` : city)}`);
+        }
         if (!data.length) return fail(`Ciudad no encontrada: ${city}`);
         return ok({ lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) });
       }
