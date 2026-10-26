@@ -1,6 +1,7 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { envInt } from './config';
 import { hitRateLimit } from './rateLimit';
+import { redactSecrets } from './redact';
 
 // Envoltorio común de todas las tools del servidor MCP: auth, rate limit, registro en
 // mcp_tool_calls y errores sin detalles internos. Cada tool devuelve { summary, data }.
@@ -57,12 +58,12 @@ export function registerTools(server, tools, { getDb }) {
       try {
         const { summary, data } = await tool.handler(args || {}, { db, user, now: new Date() });
         await logCall(db, { tool: tool.name, ok: true, ms: Date.now() - t0, args: argsResumen(args) });
-        return { content: [{ type: 'text', text: summary }], structuredContent: data };
+        return redactSecrets({ content: [{ type: 'text', text: summary }], structuredContent: data });
       } catch (e) {
         const known = e instanceof ToolError;
         if (!known) console.error(`[mcp] ${tool.name} falló:`, e);
-        await logCall(db, { tool: tool.name, ok: false, ms: Date.now() - t0, args: argsResumen(args), error: String(e.message).slice(0, 300) });
-        return errorResult(known ? e.message : 'Error interno, revisá los logs.');
+        await logCall(db, { tool: tool.name, ok: false, ms: Date.now() - t0, args: argsResumen(args), error: redactSecrets(String(e.message).slice(0, 300)) });
+        return errorResult(known ? redactSecrets(e.message) : 'Error interno, revisá los logs.');
       }
     });
   }
