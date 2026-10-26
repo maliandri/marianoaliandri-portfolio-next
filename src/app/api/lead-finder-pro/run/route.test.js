@@ -6,12 +6,7 @@ vi.mock('@/lib/authServer', () => ({
 vi.mock('@/lib/firebase-admin', () => ({
   getDb: vi.fn(),
 }));
-vi.mock('firebase-admin/firestore', () => ({
-  FieldValue: {
-    increment: (n) => ({ __op: 'increment', n }),
-    serverTimestamp: () => ({ __op: 'serverTimestamp' }),
-  },
-}));
+vi.mock('firebase-admin/firestore', async () => (await import('@/test/fakeDb')).firestoreMock);
 vi.mock('../../lead-finder/route', () => ({
   runLeadFinderAction: vi.fn(),
 }));
@@ -25,58 +20,7 @@ import { getDb } from '@/lib/firebase-admin';
 import { runLeadFinderAction } from '../../lead-finder/route';
 import { countProducts } from '@/lib/productCounter';
 import { POST } from './route.js';
-
-function resolveFieldValues(data, prev) {
-  const out = { ...prev };
-  for (const [k, v] of Object.entries(data)) {
-    if (v && v.__op === 'increment') out[k] = (prev[k] || 0) + v.n;
-    else if (v && v.__op === 'serverTimestamp') out[k] = 'SERVER_TIMESTAMP';
-    else out[k] = v;
-  }
-  return out;
-}
-
-// Minimal in-memory Firestore fake — enough surface for the credit-gate
-// transaction in this route (collection/doc chaining, runTransaction, merge writes).
-function createFakeDb(initialDocs = {}) {
-  const docs = { ...initialDocs };
-  const writes = [];
-
-  function makeDocRef(path) {
-    return {
-      async get() {
-        const data = docs[path];
-        return { exists: data !== undefined, data: () => data };
-      },
-      async set(data, opts) {
-        const prev = docs[path] || {};
-        docs[path] = opts?.merge ? resolveFieldValues(data, prev) : resolveFieldValues(data, {});
-        writes.push({ path, data, opts });
-      },
-      collection(subName) {
-        return makeCollectionRef(`${path}/${subName}`);
-      },
-    };
-  }
-  function makeCollectionRef(path) {
-    return { doc: (id) => makeDocRef(`${path}/${id}`) };
-  }
-
-  return {
-    db: {
-      collection: (name) => makeCollectionRef(name),
-      async runTransaction(fn) {
-        const tx = {
-          get: (ref) => ref.get(),
-          set: (ref, data, opts) => ref.set(data, opts),
-        };
-        return fn(tx);
-      },
-    },
-    docs,
-    writes,
-  };
-}
+import { createFakeDb } from '@/test/fakeDb';
 
 function makeRequest(body) {
   return { json: async () => body };
