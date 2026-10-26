@@ -91,6 +91,8 @@ export function buildTemplateEmail({ nombre, siteUrl, seoScore, ciudad, problema
 }
 
 const escapeAttr = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+// El nombre viene de Google Maps y el texto de Gemini: se escapan antes de meterlos en el HTML.
+const escapeHtml = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export function problemasSeo({ hasSitemap, hasRobots, metaDesc, hasOG }) {
   const problemas = [];
@@ -174,10 +176,13 @@ Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre pár
   return { subject: bizEmailSubject(nombre), emailText, source, screenshotUrl, extraServices };
 }
 
-export function renderBizEmailHtml({ nombre, siteUrl, seoScore, emailText, screenshotUrl, extraServices, unsubscribeUrl }) {
+export function renderBizEmailHtml({ nombre: rawNombre, siteUrl: rawSiteUrl, seoScore, emailText, screenshotUrl: rawShot, extraServices, unsubscribeUrl }) {
+  const nombre = escapeHtml(rawNombre);
+  const siteUrl = escapeHtml(rawSiteUrl);
+  const screenshotUrl = rawShot ? escapeHtml(rawShot) : rawShot;
   const bodyLines = emailText
     .split('\n')
-    .map(l => `<p style="margin:0 0 14px;color:#374151;line-height:1.7;font-size:15px">${l || '&nbsp;'}</p>`)
+    .map(l => `<p style="margin:0 0 14px;color:#374151;line-height:1.7;font-size:15px">${escapeHtml(l) || '&nbsp;'}</p>`)
     .join('');
 
   const extraServicesHtml = `

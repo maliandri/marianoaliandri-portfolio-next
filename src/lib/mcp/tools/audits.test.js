@@ -66,6 +66,37 @@ describe('publish_audit_social', () => {
   });
 });
 
+describe('reintentos y llamadas en paralelo', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('dos publicaciones en paralelo del mismo informe: sale una sola, con timeout', async () => {
+    imageIsReachable.mockResolvedValue({ ok: true, detail: '' });
+    const { db } = createFakeDb({ 'auditorias/a1': { title: 'T', summary: 'S', results: [] } });
+    const rs = await Promise.allSettled([1, 2].map(() => publishAuditSocialTool.handler({ id: 'a1', networks: ['facebook'] }, { db, user })));
+    expect(rs.filter(r => r.status === 'fulfilled')).toHaveLength(1);
+    expect(postToMakeSocial).toHaveBeenCalledTimes(1);
+    expect(postToMakeSocial.mock.calls[0][1]).toMatchObject({ timeoutMs: 10000 });
+  });
+
+  it('si Make falla se puede reintentar sin force', async () => {
+    imageIsReachable.mockResolvedValue({ ok: true, detail: '' });
+    postToMakeSocial.mockRejectedValueOnce(new Error('make caído'));
+    const { db } = createFakeDb({ 'auditorias/a1': { title: 'T', summary: 'S', results: [] } });
+    await expect(publishAuditSocialTool.handler({ id: 'a1', networks: ['facebook'] }, { db, user })).rejects.toThrow('make caído');
+    await publishAuditSocialTool.handler({ id: 'a1', networks: ['facebook'] }, { db, user });
+    expect(postToMakeSocial).toHaveBeenCalledTimes(2);
+  });
+
+  it('crear el informe dos veces desde la misma búsqueda devuelve el mismo', async () => {
+    // saveAuditoria está mockeado: el doc que crearía de verdad se precarga.
+    const { db } = createFakeDb({ 'leadfinder_searches/u1/items/s1': search(3), 'auditorias/aud1': { title: 'T' } });
+    const a = await createAuditReportTool.handler({ search_id: 's1' }, { db, user });
+    const b = await createAuditReportTool.handler({ search_id: 's1' }, { db, user });
+    expect(b.data.id).toBe(a.data.id);
+    expect(saveAuditoria).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('get_audit', () => {
   it('pagina las filas y muestra problemas en texto', async () => {
     const { db } = createFakeDb({ 'auditorias/a1': { title: 'T', results: [{ id: 'x', nombre: 'X', siteUrl: 'https://x.com', seoScore: 20, hasSitemap: false, hasRobots: true, metaDesc: true, hasOG: true }] } });

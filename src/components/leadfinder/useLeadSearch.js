@@ -20,6 +20,7 @@ export function useLeadSearch(call) {
   const [log, setLog] = useState([]);
   const cancelRef = useRef(false);
   const leadsRef = useRef([]);
+  const accRef = useRef(ESTADO_INICIAL); // estado acumulado de la búsqueda (leads, avisos, totales)
   useEffect(() => () => { cancelRef.current = true; }, []);
 
   const commit = (fn) => { leadsRef.current = fn(leadsRef.current); setLeads(leadsRef.current); };
@@ -31,11 +32,14 @@ export function useLeadSearch(call) {
     setAvisos([]); setStop(null); setPendiente(null); setLog([]);
     setTotals(CERO); setProgress({ ciudad: '', etiqueta: '' });
     setPhase('searching');
-    let acc = ESTADO_INICIAL;
+    accRef.current = ESTADO_INICIAL;
+    let acc = accRef.current;
 
     try {
       for await (const ev of searchLeads(params, { call, isCancelled: () => cancelRef.current })) {
-        acc = reduceLeadEvent(acc, ev);
+        // accRef y no una variable local: patchLead (reintento de productos) puede cambiar una fila
+        // mientras la búsqueda sigue, y el próximo evento no debe pisar ese cambio.
+        acc = accRef.current = reduceLeadEvent(accRef.current, ev);
         switch (ev.type) {
           case 'zona':
             setProgress(p => ({ ...p, ciudad: ev.ciudad }));
@@ -81,7 +85,9 @@ export function useLeadSearch(call) {
 
   // Actualiza una fila (ej. reintento del conteo de productos).
   const patchLead = useCallback((id, patch) => {
-    commit(prev => prev.map(r => (r.id === id ? { ...r, ...patch } : r)));
+    const a = accRef.current;
+    accRef.current = { ...a, leads: a.leads.map(r => (r.id === id ? { ...r, ...patch } : r)) };
+    commit(() => accRef.current.leads);
   }, []);
 
   const cancel = useCallback(() => { cancelRef.current = true; }, []);
@@ -89,6 +95,7 @@ export function useLeadSearch(call) {
   // Muestra una búsqueda guardada del historial.
   const load = useCallback((saved, savedTotals) => {
     const rows = normalizarLeadsGuardados(saved);
+    accRef.current = { ...ESTADO_INICIAL, leads: rows };
     commit(() => rows);
     setTotals(savedTotals || { ...CERO, leads: rows.length, conWeb: rows.filter(l => l.canal === 'web').length });
     setAvisos([]); setStop(null); setLog([]);

@@ -16,6 +16,7 @@ import { getLeadJob } from '../leadJobs';
 
 const COL = 'auditorias';
 const NETWORKS = ['linkedin', 'instagram', 'facebook'];
+const CLAIM_MS = 2 * 60000;
 const limitSchema = z.number().int().min(1).max(50).optional().describe('Cuántos ítems por página (default 20, máx 50).');
 const cursorSchema = z.string().optional().describe('nextCursor de la llamada anterior, para seguir paginando.');
 const toIso = (t) => t?.toDate?.()?.toISOString() || null;
@@ -91,17 +92,25 @@ export const createAuditReportTool = defineTool({
   }),
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
   async handler(args, { db, user }) {
-    let s;
+    let s, sourceRef;
     if (args.job_id) {
       const job = await getLeadJob(db, user.uid, args.job_id);
       if (!job) throw new ToolError('No existe esa búsqueda (job_id).');
       if (job.status !== 'done') throw new ToolError('La búsqueda todavía no terminó.');
-      s = { ciudades: job.params.localidades, tipos: job.params.rubros || [], terminos: job.params.terminos || [], radioKm: job.params.radio_km || 10, results: job.leads };
+      s = { ciudades: job.params.localidades, tipos: job.params.rubros || [], terminos: job.params.terminos || [], radioKm: job.params.radio_km || 10, results: job.leads, auditoriaId: job.auditoriaId };
+      sourceRef = db.collection('mcp_lead_jobs').doc(args.job_id);
     } else if (args.search_id) {
       s = await getSearch(db, user.uid, args.search_id);
       if (!s) throw new ToolError('No existe esa búsqueda (search_id).');
+      sourceRef = db.collection('leadfinder_searches').doc(user.uid).collection('items').doc(args.search_id);
     } else {
       throw new ToolError('Pasá search_id o job_id.');
+    }
+
+    // Un reintento de Claude no publica un informe duplicado: se devuelve el que ya se armó.
+    if (s.auditoriaId && (await db.collection(COL).doc(s.auditoriaId).get()).exists) {
+      const url = auditReportUrl(s.auditoriaId);
+      return { summary: `Esta búsqueda ya tiene su informe publicado: ${url}`, data: { id: s.auditoriaId, url, yaExistia: true } };
     }
 
     const rubros = [...tipoParams(s.tipos || [], 'es').map(t => t.label), ...(s.terminos || [])];
@@ -115,6 +124,7 @@ export const createAuditReportTool = defineTool({
     const { id } = await saveAuditoria({
       title, summary: args.summary?.trim() || draft.summary, results: draft.filas, stats: draft.stats, config: draft.config,
     });
+    await sourceRef.set({ auditoriaId: id }, { merge: true });
     revalidatePath('/auditorias');
     revalidatePath('/auditorias/[id]', 'page');
     const url = auditReportUrl(id);
@@ -149,8 +159,24 @@ export const publishAuditSocialTool = defineTool({
     if (args.dry_run) {
       return { summary: `Prueba: se publicaría en ${args.networks.join(', ')}. Imagen OK.`, data: { dryRun: true, caption, networks: args.networks, imageOk: true } };
     }
-    await postToMakeSocial(buildAuditPublishPayload({ caption, networks: args.networks, auditoriaId: a.id }));
-    await a.ref.update({ publicadoEn: FieldValue.serverTimestamp(), publicadoVia: 'mcp', publicadoRedes: args.networks });
+    // Se "toma" el informe en una transacción: dos llamadas en paralelo (o un reintento) no publican dos veces.
+    const nowMs = Date.now();
+    const claim = await db.runTransaction(async tx => {
+      const x = (await tx.get(a.ref)).data() || {};
+      if (x.publicando && nowMs - x.publicando < CLAIM_MS) return 'en_curso';
+      if (x.publicadoEn && !args.force) return 'ya_publicado';
+      tx.update(a.ref, { publicando: nowMs });
+      return 'ok';
+    });
+    if (claim === 'en_curso') throw new ToolError('Este informe se está publicando ahora mismo; esperá un minuto y fijate con get_audit.');
+    if (claim === 'ya_publicado') throw new ToolError('Este informe ya se publicó en redes. Pasá force: true para publicarlo otra vez.');
+    try {
+      await postToMakeSocial(buildAuditPublishPayload({ caption, networks: args.networks, auditoriaId: a.id }), { timeoutMs: 10000 });
+    } catch (e) {
+      await a.ref.update({ publicando: FieldValue.delete() });
+      throw e;
+    }
+    await a.ref.update({ publicadoEn: FieldValue.serverTimestamp(), publicadoVia: 'mcp', publicadoRedes: args.networks, publicando: FieldValue.delete() });
     return {
       summary: `Enviado a Make para ${args.networks.join(', ')}. Make acepta el pedido antes de publicar: confirmá en las redes.`,
       data: { enviado: true, networks: args.networks, url: auditReportUrl(a.id) },

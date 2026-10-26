@@ -35,6 +35,16 @@ describe('search_leads', () => {
   });
 });
 
+describe('get_lead_search — job colgado', () => {
+  it('running sin novedades hace más de 15 min se informa como cortado', async () => {
+    const viejo = new Date(Date.now() - 20 * 60000);
+    const { db } = createFakeDb({ 'mcp_lead_jobs/j2': { uid: 'u1', status: 'running', totals: {}, avisos: [], leads: [], updatedAt: { __ts: viejo.getTime() * 1000, toDate: () => viejo } } });
+    const r = await getLeadSearchTool.handler({ job_id: 'j2' }, { db, user });
+    expect(r.data.status).toBe('error');
+    expect(r.data.error).toMatch(/cortó/);
+  });
+});
+
 describe('get_lead_search', () => {
   it('pagina los leads de un job ordenados por oportunidad, y no deja ver jobs ajenos', async () => {
     const leads = [

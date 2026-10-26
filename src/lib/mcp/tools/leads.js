@@ -10,6 +10,7 @@ import { placesBudget } from '../placesBudget';
 import { createLeadJob, getLeadJob, runLeadJob } from '../leadJobs';
 
 const RUBRO_IDS = new Set(RUBROS.map(r => r.id));
+const STALE_MS = 15 * 60000;
 const limitSchema = z.number().int().min(1).max(50).optional().describe('Cuántos ítems por página (default 20, máx 50).');
 const cursorSchema = z.string().optional().describe('nextCursor de la llamada anterior, para seguir paginando.');
 
@@ -96,6 +97,12 @@ export const getLeadSearchTool = defineTool({
       const job = await getLeadJob(db, user.uid, args.job_id);
       if (!job) throw new ToolError('No existe esa búsqueda (job_id).');
       base = { status: job.status, error: job.error || null, totales: job.totals, avisos: job.avisos || [], searchId: job.searchId || null, leads: job.leads || [] };
+      // Si la función se cortó (timeout, caída), el job queda "running" para siempre: después de
+      // STALE_MS sin novedades se informa como cortado, con lo que alcanzó a encontrar.
+      const last = job.updatedAt?.toDate?.()?.getTime?.() || 0;
+      if (job.status === 'running' && Date.now() - last > STALE_MS) {
+        base = { ...base, status: 'error', error: 'La búsqueda se cortó sin terminar; abajo va lo que alcanzó a encontrar. Podés relanzarla.' };
+      }
     } else {
       const s = await getSearch(db, user.uid, args.search_id);
       if (!s) throw new ToolError('No existe esa búsqueda (search_id).');

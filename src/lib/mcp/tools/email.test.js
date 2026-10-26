@@ -80,6 +80,33 @@ describe('send_business_email', () => {
   });
 });
 
+describe('send_business_email — envíos simultáneos', () => {
+  it('dos envíos en paralelo al mismo negocio: sale uno solo', async () => {
+    const { db } = seed();
+    const rs = await Promise.all([1, 2].map(() => sendBusinessEmailTool.handler({ audit_id: 'a1', place_id: 'p1' }, { db, user })));
+    expect(rs.filter(r => r.data.enviado)).toHaveLength(1);
+    expect(rs.find(r => !r.data.enviado).data.motivo).toBe('ya_contactado');
+    expect(sendViaResend).toHaveBeenCalledTimes(1);
+  });
+
+  it('el mismo borrador mandado dos veces en paralelo: sale uno solo', async () => {
+    const { db } = seed();
+    const d = await draftBusinessEmailTool.handler({ audit_id: 'a1', place_id: 'p1' }, { db, user });
+    const rs = await Promise.allSettled([1, 2].map(() => sendBusinessEmailTool.handler({ draft_id: d.data.draftId }, { db, user })));
+    expect(rs.filter(r => r.status === 'fulfilled' && r.value.data.enviado)).toHaveLength(1);
+    expect(sendViaResend).toHaveBeenCalledTimes(1);
+  });
+
+  it('si Resend falla se libera el candado y el cupo: el reintento sale', async () => {
+    process.env.MCP_EMAIL_DAILY_CAP = '1';
+    const { db } = seed();
+    sendViaResend.mockRejectedValueOnce(new Error('resend caído'));
+    await expect(sendBusinessEmailTool.handler({ audit_id: 'a1', place_id: 'p1' }, { db, user })).rejects.toThrow('resend caído');
+    const r = await sendBusinessEmailTool.handler({ audit_id: 'a1', place_id: 'p1' }, { db, user });
+    expect(r.data.enviado).toBe(true);
+  });
+});
+
 describe('list_sent_emails', () => {
   it('lista con origen (los viejos cuentan como admin)', async () => {
     const { db } = createFakeDb({

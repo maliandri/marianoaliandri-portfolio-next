@@ -83,16 +83,42 @@ export async function lastContactAt(db, { email, dominio }) {
   return last;
 }
 
-// Reserva un envío del cupo diario del MCP (día UTC). false si ya se llegó al tope.
-export async function reserveDailySend(db, { cap, now = new Date() }) {
-  const ref = db.collection(COUNTER).doc(now.toISOString().slice(0, 10));
-  return db.runTransaction(async tx => {
-    const snap = await tx.get(ref);
-    const n = snap.exists ? snap.data().n || 0 : 0;
-    if (n >= cap) return false;
-    tx.set(ref, { n: n + 1, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-    return true;
+const LOCKS = 'mcp_email_locks';
+const lockId = (kind, v) => `${kind}_${createHmac('sha256', 'lock').update(v).digest('hex').slice(0, 40)}`;
+
+// Reserva un envío del MCP en UNA transacción, antes de llamar a Resend: candado por negocio
+// (email y dominio de la web, último envío), cupo diario (día UTC) y, si viene, el borrador.
+// Así dos rutinas en paralelo (o un reintento de Claude) no le mandan dos mails al mismo negocio.
+// Devuelve { ok: true, release } o { ok: false, motivo }. release() deshace todo si el envío falla.
+export async function reserveSend(db, { email, dominio, cap, days, now = new Date(), draftRef = null }) {
+  const nowMs = now.getTime();
+  const locks = [lockId('e', cleanEmail(email)), ...(dominio ? [lockId('d', dominio)] : [])]
+    .map(id => db.collection(LOCKS).doc(id));
+  const counterRef = db.collection(COUNTER).doc(now.toISOString().slice(0, 10));
+
+  const res = await db.runTransaction(async tx => {
+    const lockSnaps = await Promise.all(locks.map(r => tx.get(r)));
+    const counter = await tx.get(counterRef);
+    const draft = draftRef ? await tx.get(draftRef) : null;
+    if (draft && (draft.data()?.sentAt || draft.data()?.sending)) return { ok: false, motivo: 'borrador_enviado' };
+    const prev = lockSnaps.map(s => (s.exists ? s.data().lastSentAt || null : null));
+    if (prev.some(t => t && nowMs - t < days * 86400000)) return { ok: false, motivo: 'ya_contactado' };
+    const n = counter.exists ? counter.data().n || 0 : 0;
+    if (n >= cap) return { ok: false, motivo: 'tope_diario' };
+    locks.forEach((r, i) => tx.set(r, { lastSentAt: nowMs, prevSentAt: prev[i] }, { merge: true }));
+    tx.set(counterRef, { n: n + 1, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    if (draftRef) tx.update(draftRef, { sending: true });
+    return { ok: true, prev };
   });
+  if (!res.ok) return res;
+
+  const release = () => db.runTransaction(async tx => {
+    const counter = await tx.get(counterRef);
+    locks.forEach((r, i) => (res.prev[i] ? tx.set(r, { lastSentAt: res.prev[i] }, { merge: true }) : tx.delete(r)));
+    tx.set(counterRef, { n: Math.max(0, (counter.exists ? counter.data().n || 0 : 1) - 1) }, { merge: true });
+    if (draftRef) tx.update(draftRef, { sending: false });
+  });
+  return { ok: true, release };
 }
 
 // Baja permanente: la dirección y los dominios de las webs a las que se le escribió.

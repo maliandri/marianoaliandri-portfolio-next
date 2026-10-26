@@ -134,10 +134,21 @@ describe('flujo completo', () => {
     expect(r1.body.refresh_token).not.toBe(ex.body.refresh_token);
     expect(await verifyAccessToken(db, r1.body.access_token, { now: 1_011_000 })).not.toBeNull();
 
-    const reuse = await refreshTokens(db, { refreshToken: ex.body.refresh_token, clientId, now: 1_012_000 });
+    // Pasado el margen de reintento (30 s), reusar el viejo = posible robo → se corta toda la familia.
+    const reuse = await refreshTokens(db, { refreshToken: ex.body.refresh_token, clientId, now: 1_045_000 });
     expect(reuse).toMatchObject({ status: 400, body: { error: 'invalid_grant' } });
-    expect(await verifyAccessToken(db, r1.body.access_token, { now: 1_013_000 })).toBeNull();
-    expect((await refreshTokens(db, { refreshToken: r1.body.refresh_token, clientId, now: 1_014_000 })).body.error).toBe('invalid_grant');
+    expect(await verifyAccessToken(db, r1.body.access_token, { now: 1_046_000 })).toBeNull();
+    expect((await refreshTokens(db, { refreshToken: r1.body.refresh_token, clientId, now: 1_047_000 })).body.error).toBe('invalid_grant');
+  });
+
+  it('reintentar el mismo refresh dentro de 30 s (respuesta perdida) da un par nuevo y no revoca', async () => {
+    const { db } = createFakeDb();
+    const { clientId, ex } = await fullFlow(db);
+    const r1 = await refreshTokens(db, { refreshToken: ex.body.refresh_token, clientId, now: 1_010_000 });
+    const retry = await refreshTokens(db, { refreshToken: ex.body.refresh_token, clientId, now: 1_020_000 });
+    expect(retry.status).toBe(200);
+    expect(await verifyAccessToken(db, r1.body.access_token, { now: 1_021_000 })).not.toBeNull();
+    expect(await verifyAccessToken(db, retry.body.access_token, { now: 1_021_000 })).not.toBeNull();
   });
 
   it('refresh de otro cliente → invalid_grant', async () => {

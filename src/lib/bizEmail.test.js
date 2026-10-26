@@ -54,6 +54,19 @@ describe('buildBizEmailDraft', () => {
   });
 });
 
+describe('renderBizEmailHtml — escapa datos de terceros', () => {
+  it('el nombre del negocio (Google Maps) y el texto no inyectan HTML', () => {
+    const html = renderBizEmailHtml({
+      nombre: 'Pana <a href="https://evil.com">x</a>', siteUrl: 'https://espiga.com/"><script>', seoScore: 35,
+      emailText: 'Hola <img src=x onerror=alert(1)>', screenshotUrl: 'https://img.com/a.png', extraServices: [], unsubscribeUrl: null,
+    });
+    expect(html).not.toContain('<a href="https://evil.com">');
+    expect(html).not.toContain('<img src=x');
+    expect(html).not.toContain('"><script>');
+    expect(html).toContain('Pana &lt;a href=');
+  });
+});
+
 describe('renderBizEmailHtml', () => {
   it('incluye el link de baja en el pie', () => {
     const html = renderBizEmailHtml({

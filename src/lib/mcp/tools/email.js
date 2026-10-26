@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { FieldValue } from 'firebase-admin/firestore';
 import { buildBizEmailDraft, renderBizEmailHtml, sendViaResend, validateGeneratedEmail } from '@/lib/bizEmail';
-import { checkBlocked, lastContactAt, normalizeDomain, reserveDailySend, unsubscribeUrl } from '@/lib/emailGuards';
+import { checkBlocked, lastContactAt, normalizeDomain, reserveSend, unsubscribeUrl } from '@/lib/emailGuards';
 import { getSearch } from '@/lib/leadSearchesStore';
 import { envInt } from '../config';
 import { defineTool, ToolError } from '../defineTool';
@@ -151,23 +151,42 @@ export const sendBusinessEmailTool = defineTool({
     if (args.dry_run) {
       return { summary: `Prueba: se mandaría a ${neg.email}.`, data: { enviado: false, dryRun: true, to: neg.email, subject: d.subject, emailText: d.emailText } };
     }
-    if (!(await reserveDailySend(db, { cap: envInt('MCP_EMAIL_DAILY_CAP', 15), now }))) {
-      return { summary: `No se envió: ${MOTIVO_TXT.tope_diario}.`, data: { enviado: false, motivo: 'tope_diario', to: neg.email } };
-    }
-
+    // Se arma antes de reservar: si falta EMAIL_UNSUBSCRIBE_SECRET falla sin gastar cupo.
     const html = renderBizEmailHtml({
       nombre: neg.nombre, siteUrl: neg.siteUrl, seoScore: neg.seoScore, emailText: d.emailText,
       screenshotUrl: d.screenshotUrl, extraServices: d.extraServices, unsubscribeUrl: unsubscribeUrl(neg.email),
     });
-    const { resendId } = await sendViaResend({ to: neg.email, subject: d.subject, html });
-    await db.collection('sent_emails').add({
-      nombre: neg.nombre, email: neg.email, siteUrl: neg.siteUrl, dominio: normalizeDomain(neg.siteUrl), placeId: neg.placeId,
-      ciudad: neg.ciudad || null, tipo: neg.tipo || null, seoScore: neg.seoScore ?? null, auditoriaId: neg.auditoriaId || null,
-      subject: d.subject, body: d.emailText, screenshotUrl: d.screenshotUrl || null,
-      extraServices: (d.extraServices || []).map(s => s.label), source: d.source || null, resendId,
-      origen: 'mcp', status: 'sent', createdAt: FieldValue.serverTimestamp(),
+
+    const dominio = normalizeDomain(neg.siteUrl);
+    const reserva = await reserveSend(db, {
+      email: neg.email, dominio, cap: envInt('MCP_EMAIL_DAILY_CAP', 15),
+      days: envInt('MCP_EMAIL_RECONTACT_DAYS', 30), now, draftRef,
     });
-    if (draftRef) await draftRef.update({ sentAt: now.getTime() });
+    if (!reserva.ok) {
+      if (reserva.motivo === 'borrador_enviado') throw new ToolError('Ese borrador ya se envió.');
+      return { summary: `No se envió a ${neg.email}: ${MOTIVO_TXT[reserva.motivo]}.`, data: { enviado: false, motivo: reserva.motivo, to: neg.email } };
+    }
+
+    let resendId;
+    try {
+      ({ resendId } = await sendViaResend({ to: neg.email, subject: d.subject, html }));
+    } catch (e) {
+      await reserva.release();
+      throw e;
+    }
+    // Ya salió: si falla el registro, el candado de reserveSend igual evita reenviarlo.
+    try {
+      await db.collection('sent_emails').add({
+        nombre: neg.nombre, email: neg.email, siteUrl: neg.siteUrl, dominio, placeId: neg.placeId,
+        ciudad: neg.ciudad || null, tipo: neg.tipo || null, seoScore: neg.seoScore ?? null, auditoriaId: neg.auditoriaId || null,
+        subject: d.subject, body: d.emailText, screenshotUrl: d.screenshotUrl || null,
+        extraServices: (d.extraServices || []).map(s => s.label), source: d.source || null, resendId,
+        origen: 'mcp', status: 'sent', createdAt: FieldValue.serverTimestamp(),
+      });
+      if (draftRef) await draftRef.update({ sentAt: now.getTime(), sending: false });
+    } catch (e) {
+      console.error('[mcp] el mail salió pero no se pudo registrar:', e.message);
+    }
     return { summary: `Mail enviado a ${neg.email} (${neg.nombre}).`, data: { enviado: true, to: neg.email, subject: d.subject } };
   },
 });

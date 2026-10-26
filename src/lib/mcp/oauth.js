@@ -13,6 +13,7 @@ const TOKENS = 'mcp_oauth_tokens';
 export const ACCESS_TTL_S = 3600;
 export const REFRESH_TTL_S = 30 * 24 * 3600;
 export const CODE_TTL_S = 60;
+export const REUSE_GRACE_MS = 30_000;
 
 const CLAUDE_CALLBACKS = ['https://claude.ai/api/mcp/auth_callback', 'https://claude.com/api/mcp/auth_callback'];
 const LOOPBACK_HOSTS = ['localhost', '127.0.0.1'];
@@ -143,9 +144,11 @@ export async function refreshTokens(db, { refreshToken, clientId, now = Date.now
     if (!snap.exists) return { bad: true };
     const t = snap.data();
     if (t.type !== 'refresh' || t.clientId !== clientId) return { bad: true };
-    if (t.used) return { reuse: true, familyId: t.familyId };
+    // Margen de reintento: si la respuesta del refresh anterior se perdió (timeout), Claude vuelve a
+    // mandar el mismo refresh enseguida. Dentro de REUSE_GRACE_MS se rota de nuevo sin revocar.
+    if (t.used && now - (t.usedAt || 0) > REUSE_GRACE_MS) return { reuse: true, familyId: t.familyId };
     if (t.expiresAt < now) return { bad: true };
-    tx.update(ref, { used: true, usedAt: now });
+    if (!t.used) tx.update(ref, { used: true, usedAt: now });
     return { ok: true, t };
   });
   if (result.reuse) {

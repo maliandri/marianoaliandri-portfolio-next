@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('firebase-admin/firestore', async () => (await import('@/test/fakeDb')).firestoreMock);
 import { createFakeDb } from '@/test/fakeDb';
 import {
-  normalizeDomain, unsubscribeUrl, verifyUnsubscribe, checkBlocked, lastContactAt, reserveDailySend, addBaja,
+  normalizeDomain, unsubscribeUrl, verifyUnsubscribe, checkBlocked, lastContactAt, reserveSend, addBaja,
 } from './emailGuards';
 
 const at = (iso) => { const d = new Date(iso); return { __ts: d.getTime() * 1000, toDate: () => d }; };
@@ -74,12 +74,23 @@ describe('lastContactAt', () => {
   });
 });
 
-describe('reserveDailySend', () => {
-  it('con tope 2 y 3 pedidos en paralelo pasan exactamente 2', async () => {
+describe('reserveSend', () => {
+  const now = new Date('2026-10-26T15:00:00Z');
+  const opts = (i) => ({ email: `x${i}@n${i}.com`, dominio: `n${i}.com`, cap: 2, days: 30, now });
+
+  it('con tope 2 y 3 negocios distintos en paralelo pasan exactamente 2', async () => {
     const { db } = createFakeDb();
-    const now = new Date('2026-10-26T15:00:00Z');
-    const r = await Promise.all([1, 2, 3].map(() => reserveDailySend(db, { cap: 2, now })));
-    expect(r.filter(Boolean)).toHaveLength(2);
-    expect(await reserveDailySend(db, { cap: 2, now: new Date('2026-10-27T15:00:00Z') })).toBe(true);
+    const r = await Promise.all([1, 2, 3].map(i => reserveSend(db, opts(i))));
+    expect(r.filter(x => x.ok)).toHaveLength(2);
+    expect(r.find(x => !x.ok).motivo).toBe('tope_diario');
+    expect((await reserveSend(db, { ...opts(4), now: new Date('2026-10-27T15:00:00Z') })).ok).toBe(true);
+  });
+
+  it('otra casilla del mismo dominio queda frenada; release la libera', async () => {
+    const { db } = createFakeDb();
+    const a = await reserveSend(db, { ...opts(1), cap: 10 });
+    expect((await reserveSend(db, { ...opts(1), email: 'otra@n1.com', cap: 10 })).motivo).toBe('ya_contactado');
+    await a.release();
+    expect((await reserveSend(db, { ...opts(1), email: 'otra@n1.com', cap: 10 })).ok).toBe(true);
   });
 });
