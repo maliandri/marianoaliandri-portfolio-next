@@ -388,7 +388,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 | `email_bajas` | Bajas de los mails a negocios (email + dominios de su web). Permanentes | `/api/email-baja` (link firmado del pie del mail) |
 | `mcp_oauth_clients` / `mcp_oauth_codes` / `mcp_oauth_tokens` | OAuth del servidor MCP: clientes DCR, códigos y tokens (solo el sha256). Borrar un doc de tokens = cortar ese acceso | Solo Admin SDK |
 | `mcp_lead_jobs` | Búsquedas de leads lanzadas por el MCP (progreso + leads) | Solo Admin SDK |
-| `mcp_email_drafts` / `mcp_email_counter` | Borradores de mails del MCP (TTL 7 días) y contador del tope diario | Solo Admin SDK |
+| `mcp_email_drafts` / `mcp_email_counter` / `mcp_email_locks` | Borradores de mails del MCP (TTL 7 días), contador del tope diario y candado por negocio (email/dominio, último envío) que evita mails duplicados | Solo Admin SDK |
 | `mcp_rate` / `mcp_tool_calls` | Rate limiting y registro de cada llamada a una tool del MCP | Solo Admin SDK |
 
 **IMPORTANTE `entitlements/{uid}`**: el cliente NO puede escribirla (regla `write: if false`).
