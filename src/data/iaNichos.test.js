@@ -22,7 +22,8 @@ describe('iaNichos', () => {
       expect(n.tareas.some(t => t.tipo === 'accion'), n.slug).toBe(true);
       for (const t of n.tareas) expect(['consulta', 'accion']).toContain(t.tipo);
       expect(n.sistemas.length, n.slug).toBeGreaterThanOrEqual(2);
-      expect(n.seo.title.length, n.slug).toBeLessThanOrEqual(65);
+      // El layout agrega " | Mariano Aliandri" (19): con 42 queda en ~60, lo que muestra Google.
+      expect(n.seo.title.length, n.slug).toBeLessThanOrEqual(42);
       expect(n.seo.description.length, n.slug).toBeLessThanOrEqual(160);
     }
   });

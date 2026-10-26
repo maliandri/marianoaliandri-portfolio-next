@@ -33,6 +33,7 @@ const NAV_LINKS = [
   { label: 'Noticias',   href: '/noticias' },
 ];
 const SERVICIOS = [
+  { label: 'IA para empresas',      href: '/ia-para',     icon: '🤖', desc: 'Tu sistema, conectado a la IA' },
   { label: 'Tienda de servicios',   href: '/tienda',      icon: '🛒', desc: 'Sitios, sistemas y diseño' },
   { label: 'Solicitar presupuesto', href: '/presupuesto', icon: '📝', desc: 'Para proyectos a medida' },
 ];

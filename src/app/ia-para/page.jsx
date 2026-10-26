@@ -7,7 +7,7 @@ const PAGE_URL = 'https://marianoaliandri.com.ar/ia-para/';
 const DESC = 'Conecto la IA al sistema que ya usa tu empresa: tu equipo le pregunta y la IA responde y actúa con tus datos reales, con permisos y registro de todo.';
 
 export const metadata = {
-  title: 'IA para empresas | Tu sistema conectado a Claude',
+  title: 'IA para empresas: tu sistema conectado a la IA',
   description: DESC,
   alternates: { canonical: PAGE_URL },
   openGraph: {

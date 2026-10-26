@@ -29,7 +29,7 @@ export const IA_NICHOS = [
       { tipo: 'accion', texto: 'Armá el presupuesto de la ampliación con los precios de la semana.' },
     ],
     seo: {
-      title: 'IA para constructoras y fábricas | Tu sistema conectado a Claude',
+      title: 'IA para constructoras y fábricas',
       description: 'Tu equipo le pregunta a la IA por obras, etapas y presupuestos, y la IA responde con los datos de tu sistema. Con permisos y registro de todo.',
     },
   },
@@ -56,7 +56,7 @@ export const IA_NICHOS = [
       { tipo: 'accion', texto: 'Armá el pedido al proveedor con lo que alcanza para menos de una semana.' },
     ],
     seo: {
-      title: 'IA para comercios con stock | Tu sistema conectado a Claude',
+      title: 'IA para comercios con stock',
       description: 'Preguntale a la IA qué se está por agotar, qué se vendió y a quién reponer. Trabaja con tu stock y tus ventas reales, con permisos y frenos.',
     },
   },
@@ -83,7 +83,7 @@ export const IA_NICHOS = [
       { tipo: 'accion', texto: 'Mandales la promo del jueves a los clientes que pidieron el último mes.' },
     ],
     seo: {
-      title: 'IA para restaurantes y gastronomía | Tu sistema con Claude',
+      title: 'IA para restaurantes y gastronomía',
       description: 'Pedidos del día, platos que no salen, compras para el fin de semana: tu equipo le pregunta a la IA y responde con los datos de tu sistema.',
     },
   },
@@ -110,7 +110,7 @@ export const IA_NICHOS = [
       { tipo: 'accion', texto: 'Bloqueá la agenda de la Dra. Paz el viernes a la tarde.' },
     ],
     seo: {
-      title: 'IA para consultorios y centros de estética | Turnos con Claude',
+      title: 'IA para consultorios y estética',
       description: 'Turnos libres, lista de espera, recordatorios y cancelaciones: tu equipo le pregunta a la IA y la IA trabaja con tu agenda real.',
     },
   },
@@ -137,7 +137,7 @@ export const IA_NICHOS = [
       { tipo: 'accion', texto: 'Cargá el honorario del mes en la planilla y mandá la factura.' },
     ],
     seo: {
-      title: 'IA para estudios profesionales | Tu sistema conectado a Claude',
+      title: 'IA para estudios profesionales',
       description: 'Presupuestos sin respuesta, vencimientos y horas por cliente: preguntale a la IA y responde con los datos de tu estudio, con permisos.',
     },
   },
@@ -164,7 +164,7 @@ export const IA_NICHOS = [
       { tipo: 'accion', texto: 'Armá el presupuesto del cambio de distribución para el 208.' },
     ],
     seo: {
-      title: 'IA para talleres y concesionarias | Tu sistema con Claude',
+      title: 'IA para talleres y concesionarias',
       description: 'Autos listos, repuestos pendientes y services vencidos: tu equipo le pregunta a la IA y la IA trabaja con tus órdenes de trabajo reales.',
     },
   },
@@ -191,7 +191,7 @@ export const IA_NICHOS = [
       { tipo: 'accion', texto: 'Agendá la visita del sábado y avisale al dueño.' },
     ],
     seo: {
-      title: 'IA para inmobiliarias | Tu sistema conectado a Claude',
+      title: 'IA para inmobiliarias',
       description: 'Propiedades sin consultas, contratos por vencer e interesados que coinciden: preguntale a la IA y responde con tus datos reales.',
     },
   },
@@ -218,7 +218,7 @@ export const IA_NICHOS = [
       { tipo: 'accion', texto: 'Mandá el aviso de que mañana no hay clases por el feriado.' },
     ],
     seo: {
-      title: 'IA para institutos y academias | Tu sistema conectado a Claude',
+      title: 'IA para institutos y academias',
       description: 'Cuotas pendientes, cupos y asistencia: tu equipo le pregunta a la IA y la IA trabaja con los datos de tu institución, con permisos.',
     },
   },
