@@ -10,6 +10,7 @@ import { useAuthUser } from '@/hooks/useAuthUser';
 import { lfpT } from '@/data/i18n/leadFinderPro';
 import { RUBROS, rubroLabel } from '@/data/rubros';
 import { parseZona, productosPatch } from '@/lib/leadSearch';
+import { demandaDe, labelToIdFor, tipoParams } from '@/lib/leadDemand';
 import { oportunidad } from '@/lib/rubroDemand';
 import { useLeadSearch } from './useLeadSearch';
 import LeadFinderForm from './LeadFinderForm';
@@ -42,16 +43,6 @@ function loadAdminForm() {
   return FORM_ADMIN;
 }
 
-// Demanda del rubro de un lead: { [ciudad]: respuesta de rubroDemand }. Los rubros de Maps se
-// buscan por id (la etiqueta cambia con el idioma); los términos libres, por el texto.
-function demandaDe(lead, demanda, labelToId) {
-  if (lead.demanda) return lead.demanda; // ya guardada en el historial
-  const d = demanda[lead.ciudad];
-  if (!d) return null;
-  const id = labelToId[lead.tipo];
-  return (id ? d.porRubro?.[id] : d.porTermino?.[lead.tipo]) || null;
-}
-
 // Prefill desde "Rubros buscados" (?zona=…&rubro=… o sessionStorage en el admin).
 const PREFILL_KEY = 'lf_prefill';
 function readPrefill() {
@@ -71,17 +62,6 @@ function applyPrefill(form, p) {
     tipos: p.rubro && RUBROS.some(r => r.id === p.rubro) ? [p.rubro] : form.tipos,
     terminos: p.rubro ? [] : form.terminos,
   };
-}
-
-function labelToIdFor(ids, lang) {
-  return Object.fromEntries(tipoParams(ids, lang).map(p => [p.label, p.id]));
-}
-
-function tipoParams(ids, lang) {
-  return ids.map(id => {
-    const r = RUBROS.find(x => x.id === id);
-    return { id, label: rubroLabel(r, lang) || id, ...(r?.query ? { query: r.query } : {}) };
-  });
 }
 
 export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark = false }) {
