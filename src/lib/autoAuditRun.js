@@ -4,6 +4,8 @@ import { CIUDADES_SEMILLA, RUBROS_SEMILLA } from '@/data/auditoriaAuto';
 import { pickNext, comboKey, buildStats, buildPost, DEFAULT_NETWORKS, CANTIDAD_DEFAULT, CANTIDAD_MIN, CANTIDAD_MAX, FAST_MAX_SITES } from '@/lib/autoAudit';
 import { runBatch } from '@/lib/autoAuditBatch';
 import { saveAuditoria } from '@/lib/auditoriasStore';
+import { imageIsReachable } from '@/lib/imageCheck';
+import { postToMakeSocial } from '@/lib/makeSocial';
 
 const CONFIG_COLLECTION = 'auditoria_auto';
 const RUNS_COLLECTION = 'auditoria_auto_runs';
@@ -13,7 +15,6 @@ const MIN_SITES_TO_SAVE = 5;             // con cuota agotada solo se guarda si 
 // Por debajo de esto la combinación se marca como hecha y se prueba otra en la misma corrida.
 const MIN_SITES_TO_PUBLISH = 3;
 const MAX_COMBO_ATTEMPTS = 3;
-const MAKE_WEBHOOK_DEFAULT = 'https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi';
 
 export function defaultConfig() {
   return {
@@ -66,24 +67,6 @@ async function saveReport(combo, results, stats, nowMs, useGemini) {
   return saveAuditoria({ title, config, results, stats, useGemini });
 }
 
-// Make responde 200 antes de correr el escenario: una imagen rota pasaría como 'ok'.
-// Verifica con un GET que la URL (captura Microlink del informe) responda 2xx con content-type
-// image/*. Microlink la renderiza en el primer pedido (puede tardar) y la cachea: esto además la "calienta".
-const imageCheck = { detail: '' };
-async function imageIsReachable(url) {
-  imageCheck.detail = '';
-  try {
-    const res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(20000) });
-    const type = res.headers?.get?.('content-type') || '';
-    res.body?.cancel?.();
-    if (res.ok && type.startsWith('image/')) return true;
-    imageCheck.detail = res.ok ? `content-type ${type || 'vacío'}` : `HTTP ${res.status}`;
-    return false;
-  } catch (e) {
-    imageCheck.detail = e.message;
-    return false;
-  }
-}
 
 // Una corrida de la auditoría automática. La invocan el script de GitHub Actions
 // (scripts/auto-audit.mjs) y el botón "Correr ahora" del admin (force: true).
@@ -162,25 +145,16 @@ export async function runAutoAudit({
           combo, stats, auditoriaId: saved.id, summary: saved.summary,
           networks: config.networks,
         });
-        if (!(await imageIsReachable(payload.imageUrl))) {
+        const image = await imageIsReachable(payload.imageUrl);
+        if (!image.ok) {
           run.estado = 'post_fallido';
-          run.error = `La captura del informe no responde con una imagen (Microlink): ${imageCheck.detail}`;
+          run.error = `La captura del informe no responde con una imagen (Microlink): ${image.detail}`;
         } else try {
-          const res = await fetch(process.env.MAKE_SOCIAL_WEBHOOK_URL || MAKE_WEBHOOK_DEFAULT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            signal: AbortSignal.timeout(10000),
-          });
-          if (res.ok) {
-            run.estado = 'ok';
-          } else {
-            run.estado = 'post_fallido';
-            run.error = `Make respondió ${res.status}`;
-          }
+          await postToMakeSocial(payload, { timeoutMs: 10000 });
+          run.estado = 'ok';
         } catch (e) {
           run.estado = 'post_fallido';
-          run.error = e.message;
+          run.error = e.status ? `Make respondió ${e.status}` : e.message;
         }
       }
     }

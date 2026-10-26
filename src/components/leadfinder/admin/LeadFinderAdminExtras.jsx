@@ -3,11 +3,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { filasParaInforme, parseZona } from '@/lib/leadSearch';
+import { parseZona } from '@/lib/leadSearch';
 import { buildAuditPublishPayload } from '@/lib/socialAuditPost';
+import { buildAuditReportDraft, MIN_SITIOS_INFORME } from '@/lib/auditReportDraft';
 
 export const EMPTY_FILTERS = { tipo: '', email: false, seoBajo: false, texto: '' };
-export const MIN_SITIOS_INFORME = 3; // misma regla que la auditoría automática
 
 export function applyAdminFilters(rows, f) {
   return rows.filter(r => {
@@ -64,16 +64,8 @@ export function AdminLog({ log }) {
   );
 }
 
-function rubrosTexto(labels) {
-  if (!labels.length) return 'negocios locales';
-  if (labels.length === 1) return labels[0];
-  if (labels.length <= 3) return `${labels.slice(0, -1).join(', ')} y ${labels.at(-1)}`;
-  return `${labels.slice(0, 3).join(', ')} y ${labels.length - 3} más`;
-}
-
 // form = valor del formulario; tipoLabels = etiquetas de los tipos elegidos.
 export function PublishReport({ leads, form, tipoLabels, disabled }) {
-  const filas = filasParaInforme(leads);
   const [modal, setModal] = useState(false);
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
@@ -87,23 +79,13 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
 
   const ciudades = form.zonas.map(z => parseZona(z).ciudad);
   const rubros = [...tipoLabels, ...form.terminos];
+  const draft = buildAuditReportDraft(leads, { ciudades, rubros, radioKm: form.radioKm });
+  const { filas } = draft;
   const total = filas.length;
-  const low = filas.filter(f => f.seoScore < 50).length;
-  const withEmail = filas.filter(f => f.email).length;
-  const avg = total ? Math.round(filas.reduce((s, f) => s + f.seoScore, 0) / total) : null;
 
   const abrir = () => {
-    const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
-    const r = rubrosTexto(rubros);
-    const pct = total ? Math.round((low / total) * 100) : 0;
-    setTitle(`Auditoría SEO de páginas web de ${r} (${fecha})`);
-    setDesc(
-      `Auditoría SEO de ${total} sitios web de ${r} en ${ciudades.join(', ') || 'varias ciudades'}. ` +
-      `El ${pct}% (${low}) tiene un posicionamiento web débil y el promedio general es ${avg ?? '—'}/100. ` +
-      `${withEmail} cuentan con un email público de contacto. ` +
-      `El relevamiento evidencia oportunidades concretas de mejora en la presencia digital de los comercios de la zona.\n\n` +
-      `🔍 Conocé el servicio Lead Finder Pro: https://marianoaliandri.com.ar/keywords`
-    );
+    setTitle(draft.title);
+    setDesc(draft.summary);
     setMsg(''); setSavedUrl(null); setSavedId(null);
     setModal(true);
   };
@@ -119,8 +101,8 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: title.trim(), summary: desc.trim(), results: filas,
-            stats: { total, withEmail, lowSeoCount: low, avgSeoScore: avg },
-            config: { ciudades, pais: 'Argentina', radioKm: form.radioKm, tiposLabels: rubros },
+            stats: draft.stats,
+            config: draft.config,
           }),
         });
         const data = await resp.json();

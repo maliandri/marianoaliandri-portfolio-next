@@ -1,19 +1,11 @@
 export const dynamic = 'force-dynamic';
+
+import { postToMakeSocial } from '@/lib/makeSocial';
+
 export async function POST(request) {
   try {
     const data = await request.json();
-    const webhookURL = process.env.MAKE_SOCIAL_WEBHOOK_URL || 'https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi';
-
-    const response = await fetch(webhookURL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Make.com webhook failed: ${response.status}`);
-    }
-
+    await postToMakeSocial(data);
     return Response.json({ success: true, message: 'Publicación enviada correctamente' });
   } catch (error) {
     return Response.json({ success: false, error: error.message }, { status: 500 });
