@@ -4,6 +4,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 
 import { saveAuditoria } from '@/lib/auditoriasStore';
+import { requireAdmin } from '@/lib/adminAuth';
 
 // /auditorias y /auditorias/[id] son ISR: al cambiar un informe desde el admin se
 // regeneran ya, sin esperar el revalidate.
@@ -60,7 +61,10 @@ export async function GET(request) {
   }
 }
 
+// Escrituras: solo la cuenta admin (antes cualquiera podía crear o borrar informes públicos).
 export async function POST(request) {
+  const { response } = await requireAdmin(request);
+  if (response) return response;
   try {
     const body = await request.json();
     const { title, config, results, stats, summary } = body;
@@ -77,6 +81,8 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
+  const { response } = await requireAdmin(request);
+  if (response) return response;
   try {
     const db = getDb();
     if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });
@@ -102,6 +108,8 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
+  const { response } = await requireAdmin(request);
+  if (response) return response;
   try {
     const db = getDb();
     if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });

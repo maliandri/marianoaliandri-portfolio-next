@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { adminFetch } from '@/utils/adminFetch';
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -41,7 +42,7 @@ export default function SendAuditEmailButton({ neg, auditoriaId, sentCount = 0, 
   const generate = async () => {
     setBusy('generating'); setErrorMsg('');
     try {
-      const resp = await fetch('/api/auditorias/send-biz-email', {
+      const resp = await adminFetch('/api/auditorias/send-biz-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, preview: true }),
@@ -65,7 +66,7 @@ export default function SendAuditEmailButton({ neg, auditoriaId, sentCount = 0, 
   const send = async () => {
     setBusy('sending'); setErrorMsg('');
     try {
-      const resp = await fetch('/api/auditorias/send-biz-email', {
+      const resp = await adminFetch('/api/auditorias/send-biz-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, emailText, screenshotUrl }),

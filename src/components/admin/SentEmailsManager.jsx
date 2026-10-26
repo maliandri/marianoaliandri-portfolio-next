@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { adminFetch } from '@/utils/adminFetch';
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -47,7 +48,7 @@ export default function SentEmailsManager() {
     if (!confirm(`¿Reenviar el email a ${m.email}?`)) return;
     setBusy(m.id);
     try {
-      const resp = await fetch('/api/auditorias/send-biz-email', {
+      const resp = await adminFetch('/api/auditorias/send-biz-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

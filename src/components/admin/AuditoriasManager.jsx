@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import SendAuditEmailButton from './SendAuditEmailButton';
 import { buildAuditPublishPayload } from '@/lib/socialAuditPost';
+import { adminFetch } from '@/utils/adminFetch';
 
 function ScoreBadge({ score }) {
   if (score == null) return <span className="text-gray-500 text-xs">—</span>;
@@ -66,7 +67,7 @@ export default function AuditoriasManager() {
     if (!editing || !editing.title.trim()) return;
     setSavingEdit(true); setEditError('');
     try {
-      const res = await fetch('/api/auditorias', {
+      const res = await adminFetch('/api/auditorias', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: editing.id, title: editing.title.trim(), summary: editing.summary }),
@@ -114,7 +115,7 @@ ${reportUrl}
     if (!pub || !networks.length || !pubCaption.trim()) return;
     setPubSending(true); setPubMsg('');
     try {
-      const res = await fetch('/api/publish-social', {
+      const res = await adminFetch('/api/publish-social', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildAuditPublishPayload({ caption: pubCaption, networks, auditoriaId: pub.id })),
@@ -134,7 +135,7 @@ ${reportUrl}
     const next = !a.isDemoCase;
     setAuditorias(prev => prev.map(x => x.id === a.id ? { ...x, isDemoCase: next } : x));
     try {
-      const res = await fetch('/api/auditorias', {
+      const res = await adminFetch('/api/auditorias', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: a.id, isDemoCase: next }),
@@ -150,7 +151,7 @@ ${reportUrl}
     if (!confirm(`¿Eliminar "${title}"?\nEsta acción no se puede deshacer.`)) return;
     setDeleting(id);
     try {
-      await fetch('/api/auditorias', {
+      await adminFetch('/api/auditorias', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
@@ -586,7 +587,7 @@ function AuditoriaDetail({ id }) {
       const neg = pending[i];
       setBulk(b => ({ ...b, current: neg.nombre, done: i }));
       try {
-        const resp = await fetch('/api/auditorias/send-biz-email', {
+        const resp = await adminFetch('/api/auditorias/send-biz-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

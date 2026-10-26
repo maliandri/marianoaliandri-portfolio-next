@@ -1,6 +1,7 @@
 // Make.com Webhook Service
 // Servicio simple para publicar en redes sociales via Make.com
 import cloudinaryService from './cloudinaryService';
+import { adminFetch } from '@/utils/adminFetch';
 
 // Cloudinary genera la versión JPG (f_jpg) recién en el primer pedido. Si Instagram la pide
 // antes de que exista, falla con 9004. Se pide acá y se espera antes de avisarle a Make
@@ -114,7 +115,7 @@ class MakeService {
       console.log('📤 PAYLOAD ENVIADO A NETLIFY FUNCTION:', JSON.stringify(payload, null, 2));
 
       // Llamar a la Netlify Function en lugar de Make.com directamente
-      const response = await fetch('/api/publish-social', {
+      const response = await adminFetch('/api/publish-social', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -409,7 +410,7 @@ class MakeService {
         aiProvider
       };
 
-      const response = await fetch('/api/publish-social', {
+      const response = await adminFetch('/api/publish-social', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

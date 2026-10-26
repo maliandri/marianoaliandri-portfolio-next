@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { parseZona } from '@/lib/leadSearch';
 import { buildAuditPublishPayload } from '@/lib/socialAuditPost';
 import { buildAuditReportDraft, MIN_SITIOS_INFORME } from '@/lib/auditReportDraft';
+import { adminFetch } from '@/utils/adminFetch';
 
 export const EMPTY_FILTERS = { tipo: '', email: false, seoBajo: false, texto: '' };
 
@@ -96,7 +97,7 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
       let auditoriaId = savedId;
       // Si el informe ya se guardó (falló solo la parte de redes), no se duplica: solo se reintenta redes.
       if (!savedUrl || !auditoriaId) {
-        const resp = await fetch('/api/auditorias', {
+        const resp = await adminFetch('/api/auditorias', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -115,7 +116,7 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
 
       const networks = Object.keys(nets).filter(k => nets[k]);
       if (toSocial && networks.length) {
-        const res = await fetch('/api/publish-social', {
+        const res = await adminFetch('/api/publish-social', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(buildAuditPublishPayload({ caption: `${title}\n\n${desc}`, networks, auditoriaId })),

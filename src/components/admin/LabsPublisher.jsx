@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { adminFetch } from '@/utils/adminFetch';
 
 function microlinkUrl(pageUrl) {
   const clean = pageUrl.replace(/\/$/, '');
@@ -181,7 +182,7 @@ ${extraContext ? `\nCONTEXTO ADICIONAL DEL AUTOR:\n${extraContext}` : ''}`.trim(
     const richText = buildText();
 
     try {
-      const res = await fetch('/api/publish-social', {
+      const res = await adminFetch('/api/publish-social', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SERVICE_LOGOS } from '@/data/serviceLogos';
+import { adminFetch } from '@/utils/adminFetch';
 
 // Mapa tema → clave de logo
 const TEMA_LOGO = {
@@ -146,7 +147,7 @@ export default function SocialPublisher() {
     setErrorMsg('');
 
     try {
-      const res = await fetch('/api/publish-social', {
+      const res = await adminFetch('/api/publish-social', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

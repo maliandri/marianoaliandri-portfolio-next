@@ -4,6 +4,7 @@ import { Loader } from '@googlemaps/js-api-loader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { collection, addDoc, getDocs, orderBy, query, limit, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../utils/firebaseservice';
+import { adminFetch } from '@/utils/adminFetch';
 
 const CLOUD_NAME    = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dlshym1te';
 const UPLOAD_PRESET = 'zone_analysis_images';
@@ -567,7 +568,7 @@ export default function ZoneAnalysis() {
     setPublishStatus('');
     try {
       const caption = previewCaption || result.summary;
-      const res = await fetch('/api/publish-social', {
+      const res = await adminFetch('/api/publish-social', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

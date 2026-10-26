@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { RUBROS } from '@/data/rubros';
 
 import { callGemini } from '@/lib/geminiClient';
+import { requireAdmin } from '@/lib/adminAuth';
 const SITE_URL   = 'https://marianoaliandri.com.ar';
 const WHATSAPP         = '5492995414422';       // número para wa.me
 const WHATSAPP_DISPLAY = '+54 299 541-4422';    // formato legible
@@ -90,7 +91,10 @@ function buildTemplateEmail({ nombre, siteUrl, seoScore, ciudad, problemas, nive
   return [saludo, intro, analisis, detalle, impacto, cierre].join('\n\n');
 }
 
+// Solo la cuenta admin: antes cualquiera podía mandar mails con el Resend del sitio.
 export async function POST(request) {
+  const { response } = await requireAdmin(request);
+  if (response) return response;
   try {
     const body = await request.json();
     const {
