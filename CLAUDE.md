@@ -317,6 +317,12 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
     (transaccion Firestore). Sin token → 401. Cuota agotada → 402 → abre `PlansModal`. **NO evadible**
 - **Keywords** (`/keywords`): landing publica de SEO del buscador de rubros (funnel). La accion
   "Analizar" pasa por el mismo gating (login + cuota) via `/api/keyword-explorer`
+- **IA para empresas** (`/ia-para/` + `/ia-para/[nicho]/`, desde 2026-10-26): landings estáticas que venden
+  "tu sistema conectado a la IA" (servidor MCP a medida, ver sección Servidor MCP), una por rubro. Los
+  nichos son datos en `src/data/iaNichos.js` (pregunta del equipo, herramienta, respuesta de ejemplo con
+  datos ficticios, tareas, sistemas, SEO); para sumar un rubro se agrega un bloque ahí y
+  `iaNichos.test.js` valida campos y sitemap. Componentes en `src/components/iaPara/` (tipografías
+  Bricolage + JetBrains Mono solo en estas páginas). CTA: WhatsApp con mensaje por nicho + `/presupuesto`.
 - **Admin** (`/admin`): Panel interno con tabs: Stats, Productos, Publicar Redes, Reels, Proyectos GSC, Auditorias, Presupuestos
 - **Publicador de redes** (admin): envia POST a Make.com → Make llama a Gemini y publica en LinkedIn/Instagram/Facebook. Logos de servicios en Cloudinary (`service-logos/`)
 - **Generador de reels Canvas** (admin): flujo de 5 pasos:

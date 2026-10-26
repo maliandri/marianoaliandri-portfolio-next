@@ -1,3 +1,5 @@
+import { IA_NICHOS } from '@/data/iaNichos';
+
 const BASE_URL = 'https://marianoaliandri.com.ar';
 
 export default function sitemap() {
@@ -21,5 +23,7 @@ export default function sitemap() {
     { url: `${BASE_URL}/faq/`,                    lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE_URL}/politica-devoluciones/`, lastModified: now, changeFrequency: 'yearly',  priority: 0.4 },
     { url: `${BASE_URL}/stats/`,                 lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE_URL}/ia-para/`,               lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    ...IA_NICHOS.map(n => ({ url: `${BASE_URL}/ia-para/${n.slug}/`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 })),
   ];
 }

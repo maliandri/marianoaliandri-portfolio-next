@@ -1,0 +1,31 @@
+.display { font-family: var(--font-ia-display), var(--font-inter), sans-serif; }
+.mono { font-family: var(--font-ia-mono), ui-monospace, monospace; }
+
+/* El comprobante: lo que la IA consultó en el sistema, con el borde troquelado de un ticket. */
+.receipt {
+  position: relative;
+  background: var(--t-card);
+  border: 1px solid color-mix(in srgb, var(--t-fg) 12%, transparent);
+  border-radius: 14px 14px 4px 4px;
+  -webkit-mask: radial-gradient(circle 6px at 50% 100%, #0000 98%, #000) 0 0 / 18px 100%;
+          mask: radial-gradient(circle 6px at 50% 100%, #0000 98%, #000) 0 0 / 18px 100%;
+  padding-bottom: 14px;
+}
+
+/* Se "imprime" una sola vez al cargar: renglón por renglón. */
+.line {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: print 380ms cubic-bezier(.2,.7,.2,1) forwards;
+}
+@keyframes print { to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .line { animation: none; opacity: 1; transform: none; }
+}
+
+.bubble {
+  background: #4c01f9;
+  color: #fff;
+  border-radius: 22px 22px 6px 22px;
+}
