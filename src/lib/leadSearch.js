@@ -11,6 +11,30 @@ export const isFatal = (e) => FATAL_CODES.includes(e?.code);
 
 const defaultSleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+// Resultado acumulado de los eventos de searchLeads: leads (con su conteo de productos), avisos
+// y totales. Lo usan la pantalla (useLeadSearch) y el servidor MCP (src/lib/mcp/leadJobs.js).
+export const ESTADO_INICIAL = Object.freeze({
+  leads: [], avisos: [], totals: { encontrados: 0, examinados: 0, leads: 0, conWeb: 0, descartados: 0 },
+});
+export function reduceLeadEvent(s, ev) {
+  const t = s.totals;
+  switch (ev.type) {
+    case 'negocio': return { ...s, totals: { ...t, examinados: t.examinados + 1 } };
+    case 'lead': return {
+      ...s, leads: [...s.leads, ev.lead],
+      totals: { ...t, leads: t.leads + 1, conWeb: t.conWeb + (ev.lead.canal === 'web' ? 1 : 0) },
+    };
+    case 'descartado': return { ...s, totals: { ...t, descartados: t.descartados + 1 } };
+    case 'productos': {
+      const { type: _t, id, ...patch } = ev;
+      return { ...s, leads: s.leads.map(r => (r.id === id ? { ...r, ...patch } : r)) };
+    }
+    case 'aviso': return { ...s, avisos: [...s.avisos, ev] };
+    case 'fin': return { ...s, totals: { ...t, ...ev.totals } };
+    default: return s;
+  }
+}
+
 // "Ciudad, País" → { ciudad, pais }. Sin coma, país vacío (el geocoder igual la resuelve).
 export function parseZona(raw) {
   const parts = String(raw).split(',').map(s => s.trim()).filter(Boolean);

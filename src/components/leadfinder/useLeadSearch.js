@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { searchLeads, normalizarLeadsGuardados } from '@/lib/leadSearch';
+import { searchLeads, normalizarLeadsGuardados, reduceLeadEvent, ESTADO_INICIAL } from '@/lib/leadSearch';
 
 const CERO = { encontrados: 0, examinados: 0, leads: 0, conWeb: 0, descartados: 0 };
 const MAX_LOG = 200;
@@ -31,10 +31,11 @@ export function useLeadSearch(call) {
     setAvisos([]); setStop(null); setPendiente(null); setLog([]);
     setTotals(CERO); setProgress({ ciudad: '', etiqueta: '' });
     setPhase('searching');
-    const local = { ...CERO };
+    let acc = ESTADO_INICIAL;
 
     try {
       for await (const ev of searchLeads(params, { call, isCancelled: () => cancelRef.current })) {
+        acc = reduceLeadEvent(acc, ev);
         switch (ev.type) {
           case 'zona':
             setProgress(p => ({ ...p, ciudad: ev.ciudad }));
@@ -45,38 +46,28 @@ export function useLeadSearch(call) {
             addLog(`  Buscando "${ev.etiqueta}"…`);
             break;
           case 'negocio':
-            local.examinados++;
             setPendiente(ev.negocio);
             break;
           case 'lead':
-            local.leads++;
-            if (ev.lead.canal === 'web') local.conWeb++;
             setPendiente(null);
-            commit(prev => [...prev, ev.lead]);
             addLog(`  ✓ ${ev.lead.nombre} (${ev.lead.canal}${ev.lead.seoScore != null ? `, SEO ${ev.lead.seoScore}` : ''})`, 'success');
             break;
           case 'descartado':
-            local.descartados++;
             setPendiente(null);
             addLog(`  · ${ev.negocio.nombre}: sin web ni WhatsApp`);
             break;
-          case 'productos': {
-            const { type: _t, id, ...patch } = ev;
-            commit(prev => prev.map(r => (r.id === id ? { ...r, ...patch } : r)));
-            break;
-          }
           case 'aviso':
             setPendiente(null);
-            setAvisos(a => [...a, ev]);
             addLog(`  ⚠ ${ev.mensaje}`, 'warn');
             break;
           case 'fin':
-            Object.assign(local, ev.totals);
-            addLog(`Listo: ${local.leads} leads, ${local.descartados} descartados.`, 'success');
+            addLog(`Listo: ${acc.totals.leads} leads, ${acc.totals.descartados} descartados.`, 'success');
             break;
           default:
         }
-        setTotals({ ...local });
+        commit(() => acc.leads);
+        setAvisos(acc.avisos);
+        setTotals(acc.totals);
       }
       setPhase('done');
     } catch (e) {
@@ -85,7 +76,7 @@ export function useLeadSearch(call) {
       setPhase(e.code ? 'done' : 'error');
     }
     setPendiente(null);
-    return { leads: leadsRef.current, totals: { ...local } };
+    return { leads: leadsRef.current, totals: { ...acc.totals } };
   }, [call]);
 
   // Actualiza una fila (ej. reintento del conteo de productos).

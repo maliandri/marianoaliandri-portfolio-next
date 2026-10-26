@@ -227,3 +227,23 @@ describe('productosPatch', () => {
     expect(productosPatch({ count: null, partial: true })).toEqual({ prodState: 'error' });
   });
 });
+
+describe('reduceLeadEvent', () => {
+  it('acumula leads, conteos de productos, avisos y totales', async () => {
+    const { reduceLeadEvent, ESTADO_INICIAL } = await import('./leadSearch.js');
+    const evs = [
+      { type: 'negocio', negocio: { id: 'a' } },
+      { type: 'lead', lead: { id: 'a', canal: 'web' } },
+      { type: 'negocio', negocio: { id: 'b' } },
+      { type: 'descartado', negocio: { id: 'b' } },
+      { type: 'productos', id: 'a', prodState: 'done', prodCount: 4 },
+      { type: 'aviso', mensaje: 'x' },
+      { type: 'fin', totals: { encontrados: 5, examinados: 2, leads: 1, conWeb: 1, descartados: 1 } },
+    ];
+    const s = evs.reduce(reduceLeadEvent, ESTADO_INICIAL);
+    expect(s.leads).toEqual([{ id: 'a', canal: 'web', prodState: 'done', prodCount: 4 }]);
+    expect(s.avisos).toEqual([{ type: 'aviso', mensaje: 'x' }]);
+    expect(s.totals).toEqual({ encontrados: 5, examinados: 2, leads: 1, conWeb: 1, descartados: 1 });
+    expect(ESTADO_INICIAL.leads).toEqual([]);
+  });
+});
