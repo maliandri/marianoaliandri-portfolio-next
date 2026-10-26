@@ -358,6 +358,20 @@ describe('callGeminiRotating', () => {
     expect(calls).toEqual(['a', 'b', 'c', 'd']);
   });
 
+  it('una key bloqueada, rotada o inválida (401/403/400 API key) pasa a la siguiente', async () => {
+    const calls = [];
+    const fetchImpl = vi.fn(async (url) => {
+      const key = new URL(url).searchParams.get('key');
+      calls.push(key);
+      if (key === 'a') return resp(403, { error: { message: 'Requests to this API ... are blocked.' } });
+      if (key === 'b') return resp(400, { error: { message: 'API key not valid. Please pass a valid API key.' } });
+      if (key === 'c') return resp(401, { error: { message: 'Unauthorized' } });
+      return resp(200, okBody);
+    });
+    await expect(callGeminiRotating('p', { keys: ['a', 'b', 'c', 'd'], fetchImpl })).resolves.toBe('hola');
+    expect(calls).toEqual(['a', 'b', 'c', 'd']);
+  });
+
   it('un error que no es de cuota corta sin probar las demás', async () => {
     const fetchImpl = vi.fn(async () => resp(400, { error: { message: 'bad request' } }));
     await expect(callGeminiRotating('p', { keys: ['a', 'b'], fetchImpl })).rejects.toThrow('Gemini 400: bad request');

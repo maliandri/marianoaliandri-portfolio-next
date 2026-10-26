@@ -13,6 +13,9 @@ function getKeys() {
   return [...new Set(keys)]; // dedup
 }
 
+const keyProblem = (status, message) =>
+  status === 401 || status === 403 || (status === 400 && /api key/i.test(message));
+
 export function getGeminiKey() {
   const keys = getKeys();
   if (!keys.length) return null;
@@ -40,7 +43,13 @@ export async function callGemini(prompt, { timeout = 25000, model } = {}) {
       if (resp.status === 429 || resp.status === 503) continue; // quota agotada o sobrecarga → siguiente key
 
       const data = await resp.json();
-      if (!resp.ok) throw new Error(data?.error?.message || `Gemini error ${resp.status}`);
+      if (!resp.ok) {
+        const message = data?.error?.message || `Gemini error ${resp.status}`;
+        // Problema de ESA key (bloqueada, rotada, sin permiso o inválida) → probar la siguiente.
+        // Cualquier otro error es del pedido y fallaría igual con todas.
+        if (keyProblem(resp.status, message)) continue;
+        throw new Error(message);
+      }
       return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
     } catch (err) {
       if (err.message?.includes('429') || err.name === 'AbortError') continue;
@@ -48,5 +57,5 @@ export async function callGemini(prompt, { timeout = 25000, model } = {}) {
     }
   }
 
-  throw new Error('Todas las Gemini API keys agotaron su cuota (429)');
+  throw new Error('Todas las Gemini API keys fallaron (cuota agotada, sobrecarga o key bloqueada/inválida)');
 }

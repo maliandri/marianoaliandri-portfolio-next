@@ -309,8 +309,8 @@ export function geminiKeys(env = process.env) {
 
 const GEMINI_TIMEOUT_MS = 60000; // la nota completa es larga; sin tope un pedido colgado traba la corrida
 
-// Prueba las keys en orden: si una da 429 (cuota), 503 (sobrecarga) o se cuelga, pasa a la
-// siguiente. Cualquier otro error corta ahí (no es un problema de cuota: las demás fallarían igual).
+// Prueba las keys en orden: si una da 429 (cuota), 503 (sobrecarga), está bloqueada/inválida o
+// se cuelga, pasa a la siguiente. Cualquier otro error corta ahí (las demás fallarían igual).
 export async function callGeminiRotating(prompt, { keys = geminiKeys(), fetchImpl = fetch } = {}) {
   if (!keys.length) throw new Error('GEMINI_API_KEY no configurada');
   let lastError = '';
@@ -328,7 +328,11 @@ export async function callGeminiRotating(prompt, { keys = geminiKeys(), fetchImp
       continue;
     }
     const data = await resp.json().catch(() => ({}));
-    if (resp.status === 429 || resp.status === 503) {
+    // 429/503 = cuota o sobrecarga; 401/403/400 "API key" = esa key está bloqueada, rotada o es
+    // inválida. En los dos casos la siguiente key puede andar.
+    const keyProblem = resp.status === 401 || resp.status === 403
+      || (resp.status === 400 && /api key/i.test(data?.error?.message || ''));
+    if (resp.status === 429 || resp.status === 503 || keyProblem) {
       lastError = `key ${i + 1}: ${resp.status} ${data?.error?.message || ''}`.trim();
       continue;
     }
