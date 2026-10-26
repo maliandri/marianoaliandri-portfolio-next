@@ -15,14 +15,16 @@ export const serialize = (d) => {
 };
 
 // Más recientes primero. `cursor` = updatedAt ISO del último ítem de la página anterior.
+// El filtro por estado se hace en memoria: where(estado) + orderBy(updatedAt) pide un índice
+// compuesto y la colección es chica (los prospectos de un solo admin).
+const MAX_SCAN = 1000;
 export async function listProspectos(db, { estado, limit = 20, cursor = null } = {}) {
-  let q = db.collection(COL);
-  if (estado) q = q.where('estado', '==', estado);
-  q = q.orderBy('updatedAt', 'desc');
+  let q = db.collection(COL).orderBy('updatedAt', 'desc');
   if (cursor) q = q.startAfter(new Date(cursor));
-  const snap = await q.limit(limit + 1).get();
-  const items = snap.docs.slice(0, limit).map(serialize);
-  return { items, nextCursor: snap.docs.length > limit ? items.at(-1).updatedAt : null };
+  const snap = await q.limit(estado ? MAX_SCAN : limit + 1).get();
+  const docs = estado ? snap.docs.filter(d => d.data().estado === estado) : snap.docs;
+  const items = docs.slice(0, limit).map(serialize);
+  return { items, nextCursor: docs.length > limit ? items.at(-1).updatedAt : null };
 }
 
 // Crea o actualiza el prospecto y genera el DM (Gemini, con plantilla de respaldo).
