@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isWithinSchedule, nowArgentina, toInstagramSafeUrl, waitForImage, fetchPhotoDataUri, fitBody, MAX_BODY_CHARS, networksFor, itemsPerRunFor, buildXText, isVisibleOnSite, articleTextFrom, pickContenido, MAX_CONTENIDO_CHARS, geminiKeys, callGeminiRotating } from './noticias-bot.mjs';
+import { isWithinSchedule, nowArgentina, toInstagramSafeUrl, waitForImage, fetchPhotoDataUri, fitBody, MAX_BODY_CHARS, networksFor, wantsStory, itemsPerRunFor, buildXText, isVisibleOnSite, articleTextFrom, pickContenido, MAX_CONTENIDO_CHARS, geminiKeys, callGeminiRotating } from './noticias-bot.mjs';
 
 // Enero de 1970: 1=jue, 2=vie, 3=sab, 4=dom, 5=lun, 6=mar, 7=mie.
 // Se usan estas fechas fijas para tener un getUTCDay() conocido sin ambigüedad.
@@ -90,6 +90,17 @@ describe('itemsPerRunFor', () => {
     expect(itemsPerRunFor({ maxPorCorrida: 1.5 })).toBe(2);
     expect(itemsPerRunFor({ maxPorCorrida: 'x' })).toBe(2);
     expect(itemsPerRunFor({ maxPorCorrida: 50 })).toBe(5);
+  });
+});
+
+describe('wantsStory', () => {
+  it('solo si el tópico la pide y su destino incluye Instagram', () => {
+    expect(wantsStory({ historia: true })).toBe(true); // destino default fb_ig
+    expect(wantsStory({ historia: true, destino: 'todas' })).toBe(true);
+    expect(wantsStory({ historia: true, destino: 'linkedin' })).toBe(false);
+    expect(wantsStory({ historia: true, destino: 'x' })).toBe(false);
+    expect(wantsStory({ destino: 'fb_ig' })).toBe(false);
+    expect(wantsStory(undefined)).toBe(false);
   });
 });
 

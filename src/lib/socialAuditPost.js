@@ -13,6 +13,12 @@ export function auditScreenshotUrl(id) {
   return `https://api.microlink.io/?url=${encodeURIComponent(shot)}&screenshot=true&meta=false&embed=screenshot.url&viewport.width=1280&viewport.height=980`;
 }
 
+// Misma captura en formato celular (540x960 a 2x = 1080x1920, JPG) para la historia de Instagram.
+export function auditStoryScreenshotUrl(id) {
+  const shot = `${auditReportUrl(id)}?screenshot=1`;
+  return `https://api.microlink.io/?url=${encodeURIComponent(shot)}&screenshot=true&meta=false&embed=screenshot.url&screenshot.type=jpeg&viewport.width=540&viewport.height=960&viewport.deviceScaleFactor=2&viewport.isMobile=true`;
+}
+
 export function buildAuditPublishPayload({ caption, networks, auditoriaId }) {
   const reportUrl = auditReportUrl(auditoriaId);
   const imageUrl = auditScreenshotUrl(auditoriaId);

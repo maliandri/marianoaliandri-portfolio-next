@@ -181,6 +181,24 @@ export default function TopicCard({ topic, notes, busy, onToggleActivo, onToggle
           </div>
 
           <div>
+            <label className="flex items-start gap-2 text-xs cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={topic.historia === true}
+                disabled={busy || !['fb_ig', 'todas'].includes(topic.destino)}
+                onChange={e => onUpdate(topic.id, { historia: e.target.checked })}
+              />
+              <span>
+                <span className="font-semibold text-gray-900 dark:text-white">Publicar también como historia de Instagram</span>
+                <span className="block text-gray-400 mt-0.5">
+                  Además del post, sube la misma tarjeta en formato 9:16 como historia. Solo con destinos que incluyen Instagram.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5 block">
               Tono de este tópico
             </label>

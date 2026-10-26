@@ -39,6 +39,8 @@ export async function GET(request) {
         toneInstructions: data.toneInstructions ?? null,
         // Tópicos creados antes de este campo no lo tienen: por default usan la foto del artículo.
         usarFoto: data.usarFoto !== false,
+        // Publicar también como historia de Instagram (scripts/igStoryClient.mjs). Default: no.
+        historia: data.historia === true,
         // Dónde se publica: 'fb_ig' (default, como siempre), 'linkedin' (solo LinkedIn), 'todas'
         // o 'x' (solo X, y esas notas NO se muestran en el sitio).
         destino: DESTINOS.includes(data.destino) ? data.destino : 'fb_ig',
@@ -88,16 +90,16 @@ export async function PATCH(request) {
   if (auth.response) return auth.response;
 
   try {
-    const { id, activo, toneInstructions, usarFoto, destino, maxPorCorrida, query, scope, countryCode } = await request.json();
+    const { id, activo, toneInstructions, usarFoto, historia, destino, maxPorCorrida, query, scope, countryCode } = await request.json();
     if (!id) {
       return Response.json({ error: 'id es requerido' }, { status: 400 });
     }
     if (
       activo === undefined && toneInstructions === undefined && usarFoto === undefined &&
-      destino === undefined && maxPorCorrida === undefined && query === undefined &&
+      historia === undefined && destino === undefined && maxPorCorrida === undefined && query === undefined &&
       scope === undefined && countryCode === undefined
     ) {
-      return Response.json({ error: 'Nada para actualizar (activo, toneInstructions, usarFoto, destino, maxPorCorrida, query, scope o countryCode)' }, { status: 400 });
+      return Response.json({ error: 'Nada para actualizar (activo, toneInstructions, usarFoto, historia, destino, maxPorCorrida, query, scope o countryCode)' }, { status: 400 });
     }
     if (maxPorCorrida !== undefined && !isValidMaxPorCorrida(maxPorCorrida)) {
       return Response.json({ error: `maxPorCorrida debe ser un entero de 1 a ${ABSOLUTE_MAX_POR_CORRIDA}` }, { status: 400 });
@@ -117,6 +119,9 @@ export async function PATCH(request) {
     if (usarFoto !== undefined && typeof usarFoto !== 'boolean') {
       return Response.json({ error: 'usarFoto debe ser boolean' }, { status: 400 });
     }
+    if (historia !== undefined && typeof historia !== 'boolean') {
+      return Response.json({ error: 'historia debe ser boolean' }, { status: 400 });
+    }
     if (query !== undefined && (typeof query !== 'string' || !query.trim() || query.length > 200)) {
       return Response.json({ error: 'query debe ser un texto de 1 a 200 caracteres' }, { status: 400 });
     }
@@ -130,6 +135,7 @@ export async function PATCH(request) {
     const update = {};
     if (activo !== undefined) update.activo = activo;
     if (usarFoto !== undefined) update.usarFoto = usarFoto;
+    if (historia !== undefined) update.historia = historia;
     if (destino !== undefined) update.destino = destino;
     if (maxPorCorrida !== undefined) update.maxPorCorrida = maxPorCorrida;
     if (query !== undefined) update.query = query.trim();

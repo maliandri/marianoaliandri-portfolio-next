@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  cleanTitle, titleFontSize, pickTheme, THEMES, renderNoticiaCard, CARD_WIDTH, CARD_HEIGHT,
+  cleanTitle, titleFontSize, pickTheme, THEMES, renderNoticiaCard, CARD_WIDTH, CARD_HEIGHT, STORY_HEIGHT,
 } from './noticiaCard.mjs';
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -56,6 +56,13 @@ describe('renderNoticiaCard', () => {
     expect(png.subarray(0, 8).equals(PNG_SIGNATURE)).toBe(true);
     expect(pngSize(png)).toEqual({ width: CARD_WIDTH, height: CARD_HEIGHT });
     expect(usedPhoto).toBe(false);
+  });
+
+  it('en formato historia genera un PNG de 1080x1920', async () => {
+    const { png } = await renderNoticiaCard({
+      title: 'Titular de historia', topicLabel: 'Tópico', topicId: 't3', source: 'Clarín', format: 'story',
+    });
+    expect(pngSize(png)).toEqual({ width: CARD_WIDTH, height: STORY_HEIGHT });
   });
 
   it('si la foto es inválida cae al fondo de marca en vez de fallar', async () => {

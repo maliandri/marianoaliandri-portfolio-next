@@ -4,10 +4,12 @@ vi.mock('@/lib/firebase-admin', () => ({ getDb: vi.fn() }));
 vi.mock('@/lib/autoAuditBatch', () => ({ runBatch: vi.fn() }));
 vi.mock('@/lib/auditoriasStore', () => ({ saveAuditoria: vi.fn() }));
 vi.mock('firebase-admin/firestore', () => ({ FieldValue: { serverTimestamp: () => 'TS' } }));
+vi.mock('../../scripts/igStoryClient.mjs', () => ({ publishIgStory: vi.fn(), igCredsFromEnv: vi.fn(() => null) }));
 
 import { getDb } from '@/lib/firebase-admin';
 import { runBatch } from '@/lib/autoAuditBatch';
 import { saveAuditoria } from '@/lib/auditoriasStore';
+import { publishIgStory, igCredsFromEnv } from '../../scripts/igStoryClient.mjs';
 import { runAutoAudit, loadConfig, defaultConfig } from './autoAuditRun.js';
 import { comboKey } from './autoAudit.js';
 
@@ -59,6 +61,7 @@ const makeCalls = () => fetchMock.mock.calls.filter(c => !isShot(c[0]));
 let fetchMock;
 beforeEach(() => {
   vi.clearAllMocks();
+  igCredsFromEnv.mockReturnValue(null);
   fetchMock = vi.fn(async (url) => (isShot(url) ? okShot() : { ok: true, status: 200 }));
   vi.stubGlobal('fetch', fetchMock);
   runBatch.mockResolvedValue({ results, status: 'ok', examined: 3, found: 3 });
@@ -155,6 +158,46 @@ describe('runAutoAudit — flujo', () => {
     expect(db.state.runs[0]).toMatchObject({ estado: 'ok', auditoriaId: 'aud-1', combo: { ciudad: 'Neuquén', rubro: 'Ferretería' } });
     expect(db.state.config.ultimaCorrida[COMBO_KEY]).toBe(NOW);
     expect(db.state.config.lock.until).toBe(0);
+  });
+
+  describe('historia de Instagram', () => {
+    it('sin credenciales de Instagram no publica historia ni deja rastro en el run', async () => {
+      const db = createFakeDb(BASE_CONFIG);
+      getDb.mockReturnValue(db);
+      const out = await runAutoAudit({ now: () => NOW });
+      expect(publishIgStory).not.toHaveBeenCalled();
+      expect(out.historia).toBeUndefined();
+    });
+
+    it('con credenciales publica la captura en formato celular y guarda el id', async () => {
+      igCredsFromEnv.mockReturnValue({ accessToken: 't', igUserId: '1' });
+      publishIgStory.mockResolvedValue('story-1');
+      const db = createFakeDb(BASE_CONFIG);
+      getDb.mockReturnValue(db);
+      const out = await runAutoAudit({ now: () => NOW });
+      expect(out).toMatchObject({ estado: 'ok', historia: { ok: true, id: 'story-1' } });
+      const url = publishIgStory.mock.calls[0][0];
+      expect(url).toContain('viewport.width=540');
+      expect(url).toContain('screenshot.type=jpeg');
+      expect(db.state.runs[0].historia).toEqual({ ok: true, id: 'story-1' });
+    });
+
+    it('si la historia falla el post sigue ok y el error queda en el run', async () => {
+      igCredsFromEnv.mockReturnValue({ accessToken: 't', igUserId: '1' });
+      publishIgStory.mockRejectedValue(new Error('Instagram 400 (190): token vencido'));
+      const db = createFakeDb(BASE_CONFIG);
+      getDb.mockReturnValue(db);
+      const out = await runAutoAudit({ now: () => NOW });
+      expect(out).toMatchObject({ estado: 'ok', historia: { ok: false, error: 'Instagram 400 (190): token vencido' } });
+    });
+
+    it('sin Instagram entre las redes no publica historia', async () => {
+      igCredsFromEnv.mockReturnValue({ accessToken: 't', igUserId: '1' });
+      const db = createFakeDb({ ...BASE_CONFIG, networks: ['linkedin'] });
+      getDb.mockReturnValue(db);
+      await runAutoAudit({ now: () => NOW });
+      expect(publishIgStory).not.toHaveBeenCalled();
+    });
   });
 
   it('toma la cantidad de la config: maxSites = cantidad, maxCandidates = 2 × cantidad', async () => {

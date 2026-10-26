@@ -181,6 +181,13 @@ GUMROAD_ACCESS_TOKEN                ← Access token de una Application creada e
                                        no viene firmado, así que nunca hay que confiar en
                                        su body crudo. Ver seccion de Lead Finder Pro abajo.
 
+# Instagram (historias) — solo secrets de GitHub Actions, NO en Vercel
+IG_ACCESS_TOKEN                     ← Token de página (long-lived) con instagram_content_publish.
+                                       Make no tiene módulo para historias: el bot de noticias y la
+                                       auditoría automática las publican directo con la Graph API
+                                       (scripts/igStoryClient.mjs). Sin esta var no sale ninguna historia.
+IG_USER_ID                          ← 17841404013651966 (cuenta de Instagram Business)
+
 # LinkedIn OAuth
 LINKEDIN_CLIENT_ID
 LINKEDIN_CLIENT_SECRET
@@ -276,6 +283,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
     ejecutado con `tsx --tsconfig jsconfig.json`), disparado por cron-job.org vía
     `workflow_dispatch` (igual que el bot de noticias). NO usa el cron de Vercel (se armó así cuando
     el plan era Hobby, 60 s; hoy el proyecto está en **Vercel Pro con Fluid compute**, hasta 800 s).
+  - **Historias de Instagram** (desde 2026-10-26): si Instagram está entre las redes y hay `IG_ACCESS_TOKEN`/`IG_USER_ID`, después del post sube como historia la captura del informe en formato celular (`auditStoryScreenshotUrl`, 1080x1920 JPG). Resultado en `historia` del run; un fallo no cambia `estado`. Lo mismo en el bot de noticias con el checkbox "Publicar también como historia" del tópico (`historia`, default false): tarjeta 9:16 (`renderNoticiaCard({ format: 'story' })`), resultado en `storyId`/`storyError` de la nota. Ambos usan `scripts/igStoryClient.mjs` (Graph API, no Make).
   - El post usa solo datos agregados (sin nombres de negocios). Arranca **apagada**: activar desde
     la tarjeta tras probar "Correr ahora".
   - Rubros prioritarios = negocios con etapas constructivas o de fabricación (candidatos al
@@ -386,7 +394,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 | `entitlements` | Plan y cuota de busquedas de keywords por usuario | **Solo Admin SDK** (server) |
 | `likes` / `visitas` | Contadores anonimos | Client-side |
 | `noticias` | Notas publicadas por el bot (título, cuerpo, caption, imagen, estado) | Solo `scripts/noticias-bot.mjs` (GitHub Actions) |
-| `noticias_topics` | Tópicos a seguir (activo/inactivo, tono, `usarFoto`, `destino`, `maxPorCorrida`) | Admin (tab Noticias) |
+| `noticias_topics` | Tópicos a seguir (activo/inactivo, tono, `usarFoto`, `historia`, `destino`, `maxPorCorrida`) | Admin (tab Noticias) |
 | `noticias_config` | Interruptor on/off + tope diario opcional del bot | Admin (tab Noticias) |
 | `auditoria_auto` | Config de la auditoría automática (`config`: activo, ciudades, rubros, puntero, candado) | Admin SDK (server) / admin tab |
 | `auditoria_auto_runs` | Historial de corridas de la auditoría automática | Admin SDK (server) |

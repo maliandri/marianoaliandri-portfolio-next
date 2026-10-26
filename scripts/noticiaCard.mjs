@@ -12,6 +12,14 @@ import { fileURLToPath } from 'node:url';
 
 export const CARD_WIDTH = 1080;
 export const CARD_HEIGHT = 1350; // 4:5, el formato vertical más grande que acepta Instagram en el feed
+export const STORY_HEIGHT = 1920; // 9:16, historias de Instagram/Facebook
+
+// En la historia Instagram tapa arriba (barra de progreso + perfil) y abajo (responder):
+// el contenido queda adentro de esa zona segura.
+const FORMATS = {
+  feed: { height: CARD_HEIGHT, padding: 72 },
+  story: { height: STORY_HEIGHT, padding: '230px 72px 290px' },
+};
 
 const FONT_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fonts');
 
@@ -68,15 +76,17 @@ export function titleFontSize(length) {
 }
 
 const h = (type, style, children) => ({ type, props: { style, children } });
-const FULL = { position: 'absolute', top: 0, left: 0, width: CARD_WIDTH, height: CARD_HEIGHT };
+const fullLayer = height => ({ position: 'absolute', top: 0, left: 0, width: CARD_WIDTH, height });
 
-function buildCardTree({ title, topicLabel, source, theme, photoDataUri }) {
+function buildCardTree({ title, topicLabel, source, theme, photoDataUri, format = 'feed' }) {
+  const { height, padding } = FORMATS[format] ?? FORMATS.feed;
+  const FULL = fullLayer(height);
   const layers = [];
 
   if (photoDataUri) {
     layers.push({
       type: 'img',
-      props: { src: photoDataUri, width: CARD_WIDTH, height: CARD_HEIGHT, style: { ...FULL, objectFit: 'cover' } },
+      props: { src: photoDataUri, width: CARD_WIDTH, height, style: { ...FULL, objectFit: 'cover' } },
     });
     layers.push(h('div', {
       ...FULL,
@@ -118,30 +128,32 @@ function buildCardTree({ title, topicLabel, source, theme, photoDataUri }) {
   ]);
 
   const content = h('div', {
-    ...FULL, padding: 72, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+    ...FULL, padding, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
   }, [top, bottom]);
 
-  return h('div', { position: 'relative', display: 'flex', width: CARD_WIDTH, height: CARD_HEIGHT, backgroundColor: '#080a12' }, [...layers, content]);
+  return h('div', { position: 'relative', display: 'flex', width: CARD_WIDTH, height, backgroundColor: '#080a12' }, [...layers, content]);
 }
 
-async function renderTree(tree) {
-  const svg = await satori(tree, { width: CARD_WIDTH, height: CARD_HEIGHT, fonts: loadFonts() });
+async function renderTree(tree, format) {
+  const { height } = FORMATS[format] ?? FORMATS.feed;
+  const svg = await satori(tree, { width: CARD_WIDTH, height, fonts: loadFonts() });
   return new Resvg(svg, { fitTo: { mode: 'width', value: CARD_WIDTH } }).render().asPng();
 }
 
+// format: 'feed' (1080x1350, default) o 'story' (1080x1920).
 // Devuelve { png: Buffer, usedPhoto: boolean }. Si la foto no se puede dibujar
 // (formato que satori no entiende, archivo corrupto), cae al fondo de marca
 // en vez de fallar: la noticia siempre tiene imagen.
-export async function renderNoticiaCard({ title, topicLabel, topicId, source, photoDataUri }) {
+export async function renderNoticiaCard({ title, topicLabel, topicId, source, photoDataUri, format = 'feed' }) {
   const theme = pickTheme(topicId);
-  const base = { title: cleanTitle(title), topicLabel, source, theme };
+  const base = { title: cleanTitle(title), topicLabel, source, theme, format };
 
   if (photoDataUri) {
     try {
-      return { png: await renderTree(buildCardTree({ ...base, photoDataUri })), usedPhoto: true };
+      return { png: await renderTree(buildCardTree({ ...base, photoDataUri }), format), usedPhoto: true };
     } catch {
       // se sigue con el fondo de marca
     }
   }
-  return { png: await renderTree(buildCardTree({ ...base, photoDataUri: null })), usedPhoto: false };
+  return { png: await renderTree(buildCardTree({ ...base, photoDataUri: null }), format), usedPhoto: false };
 }

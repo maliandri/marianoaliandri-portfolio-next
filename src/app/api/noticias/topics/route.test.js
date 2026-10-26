@@ -266,6 +266,14 @@ describe('PATCH /api/noticias/topics', () => {
     expect(res.status).toBe(400);
   });
 
+  it('actualiza historia y rechaza un valor que no sea boolean', async () => {
+    const { db, state } = createFakeDb({ t1: { label: 'SEO' } });
+    getDb.mockReturnValue(db);
+    expect((await PATCH(makeRequest({ id: 't1', historia: true }))).status).toBe(200);
+    expect(state.topics.t1.historia).toBe(true);
+    expect((await PATCH(makeRequest({ id: 't1', historia: 'si' }))).status).toBe(400);
+  });
+
   it('rechaza usarFoto que no sea boolean', async () => {
     const { db } = createFakeDb({ t1: { label: 'SEO' } });
     getDb.mockReturnValue(db);

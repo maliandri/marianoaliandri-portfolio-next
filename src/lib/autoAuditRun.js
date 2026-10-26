@@ -6,6 +6,8 @@ import { runBatch } from '@/lib/autoAuditBatch';
 import { saveAuditoria } from '@/lib/auditoriasStore';
 import { imageIsReachable } from '@/lib/imageCheck';
 import { postToMakeSocial } from '@/lib/makeSocial';
+import { auditStoryScreenshotUrl } from '@/lib/socialAuditPost';
+import { publishIgStory, igCredsFromEnv } from '../../scripts/igStoryClient.mjs';
 
 const CONFIG_COLLECTION = 'auditoria_auto';
 const RUNS_COLLECTION = 'auditoria_auto_runs';
@@ -15,6 +17,21 @@ const MIN_SITES_TO_SAVE = 5;             // con cuota agotada solo se guarda si 
 // Por debajo de esto la combinación se marca como hecha y se prueba otra en la misma corrida.
 const MIN_SITES_TO_PUBLISH = 3;
 const MAX_COMBO_ATTEMPTS = 3;
+
+// Historia de Instagram con la captura del informe en formato celular. Sale si Instagram está
+// entre las redes y hay IG_ACCESS_TOKEN / IG_USER_ID; un fallo no cambia el estado del post.
+async function publishAuditStory(auditoriaId, networks) {
+  if (!networks?.includes('instagram') || !igCredsFromEnv()) return null;
+  const url = auditStoryScreenshotUrl(auditoriaId);
+  // La primera vez Microlink renderiza la captura: se pide antes para que Instagram la encuentre lista.
+  const image = await imageIsReachable(url);
+  if (!image.ok) return { ok: false, error: `La captura para la historia no responde (Microlink): ${image.detail}` };
+  try {
+    return { ok: true, id: await publishIgStory(url) };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
 
 export function defaultConfig() {
   return {
@@ -152,6 +169,8 @@ export async function runAutoAudit({
         } else try {
           await postToMakeSocial(payload, { timeoutMs: 10000 });
           run.estado = 'ok';
+          const historia = await publishAuditStory(saved.id, payload.networks);
+          if (historia) run.historia = historia;
         } catch (e) {
           run.estado = 'post_fallido';
           run.error = e.status ? `Make respondió ${e.status}` : e.message;

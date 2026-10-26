@@ -6,6 +6,7 @@ import admin from 'firebase-admin';
 import crypto from 'node:crypto';
 import { XMLParser } from 'fast-xml-parser';
 import { renderNoticiaCard } from './noticiaCard.mjs';
+import { publishIgStory, igCredsFromEnv } from './igStoryClient.mjs';
 import { postToX } from './xClient.mjs';
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent';
@@ -538,6 +539,28 @@ export function networksFor(destino) {
   return { ...(DESTINOS[destino] ?? DESTINOS.fb_ig) };
 }
 
+// Historia de Instagram además del post: se elige por tópico en el admin (`historia`, default
+// false) y solo tiene sentido si el destino incluye Instagram. Sale directo por la Graph API
+// (igStoryClient.mjs), no por Make.
+export function wantsStory(topic) {
+  return topic?.historia === true && networksFor(topic.destino || 'fb_ig').instagram;
+}
+
+// Sube la tarjeta 9:16 y la publica como historia. Un fallo acá no toca el post ya publicado:
+// queda anotado en `storyError` de la nota.
+async function publishStory(docRef, storyPng, title) {
+  try {
+    const url = toInstagramSafeUrl(await uploadToCloudinary(storyPng));
+    if (!(await waitForImage(url))) throw new Error('la imagen de la historia no estuvo lista');
+    const storyId = await publishIgStory(url);
+    await docRef.update({ storyId, storyError: null });
+    console.log(`  ✓ "${title}" — historia publicada en Instagram (id ${storyId})`);
+  } catch (e) {
+    await docRef.update({ storyError: e.message });
+    console.log(`  ⚠ "${title}" — la historia falló: ${e.message}`);
+  }
+}
+
 async function sendToMake(text, imageUrl, networks) {
   const webhookUrl = process.env.MAKE_WEBHOOK_URL;
   if (!webhookUrl) throw new Error('MAKE_WEBHOOK_URL no configurada');
@@ -556,7 +579,7 @@ async function sendToMake(text, imageUrl, networks) {
   if (!resp.ok) throw new Error(`Make ${resp.status}`);
 }
 
-async function publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng, usedPhoto, xLink }) {
+async function publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng, storyPng, usedPhoto, xLink }) {
   const destino = topic.destino || 'fb_ig';
   const networks = networksFor(destino);
   const soloX = destino === 'x';
@@ -624,6 +647,8 @@ async function publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng
     await docRef.update({ makeError: e.message });
     console.log(`  ⚠ "${content.title}" — guardada, pero Make falló: ${e.message}`);
   }
+
+  if (storyPng) await publishStory(docRef, storyPng, content.title);
 }
 
 async function main() {
@@ -690,15 +715,19 @@ async function main() {
         console.log(`  Artículo: ${articleText ? `${articleText.length} caracteres leídos` : 'no se pudo leer, se escribe con el titular'}.`);
         const content = await generateContent(item, topic, articleText);
         let cardPng = null;
+        let storyPng = null;
         let usedPhoto = false;
         if (!soloX) {
           const photoDataUri = topic.usarFoto === false ? null : await fetchPhotoDataUri(meta);
-          ({ png: cardPng, usedPhoto } = await renderNoticiaCard({
-            title: content.title, topicLabel: topic.label, topicId: topic.id, source: item.source, photoDataUri,
-          }));
+          const card = { title: content.title, topicLabel: topic.label, topicId: topic.id, source: item.source, photoDataUri };
+          ({ png: cardPng, usedPhoto } = await renderNoticiaCard(card));
           console.log(`  Tarjeta: fondo de ${usedPhoto ? 'foto del artículo' : 'marca'}.`);
+          if (wantsStory(topic)) {
+            if (igCredsFromEnv()) ({ png: storyPng } = await renderNoticiaCard({ ...card, format: 'story' }));
+            else console.log('  Historia: el tópico la pide pero faltan IG_ACCESS_TOKEN / IG_USER_ID, se saltea.');
+          }
         }
-        await publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng, usedPhoto, xLink: meta?.pageUrl || item.link });
+        await publishNoticia({ db, topic, item, content, sourceUrlHash, cardPng, storyPng, usedPhoto, xLink: meta?.pageUrl || item.link });
         publishedCount++;
         remaining--;
       } catch (e) {
