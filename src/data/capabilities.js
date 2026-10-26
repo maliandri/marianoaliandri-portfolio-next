@@ -1,6 +1,8 @@
 // Soluciones que Mariano puede construir, cada una con las tecnologías que usa.
 // Une "secciones de una página que se pueden crear" + el stack. Datos para el carrousel del home.
+// `href` + `cta` (opcionales): la filmina muestra un botón que lleva a esa sección del sitio.
 export const CAPABILITIES = [
+  { id: 'ia-conectada', emoji: '🧠', title: 'Tu sistema, conectado a la IA', desc: 'Tu equipo le pregunta a la IA en sus palabras y la IA responde y actúa con los datos de tu negocio: stock, turnos, obras, clientes.', benefit: 'Respuestas en segundos, con permisos y registro de todo.', techs: ['MCP', 'Claude', 'OAuth', 'Next.js'], href: '/ia-para/', cta: 'Mirá cómo sería en tu rubro' },
   { id: 'ecommerce', emoji: '🛒', title: 'Tienda online',          desc: 'Catálogo, carrito y checkout con MercadoPago, gestión de stock.',        benefit: 'Vendés 24/7 sin comisiones de plataformas.',        techs: ['Next.js', 'React', 'MercadoPago', 'Firebase'] },
   { id: 'chatbot',   emoji: '🤖', title: 'Chatbot con IA',         desc: 'Responde consultas con la info real de tu negocio, día y noche.',        benefit: 'Atención automática y menos mensajes sin responder.', techs: ['React', 'IA', 'Firebase'] },
   { id: 'seo',       emoji: '🔍', title: 'Aparecer en Google',     desc: 'SEO técnico, metadata y velocidad para posicionar sin publicidad paga.',  benefit: 'Te encuentran cuando te buscan.',                   techs: ['Next.js', 'Search Console'] },

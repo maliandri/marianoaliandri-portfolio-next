@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { CAPABILITIES } from '@/data/capabilities';
 
 const AUTO_MS = 4500;
@@ -64,6 +65,12 @@ export default function CapabilitiesCarousel() {
                     <span key={t} className="text-xs px-2.5 py-1 rounded-full bg-fg/5 border border-fg/10 text-fg-300">{t}</span>
                   ))}
                 </div>
+                {cap.href && (
+                  <Link href={cap.href} tabIndex={CAPABILITIES[index]?.id === cap.id ? 0 : -1}
+                    className="mt-6 inline-block px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
+                    {cap.cta} →
+                  </Link>
+                )}
               </div>
             </div>
           ))}
