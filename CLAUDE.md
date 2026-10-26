@@ -587,54 +587,6 @@ mensaje pre-cargado) ademas del screenshot del sitio y el badge de Score SEO.
 
 ---
 
-## Oracle Cloud VM — OpenWA (WhatsApp gateway)
-
-### VM Oracle Cloud Always Free
-- **Instancia**: `instance-20260526-1004`
-- **IP publica**: `146.235.244.218` (Efimera — si se pierde, reasignar desde VNIC → Administracion de IP)
-- **IP privada**: `10.0.0.9`
-- **Region**: Chile Central (Santiago) — `sa-santiago-1`
-- **Shape**: VM.Standard.E2.1.Micro (1 OCPU, 1 GB RAM) — Always Free
-- **OS**: Oracle Linux 9
-- **SSH key**: ⚠️ ACTUALIZAR RUTA — cambio de PC. Nombre del archivo: `ssh-key-2026-05-26.key`
-- **Usuario SSH**: `opc`
-
-**Comando SSH** (actualizar ruta de la key segun nueva PC):
-```powershell
-ssh -i "RUTA_A_LA_KEY\ssh-key-2026-05-26.key" opc@146.235.244.218
-```
-
-### Plan de instalacion OpenWA
-OpenWA es un gateway HTTP self-hosted de WhatsApp Web (NestJS + PostgreSQL + Docker).
-Permite enviar mensajes de WhatsApp desde el portfolio/admin via HTTP, sin riesgo de ban
-porque usa la sesion real del browser (no API oficial).
-
-**Stack decidido**:
-- Oracle Cloud VM (arriba) → corre OpenWA via Docker Compose
-- Supabase PostgreSQL → base de datos de OpenWA (free tier, sin sleep)
-- Next.js `/api/whatsapp-notify` → ruta para enviar mensajes desde el admin
-- Vercel cron job → ping keep-alive cada 14 minutos para evitar sleep de Supabase
-
-**Estado actual**: VM creada y con IP publica. Instalando Docker.
-
-**Pasos pendientes**:
-1. Instalar Docker en Oracle VM: `sudo dnf install -y docker`
-2. Habilitar Docker: `sudo systemctl enable --now docker`
-3. Instalar Docker Compose
-4. Crear proyecto `openwa` en Supabase, obtener PostgreSQL connection string
-5. Clonar OpenWA, configurar `.env` con DATABASE_URL de Supabase
-6. `docker-compose up -d`
-7. Escanear QR con WhatsApp
-8. Crear `/api/whatsapp-notify` en Next.js
-9. Agregar cron keep-alive en Vercel
-
-### Firewall Oracle Cloud
-**IMPORTANTE**: Oracle Cloud bloquea puertos por defecto. Para exponer OpenWA (puerto 3000):
-1. Oracle Console → VCN → Security Lists → Ingress Rules → Add rule TCP port 3000
-2. Tambien en Oracle Linux: `sudo firewall-cmd --add-port=3000/tcp --permanent && sudo firewall-cmd --reload`
-
----
-
 ## ZoneAnalysis — Funcionalidades implementadas
 
 Componente: `src/components/admin/ZoneAnalysis.jsx`
@@ -745,5 +697,4 @@ Reglas:
 - Para UI nueva o rediseño → aplicar **frontend-design** (no que parezca templated).
 - Para código React/Next → seguir **vercel-react-best-practices** (routing, data fetching, Server/Client Components).
 - El stack de datos es **Firebase** (Auth + Firestore), NO Supabase. Las reglas de seguridad se auditan con **firebase-security-rules-auditor**.
-- Supabase solo aparece en el plan futuro de OpenWA (Oracle VM). Si se implementa, recién ahí agregar `supabase/agent-skills@supabase`.
 - Antes de agregar skills nuevas: `npx skills find <tema>` y verificar install count (preferir 1K+ installs y fuentes reputadas).
