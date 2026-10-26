@@ -25,7 +25,11 @@ describe('defineTool / registerTools', () => {
     const { cb, config, db } = setup(async (args, c) => ({ summary: `hola ${args.a} ${c.user.uid}`, data: { n: 1 } }));
     expect(config.inputSchema).toBeDefined();
     const r = await cb({ a: 'x' }, ctx);
-    expect(r).toEqual({ content: [{ type: 'text', text: 'hola x u1' }], structuredContent: { n: 1 } });
+    // Claude puede leer solo `content`: los datos completos van también ahí, como JSON.
+    expect(r).toEqual({
+      content: [{ type: 'text', text: 'hola x u1' }, { type: 'text', text: '{"n":1}' }],
+      structuredContent: { n: 1 },
+    });
     const log = Object.entries(db.docs).find(([k]) => k.startsWith('mcp_tool_calls/'))[1];
     expect(log).toMatchObject({ tool: 'probar_cosa', ok: true });
   });

@@ -58,7 +58,12 @@ export function registerTools(server, tools, { getDb }) {
       try {
         const { summary, data } = await tool.handler(args || {}, { db, user, now: new Date() });
         await logCall(db, { tool: tool.name, ok: true, ms: Date.now() - t0, args: argsResumen(args) });
-        return redactSecrets({ content: [{ type: 'text', text: summary }], structuredContent: data });
+        // Claude (claude.ai/app) le pasa al modelo el `content`, no siempre el `structuredContent`:
+        // sin el JSON acá, Claude solo veía el resumen (pasó con rank_rubros_by_demand: "devolvió 5").
+        return redactSecrets({
+          content: [{ type: 'text', text: summary }, { type: 'text', text: JSON.stringify(data) }],
+          structuredContent: data,
+        });
       } catch (e) {
         const known = e instanceof ToolError;
         if (!known) console.error(`[mcp] ${tool.name} falló:`, e);
