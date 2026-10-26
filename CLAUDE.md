@@ -14,7 +14,7 @@ URL en produccion: https://marianoaliandri.com.ar
 
 | Capa | Tecnologia |
 |------|-----------|
-| Framework | Next.js 15 (App Router) |
+| Framework | Next.js 16 (App Router) |
 | UI | React 19, Tailwind CSS 4 |
 | Animaciones | Framer Motion 12 |
 | Estado servidor | TanStack Query 5 |
@@ -274,7 +274,8 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
     y lo anuncia en LinkedIn/Instagram/Facebook vía Make.com con el mismo contrato que el botón "Publicar en redes" de Auditorías (body de `/api/publish-social`: `type: 'service'`, `networks` array, `imageUrl` = captura Microlink de `/auditorias/<id>?screenshot=1`, `link`; helper `src/lib/socialAuditPost.js`).
   - Corre en **GitHub Actions** (`.github/workflows/auditoria-auto.yml`, `scripts/auto-audit.mjs`,
     ejecutado con `tsx --tsconfig jsconfig.json`), disparado por cron-job.org vía
-    `workflow_dispatch` (igual que el bot de noticias). NO usa el cron de Vercel (plan Hobby: 60 s).
+    `workflow_dispatch` (igual que el bot de noticias). NO usa el cron de Vercel (se armó así cuando
+    el plan era Hobby, 60 s; hoy el proyecto está en **Vercel Pro con Fluid compute**, hasta 800 s).
   - El post usa solo datos agregados (sin nombres de negocios). Arranca **apagada**: activar desde
     la tarjeta tras probar "Correr ahora".
   - Rubros prioritarios = negocios con etapas constructivas o de fabricación (candidatos al
@@ -286,7 +287,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   - `estado: 'ok'` en el log de corridas solo significa que Make aceptó el payload (responde 200 antes de correr el escenario); antes de publicar se verifica esa captura de Microlink (GET, `image/*`; Microlink la renderiza en el primer pedido, así que además la deja cacheada) y, si no responde con una imagen, la corrida queda `post_fallido` sin llamar a Make.
   - Cantidad de sitios por corrida: `cantidad` en `auditoria_auto/config` (default 15, rango 3–30, se edita en la tarjeta). Se examinan hasta `2 × cantidad` comercios (getDetails); con 15 son ~516/mes con 4 corridas por semana, la mitad del cupo gratis de Places. La tarjeta muestra el consumo estimado y lo pinta en rojo si supera 1.000/mes.
   - Mínimo 3 sitios con web para guardar/publicar (`MIN_SITES_TO_PUBLISH` en `src/lib/autoAuditRun.js`): si una combinación da menos (pasó el 2026-10-12 con Durlock × Formosa: Google tenía 2 comercios, 1 con web, y se publicó un informe de 1 sitio), se marca como hecha y se prueba otra en la misma corrida (hasta 3 intentos, compartiendo el tope de `maxCandidates` y el tiempo). Cada corrida guarda `intentos` (encontrados / examinados / con web por combinación), visible en la tarjeta del admin.
-  - "Correr ahora" (admin) usa modo rápido por el límite de 60 s de Vercel Hobby: lote corto (hasta 8 sitios, 15 s) y resumen de plantilla sin Gemini; la corrida programada de GitHub Actions usa el presupuesto completo.
+  - "Correr ahora" (admin) usa modo rápido (pensado para el límite de 60 s del viejo plan Hobby; con Pro se podría alargar): lote corto (hasta 8 sitios, 15 s) y resumen de plantilla sin Gemini; la corrida programada de GitHub Actions usa el presupuesto completo.
 - **Consumo Google** (admin → Marketing → Consumo Google): tabla por día del mes con comercios
   auditados (getDetails), búsquedas, acumulado y cuánto queda del cupo gratis mensual de Places
   (1.000 detalles), proyección a fin de mes y costo estimado. Lee `leadfinder_usage` vía
@@ -383,7 +384,12 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 | `noticias_config` | Interruptor on/off + tope diario opcional del bot | Admin (tab Noticias) |
 | `auditoria_auto` | Config de la auditoría automática (`config`: activo, ciudades, rubros, puntero, candado) | Admin SDK (server) / admin tab |
 | `auditoria_auto_runs` | Historial de corridas de la auditoría automática | Admin SDK (server) |
-| `ig_prospectos` | Negocios con @ de Instagram a contactar por DM: DM sugerido (Gemini, fallback plantilla), estado (pendiente/contactado/respondio/cliente/descartado), notas. Doc id = handle | Solo Admin SDK vía `/api/ig-prospectos` (admin) |
+| `ig_prospectos` | Negocios con @ de Instagram a contactar por DM: DM sugerido (Gemini, fallback plantilla), estado (pendiente/contactado/respondio/cliente/descartado), notas. Doc id = handle | Solo Admin SDK vía `/api/ig-prospectos` (admin) y el MCP |
+| `email_bajas` | Bajas de los mails a negocios (email + dominios de su web). Permanentes | `/api/email-baja` (link firmado del pie del mail) |
+| `mcp_oauth_clients` / `mcp_oauth_codes` / `mcp_oauth_tokens` | OAuth del servidor MCP: clientes DCR, códigos y tokens (solo el sha256). Borrar un doc de tokens = cortar ese acceso | Solo Admin SDK |
+| `mcp_lead_jobs` | Búsquedas de leads lanzadas por el MCP (progreso + leads) | Solo Admin SDK |
+| `mcp_email_drafts` / `mcp_email_counter` | Borradores de mails del MCP (TTL 7 días) y contador del tope diario | Solo Admin SDK |
+| `mcp_rate` / `mcp_tool_calls` | Rate limiting y registro de cada llamada a una tool del MCP | Solo Admin SDK |
 
 **IMPORTANTE `entitlements/{uid}`**: el cliente NO puede escribirla (regla `write: if false`).
 El plan y el contador de busquedas solo los escribe el Admin SDK desde el server. Esto evita que
@@ -560,6 +566,63 @@ mensaje pre-cargado) ademas del screenshot del sitio y el badge de Score SEO.
 - **Lead Finder — cobro por lead**: la regla de lead se decide en el server
   (`/api/lead-finder-pro/run` usa `clasificarLead`); nunca mover esa decisión al cliente. Cada
   lead tiene `ciudad`, `canal` y `whatsapp`; el `seen` del motor evita duplicados entre ciudades.
+
+---
+
+## Servidor MCP (desde 2026-10-26)
+
+Las herramientas del sitio expuestas como **servidor MCP remoto** para usarlas desde Claude
+(claude.ai, Desktop/Cowork, celular) como "conector personalizado". Diseño y decisiones:
+`docs/superpowers/specs/2026-10-26-mcp-server-design.md`.
+
+- **Endpoint**: `https://marianoaliandri.com.ar/api/mcp/mcp/` — **con barra final** (sin barra,
+  `trailingSlash: true` responde 308 y el POST no llega). `src/app/api/mcp/[transport]/route.js`,
+  `mcp-handler@2` + `@modelcontextprotocol/server@2`, Streamable HTTP, `maxDuration = 800` (Pro + Fluid).
+- **Auth**: OAuth 2.1 propio (`src/lib/mcp/oauth.js`): DCR en `/api/mcp-oauth/register/`, pantalla
+  `/mcp/authorize/` (login de Google de Firebase, **solo `ADMIN_EMAIL` con email verificado**),
+  `/api/mcp-oauth/token/` (form-urlencoded, PKCE S256, access 1 h, refresh 30 días rotativo; reusar un
+  refresh viejo revoca la familia). Metadata en `/.well-known/oauth-protected-resource/` y
+  `/.well-known/oauth-authorization-server`. Redirects permitidos: callbacks de claude.ai/claude.com y
+  loopback (Claude Code, MCP Inspector). En Firestore solo va el sha256 de códigos y tokens.
+- **Interruptor**: sin `MCP_ENABLED=true` el endpoint y el OAuth responden 503.
+- **Frenos (todos en el servidor)**: rate limit por usuario (`MCP_RATE_PER_MIN`=60,
+  `MCP_RATE_PER_DAY`=1500); Places: tope diario propio `MCP_PLACES_DAILY_CAP`=150 (campo `mcpPlaces`
+  en `leadfinder_usage`) y corte si un SKU del mes pasa el 90 % del cupo gratis
+  (`src/lib/mcp/placesBudget.js`); mails: lista de bloqueo (bajas + rebotes, aplica también al botón del
+  admin), no volver a escribirle a un negocio (por email o dominio) antes de `MCP_EMAIL_RECONTACT_DAYS`=30,
+  tope `MCP_EMAIL_DAILY_CAP`=15 (`src/lib/emailGuards.js`). El texto de Gemini se valida antes de mandar
+  (`validateGeneratedEmail`); si no pasa, sale la plantilla. Todos los mails a negocios llevan link de baja
+  firmado (`/baja/`, `EMAIL_UNSUBSCRIBE_SECRET`: sin esa env var el envío falla).
+- **Nada de secretos**: cada respuesta pasa por `redactSecrets()` (`src/lib/mcp/redact.js`) y los errores
+  internos salen como "Error interno"; `src/lib/mcp/noSecrets.test.js` corre todas las tools con
+  valores centinela en las env vars.
+- **Registro**: cada llamada queda en `mcp_tool_calls` (tool, ok, ms, args resumidos).
+- **Tools** (15): `search_leads` (asíncrona: crea un job en `mcp_lead_jobs` y sigue con `after()`),
+  `get_lead_search`, `list_lead_searches`, `rank_rubros_by_demand`, `list_audits`, `get_audit`,
+  `create_audit_report`, `publish_audit_social` (`dry_run`), `draft_business_email`,
+  `send_business_email` (`dry_run`), `list_sent_emails`, `list_ig_prospects`, `update_ig_prospect`
+  (no manda DMs), `get_places_usage`, `get_site_stats`.
+- **Lógica compartida con la UI** (no duplicar): `src/lib/leadFinderPro.js`, `leadSearchesStore.js`,
+  `leadDemand.js`, `leadSearch.js` (`reduceLeadEvent`), `auditReportDraft.js`, `imageCheck.js`,
+  `makeSocial.js`, `bizEmail.js`, `emailGuards.js`, `igProspectosStore.js`, `siteStats.js`.
+
+**Cómo sumar una tool nueva**
+1. Si la lógica vive en una ruta o un componente, sacarla primero a una función de `src/lib/` y hacer
+   que la ruta/pantalla la use (con su test).
+2. En `src/lib/mcp/tools/<grupo>.js`, `defineTool({ name, title, description, inputSchema, annotations, handler })`:
+   nombre en `snake_case`; descripción en español pensada para un LLM (qué hace, cuándo usarla, si cuesta
+   plata o tiene efectos afuera); `inputSchema: z.object({...})` con `.describe()` por campo; listas con
+   `cursor`/`limit` y respuesta `{ items, nextCursor }` (`src/lib/mcp/paginate.js`); `annotations`
+   (`readOnlyHint`, `openWorldHint`…). El handler recibe `(args, { db, user, now })` y devuelve
+   `{ summary, data }`; errores para Claude con `throw new ToolError('...')`. Devolver campos elegidos a
+   mano, nunca el doc crudo. Si tiene efectos afuera, agregar `dry_run`.
+3. Agregarla a `ALL_TOOLS` en `src/lib/mcp/register.js` y a `ARGS` en `src/lib/mcp/noSecrets.test.js`
+   (el test falla si hay una tool sin argumentos de ejemplo).
+4. Test propio junto a la tool + `npm test` + probarla con
+   `npx @modelcontextprotocol/inspector --cli http://localhost:3000/api/mcp/mcp/ --transport http --header "Authorization: Bearer <token>" --method tools/call --tool-name <tool>`.
+   Para probar en local: `MCP_ENABLED=true MCP_BASE_URL=http://localhost:3000 npm run dev`.
+5. Si agrega un query con `where` + `orderBy` en campos distintos, Firestore pide un índice compuesto:
+   preferir filtrar en memoria si la colección es chica (pasó con `list_ig_prospects`).
 
 ---
 
