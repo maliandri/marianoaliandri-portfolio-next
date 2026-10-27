@@ -1,6 +1,7 @@
 {
   "crons": [
-    { "path": "/api/analitica/refresh/", "schedule": "0 10 * * *" }
+    { "path": "/api/analitica/refresh/", "schedule": "0 10 * * *" },
+    { "path": "/api/cron/health/", "schedule": "0 12 * * *" }
   ],
   "headers": [
     {

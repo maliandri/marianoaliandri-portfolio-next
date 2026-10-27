@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 import admin, { getDb } from '@/lib/firebase-admin';
+import { alertError } from '@/lib/alert';
 
 // Webhook de Gumroad ("Ping") para los packs de créditos de Lead Finder Pro que se
 // venden en USD (complemento a MercadoPago/ARS, ver /api/payment-webhook). Configurar
@@ -61,6 +62,7 @@ export async function POST(request) {
       sale = await verifySale(saleId);
     } catch (e) {
       console.error('[gumroad-webhook] error verificando venta contra la API de Gumroad:', e.message);
+      await alertError('gumroad-webhook:verify', 'Gumroad: no se pudo verificar una venta', e, { saleId });
       return Response.json({ error: 'No se pudo verificar la venta' }, { status: 500 });
     }
     if (!sale) {
@@ -133,6 +135,7 @@ export async function POST(request) {
     return Response.json({ received: true });
   } catch (error) {
     console.error('[gumroad-webhook] ERROR:', error.message);
+    await alertError('gumroad-webhook', 'Webhook de Gumroad falló', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 }

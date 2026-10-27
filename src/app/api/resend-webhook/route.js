@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import crypto from 'crypto';
 import { getDb } from '@/lib/firebase-admin';
+import { alertError } from '@/lib/alert';
 
 // Mapa evento de Resend → estado que guardamos
 const EVENT_STATUS = {
@@ -73,6 +74,7 @@ export async function POST(request) {
     return Response.json({ ok: true, status });
   } catch (e) {
     console.error('[resend-webhook] ERROR:', e.message);
+    await alertError('resend-webhook', 'Webhook de Resend falló', e);
     return Response.json({ error: e.message }, { status: 500 });
   }
 }

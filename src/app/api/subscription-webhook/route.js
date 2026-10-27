@@ -5,6 +5,7 @@ import { setPlan } from '@/lib/entitlements';
 import { PLANS } from '@/data/plans';
 import { verifyMpSignature } from '@/lib/mpWebhook';
 import admin, { getDb } from '@/lib/firebase-admin';
+import { alertError } from '@/lib/alert';
 
 // Suscripciones de Lead Finder Pro usan external_reference "lfp:<uid>:<planId>" para
 // distinguirse de las de Analítica ("<uid>:<planId>"). El cupo mensual se resetea solo
@@ -105,6 +106,7 @@ export async function POST(request) {
     return Response.json({ ok: true, status });
   } catch (e) {
     console.error('[subscription-webhook] ERROR:', e?.message);
+    await alertError('subscription-webhook', 'Webhook de suscripciones de MercadoPago falló', e);
     return Response.json({ error: e?.message }, { status: 500 });
   }
 }

@@ -3,6 +3,7 @@ import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { Resend } from 'resend';
 import crypto from 'crypto';
 import admin, { getDb } from '@/lib/firebase-admin';
+import { alertError } from '@/lib/alert';
 
 
 function verifyWebhookSignature(rawBody, headers) {
@@ -218,8 +219,8 @@ export async function POST(request) {
       if (paymentData.status === 'approved') {
         const metadata = paymentData.metadata;
         if (metadata?.cvAnalysis ?? metadata?.cv_analysis) {
-          try { await sendCVAnalysisEmail(paymentData, baseUrl); } catch (e) { console.error(e); }
-          try { await saveCVOrder(paymentData); } catch (e) { console.error(e); }
+          try { await sendCVAnalysisEmail(paymentData, baseUrl); } catch (e) { console.error(e); await alertError('payment-webhook:cv-email', 'Pago de CV aprobado pero no salió el mail', e, { paymentId: paymentData?.id }); }
+          try { await saveCVOrder(paymentData); } catch (e) { console.error(e); await alertError('payment-webhook:cv-orden', 'Pago de CV aprobado sin orden guardada', e, { paymentId: paymentData?.id }); }
         }
         if (metadata?.type === 'leadfinder_plan') {
           try {
@@ -230,7 +231,10 @@ export async function POST(request) {
           }
         }
         if (metadata?.user_id && metadata?.type !== 'leadfinder_plan') {
-          try { await saveStoreOrder(paymentData); } catch (e) { console.error('[payment-webhook] error guardando orden de tienda:', e); }
+          try { await saveStoreOrder(paymentData); } catch (e) {
+            console.error('[payment-webhook] error guardando orden de tienda:', e);
+            await alertError('payment-webhook:orden', 'Pago aprobado sin orden guardada (tienda)', e, { paymentId: paymentData?.id });
+          }
         }
       }
     }
@@ -238,6 +242,7 @@ export async function POST(request) {
     return Response.json({ received: true });
   } catch (error) {
     console.error('Error en payment-webhook:', error);
+    await alertError('payment-webhook', 'Webhook de pagos de MercadoPago falló', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 }

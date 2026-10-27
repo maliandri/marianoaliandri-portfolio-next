@@ -312,6 +312,13 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   `generate_lead` y `whatsapp_click` nunca habían llegado. Clicks a `wa.me` y a `/presupuesto` se registran solos
   en todo el sitio (listener global en `providers.jsx`); la vuelta de MercadoPago (`?payment=`/`?sub=`/`?lfp=success`)
   marca `compra_*`.
+- **Alertas por mail** (desde 2026-10-27, `src/lib/alert.js`): `sendAlert` / `alertError` mandan un mail (Resend) a
+  `ALERT_EMAIL` o `ADMIN_EMAIL`, máx. uno por hora por `key` (las repeticiones se cuentan en la colección `alertas`),
+  con `redactSecrets` y sin tirar nunca. Disparan: cualquier error no capturado del servidor (`src/instrumentation.js`,
+  `onRequestError`, solo en producción), los catch de los webhooks de MercadoPago (pagos y suscripciones), Gumroad y
+  Resend, y el cron diario `/api/cron/health/` (12:00 UTC, `vercel.json`, `CRON_SECRET`) que revisa el token de
+  Instagram (que sirva + aviso con ≤7 días a `expires_at` o `data_access_expires_at`) y el de MercadoPago
+  (`src/lib/healthCheck.js`). Para un catch nuevo que importe: `await alertError('clave', 'Título', e, { contexto })`.
 - **Menú del admin y pantallas nuevas**: `nav_config/admin` guarda `knownIds` (los ids que existían
   en el código al guardar). `src/lib/navMerge.js` agrega solo los ítems/sub-ítems del código que
   aparecieron después, así una pantalla nueva en `adminNav.js` aparece sola y lo que el usuario
@@ -423,6 +430,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 | `mcp_email_drafts` / `mcp_email_counter` / `mcp_email_locks` | Borradores de mails del MCP (TTL 7 días), contador del tope diario y candado por negocio (email/dominio, último envío) que evita mails duplicados | Solo Admin SDK |
 | `ig_stories` | Registro de cada historia publicada desde el admin o el MCP (`origen`, `storyId` o `error`) | Solo Admin SDK |
 | `mcp_social_counter` | Contador diario de publicaciones en redes hechas desde el MCP (tope `MCP_SOCIAL_DAILY_CAP`) | Solo Admin SDK |
+| `alertas` | Una por clave de alerta: último envío, total y repeticiones suprimidas (tope 1 mail/hora) | Solo Admin SDK (`src/lib/alert.js`) |
 | `mcp_rate` / `mcp_tool_calls` | Rate limiting y registro de cada llamada a una tool del MCP | Solo Admin SDK |
 
 **IMPORTANTE `entitlements/{uid}`**: el cliente NO puede escribirla (regla `write: if false`).
