@@ -653,7 +653,14 @@ Las herramientas del sitio expuestas como **servidor MCP remoto** para usarlas d
   internos salen como "Error interno"; `src/lib/mcp/noSecrets.test.js` corre todas las tools con
   valores centinela en las env vars.
 - **Registro**: cada llamada queda en `mcp_tool_calls` (tool, ok, ms, args resumidos).
-- **Tools** (18, incluye `get_funnels`): `search_leads` (asíncrona: crea un job en `mcp_lead_jobs` y sigue con `after()`),
+- **Tools** (27): presupuestos (desde 2026-10-28, `tools/presupuestos.js` + `src/lib/presupuestos.js`):
+  `list_budget_requests`, `get_budget_request`, `quote_budget_request` (monto + link de MercadoPago con
+  `metadata.type: 'presupuesto'`; devuelve `whatsappUrl` con el mensaje escrito, no le escribe al cliente; `dry_run`) y
+  `set_budget_status`. Cuando ese link se paga, `payment-webhook` llama `registrarPagoPresupuesto` (suma el pago a
+  `payments`, estado `accepted`) y manda un mail con `sendAlert`. Demanda (`tools/demanda.js`): `list_demand_reports`,
+  `get_demand_report`, `run_demand_report` (`publicar` default false; si es true usa el tope social) y `save_demand_zone`
+  (valida contra `PROVINCIAS_AR` sin acentos). `get_automation_status` (`tools/status.js`): noticias 24 h, auditoría
+  automática, demanda, presupuestos pendientes y últimas alertas. Además: `search_leads` (asíncrona: crea un job en `mcp_lead_jobs` y sigue con `after()`),
   `get_lead_search`, `list_lead_searches`, `rank_rubros_by_demand`, `list_audits`, `get_audit`,
   `create_audit_report`, `publish_audit_social` (`dry_run`), `draft_business_email`,
   `send_business_email` (`dry_run`), `list_sent_emails`, `list_ig_prospects`, `update_ig_prospect`

@@ -3,7 +3,8 @@ import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { Resend } from 'resend';
 import crypto from 'crypto';
 import admin, { getDb } from '@/lib/firebase-admin';
-import { alertError } from '@/lib/alert';
+import { alertError, sendAlert } from '@/lib/alert';
+import { registrarPagoPresupuesto } from '@/lib/presupuestos';
 
 
 function verifyWebhookSignature(rawBody, headers) {
@@ -228,6 +229,22 @@ export async function POST(request) {
           } catch (e) {
             console.error('[payment-webhook] error acreditando Lead Finder Pro:', e);
             await notifyAdminOfCreditFailure(paymentData, e);
+          }
+        }
+        if (metadata?.type === 'presupuesto') {
+          try {
+            const r = await registrarPagoPresupuesto(getDb(), paymentData);
+            if (!r.duplicado) {
+              await sendAlert({
+                key: `presupuesto-pagado:${paymentData.id}`,
+                titulo: `Pagaron un presupuesto: ARS ${Number(paymentData.transaction_amount || 0).toLocaleString('es-AR')}`,
+                detalle: 'Entró un pago por MercadoPago y el presupuesto quedó como Aceptado.',
+                contexto: { presupuesto: metadata.presupuesto_id, pago: paymentData.id, pagador: paymentData.payer?.email },
+              });
+            }
+          } catch (e) {
+            console.error('[payment-webhook] error registrando pago de presupuesto:', e);
+            await alertError('payment-webhook:presupuesto', 'Pago de presupuesto aprobado sin registrar', e, { paymentId: paymentData?.id });
           }
         }
         if (metadata?.user_id && metadata?.type !== 'leadfinder_plan') {

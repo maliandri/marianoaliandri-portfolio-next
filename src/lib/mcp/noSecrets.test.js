@@ -44,6 +44,9 @@ const seed = () => createFakeDb({
   'mcp_lead_jobs/j1': { uid: 'u1', status: 'error', error: LEAK, totals: {}, avisos: [LEAK], leads: [row] },
   'ig_prospectos/pana': { handle: 'pana', estado: 'pendiente', dm: LEAK },
   'sent_emails/x': { email: 'z@z.com', siteUrl: 'https://z.com' },
+  'presupuestos/b1': { clientName: 'Ana', clientEmail: 'ana@x.com', clientPhone: '2995551234', selectedServices: ['web'], status: 'pending', projectDescription: LEAK },
+  'demanda_reportes/d1': { zona: 'Alto Valle', localidades: ['Neuquén'], createdAtMs: 1, top: [{ id: 'f', label: 'Farmacia', pos: 1, interes: 100, ejemplos: [LEAK] }] },
+  'alertas/a1': { key: LEAK, total: 2, ultimaVez: 1 },
 });
 
 // Argumentos de ejemplo por tool (camino feliz y camino de error).
@@ -68,6 +71,15 @@ const ARGS = {
     { texto: 'Hola', redes: ['linkedin'], dry_run: true },
     { texto: 'Hola', redes: ['facebook_instagram'], imagenes: ['https://ejemplo.com/a.png', 'https://ejemplo.com/b.png'] },
   ],
+  list_budget_requests: [{}, { estado: 'pending' }],
+  get_budget_request: [{ id: 'b1' }, { id: 'nope' }],
+  quote_budget_request: [{ id: 'b1', monto_ars: 100000, dry_run: true }, { id: 'b1', monto_ars: 100000 }],
+  set_budget_status: [{ id: 'b1', estado: 'rejected' }, { id: 'nope', estado: 'sent' }],
+  list_demand_reports: [{}, { zona: 'Alto Valle' }],
+  get_demand_report: [{ id: 'd1' }, { id: 'nope' }],
+  run_demand_report: [{ zona: 'Alto Valle' }, { zona: 'Nada', publicar: true }],
+  save_demand_zone: [{ nombre: 'Comarca', localidades: [{ provincia: 'rio negro', localidad: 'el bolson' }] }, { nombre: 'X', localidades: [{ provincia: 'Marte', localidad: 'Y' }] }],
+  get_automation_status: [{}],
   publish_ig_story: [{ tipo: 'imagen', url: 'https://ejemplo.com/a.png', dry_run: true }, { tipo: 'texto', texto: 'Hola' }],
 };
 
