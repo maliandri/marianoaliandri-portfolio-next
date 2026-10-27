@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import { ExchangeService, formatARS, formatUSD } from '../utils/exchangeService';
 import { createPaymentPreference } from '../utils/mercadoPagoConfig';
 import { firebaseAuth } from '../utils/firebaseservice';
+import { track } from '@/lib/track';
 import { DEFAULT_PAYMENT_PLAN, sanitizePlan, advanceFraction } from '../data/paymentPlan';
 
 export default function Cart({ onClose }) {
@@ -118,6 +119,7 @@ export default function Cart({ onClose }) {
 
       // Redirigir a Mercado Pago
       if (preference.init_point) {
+        track('checkout_tienda', { items: cart.length });
         window.location.href = preference.init_point;
       } else {
         throw new Error('No se obtuvo la URL de pago');

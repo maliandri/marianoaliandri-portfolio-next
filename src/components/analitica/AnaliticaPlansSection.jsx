@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { PLANS, PAID_PLAN_IDS, formatPlanPrice } from '@/data/plans';
 import { useAuthUser } from '@/hooks/useAuthUser';
+import { track } from '@/lib/track';
 
 // Sección pública de planes de Analítica Regional — visible siempre en /analitica, y
 // reutilizada en /herramientas. Antes los precios solo aparecían en un modal (PlansModal)
@@ -47,6 +48,7 @@ export default function AnaliticaPlansSection({ anchorId = 'planes' }) {
       });
       const data = await res.json();
       if (!res.ok || !data.initPoint) throw new Error(data.error || 'No se pudo iniciar el pago');
+      track('checkout_analitica', { plan: planId });
       window.location.href = data.initPoint;
     } catch (e) {
       setError(e.message || 'Error iniciando el pago');

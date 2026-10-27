@@ -7,6 +7,7 @@ export const ADMIN_NAV_DEFAULT = [
   { id: 'panel', label: 'Panel', icon: '📊', items: [
     { id: 'inicio', label: 'Inicio', icon: '🏠' },
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'embudos', label: 'Embudos', icon: '🔻' },
   ]},
   { id: 'tienda', label: 'Tienda', icon: '🛍️', items: [
     { id: 'products', label: 'Productos', icon: '🛍️' },

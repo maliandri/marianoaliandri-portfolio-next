@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { track } from '@/lib/track';
 
 const CartContext = createContext();
 
@@ -33,6 +34,7 @@ export function CartProvider({ children }) {
 
   // Agregar producto al carrito
   const addToCart = (product) => {
+    track('add_to_cart', { item_id: product.id, item_name: product.name });
     setCart((prevCart) => {
       // Verificar si el producto ya está en el carrito
       const existingItem = prevCart.find((item) => item.id === product.id);

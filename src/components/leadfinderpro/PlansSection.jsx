@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/utils/firebaseservice';
 import { useAuthUser } from '@/hooks/useAuthUser';
+import { track } from '@/lib/track';
 import { lfpT } from '@/data/i18n/leadFinderPro';
 
 function fmtARS(n) {
@@ -36,6 +37,7 @@ function PlanCard({ plan, user, onLogin, getIdToken, t }) {
       });
       const data = await res.json();
       if (!res.ok || !data.initPoint) throw new Error(data.error || 'No se pudo iniciar el pago');
+      track('checkout_lfp', { plan: plan.id });
       window.location.href = data.initPoint;
     } catch (e) {
       setError(e.message || 'Error iniciando el pago');

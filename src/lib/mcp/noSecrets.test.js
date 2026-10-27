@@ -22,6 +22,7 @@ vi.mock('@/lib/makeSocial', () => ({ postToMakeSocial: vi.fn(async () => { throw
 vi.mock('@/lib/siteStats', () => ({
   fetchGA4: vi.fn(async () => ({ sesiones: 1, usuarios: 1, paginasVistas: 1, bots: 0, paginas: [], fuentes: [{ fuente: LEAK, sesiones: 1 }], ciudades: [] })),
   fetchGSC: vi.fn(async () => { throw new Error(LEAK); }),
+  fetchFunnels: vi.fn(async () => { throw new Error(LEAK); }),
 }));
 vi.mock('@/lib/rubroDemand', async (orig) => ({
   ...(await orig()),
@@ -62,6 +63,7 @@ const ARGS = {
   update_ig_prospect: [{ handle: 'pana', estado: 'contactado' }, { handle: 'pana', estado: 'volando' }],
   get_places_usage: [{}],
   get_site_stats: [{}],
+  get_funnels: [{}],
   publish_free_post: [
     { texto: 'Hola', redes: ['linkedin'], dry_run: true },
     { texto: 'Hola', redes: ['facebook_instagram'], imagenes: ['https://ejemplo.com/a.png', 'https://ejemplo.com/b.png'] },

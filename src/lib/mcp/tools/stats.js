@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { PLACES_LIMITS } from '@/data/placesFreeTier';
 import { buildUsageReport } from '@/lib/placesUsage';
-import { fetchGA4, fetchGSC } from '@/lib/siteStats';
+import { fetchFunnels, fetchGA4, fetchGSC } from '@/lib/siteStats';
+import { CONTACT_EVENTS, FUNNELS } from '@/data/funnels';
 import { defineTool, ToolError } from '../defineTool';
 import { placesBudget } from '../placesBudget';
 
@@ -67,4 +68,30 @@ export const getSiteStatsTool = defineTool({
   },
 });
 
-export const STATS_TOOLS = [getPlacesUsageTool, getSiteStatsTool];
+export const getFunnelsTool = defineTool({
+  name: 'get_funnels',
+  title: 'Embudos de conversión',
+  description:
+    'Embudos de conversión del sitio (Google Analytics, personas sin bots) de los últimos 7, 28 o 90 días: cuántos '
+    + 'entraron a /presupuesto, /ia-para/, /tienda, /analitica y /lead-finder-pro, cuántos avanzaron en cada paso '
+    + '(datos, carrito, ir a pagar, pagar) y dónde se caen; más los clicks a WhatsApp y presupuestos enviados. '
+    + 'Los pasos intermedios se miden desde el 2026-10-27.',
+  inputSchema: z.object({
+    days: z.union([z.literal(7), z.literal(28), z.literal(90)]).optional().describe('Período en días: 7, 28 o 90 (default 28).'),
+  }),
+  annotations: { readOnlyHint: true },
+  async handler(args) {
+    const days = args.days ?? 28;
+    let r;
+    try {
+      r = await fetchFunnels({ days, funnels: FUNNELS, contacts: CONTACT_EVENTS });
+    } catch {
+      throw new ToolError('No se pudo leer Google Analytics.');
+    }
+    if (r.noData) throw new ToolError('Google Analytics no está configurado en el servidor.');
+    const resumen = r.embudos.map(e => `${e.titulo}: ${e.pasos.map(p => p.personas).join(' → ')}`).join('; ');
+    return { summary: `Últimos ${days} días (personas por paso). ${resumen}.`, data: r };
+  },
+});
+
+export const STATS_TOOLS = [getPlacesUsageTool, getSiteStatsTool, getFunnelsTool];

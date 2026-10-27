@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { trackGAEvent } from '@/utils/firebaseservice';
+import { track } from '@/lib/track';
 
 const LAST_SENT_KEY = 'presupuesto_last_sent';
 
@@ -214,7 +214,7 @@ export default function BudgetForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al enviar');
       setDone(true);
-      trackGAEvent('generate_lead', { services_count: selectedItems.length, estimated_value: estimatedTotal });
+      track('generate_lead', { services_count: selectedItems.length, estimated_value: estimatedTotal });
       try {
         localStorage.setItem(LAST_SENT_KEY, JSON.stringify({
           email: form.clientEmail, servicesCount: selectedItems.length, when: new Date().toISOString(),
@@ -328,6 +328,7 @@ export default function BudgetForm() {
                   return;
                 }
                 setError('');
+                track('presupuesto_datos');
                 setStep(1);
               }}
               className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 glow-btn"
@@ -369,6 +370,7 @@ export default function BudgetForm() {
                 onClick={() => {
                   if (selected.size === 0) { setError('Seleccioná al menos un servicio.'); return; }
                   setError('');
+                  track('presupuesto_servicios', { services_count: selected.size });
                   setStep(2);
                 }}
                 className="flex-[2] bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 glow-btn"

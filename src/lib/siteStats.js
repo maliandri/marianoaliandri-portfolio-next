@@ -97,17 +97,83 @@ const SIN_BOTS_NI_PRIVADAS = {
   },
 };
 
-export async function fetchGA4({ days = 28 } = {}) {
-  const propertyId = process.env.GA4_PROPERTY_ID;
-  if (!propertyId) return { sesiones: 0, usuarios: 0, paginasVistas: 0, serie: [], noData: true };
-
-  // REST (googleapis) en vez de @google-analytics/data: el cliente gRPC se colgaba.
+function ga4Client() {
   const auth = new google.auth.JWT({
     email: process.env.FIREBASE_CLIENT_EMAIL,
     key: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
     scopes: ['https://www.googleapis.com/auth/analytics.readonly'],
   });
-  const analyticsdata = google.analyticsdata({ version: 'v1beta', auth });
+  return google.analyticsdata({ version: 'v1beta', auth });
+}
+
+// Un paso de embudo → filtro de GA4: personas (sin bots) que dispararon el evento (o vieron la
+// página) en las páginas indicadas. Una consulta por paso para no sumar dos veces a quien vio varias
+// páginas del mismo prefijo.
+export function stepFilter({ event, page }) {
+  const exprs = [SIN_BOTS, { filter: { fieldName: 'eventName', stringFilter: { matchType: 'EXACT', value: event || 'page_view' } } }];
+  const pages = [page].flat().filter(Boolean);
+  if (pages.length) {
+    exprs.push({
+      orGroup: {
+        expressions: pages.map(p => ({ filter: { fieldName: 'pagePath', stringFilter: { matchType: 'BEGINS_WITH', value: p } } })),
+      },
+    });
+  }
+  return { andGroup: { expressions: exprs } };
+}
+
+// Arma los embudos con las personas por paso y el % respecto del paso anterior y del primero.
+export function assembleFunnels(funnels, counts) {
+  return funnels.map((f, fi) => {
+    const pasos = f.pasos.map((p, pi) => ({ label: p.label, personas: counts[`f${fi}_${pi}`] ?? 0 }));
+    pasos.forEach((p, i) => {
+      const prev = i ? pasos[i - 1].personas : null;
+      p.pctPrevio = prev ? Math.round((p.personas / prev) * 100) : null;
+      p.pctInicio = i && pasos[0].personas ? Math.round((p.personas / pasos[0].personas) * 100) : null;
+    });
+    return { id: f.id, titulo: f.titulo, pasos };
+  });
+}
+
+export async function fetchFunnels({ days = 28, funnels, contacts = [] } = {}) {
+  const propertyId = process.env.GA4_PROPERTY_ID;
+  if (!propertyId) return { dias: days, embudos: [], contactos: [], noData: true };
+
+  const queries = [
+    ...funnels.flatMap((f, fi) => f.pasos.map((p, pi) => ({ key: `f${fi}_${pi}`, step: p }))),
+    ...contacts.map((c, ci) => ({ key: `c${ci}`, step: { event: c.event } })),
+  ];
+  const dateRanges = [{ startDate: `${days}daysAgo`, endDate: 'today' }];
+  const analyticsdata = ga4Client();
+
+  // batchRunReports acepta hasta 5 reportes por pedido.
+  const chunks = [];
+  for (let i = 0; i < queries.length; i += 5) chunks.push(queries.slice(i, i + 5));
+  const responses = await Promise.all(chunks.map(chunk => analyticsdata.properties.batchRunReports({
+    property: `properties/${propertyId}`,
+    requestBody: {
+      requests: chunk.map(q => ({ dateRanges, dimensionFilter: stepFilter(q.step), metrics: [{ name: 'activeUsers' }] })),
+    },
+  })));
+
+  const counts = {};
+  responses.forEach((r, ci) => (r.data.reports || []).forEach((rep, i) => {
+    counts[chunks[ci][i].key] = parseInt(rep.rows?.[0]?.metricValues?.[0]?.value || '0', 10);
+  }));
+
+  return {
+    dias: days,
+    embudos: assembleFunnels(funnels, counts),
+    contactos: contacts.map((c, ci) => ({ event: c.event, label: c.label, personas: counts[`c${ci}`] ?? 0 })),
+  };
+}
+
+export async function fetchGA4({ days = 28 } = {}) {
+  const propertyId = process.env.GA4_PROPERTY_ID;
+  if (!propertyId) return { sesiones: 0, usuarios: 0, paginasVistas: 0, serie: [], noData: true };
+
+  // REST (googleapis) en vez de @google-analytics/data: el cliente gRPC se colgaba.
+  const analyticsdata = ga4Client();
   const dateRanges = [{ startDate: `${days}daysAgo`, endDate: 'yesterday' }];
   const byMetric = metricName => [{ metric: { metricName }, desc: true }];
 

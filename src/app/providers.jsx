@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { queryClient } from '@/utils/queryClient';
 import { CartProvider } from '@/context/CartContext';
 import { trackGAEvent } from '@/utils/firebaseservice';
+import { installClickTracking, trackPaymentReturn } from '@/lib/track';
 
 // UI Components (critical - load immediately)
 import ThemeToggle from '@/components/ui/ThemeToggle';
@@ -315,7 +316,11 @@ function AppChromeInner({ children }) {
       page_location: window.location.href,
       page_title: document.title,
     });
+    trackPaymentReturn();
   }, [pathname]);
+
+  // Clicks a WhatsApp y a /presupuesto en todo el sitio (eventos de conversión, ver src/data/funnels.js).
+  useEffect(() => installClickTracking(), []);
 
   return (
     <div className="App font-sans min-h-screen text-fg bg-page transition-colors duration-500 relative overflow-x-hidden">

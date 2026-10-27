@@ -303,6 +303,15 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   (1.000 detalles), proyección a fin de mes y costo estimado. Lee `leadfinder_usage` vía
   `/api/places-usage` (admin). Cupos y precios estimados en `src/data/placesFreeTier.js`;
   cálculo en `src/lib/placesUsage.js`.
+- **Embudos de conversión** (admin → Panel → Embudos, desde 2026-10-27): personas (GA4, sin bots) por paso en
+  Presupuesto, IA para empresas, Tienda, Analítica y Lead Finder Pro + clicks a WhatsApp. Pasos en
+  `src/data/funnels.js`, lectura en `fetchFunnels` (`src/lib/siteStats.js`), ruta `/api/funnels/`, tool MCP
+  `get_funnels`. Los eventos salen con `track()` de `src/lib/track.js` (gtag →
+  `NEXT_PUBLIC_GA4_MEASUREMENT_ID`, la propiedad que lee el sitio). **No usar `trackGAEvent` para conversiones**:
+  va a la propiedad de Firebase (`NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID`, otra propiedad que nadie lee); por eso
+  `generate_lead` y `whatsapp_click` nunca habían llegado. Clicks a `wa.me` y a `/presupuesto` se registran solos
+  en todo el sitio (listener global en `providers.jsx`); la vuelta de MercadoPago (`?payment=`/`?sub=`/`?lfp=success`)
+  marca `compra_*`.
 - **Menú del admin y pantallas nuevas**: `nav_config/admin` guarda `knownIds` (los ids que existían
   en el código al guardar). `src/lib/navMerge.js` agrega solo los ítems/sub-ítems del código que
   aparecieron después, así una pantalla nueva en `adminNav.js` aparece sola y lo que el usuario
@@ -622,7 +631,7 @@ Las herramientas del sitio expuestas como **servidor MCP remoto** para usarlas d
   internos salen como "Error interno"; `src/lib/mcp/noSecrets.test.js` corre todas las tools con
   valores centinela en las env vars.
 - **Registro**: cada llamada queda en `mcp_tool_calls` (tool, ok, ms, args resumidos).
-- **Tools** (17): `search_leads` (asíncrona: crea un job en `mcp_lead_jobs` y sigue con `after()`),
+- **Tools** (18, incluye `get_funnels`): `search_leads` (asíncrona: crea un job en `mcp_lead_jobs` y sigue con `after()`),
   `get_lead_search`, `list_lead_searches`, `rank_rubros_by_demand`, `list_audits`, `get_audit`,
   `create_audit_report`, `publish_audit_social` (`dry_run`), `draft_business_email`,
   `send_business_email` (`dry_run`), `list_sent_emails`, `list_ig_prospects`, `update_ig_prospect`

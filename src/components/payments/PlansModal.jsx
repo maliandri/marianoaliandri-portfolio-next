@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { PLANS, PAID_PLAN_IDS, formatPlanPrice } from '@/data/plans';
+import { track } from '@/lib/track';
 
 // Modal de precios. Se abre desde el 402 (límite alcanzado) o desde un botón "Ver planes".
 // `getIdToken` viene del hook useAuthUser (necesario para crear la suscripción).
@@ -25,6 +26,7 @@ export default function PlansModal({ open, onClose, getIdToken, currentPlan = 'f
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'No se pudo iniciar la suscripción');
+      track('checkout_analitica', { plan: planId });
       window.location.href = json.initPoint; // checkout de MercadoPago
     } catch (e) {
       setError(e.message);
