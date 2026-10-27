@@ -306,8 +306,16 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   `src/lib/demandaReport.js` (índice de zona = suma de puntajes; por localidad = relativo a su máximo; cambio contra el informe
   anterior vía `ultimoReporte`), corrida en `src/lib/demandaAutoRun.js`. **Cron de Vercel** (`vercel.json`, mar–vie 21:00 UTC =
   18:00 ART, `/api/cron/demanda/` con `CRON_SECRET`; el POST es el "Correr ahora" del admin, `publicar:false` para probar). Cada zona
-  sale como mucho una vez por semana (`COOLDOWN_MS`): con menos de 4 zonas no alcanzan los 4 posts. Post a **LinkedIn + Instagram**
-  (Make, `type: 'service'`, imagen = captura Microlink de `/demanda/<id>/?screenshot=1`), texto de plantilla sin IA. Con menos de
+  sale como mucho una vez por semana (`COOLDOWN_MS`): con menos de 4 zonas no alcanzan los 4 posts. Publicación (desde 2026-10-28,
+  `src/lib/demandaPublish.js`): 5–7 placas 1080x1350 (`src/lib/demandaSlides.js`, satori + resvg con `h`/`renderTree` de
+  `scripts/noticiaCard.mjs`; tipografías en `outputFileTracingIncludes` de `/api/cron/demanda`) subidas a Cloudinary
+  (`demanda/<id>`, guardadas en `slides` del informe y usadas como imagen OG) → **carrusel en Facebook + Instagram** por
+  Make (`buildFreePostPayload`, rama de carrusel de Publicación Libre) y **PDF en LinkedIn** (pdf-lib) por la API de
+  LinkedIn directo (`src/lib/linkedinClient.js`: documents initializeUpload → PUT → esperar AVAILABLE → `/rest/posts`;
+  commentary en "little text" escapado; header `LinkedIn-Version` = mes de hace 2 meses). Make no sube documentos. Token =
+  conexión del admin (`integrations/linkedin`, vence a los 60 días sin refresh: reconectar en admin → LinkedIn; el chequeo
+  diario avisa). Cada red falla por separado (`redes` en el run). Las placas se arman también sin publicar (vista previa).
+  Texto de plantilla sin IA. Con menos de
   20 rubros con datos no publica (`sin_datos`); los fallos mandan alerta. El público ve el top 20: la lista completa sigue siendo
   de Analítica. El buscador + provincia + ciudad del listado filtra informes ya publicados (no consulta Google). Embudo propio.
 - **Consumo Google** (admin → Marketing → Consumo Google): tabla por día del mes con comercios
@@ -329,7 +337,8 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   con `redactSecrets` y sin tirar nunca. Disparan: cualquier error no capturado del servidor (`src/instrumentation.js`,
   `onRequestError`, solo en producción), los catch de los webhooks de MercadoPago (pagos y suscripciones), Gumroad y
   Resend, y el cron diario `/api/cron/health/` (12:00 UTC, `vercel.json`, `CRON_SECRET`) que revisa el token de
-  Instagram (que sirva + aviso con ≤7 días a `expires_at` o `data_access_expires_at`) y el de MercadoPago
+  Instagram (que sirva + aviso con ≤7 días a `expires_at` o `data_access_expires_at`), la conexión de LinkedIn
+  (`checkLinkedIn`: no conectada, vencida o ≤7 días) y el de MercadoPago
   (`src/lib/healthCheck.js`). Para un catch nuevo que importe: `await alertError('clave', 'Título', e, { contexto })`.
 - **Menú del admin y pantallas nuevas**: `nav_config/admin` guarda `knownIds` (los ids que existían
   en el código al guardar). `src/lib/navMerge.js` agrega solo los ítems/sub-ítems del código que

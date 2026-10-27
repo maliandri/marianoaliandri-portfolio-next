@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  aggregateZone, withCambios, pickZona, buildDemandaCaption, buildDemandaPayload, validateDemandaPatch,
+  aggregateZone, withCambios, pickZona, buildDemandaCaption, validateDemandaPatch,
   busquedaDe, zonaId, mencionaLocalidad, COOLDOWN_MS,
 } from './demandaReport.js';
 
@@ -86,13 +86,6 @@ describe('post de LinkedIn', () => {
     expect(caption).toContain('"gomeria 24 horas neuquen"');
     expect(caption).toContain('https://marianoaliandri.com.ar/demanda/abc/');
     expect(caption).toContain('#AltoValle');
-  });
-
-  it('payload a LinkedIn e Instagram con la captura del informe', () => {
-    const p = buildDemandaPayload({ caption, id: 'abc' });
-    expect(p.networks).toEqual(['linkedin', 'instagram']);
-    expect(p.type).toBe('service');
-    expect(decodeURIComponent(p.imageUrl)).toContain('/demanda/abc/?screenshot=1');
   });
 });
 

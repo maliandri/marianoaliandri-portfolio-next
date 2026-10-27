@@ -14,7 +14,7 @@ const getReporte = cache(async (id) => {
   if (!db) return null;
   const doc = await db.collection('demanda_reportes').doc(id).get();
   if (!doc.exists) return null;
-  const { createdAt: _c, postError: _e, ...r } = doc.data();
+  const { createdAt: _c, postError: _e, redes: _r, ...r } = doc.data();
   return { id: doc.id, ...r };
 });
 
@@ -29,7 +29,10 @@ export async function generateMetadata({ params }) {
     title,
     description,
     alternates: { canonical: url },
-    openGraph: { type: 'article', url, title, description },
+    openGraph: {
+      type: 'article', url, title, description,
+      ...(r.slides?.[0] ? { images: [{ url: r.slides[0], width: 1080, height: 1350, alt: title }] } : {}),
+    },
   };
 }
 

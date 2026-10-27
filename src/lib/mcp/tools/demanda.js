@@ -37,7 +37,7 @@ export const listDemandReportsTool = defineTool({
   description:
     'Informes publicados en marianoaliandri.com.ar/demanda: qué rubros se buscan más en Google en cada zona, del más '
     + 'nuevo al más viejo, con el podio y si se publicó en redes. Incluye las zonas configuradas y si la publicación '
-    + 'automática (mar–vie 18 h, LinkedIn + Instagram) está prendida.',
+    + 'automática (mar–vie 18 h: PDF en LinkedIn + carrusel en Facebook e Instagram) está prendida.',
   inputSchema: z.object({
     zona: z.string().max(80).optional().describe('Filtrar por nombre de zona (ej. "Alto Valle").'),
     cursor: z.string().optional().describe('nextCursor de la llamada anterior.'),
@@ -94,8 +94,9 @@ export const runDemandReportTool = defineTool({
   title: 'Armar un informe de demanda',
   description:
     'Arma ahora el informe de demanda de una zona (o de la que toca) y lo publica en marianoaliandri.com.ar/demanda. '
-    + 'Con publicar: false (default) NO postea en redes: sirve para ver cómo sale. Con publicar: true además lo anuncia '
-    + 'en LinkedIn e Instagram (DE VERDAD; confirmalo con Mariano). Tarda unos segundos por localidad. Es gratis (no '
+    + 'Siempre arma las placas del carrusel (devuelve sus URLs en placas: mostráselas a Mariano). Con publicar: false '
+    + '(default) NO postea en redes. Con publicar: true además lo publica DE VERDAD como PDF en LinkedIn y carrusel en '
+    + 'Facebook + Instagram (confirmalo con Mariano). Tarda unos segundos por localidad. Es gratis (no '
     + 'usa Google Places). Una zona que salió en los últimos 6 días solo se arma si se la pide por nombre.',
   inputSchema: z.object({
     zona: z.string().max(80).optional().describe('Nombre o id de la zona (ver list_demand_reports). Sin zona: la que toca.'),
@@ -119,10 +120,10 @@ export const runDemandReportTool = defineTool({
       const motivos = { sin_zonas: 'todas las zonas salieron en los últimos 6 días (pedí una por nombre)', en_curso: 'hay otra corrida en marcha', zona_inexistente: 'la zona no existe' };
       throw new ToolError(`No se armó: ${motivos[run.skipped] || run.skipped}.`);
     }
-    const data = { estado: run.estado, zona: run.zona, rubrosConDatos: run.rubrosConDatos ?? null, error: run.error || null };
+    const data = { estado: run.estado, zona: run.zona, rubrosConDatos: run.rubrosConDatos ?? null, placas: run.placas || [], redes: run.redes || null, error: run.error || null };
     if (run.reporteId) Object.assign(data, { id: run.reporteId, url: demandaReportUrl(run.reporteId) });
     const txt = {
-      ok: 'informe publicado y anunciado en LinkedIn e Instagram',
+      ok: 'informe publicado: PDF en LinkedIn y carrusel en Facebook + Instagram',
       guardado: 'informe publicado en el sitio (sin postear en redes)',
       sin_datos: 'Google devolvió pocos datos, no se publicó nada',
       post_fallido: 'el informe quedó en el sitio pero el post a redes falló',

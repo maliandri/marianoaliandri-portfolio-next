@@ -1,17 +1,16 @@
 // Informes de demanda automáticos: cada corrida toma la próxima zona, junta la demanda de sus
 // localidades (autocompletado de Google, gratis), guarda el informe en `demanda_reportes` (público
-// en /demanda) y lo anuncia en LinkedIn e Instagram (post) vía Make. La disparan el cron de Vercel (vercel.json,
-// mar–vie 18:00 ART) y el botón "Correr ahora" del admin (force: true).
+// en /demanda) y lo anuncia: carrusel en Facebook + Instagram (Make) y PDF en LinkedIn (API), ver
+// src/lib/demandaPublish.js. La disparan el cron de Vercel (vercel.json, mar–vie 18:00 ART) y el
+// botón "Correr ahora" del admin (force: true).
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { analyzedConCache } from '@/lib/rubroDemand';
 import { ZONAS_SEMILLA } from '@/data/demandaZonas';
 import {
-  aggregateZone, withCambios, pickZona, busquedaDe, buildDemandaCaption, buildDemandaPayload,
-  MIN_RUBROS_CON_DATOS, DEMANDA_NETWORKS,
+  aggregateZone, withCambios, pickZona, busquedaDe, buildDemandaCaption, MIN_RUBROS_CON_DATOS,
 } from '@/lib/demandaReport';
-import { imageIsReachable } from '@/lib/imageCheck';
-import { postToMakeSocial } from '@/lib/makeSocial';
+import { prepararPlacas, publicarDemanda } from '@/lib/demandaPublish';
 import { sendAlert } from '@/lib/alert';
 
 const CONFIG = 'demanda_auto';
@@ -105,25 +104,30 @@ export async function runDemandaAuto({ force = false, zonaId = null, publicar = 
       patch.ultimoReporte = { [zona.id]: ref.id };
       await revalidar(ref.id);
 
+      // Las placas se arman siempre (también sin publicar): sirven de vista previa y de imagen para compartir.
+      let placas = null;
+      try {
+        placas = await prepararPlacas(reporte, ref.id);
+        run.placas = placas.urls;
+        await ref.update({ slides: placas.urls }).catch(() => {});
+      } catch (e) {
+        run.error = `No se pudieron armar las placas: ${e.message}`;
+      }
+
       if (!publicar) {
         run.estado = 'guardado';
+      } else if (!placas) {
+        run.estado = 'post_fallido';
       } else {
         const caption = buildDemandaCaption(reporte, ref.id);
-        const payload = buildDemandaPayload({ caption, id: ref.id, networks: DEMANDA_NETWORKS });
-        const image = await imageIsReachable(payload.imageUrl);
-        if (!image.ok) {
-          run.estado = 'post_fallido';
-          run.error = `La captura del informe no responde con una imagen (Microlink): ${image.detail}`;
-        } else {
-          try {
-            await postToMakeSocial(payload, { timeoutMs: 10000 });
-            run.estado = 'ok';
-          } catch (e) {
-            run.estado = 'post_fallido';
-            run.error = e.status ? `Make respondió ${e.status}` : e.message;
-          }
+        run.redes = await publicarDemanda({ db, reporte, pngs: placas.pngs, urls: placas.urls, caption });
+        const fallas = Object.entries(run.redes).filter(([, r]) => !r.ok);
+        run.estado = fallas.length ? 'post_fallido' : 'ok';
+        if (fallas.length) {
+          const nombres = { facebookInstagram: 'Facebook + Instagram', linkedin: 'LinkedIn' };
+          run.error = fallas.map(([k, r]) => `${nombres[k]}: ${r.error}`).join(' · ');
         }
-        await ref.update({ postEstado: run.estado, ...(run.error ? { postError: run.error } : {}) }).catch(() => {});
+        await ref.update({ postEstado: run.estado, redes: run.redes, ...(run.error ? { postError: run.error } : {}) }).catch(() => {});
       }
     }
   } catch (e) {

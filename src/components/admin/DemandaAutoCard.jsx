@@ -114,7 +114,7 @@ export default function DemandaAutoCard() {
   };
 
   const run = async (zonaId, publicar) => {
-    if (publicar && !window.confirm('Esto arma el informe y lo PUBLICA en LinkedIn e Instagram de verdad. ¿Correr ahora?')) return;
+    if (publicar && !window.confirm('Esto arma el informe y lo PUBLICA de verdad (PDF en LinkedIn, carrusel en Facebook + Instagram). ¿Correr ahora?')) return;
     setBusy(true); setMsg(publicar ? 'Corriendo… (puede tardar un par de minutos)' : 'Armando el informe sin publicar…'); setErrorMsg('');
     try {
       const res = await authFetch('/api/cron/demanda/', { method: 'POST', body: JSON.stringify({ zonaId, publicar }) });
@@ -144,7 +144,7 @@ export default function DemandaAutoCard() {
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Informes de demanda</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xl">
               Arma el ranking de los 20 rubros más buscados de una zona, lo publica en <a href="/demanda/" target="_blank" rel="noreferrer" className="underline">/demanda</a> y
-              lo anuncia en LinkedIn e Instagram (post). Corre martes a viernes a las 18:00 (cron de Vercel), una zona por vez; cada zona sale como mucho una vez por semana.
+              lo anuncia: PDF en LinkedIn y carrusel en Facebook + Instagram. Corre martes a viernes a las 18:00 (cron de Vercel), una zona por vez; cada zona sale como mucho una vez por semana.
             </p>
           </div>
           <div className="flex items-center gap-2">

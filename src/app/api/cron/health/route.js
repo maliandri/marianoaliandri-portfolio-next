@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
-import { checkInstagram, checkMercadoPago } from '@/lib/healthCheck';
+import { checkInstagram, checkMercadoPago, checkLinkedIn } from '@/lib/healthCheck';
+import { getDb } from '@/lib/firebase-admin';
 import { sendAlert } from '@/lib/alert';
 
 // Cron diario de Vercel (vercel.json): manda "Authorization: Bearer <CRON_SECRET>".
@@ -11,7 +12,8 @@ export async function GET(request) {
   }
 
   const checks = {};
-  for (const [name, fn] of [['instagram', checkInstagram], ['mercadopago', checkMercadoPago]]) {
+  const linkedin = () => checkLinkedIn({ db: getDb() });
+  for (const [name, fn] of [['instagram', checkInstagram], ['mercadopago', checkMercadoPago], ['linkedin', linkedin]]) {
     try { checks[name] = await fn(); } catch (e) { checks[name] = { ok: false, problems: [`El chequeo falló: ${e.message}`] }; }
   }
 

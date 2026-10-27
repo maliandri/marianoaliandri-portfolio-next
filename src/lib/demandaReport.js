@@ -5,7 +5,6 @@
 export const TOP_N = 20;                 // rubros que muestra el informe público (la lista completa es de Analítica)
 export const MIN_RUBROS_CON_DATOS = 20;  // menos que esto = Google nos limitó: no se publica
 export const COOLDOWN_MS = 6 * 24 * 60 * 60 * 1000; // una zona sale como mucho una vez por semana
-export const DEMANDA_NETWORKS = ['linkedin', 'instagram'];
 const SITE_URL = 'https://marianoaliandri.com.ar';
 const EJEMPLOS = 3;
 
@@ -94,12 +93,6 @@ export function demandaReportUrl(id) {
   return `${SITE_URL}/demanda/${id}/`;
 }
 
-// Captura del informe (navbar/footer ocultos con ?screenshot=1) para la imagen del post.
-export function demandaScreenshotUrl(id) {
-  const shot = `${demandaReportUrl(id)}?screenshot=1`;
-  return `https://api.microlink.io/?url=${encodeURIComponent(shot)}&screenshot=true&meta=false&embed=screenshot.url&viewport.width=1280&viewport.height=980`;
-}
-
 const MEDALLAS = ['🥇', '🥈', '🥉'];
 const hashtag = (s) => '#' + String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '');
 
@@ -109,8 +102,8 @@ export function fechaLarga(ms) {
   });
 }
 
-// Texto del post (LinkedIn + Instagram): solo datos del informe, sin IA (sale solo, sin revisión).
-// En Instagram el link no es clickeable; igual queda escrito.
+// Texto del post (LinkedIn, Facebook e Instagram): solo datos del informe, sin IA (sale solo, sin
+// revisión). En Instagram el link no es clickeable; igual queda escrito.
 export function buildDemandaCaption(reporte, id) {
   const { zona, localidades, top, createdAtMs } = reporte;
   const [primero] = top;
@@ -137,18 +130,6 @@ export function buildDemandaCaption(reporte, id) {
     ['#NegociosLocales', '#MarketingDigital', hashtag(zona)].join(' '),
   );
   return lines.join('\n');
-}
-
-// Mismos campos que el resto de los posts al Router de Make (ver socialAuditPost.js).
-export function buildDemandaPayload({ caption, id, networks = DEMANDA_NETWORKS }) {
-  const link = demandaReportUrl(id);
-  const imageUrl = demandaScreenshotUrl(id);
-  return {
-    text: caption, content: caption, caption, description: caption, message: caption,
-    networks, type: 'service', useAI: false, aiProvider: 'gemini',
-    imageUrl, url: imageUrl, link, reportUrl: link,
-    metadata: { topic: 'demanda', reportUrl: link, link },
-  };
 }
 
 // PATCH del admin sobre demanda_auto/config. Devuelve { update } o { error }.

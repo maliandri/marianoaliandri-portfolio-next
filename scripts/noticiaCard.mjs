@@ -81,7 +81,8 @@ export function titleFontSize(length) {
   return 54;
 }
 
-const h = (type, style, children) => ({ type, props: { style, children } });
+// Exportados para otras placas con la misma marca (src/lib/demandaSlides.js).
+export const h = (type, style, children) => ({ type, props: { style, children } });
 const fullLayer = height => ({ position: 'absolute', top: 0, left: 0, width: CARD_WIDTH, height });
 
 function buildCardTree({ title, topicLabel, source, theme, photoDataUri, format = 'feed' }) {
@@ -140,7 +141,7 @@ function buildCardTree({ title, topicLabel, source, theme, photoDataUri, format 
   return h('div', { position: 'relative', display: 'flex', width: CARD_WIDTH, height, backgroundColor: '#080a12' }, [...layers, content]);
 }
 
-async function renderTree(tree, format) {
+export async function renderTree(tree, format) {
   const { height } = FORMATS[format] ?? FORMATS.feed;
   const svg = await satori(tree, { width: CARD_WIDTH, height, fonts: loadFonts() });
   return new Resvg(svg, { fitTo: { mode: 'width', value: CARD_WIDTH } }).render().asPng();

@@ -1,6 +1,8 @@
 // Chequeo diario de credenciales que vencen o se revocan sin avisar (lo corre el cron de Vercel,
 // /api/cron/health/). Cada problema → alerta por mail (src/lib/alert.js). Pasó el 2026-10-26: el token
 // de Instagram cargado en Vercel era de corta duración y las historias dejaron de salir sin aviso.
+import { linkedinExpiry } from './linkedinClient.js';
+
 const GRAPH = 'https://graph.facebook.com/v23.0';
 export const WARN_DAYS = 7;
 const DAY = 86400000;
@@ -44,4 +46,16 @@ export async function checkMercadoPago({ env = process.env, fetchImpl = fetch } 
     headers: { Authorization: `Bearer ${env.MERCADOPAGO_ACCESS_TOKEN.trim()}` }, signal: AbortSignal.timeout(15000),
   }).catch(e => ({ ok: false, status: e.message }));
   return r.ok ? { ok: true, problems: [] } : { ok: false, problems: [`El token de MercadoPago no sirve (respuesta ${r.status}): no se puede cobrar.`] };
+}
+
+// Conexión de LinkedIn del admin (la usan los informes de demanda para publicar el PDF): vence a los
+// 60 días sin refresh token, así que se avisa una semana antes y todos los días después de vencida.
+export async function checkLinkedIn({ db, now = Date.now(), expiry = linkedinExpiry } = {}) {
+  const e = await expiry(db, now);
+  if (!e) return { ok: false, problems: ['LinkedIn no está conectado: los informes de demanda no salen en LinkedIn. Conectar en admin → LinkedIn.'] };
+  if (e.dias <= WARN_DAYS) {
+    const fecha = new Date(e.expiresAt).toISOString().slice(0, 10);
+    return { ok: false, problems: [`La conexión de LinkedIn ${e.dias < 0 ? 'venció' : `vence en ${e.dias} día${e.dias === 1 ? '' : 's'}`} (${fecha}). Reconectar en admin → LinkedIn.`] };
+  }
+  return { ok: true, problems: [], dias: e.dias };
 }
