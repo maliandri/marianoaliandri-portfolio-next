@@ -3,6 +3,10 @@
     "mercadopago": {
       "type": "http",
       "url": "https://mcp.mercadopago.com/mcp"
+    },
+    "firebase": {
+      "command": "cmd",
+      "args": ["/c", "firebase", "mcp", "--dir", "."]
     }
   }
 }

@@ -787,6 +787,9 @@ Instaladas en `.claude/skills/` (ver con `npx skills list`):
 - **seo** (addyosmani): SEO técnico — metadata, structured data, sitemap.
 - **firebase-security-rules-auditor** (Firebase oficial): auditar reglas de Firestore/Storage.
 - **agent-browser**: automatización de navegador (ver sección Browser Automation).
+- **programmatic-seo, schema, cro, copywriting, pricing** (coreyhaines31/marketingskills, desde 2026-10-27): landings a escala (`/ia-para/`), datos estructurados, conversión, textos de venta y precios.
+
+MCP del proyecto (`.mcp.json`): **mercadopago** y **firebase** (`firebase mcp`, usa el login del CLI; en Windows va por `cmd /c` y necesita `npm i -g firebase-tools`; tarda ~10 s en arrancar). Para consultar Firestore preferir el MCP de Firebase antes que un script con Admin SDK.
 
 No instaladas en `.claude/skills/` (vienen del plugin `make-skills`, ya disponible en esta cuenta) pero
 en uso seguido en este repo para el escenario de Make.com del bot de noticias y del publicador de redes:
