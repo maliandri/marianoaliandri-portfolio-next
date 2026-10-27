@@ -21,12 +21,18 @@ const FORMATS = {
   story: { height: STORY_HEIGHT, padding: '230px 72px 290px' },
 };
 
-const FONT_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fonts');
+// Al lado del script (bot en Actions) o, dentro del bundle de Next (/api/publish-story/), en
+// scripts/fonts del proyecto (next.config.mjs las incluye con outputFileTracingIncludes).
+function fontDir() {
+  const local = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fonts');
+  return fs.existsSync(local) ? local : path.join(process.cwd(), 'scripts', 'fonts');
+}
 
 let fontsCache = null;
 function loadFonts() {
   if (!fontsCache) {
-    const read = f => fs.readFileSync(path.join(FONT_DIR, f));
+    const dir = fontDir();
+    const read = f => fs.readFileSync(path.join(dir, f));
     fontsCache = [
       { name: 'Inter Tight', data: read('inter-tight-800.woff'), weight: 800, style: 'normal' },
       { name: 'Inter', data: read('inter-500.woff'), weight: 500, style: 'normal' },

@@ -7,6 +7,7 @@ import reelService from '../../utils/reelService';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../utils/firebaseservice';
 import ReelEditor from './ReelEditor';
+import StoryComposer from './StoryComposer';
 import { useExtendedStats } from '../../hooks/useFirebaseStats';
 
 /**
@@ -30,7 +31,7 @@ function SocialMediaDashboard({ initialTab = null }) {
   const [useAI, setUseAI] = useState(false); // Toggle para usar AI
   const [customImages, setCustomImages] = useState([]); // URLs de imágenes para publicación libre (hasta 10 = carrusel)
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [contentType, setContentType] = useState('post'); // 'post' o 'reel'
+  const [contentType, setContentType] = useState('post'); // 'post', 'reel' o 'historia'
   const [videoFile, setVideoFile] = useState(null); // Archivo de video para reels
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(''); // URL de preview del video
 
@@ -781,7 +782,9 @@ https://marianoaliandri.com.ar/analitica
                   Tipo de contenido
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {contentType === 'post' ? 'Publicación con texto e imagen' : 'Video corto para Reels/Shorts'}
+                  {contentType === 'post' ? 'Publicación con texto e imagen'
+                    : contentType === 'reel' ? 'Video corto para Reels/Shorts'
+                    : 'Historia de Instagram 9:16 (24 h)'}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -804,6 +807,16 @@ https://marianoaliandri.com.ar/analitica
                   }`}
                 >
                   Reel
+                </button>
+                <button
+                  onClick={() => { setContentType('historia'); setCustomImages([]); clearVideo(); }}
+                  className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    contentType === 'historia'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  Historia
                 </button>
               </div>
             </div>
@@ -850,7 +863,10 @@ https://marianoaliandri.com.ar/analitica
           </div>
           )}
 
+          {contentType === 'historia' && <StoryComposer showMessage={showMessage} />}
+
           {/* AI Toggle - RESPONSIVE */}
+          {contentType !== 'historia' && (
           <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-4 sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
@@ -876,7 +892,10 @@ https://marianoaliandri.com.ar/analitica
             </div>
           </div>
 
+          )}
+
           {/* Composer */}
+          {contentType !== 'historia' && (
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
               {useAI ? 'Descripción (AI genera contenido)' : 'Texto del Post'}
@@ -894,6 +913,7 @@ https://marianoaliandri.com.ar/analitica
               {postText.length} caracteres
             </div>
           </div>
+          )}
 
           {/* Imagen (opcional) - Solo para Posts */}
           {contentType === 'post' && (
@@ -995,7 +1015,7 @@ https://marianoaliandri.com.ar/analitica
                 ? 'Generar y publicar'
                 : 'Publicar'}
           </button>
-          ) : (
+          ) : contentType === 'reel' && (
           <button
             onClick={handlePublishCustomReel}
             disabled={isPublishing || !postText.trim() || !videoFile}

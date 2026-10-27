@@ -36,6 +36,17 @@ describe('publishIgStory', () => {
     expect(new URLSearchParams(publishOpts.body).get('creation_id')).toBe('c1');
   });
 
+  it('con video: true manda video_url en vez de image_url', async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(json({ id: 'c1' }))
+      .mockResolvedValueOnce(json({ status_code: 'FINISHED' }))
+      .mockResolvedValueOnce(json({ id: 'story2' }));
+    expect(await publishIgStory('https://x/v.mp4', { creds, fetchImpl, video: true, delayMs: 0 })).toBe('story2');
+    const body = new URLSearchParams(fetchImpl.mock.calls[0][1].body);
+    expect(body.get('video_url')).toBe('https://x/v.mp4');
+    expect(body.get('image_url')).toBeNull();
+  });
+
   it('propaga el error de la Graph API con su código', async () => {
     const fetchImpl = vi.fn().mockResolvedValueOnce(json({ error: { code: 190, message: 'token vencido' } }, false, 400));
     await expect(publishIgStory('https://x/img.jpg', { creds, fetchImpl })).rejects.toThrow('Instagram 400 (190): token vencido');

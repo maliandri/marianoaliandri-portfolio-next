@@ -181,11 +181,13 @@ GUMROAD_ACCESS_TOKEN                ← Access token de una Application creada e
                                        no viene firmado, así que nunca hay que confiar en
                                        su body crudo. Ver seccion de Lead Finder Pro abajo.
 
-# Instagram (historias) — solo secrets de GitHub Actions, NO en Vercel
-IG_ACCESS_TOKEN                     ← Token de página (long-lived) con instagram_content_publish.
-                                       Make no tiene módulo para historias: el bot de noticias y la
-                                       auditoría automática las publican directo con la Graph API
-                                       (scripts/igStoryClient.mjs). Sin esta var no sale ninguna historia.
+# Instagram (historias) — secrets de GitHub Actions Y env de Vercel (Publicación Libre → Historia)
+IG_ACCESS_TOKEN                     ← Token de PÁGINA (no vence; data access vence cada 90 días) de la
+                                       app de Meta "Maliandri_APP" (modo desarrollo), con
+                                       instagram_content_publish. Make no tiene módulo para historias: el
+                                       bot de noticias, la auditoría automática y /api/publish-story/ las
+                                       publican directo con la Graph API (scripts/igStoryClient.mjs).
+                                       Sin esta var no sale ninguna historia.
 IG_USER_ID                          ← 17841404013651966 (cuenta de Instagram Business)
 
 # LinkedIn OAuth
@@ -332,6 +334,12 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   `iaNichos.test.js` valida campos y sitemap. Componentes en `src/components/iaPara/` (tipografías
   Bricolage + JetBrains Mono solo en estas páginas). CTA: WhatsApp con mensaje por nicho + `/presupuesto`.
 - **Admin** (`/admin`): Panel interno con tabs: Stats, Productos, Publicar Redes, Reels, Proyectos GSC, Auditorias, Presupuestos
+- **Historias de Instagram desde el admin** (Marketing → Redes Sociales → Publicación Libre → **Historia**,
+  desde 2026-10-26): `src/components/social/StoryComposer.jsx` → `POST /api/publish-story/` (admin). Tres tipos:
+  texto (tarjeta de marca 9:16 de `scripts/noticiaCard.mjs`), imagen (Cloudinary `b_blurred,c_pad` a 1080x1920 JPG)
+  y video (MP4 9:16, recortado a 60 s). Primero `dryRun` (vista previa), después publica directo con la Graph API
+  (no pasa por Make). Registro en `ig_stories`. satori y @resvg/resvg-js van en `serverExternalPackages` y las
+  tipografías en `outputFileTracingIncludes` (`next.config.mjs`): sin eso el build/la ruta fallan en Vercel.
 - **Publicador de redes** (admin): envia POST a Make.com → Make llama a Gemini y publica en LinkedIn/Instagram/Facebook. Logos de servicios en Cloudinary (`service-logos/`)
 - **Generador de reels Canvas** (admin): flujo de 5 pasos:
   1. Seleccion de contenido (Producto / Tecnologia / Proyecto)

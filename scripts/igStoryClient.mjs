@@ -1,7 +1,8 @@
-// Publica una historia de Instagram (imagen) con la Graph API. Make no tiene módulo para
+// Publica una historia de Instagram (imagen o video) con la Graph API. Make no tiene módulo para
 // historias (solo foto, carrusel y reel), así que se hace directo, igual que X.
 // Dos pasos: crear el contenedor (media_type=STORIES) y publicarlo (media_publish).
-// Lo usan el bot de noticias y la auditoría automática (src/lib/autoAuditRun.js).
+// Lo usan el bot de noticias, la auditoría automática (src/lib/autoAuditRun.js) y
+// Publicación Libre del admin (/api/publish-story/).
 // Tope de Instagram: 100 publicaciones por API cada 24 h (posts + historias).
 const GRAPH_URL = 'https://graph.facebook.com/v23.0';
 
@@ -25,8 +26,8 @@ async function graphPost(path, params, { accessToken, fetchImpl }) {
   return data;
 }
 
-// Las imágenes suelen quedar listas al instante, pero si el contenedor sigue IN_PROGRESS
-// media_publish falla con 9007: se espera a FINISHED antes de publicar.
+// Las imágenes suelen quedar listas al instante (los videos tardan más), pero si el contenedor
+// sigue IN_PROGRESS media_publish falla con 9007: se espera a FINISHED antes de publicar.
 async function waitForContainer(containerId, { accessToken, fetchImpl, retries, delayMs }) {
   for (let i = 0; i < retries; i++) {
     const url = `${GRAPH_URL}/${containerId}?fields=status_code&access_token=${encodeURIComponent(accessToken)}`;
@@ -41,14 +42,15 @@ async function waitForContainer(containerId, { accessToken, fetchImpl, retries, 
   throw new Error('Instagram: la historia no terminó de procesarse a tiempo');
 }
 
-// imageUrl tiene que ser un JPG público (Instagram no acepta PNG/WebP por URL en historias).
-// Devuelve el id de la historia publicada.
-export async function publishIgStory(imageUrl, {
-  creds = igCredsFromEnv(), fetchImpl = fetch, retries = 10, delayMs = 3000,
+// mediaUrl tiene que ser un JPG público (Instagram no acepta PNG/WebP por URL en historias) o,
+// con video: true, un MP4 vertical de hasta 60 s. Devuelve el id de la historia publicada.
+export async function publishIgStory(mediaUrl, {
+  creds = igCredsFromEnv(), fetchImpl = fetch, video = false, retries = video ? 40 : 10, delayMs = 3000,
 } = {}) {
   if (!creds) throw new Error('IG_ACCESS_TOKEN o IG_USER_ID no configurados');
   const opts = { accessToken: creds.accessToken, fetchImpl };
-  const container = await graphPost(`${creds.igUserId}/media`, { media_type: 'STORIES', image_url: imageUrl }, opts);
+  const media = video ? { video_url: mediaUrl } : { image_url: mediaUrl };
+  const container = await graphPost(`${creds.igUserId}/media`, { media_type: 'STORIES', ...media }, opts);
   await waitForContainer(container.id, { ...opts, retries, delayMs });
   const published = await graphPost(`${creds.igUserId}/media_publish`, { creation_id: container.id }, opts);
   return published.id;
