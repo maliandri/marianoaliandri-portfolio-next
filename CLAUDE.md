@@ -307,14 +307,17 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   anterior vía `ultimoReporte`), corrida en `src/lib/demandaAutoRun.js`. **Cron de Vercel** (`vercel.json`, mar–vie 21:00 UTC =
   18:00 ART, `/api/cron/demanda/` con `CRON_SECRET`; el POST es el "Correr ahora" del admin, `publicar:false` para probar). Cada zona
   sale como mucho una vez por semana (`COOLDOWN_MS`): con menos de 4 zonas no alcanzan los 4 posts. Publicación (desde 2026-10-28,
-  `src/lib/demandaPublish.js`): 5–7 placas 1080x1350 (`src/lib/demandaSlides.js`, satori + resvg con `h`/`renderTree` de
-  `scripts/noticiaCard.mjs`; tipografías en `outputFileTracingIncludes` de `/api/cron/demanda`) subidas a Cloudinary
-  (`demanda/<id>`, guardadas en `slides` del informe y usadas como imagen OG) → **carrusel en Facebook + Instagram** por
+  `src/lib/demandaPublish.js`): las imágenes son **capturas del propio informe** (decisión del usuario: nada de placas
+  diseñadas aparte), una por parte (`seccionesDe`: portada + puestos 1–10, puestos 11–20, tabla por localidad, frases,
+  cierre). El sitio muestra solo esa parte con `?screenshot=1&seccion=<parte>` (`DemandaShot.jsx` + atributos `data-sec`
+  en `/demanda/[id]`, resuelto en el cliente para no perder el ISR; marca `body[data-shot-ready]`, que Microlink espera
+  con `waitForSelector`, viewport 1080x1350 JPG). Se bajan, se suben a Cloudinary (`demanda/<id>`, guardadas en `slides`
+  del informe, imagen OG y miniaturas en el admin) → **carrusel en Facebook + Instagram** por
   Make (`buildFreePostPayload`, rama de carrusel de Publicación Libre) y **PDF en LinkedIn** (pdf-lib) por la API de
   LinkedIn directo (`src/lib/linkedinClient.js`: documents initializeUpload → PUT → esperar AVAILABLE → `/rest/posts`;
   commentary en "little text" escapado; header `LinkedIn-Version` = mes de hace 2 meses). Make no sube documentos. Token =
   conexión del admin (`integrations/linkedin`, vence a los 60 días sin refresh: reconectar en admin → LinkedIn; el chequeo
-  diario avisa). Cada red falla por separado (`redes` en el run). Las placas se arman también sin publicar (vista previa).
+  diario avisa). Cada red falla por separado (`redes` en el run). Las capturas se sacan también sin publicar (vista previa).
   Texto de plantilla sin IA. Con menos de
   20 rubros con datos no publica (`sin_datos`); los fallos mandan alerta. El público ve el top 20: la lista completa sigue siendo
   de Analítica. El buscador + provincia + ciudad del listado filtra informes ya publicados (no consulta Google). Embudo propio.

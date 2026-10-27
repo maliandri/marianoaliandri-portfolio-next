@@ -93,6 +93,26 @@ export function demandaReportUrl(id) {
   return `${SITE_URL}/demanda/${id}/`;
 }
 
+// Partes del informe que salen como imágenes del carrusel / páginas del PDF, en orden. Cada una es
+// una captura del sitio (modo ?screenshot=1&seccion=, src/components/demanda/DemandaShot.jsx).
+export function seccionesDe(reporte) {
+  return [
+    'portada',
+    ...(reporte.top.length > 10 ? ['ranking2'] : []),
+    ...(reporte.localidades.length > 1 ? ['localidades'] : []),
+    ...(reporte.top.some(t => t.ejemplos?.length) ? ['frases'] : []),
+    'cierre',
+  ];
+}
+
+// Captura 1080x1350 (4:5, el vertical más grande del feed de Instagram) de una parte del informe.
+export function demandaShotUrl(id, seccion) {
+  const shot = `${demandaReportUrl(id)}?screenshot=1&seccion=${seccion}`;
+  return `https://api.microlink.io/?url=${encodeURIComponent(shot)}&screenshot=true&meta=false&embed=screenshot.url`
+    + '&screenshot.type=jpeg&viewport.width=1080&viewport.height=1350'
+    + `&waitForSelector=${encodeURIComponent('body[data-shot-ready]')}`;
+}
+
 const MEDALLAS = ['🥇', '🥈', '🥉'];
 const hashtag = (s) => '#' + String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '');
 

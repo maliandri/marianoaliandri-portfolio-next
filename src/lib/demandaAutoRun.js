@@ -104,14 +104,15 @@ export async function runDemandaAuto({ force = false, zonaId = null, publicar = 
       patch.ultimoReporte = { [zona.id]: ref.id };
       await revalidar(ref.id);
 
-      // Las placas se arman siempre (también sin publicar): sirven de vista previa y de imagen para compartir.
+      // Las capturas se sacan siempre (también sin publicar): sirven de vista previa y de imagen para compartir.
+      // Van después de revalidar: Microlink tiene que ver el informe recién creado.
       let placas = null;
       try {
         placas = await prepararPlacas(reporte, ref.id);
         run.placas = placas.urls;
         await ref.update({ slides: placas.urls }).catch(() => {});
       } catch (e) {
-        run.error = `No se pudieron armar las placas: ${e.message}`;
+        run.error = `No se pudieron sacar las capturas del informe: ${e.message}`;
       }
 
       if (!publicar) {
@@ -120,7 +121,7 @@ export async function runDemandaAuto({ force = false, zonaId = null, publicar = 
         run.estado = 'post_fallido';
       } else {
         const caption = buildDemandaCaption(reporte, ref.id);
-        run.redes = await publicarDemanda({ db, reporte, pngs: placas.pngs, urls: placas.urls, caption });
+        run.redes = await publicarDemanda({ db, reporte, imagenes: placas.imagenes, urls: placas.urls, caption });
         const fallas = Object.entries(run.redes).filter(([, r]) => !r.ok);
         run.estado = fallas.length ? 'post_fallido' : 'ok';
         if (fallas.length) {

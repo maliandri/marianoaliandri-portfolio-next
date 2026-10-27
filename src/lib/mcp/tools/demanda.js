@@ -94,7 +94,7 @@ export const runDemandReportTool = defineTool({
   title: 'Armar un informe de demanda',
   description:
     'Arma ahora el informe de demanda de una zona (o de la que toca) y lo publica en marianoaliandri.com.ar/demanda. '
-    + 'Siempre arma las placas del carrusel (devuelve sus URLs en placas: mostráselas a Mariano). Con publicar: false '
+    + 'Siempre saca las capturas del informe que van en el carrusel y en el PDF (devuelve sus URLs en placas: mostráselas a Mariano). Con publicar: false '
     + '(default) NO postea en redes. Con publicar: true además lo publica DE VERDAD como PDF en LinkedIn y carrusel en '
     + 'Facebook + Instagram (confirmalo con Mariano). Tarda unos segundos por localidad. Es gratis (no '
     + 'usa Google Places). Una zona que salió en los últimos 6 días solo se arma si se la pide por nombre.',

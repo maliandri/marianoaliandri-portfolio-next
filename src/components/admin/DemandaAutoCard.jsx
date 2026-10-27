@@ -201,6 +201,16 @@ export default function DemandaAutoCard() {
                   {r.createdAt && <span className="text-gray-400 text-xs">{new Date(r.createdAt).toLocaleString('es-AR')}</span>}
                   {r.reporteId && <a className="text-indigo-600 underline text-xs" href={`/demanda/${r.reporteId}/`} target="_blank" rel="noreferrer">ver informe</a>}
                   {r.error && <span className="basis-full text-xs text-red-600 dark:text-red-400">{r.error}</span>}
+                  {r.placas?.length > 0 && (
+                    <span className="basis-full flex gap-2 overflow-x-auto py-1">
+                      {r.placas.map((u, i) => (
+                        <a key={u} href={u} target="_blank" rel="noreferrer" className="shrink-0">
+                          <img src={u.replace('/upload/', '/upload/w_160/')} alt={`Imagen ${i + 1} del carrusel`} width={80} height={100}
+                            className="w-20 h-25 object-cover rounded border border-gray-200 dark:border-gray-700" />
+                        </a>
+                      ))}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

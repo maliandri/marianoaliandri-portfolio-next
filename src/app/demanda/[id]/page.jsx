@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { getDb } from '@/lib/firebase-admin';
 import { fechaLarga } from '@/lib/demandaReport';
 import { RankingBars, LocalidadHeatmap } from '@/components/demanda/DemandaCharts';
+import DemandaShot from '@/components/demanda/DemandaShot';
 
 // ISR on-demand: un informe no cambia; se genera en la primera visita y queda en el CDN.
 export const revalidate = 86400;
@@ -46,20 +47,27 @@ export default async function DemandaDetailPage({ params }) {
   return (
     <main className="min-h-screen bg-page pt-24 pb-20 px-4 md:px-6">
       <div className="max-w-4xl mx-auto">
-        <Link href="/demanda/" className="text-xs text-fg-600 hover:text-fg-400 transition-colors mb-6 inline-block">
+        <DemandaShot />
+        {/* data-sec: qué partes salen en cada captura del modo ?screenshot=1&seccion= (DemandaShot). */}
+        <Link href="/demanda/" data-sec="" className="text-xs text-fg-600 hover:text-fg-400 transition-colors mb-6 inline-block">
           ← Todas las zonas
         </Link>
 
-        <span className="block text-xs font-semibold tracking-widest text-indigo-600 dark:text-indigo-400 uppercase">
-          Demanda de búsqueda · {fechaLarga(r.createdAtMs)}
-        </span>
-        <h1 className="text-3xl md:text-5xl font-black text-fg mt-2 mb-3">Qué se busca en Google en {r.zona}</h1>
-        <p className="text-fg-400 mb-8">
-          {grupo ? `${r.localidades.join(' · ')}. ` : ''}
-          Los {r.top.length} rubros con más demanda{conCambios ? ' y cómo se movieron desde el informe anterior' : ''}.
+        <div data-sec="portada">
+          <span className="block text-xs font-semibold tracking-widest text-indigo-600 dark:text-indigo-400 uppercase">
+            Demanda de búsqueda · {fechaLarga(r.createdAtMs)}
+          </span>
+          <h1 className="text-3xl md:text-5xl font-black text-fg mt-2 mb-3">Qué se busca en Google en {r.zona}</h1>
+          <p className="text-fg-400 mb-8">
+            {grupo ? `${r.localidades.join(' · ')}. ` : ''}
+            Los {r.top.length} rubros con más demanda{conCambios ? ' y cómo se movieron desde el informe anterior' : ''}.
+          </p>
+        </div>
+        <p data-sec="ranking2 localidades frases cierre" className="hidden text-sm font-semibold tracking-widest text-indigo-600 dark:text-indigo-400 uppercase mb-5">
+          Qué se busca en Google en {r.zona} · {fechaLarga(r.createdAtMs)}
         </p>
 
-        <section className="bg-card border border-fg/10 rounded-2xl p-5 md:p-6 mb-8">
+        <section data-sec="portada ranking2" className="bg-card border border-fg/10 rounded-2xl p-5 md:p-6 mb-8">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 mb-4">
             <h2 className="text-fg font-bold text-lg">Ranking de rubros</h2>
             <span className="text-xs text-fg-500">Índice de demanda · el primero = 100</span>
@@ -68,7 +76,7 @@ export default async function DemandaDetailPage({ params }) {
         </section>
 
         {grupo && (
-          <section className="bg-card border border-fg/10 rounded-2xl p-5 md:p-6 mb-8">
+          <section data-sec="localidades" className="bg-card border border-fg/10 rounded-2xl p-5 md:p-6 mb-8">
             <h2 className="text-fg font-bold text-lg mb-1">Qué se busca más en cada localidad</h2>
             <p className="text-sm text-fg-500 mb-4">
               Índice dentro de cada localidad: 100 es su rubro más buscado. Sirve para comparar rubros en un mismo lugar,
@@ -78,7 +86,7 @@ export default async function DemandaDetailPage({ params }) {
           </section>
         )}
 
-        <section className="bg-card border border-fg/10 rounded-2xl p-5 md:p-6 mb-8">
+        <section data-sec="frases" className="bg-card border border-fg/10 rounded-2xl p-5 md:p-6 mb-8">
           <h2 className="text-fg font-bold text-lg mb-4">Lo que escribe la gente</h2>
           <dl className="grid gap-4 sm:grid-cols-2">
             {r.top.filter(t => t.ejemplos?.length).map(t => (
@@ -94,12 +102,12 @@ export default async function DemandaDetailPage({ params }) {
           </dl>
         </section>
 
-        <p className="text-xs text-fg-600 mb-10 max-w-2xl">
+        <p data-sec="cierre" className="text-xs text-fg-600 mb-10 max-w-2xl">
           Cómo se calcula: para cada rubro se consulta el autocompletado de Google con el nombre de la localidad y se
           mide cuántas búsquedas sugiere y con qué relevancia. Es un índice para ordenar rubros, no la cantidad exacta de búsquedas.
         </p>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div data-sec="cierre" className="grid gap-4 md:grid-cols-2">
           <div className="glow-frame bg-card border border-fg/10 rounded-2xl p-6 flex flex-col">
             <p className="text-fg font-bold text-lg">¿Querés ver todos los rubros de tu ciudad?</p>
             <p className="text-fg-500 text-sm mt-1 mb-5 flex-1">Elegí cualquier localidad del país y descargá el ranking completo con todas las frases.</p>
@@ -115,6 +123,7 @@ export default async function DemandaDetailPage({ params }) {
             </Link>
           </div>
         </div>
+        <p data-shot-only className="hidden mt-8 text-lg font-bold text-indigo-600 dark:text-indigo-400">marianoaliandri.com.ar/demanda</p>
       </div>
     </main>
   );

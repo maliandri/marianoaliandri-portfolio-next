@@ -21,7 +21,7 @@ export function RankingBars({ top }) {
   return (
     <ol className="space-y-2">
       {top.map(r => (
-        <li key={r.id} title={`${r.label}: índice ${r.interes}`}
+        <li key={r.id} title={`${r.label}: índice ${r.interes}`} data-grupo={r.pos <= 10 ? 'a' : 'b'}
           className="grid grid-cols-[1.5rem_minmax(6rem,11rem)_1fr_2rem_2.25rem] items-center gap-2 sm:gap-3 text-sm">
           <span className="text-fg-600 tabular-nums text-right">{r.pos}</span>
           <span className="text-fg font-medium truncate">{r.label}</span>
