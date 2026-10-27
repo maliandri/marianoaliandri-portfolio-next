@@ -32,6 +32,7 @@ export async function POST(request) {
     const { storyId } = await publishStory({ db: getDb(), tipo: media.tipo, mediaUrl: media.mediaUrl });
     return Response.json({ ok: true, storyId, previewUrl: media.mediaUrl });
   } catch (e) {
+    console.error('[publish-story]', e.message);
     return Response.json({ error: e.message }, { status: 502 });
   }
 }

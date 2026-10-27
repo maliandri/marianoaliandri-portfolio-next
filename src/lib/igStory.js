@@ -68,13 +68,13 @@ export async function buildStoryMedia({ tipo, titulo, etiqueta, mediaUrl } = {})
 
 // Publica y deja registro en `ig_stories`. Devuelve { storyId } o lanza con el error de Instagram.
 export async function publishStory({ db, tipo, mediaUrl, origen = 'admin' }) {
-  // Cloudinary genera la transformación en el primer pedido: se pide antes para que Instagram la encuentre lista.
-  if (tipo !== 'video') {
-    const image = await imageIsReachable(mediaUrl);
-    if (!image.ok) throw new Error(`La imagen de la historia no está lista (${image.detail})`);
-  }
   const log = { tipo, mediaUrl, origen, createdAt: new Date() };
   try {
+    // Cloudinary genera la transformación en el primer pedido: se pide antes para que Instagram la encuentre lista.
+    if (tipo !== 'video') {
+      const image = await imageIsReachable(mediaUrl);
+      if (!image.ok) throw new Error(`La imagen de la historia no está lista (${image.detail})`);
+    }
     const storyId = await publishIgStory(mediaUrl, { video: tipo === 'video' });
     await db?.collection('ig_stories').add({ ...log, storyId, error: null });
     return { storyId };

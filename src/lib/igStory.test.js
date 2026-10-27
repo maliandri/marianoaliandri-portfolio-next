@@ -66,7 +66,9 @@ describe('publishStory', () => {
 
   it('no publica si la imagen no está lista', async () => {
     imageIsReachable.mockResolvedValueOnce({ ok: false, detail: 'HTTP 404' });
-    await expect(publishStory({ db: fakeDb(), tipo: 'imagen', mediaUrl: 'https://res.cloudinary.com/a.jpg' })).rejects.toThrow('404');
+    const db = fakeDb();
+    await expect(publishStory({ db, tipo: 'imagen', mediaUrl: 'https://res.cloudinary.com/a.jpg' })).rejects.toThrow('404');
     expect(publishIgStory).not.toHaveBeenCalled();
+    expect(db.docs[0].error).toMatch('404');
   });
 });
