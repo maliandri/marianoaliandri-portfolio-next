@@ -13,7 +13,7 @@ const VID = 'https://res.cloudinary.com/dlshym1te/video/upload/v1700/social/clip
 describe('storyImageUrl / storyVideoUrl', () => {
   it('reemplaza la transformación 4:5 del admin por la de historia (9:16, fondo desenfocado, JPG)', () => {
     expect(storyImageUrl(IMG)).toBe(
-      'https://res.cloudinary.com/dlshym1te/image/upload/b_blurred:400:15,c_pad,w_1080,h_1920,f_jpg,q_auto/v1700/social/foto.png',
+      'https://res.cloudinary.com/dlshym1te/image/upload/c_fill,w_1080,h_1920,e_blur:2000/l_social:foto,c_fit,w_1080,h_1920/fl_layer_apply/f_jpg,q_auto/v1700/social/foto.png',
     );
   });
   it('video: MP4 H.264 9:16 recortado a 60 s', () => {

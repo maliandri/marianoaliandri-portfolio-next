@@ -336,7 +336,8 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 - **Admin** (`/admin`): Panel interno con tabs: Stats, Productos, Publicar Redes, Reels, Proyectos GSC, Auditorias, Presupuestos
 - **Historias de Instagram desde el admin** (Marketing → Redes Sociales → Publicación Libre → **Historia**,
   desde 2026-10-26): `src/components/social/StoryComposer.jsx` → `POST /api/publish-story/` (admin). Tres tipos:
-  texto (tarjeta de marca 9:16 de `scripts/noticiaCard.mjs`), imagen (Cloudinary `b_blurred,c_pad` a 1080x1920 JPG)
+  texto (tarjeta de marca 9:16 de `scripts/noticiaCard.mjs`), imagen (Cloudinary: fondo `e_blur` + capa `c_fit`, 1080x1920 JPG;
+  `b_blurred` solo existe para video, en imágenes da 400)
   y video (MP4 9:16, recortado a 60 s). Primero `dryRun` (vista previa), después publica directo con la Graph API
   (no pasa por Make). Registro en `ig_stories`. satori y @resvg/resvg-js van en `serverExternalPackages` y las
   tipografías en `outputFileTracingIncludes` (`next.config.mjs`): sin eso el build/la ruta fallan en Vercel.

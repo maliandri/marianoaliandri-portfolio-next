@@ -21,10 +21,13 @@ function baseCloudinaryPath(url) {
 }
 
 // Imagen → 1080x1920 JPG sin recortar: la foto entera centrada sobre una versión desenfocada de sí misma.
+// (b_blurred solo existe para video: en imágenes da 400 "Invalid color name". Se arma con una capa:
+// fondo = la foto ampliada y desenfocada, encima = la misma foto con c_fit.)
 export function storyImageUrl(url) {
   const base = baseCloudinaryPath(url);
   if (!base || !base.prefix.includes('/image/')) return null;
-  return `${base.prefix}b_blurred:400:15,c_pad,w_1080,h_1920,f_jpg,q_auto/${base.path}`;
+  const layerId = base.path.replace(/^v\d+\//, '').replace(/\.[a-z0-9]+$/i, '').replace(/\//g, ':');
+  return `${base.prefix}c_fill,w_1080,h_1920,e_blur:2000/l_${layerId},c_fit,w_1080,h_1920/fl_layer_apply/f_jpg,q_auto/${base.path}`;
 }
 
 // Video → MP4 H.264 1080x1920 (bordes negros si no es vertical), recortado a 60 s.
