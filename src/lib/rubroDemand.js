@@ -94,29 +94,33 @@ export const localidadKey = (localidad) => String(localidad || '')
 // "Neuquén, Argentina" → "Neuquén": el autocompletado responde mejor con la ciudad sola.
 export const ciudadDe = (zona) => String(zona || '').split(',')[0].trim();
 
-// Demanda de todos los rubros (con caché de 7 días en Firestore) + términos libres,
-// normalizados contra el mismo máximo para que sean comparables.
-export async function demandaParaLeads(db, localidad, terminos = []) {
-  const ciudad = ciudadDe(localidad);
+// Todos los rubros de una ciudad, con caché en Firestore (`rubro_demanda/{ciudad}`).
+// maxAgeMs más corto fuerza datos más nuevos (los informes de demanda usan 1 día).
+export async function analyzedConCache(db, ciudad, { maxAgeMs = CACHE_TTL_MS } = {}) {
   const key = localidadKey(ciudad);
   if (!key) throw new Error('Localidad inválida');
 
   const ref = db ? db.collection(CACHE_COLLECTION).doc(key) : null;
-  let analyzed = null;
   if (ref) {
     try {
       const snap = await ref.get();
-      if (snap.exists && Date.now() - (snap.data().checkedAt || 0) < CACHE_TTL_MS) analyzed = snap.data().analyzed;
+      if (snap.exists && Date.now() - (snap.data().checkedAt || 0) < maxAgeMs) return snap.data().analyzed;
     } catch { /* sin caché, se analiza igual */ }
   }
-  if (!analyzed) {
-    analyzed = (await analyzeAll(ciudad)).map(({ id, label, cat, count, raw, suggestions, error }) =>
-      ({ id, label, cat, count, raw, suggestions, ...(error ? { error: true } : {}) }));
-    // Solo se cachea si Google respondió algo (si nos limitó, todo vino en 0).
-    if (ref && analyzed.some(r => r.count > 0)) {
-      await ref.set({ ciudad, analyzed, checkedAt: Date.now() }).catch(() => {});
-    }
+  const analyzed = (await analyzeAll(ciudad)).map(({ id, label, cat, count, raw, suggestions, error }) =>
+    ({ id, label, cat, count, raw, suggestions, ...(error ? { error: true } : {}) }));
+  // Solo se cachea si Google respondió algo (si nos limitó, todo vino en 0).
+  if (ref && analyzed.some(r => r.count > 0)) {
+    await ref.set({ ciudad, analyzed, checkedAt: Date.now() }).catch(() => {});
   }
+  return analyzed;
+}
+
+// Demanda de todos los rubros (con caché de 7 días en Firestore) + términos libres,
+// normalizados contra el mismo máximo para que sean comparables.
+export async function demandaParaLeads(db, localidad, terminos = []) {
+  const ciudad = ciudadDe(localidad);
+  const analyzed = await analyzedConCache(db, ciudad);
 
   const maxRaw = analyzed.reduce((m, r) => Math.max(m, r.raw), 0) || 1;
   const terms = [...new Set(terminos.map(t => String(t).trim()).filter(Boolean))].slice(0, MAX_TERMINOS);

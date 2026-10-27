@@ -18,6 +18,7 @@ import BenefitsEditor from '../components/admin/BenefitsEditor';
 import AuditoriasManager from '../components/admin/AuditoriasManager';
 import AuditoriasUnificado from '../components/admin/AuditoriasUnificado';
 import AutoAuditCard from '../components/admin/AutoAuditCard';
+import DemandaAutoCard from '../components/admin/DemandaAutoCard';
 import NoticiasBotManager from '../components/admin/NoticiasBotManager';
 import PaymentPlanEditor from '../components/admin/PaymentPlanEditor';
 import StoreExcelManager from '../components/admin/StoreExcelManager';
@@ -840,6 +841,11 @@ export default function AdminPage() {
         {activeTab === 'auto-auditoria' && (
           <div>
             <AutoAuditCard />
+          </div>
+        )}
+        {activeTab === 'demanda-auto' && (
+          <div>
+            <DemandaAutoCard />
           </div>
         )}
         {activeTab === 'noticias-bot' && (

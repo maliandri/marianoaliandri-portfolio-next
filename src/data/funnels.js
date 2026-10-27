@@ -21,6 +21,14 @@ export const FUNNELS = [
     ],
   },
   {
+    id: 'demanda', titulo: 'Informes de demanda',
+    pasos: [
+      { label: 'Entraron a /demanda', page: '/demanda' },
+      { label: 'Tocaron WhatsApp', event: 'whatsapp_click', page: '/demanda' },
+      { label: 'Tocaron "Pedir presupuesto"', event: 'cta_presupuesto', page: '/demanda' },
+    ],
+  },
+  {
     id: 'tienda', titulo: 'Tienda',
     pasos: [
       { label: 'Entraron a /tienda', page: '/tienda' },

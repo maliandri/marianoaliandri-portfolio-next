@@ -298,6 +298,18 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   - Cantidad de sitios por corrida: `cantidad` en `auditoria_auto/config` (default 15, rango 3–30, se edita en la tarjeta). Se examinan hasta `2 × cantidad` comercios (getDetails); con 15 son ~516/mes con 4 corridas por semana, la mitad del cupo gratis de Places. La tarjeta muestra el consumo estimado y lo pinta en rojo si supera 1.000/mes.
   - Mínimo 3 sitios con web para guardar/publicar (`MIN_SITES_TO_PUBLISH` en `src/lib/autoAuditRun.js`): si una combinación da menos (pasó el 2026-10-12 con Durlock × Formosa: Google tenía 2 comercios, 1 con web, y se publicó un informe de 1 sitio), se marca como hecha y se prueba otra en la misma corrida (hasta 3 intentos, compartiendo el tope de `maxCandidates` y el tiempo). Cada corrida guarda `intentos` (encontrados / examinados / con web por combinación), visible en la tarjeta del admin.
   - "Correr ahora" (admin) usa modo rápido (pensado para el límite de 60 s del viejo plan Hobby; con Pro se podría alargar): lote corto (hasta 8 sitios, 15 s) y resumen de plantilla sin Gemini; la corrida programada de GitHub Actions usa el presupuesto completo.
+- **Informes de demanda** (`/demanda/` + admin → Marketing → Informes de demanda, desde 2026-10-27): ranking de los 20
+  rubros más buscados por zona (autocompletado de Google vía `analyzedConCache` de `src/lib/rubroDemand.js`, gratis, sin Places).
+  Una zona = una ciudad o un grupo de localidades (ej. Alto Valle: Neuquén, Plottier, Centenario, Cipolletti, Cinco Saltos, Allen,
+  General Roca); semillas en `src/data/demandaZonas.js`, se editan en el admin (`demanda_auto/config`). Solo cuentan las frases
+  que nombran la localidad como palabra entera (`mencionaLocalidad`; si no, "Allen" suma "allende"). Lógica pura en
+  `src/lib/demandaReport.js` (índice de zona = suma de puntajes; por localidad = relativo a su máximo; cambio contra el informe
+  anterior vía `ultimoReporte`), corrida en `src/lib/demandaAutoRun.js`. **Cron de Vercel** (`vercel.json`, mar–vie 21:00 UTC =
+  18:00 ART, `/api/cron/demanda/` con `CRON_SECRET`; el POST es el "Correr ahora" del admin, `publicar:false` para probar). Cada zona
+  sale como mucho una vez por semana (`COOLDOWN_MS`): con menos de 4 zonas no alcanzan los 4 posts. Post a **LinkedIn + Instagram**
+  (Make, `type: 'service'`, imagen = captura Microlink de `/demanda/<id>/?screenshot=1`), texto de plantilla sin IA. Con menos de
+  20 rubros con datos no publica (`sin_datos`); los fallos mandan alerta. El público ve el top 20: la lista completa sigue siendo
+  de Analítica. El buscador + provincia + ciudad del listado filtra informes ya publicados (no consulta Google). Embudo propio.
 - **Consumo Google** (admin → Marketing → Consumo Google): tabla por día del mes con comercios
   auditados (getDetails), búsquedas, acumulado y cuánto queda del cupo gratis mensual de Places
   (1.000 detalles), proyección a fin de mes y costo estimado. Lee `leadfinder_usage` vía
@@ -430,6 +442,8 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 | `mcp_email_drafts` / `mcp_email_counter` / `mcp_email_locks` | Borradores de mails del MCP (TTL 7 días), contador del tope diario y candado por negocio (email/dominio, último envío) que evita mails duplicados | Solo Admin SDK |
 | `ig_stories` | Registro de cada historia publicada desde el admin o el MCP (`origen`, `storyId` o `error`) | Solo Admin SDK |
 | `mcp_social_counter` | Contador diario de publicaciones en redes hechas desde el MCP (tope `MCP_SOCIAL_DAILY_CAP`) | Solo Admin SDK |
+| `demanda_auto` / `demanda_auto_runs` | Config de los informes de demanda (activo, zonas, ultimaCorrida, ultimoReporte, candado) y log de corridas | Admin SDK (server) / admin |
+| `demanda_reportes` | Informes públicos de /demanda (zona, localidades, provincias, top 20 con porLocalidad, ejemplos y cambio) | Solo Admin SDK |
 | `alertas` | Una por clave de alerta: último envío, total y repeticiones suprimidas (tope 1 mail/hora) | Solo Admin SDK (`src/lib/alert.js`) |
 | `mcp_rate` / `mcp_tool_calls` | Rate limiting y registro de cada llamada a una tool del MCP | Solo Admin SDK |
 

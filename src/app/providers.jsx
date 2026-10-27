@@ -32,6 +32,7 @@ const TOOL_PATHS = ['/stats', '/ats', '/kpi', '/radarweb', '/labs', '/lead-finde
 const NAV_LINKS = [
   { label: 'Auditorías', href: '/auditorias' },
   { label: 'Noticias',   href: '/noticias' },
+  { label: 'Demanda',    href: '/demanda' },
 ];
 const SERVICIOS = [
   { label: 'IA para empresas',      href: '/ia-para',     icon: '🤖', desc: 'Tu sistema, conectado a la IA' },
