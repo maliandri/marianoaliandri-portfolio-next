@@ -412,6 +412,8 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 | `mcp_oauth_clients` / `mcp_oauth_codes` / `mcp_oauth_tokens` | OAuth del servidor MCP: clientes DCR, códigos y tokens (solo el sha256). Borrar un doc de tokens = cortar ese acceso | Solo Admin SDK |
 | `mcp_lead_jobs` | Búsquedas de leads lanzadas por el MCP (progreso + leads) | Solo Admin SDK |
 | `mcp_email_drafts` / `mcp_email_counter` / `mcp_email_locks` | Borradores de mails del MCP (TTL 7 días), contador del tope diario y candado por negocio (email/dominio, último envío) que evita mails duplicados | Solo Admin SDK |
+| `ig_stories` | Registro de cada historia publicada desde el admin o el MCP (`origen`, `storyId` o `error`) | Solo Admin SDK |
+| `mcp_social_counter` | Contador diario de publicaciones en redes hechas desde el MCP (tope `MCP_SOCIAL_DAILY_CAP`) | Solo Admin SDK |
 | `mcp_rate` / `mcp_tool_calls` | Rate limiting y registro de cada llamada a una tool del MCP | Solo Admin SDK |
 
 **IMPORTANTE `entitlements/{uid}`**: el cliente NO puede escribirla (regla `write: if false`).
@@ -620,14 +622,19 @@ Las herramientas del sitio expuestas como **servidor MCP remoto** para usarlas d
   internos salen como "Error interno"; `src/lib/mcp/noSecrets.test.js` corre todas las tools con
   valores centinela en las env vars.
 - **Registro**: cada llamada queda en `mcp_tool_calls` (tool, ok, ms, args resumidos).
-- **Tools** (15): `search_leads` (asíncrona: crea un job en `mcp_lead_jobs` y sigue con `after()`),
+- **Tools** (17): `search_leads` (asíncrona: crea un job en `mcp_lead_jobs` y sigue con `after()`),
   `get_lead_search`, `list_lead_searches`, `rank_rubros_by_demand`, `list_audits`, `get_audit`,
   `create_audit_report`, `publish_audit_social` (`dry_run`), `draft_business_email`,
   `send_business_email` (`dry_run`), `list_sent_emails`, `list_ig_prospects`, `update_ig_prospect`
-  (no manda DMs), `get_places_usage`, `get_site_stats`.
+  (no manda DMs), `get_places_usage`, `get_site_stats`, `publish_free_post` (Publicación Libre vía Make: texto +
+  0-10 imágenes por URL o `tarjeta_titulo`; 2+ = carrusel solo FB+IG; `dry_run`) y `publish_ig_story` (historia
+  texto/imagen/video directo por Graph API; `dry_run` devuelve `preview_url` y se publica pasando ese mismo
+  `preview_url`). Las imágenes externas se suben a Cloudinary (`src/lib/cloudinaryServer.js`). Las dos comparten
+  el tope `MCP_SOCIAL_DAILY_CAP`=10 por día (`src/lib/mcp/socialCap.js`, colección `mcp_social_counter`).
 - **Lógica compartida con la UI** (no duplicar): `src/lib/leadFinderPro.js`, `leadSearchesStore.js`,
   `leadDemand.js`, `leadSearch.js` (`reduceLeadEvent`), `auditReportDraft.js`, `imageCheck.js`,
-  `makeSocial.js`, `bizEmail.js`, `emailGuards.js`, `igProspectosStore.js`, `siteStats.js`.
+  `makeSocial.js`, `bizEmail.js`, `emailGuards.js`, `igProspectosStore.js`, `siteStats.js`, `freePost.js`
+  (mismo payload que Publicación Libre del admin, `makeService.js` usa su `carouselFields`), `igStory.js`.
 
 **Cómo sumar una tool nueva**
 1. Si la lógica vive en una ruta o un componente, sacarla primero a una función de `src/lib/` y hacer

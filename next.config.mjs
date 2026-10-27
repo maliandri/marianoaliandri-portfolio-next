@@ -9,6 +9,7 @@ const nextConfig = {
   // Las tipografías de la tarjeta (scripts/noticiaCard.mjs) se leen con fs: hay que incluirlas.
   outputFileTracingIncludes: {
     '/api/publish-story': ['./scripts/fonts/**'],
+    '/api/mcp/[transport]': ['./scripts/fonts/**'],
   },
   async redirects() {
     return [

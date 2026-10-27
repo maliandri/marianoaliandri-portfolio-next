@@ -4,49 +4,26 @@
 import { renderNoticiaCard } from '../../scripts/noticiaCard.mjs';
 import { publishIgStory } from '../../scripts/igStoryClient.mjs';
 import { imageIsReachable } from '@/lib/imageCheck';
+import { splitCloudinaryUrl, uploadPng } from '@/lib/cloudinaryServer';
 
 export const STORY_TIPOS = ['texto', 'imagen', 'video'];
 const MAX_TITULO = 150;
-
-const CLOUDINARY_UPLOAD = /^https:\/\/res\.cloudinary\.com\/[^/]+\/(image|video)\/upload\//;
-
-// Saca la transformación que ya traiga la URL (el admin sube las fotos con c_fill 4:5) y deja
-// solo la versión (v123…) + el public_id, para aplicar la de historia.
-function baseCloudinaryPath(url) {
-  const m = url.match(CLOUDINARY_UPLOAD);
-  if (!m) return null;
-  const rest = url.slice(m[0].length);
-  const v = rest.search(/(^|\/)v\d+\//);
-  return { prefix: m[0], path: v >= 0 ? rest.slice(v).replace(/^\//, '') : rest };
-}
 
 // Imagen → 1080x1920 JPG sin recortar: la foto entera centrada sobre una versión desenfocada de sí misma.
 // (b_blurred solo existe para video: en imágenes da 400 "Invalid color name". Se arma con una capa:
 // fondo = la foto ampliada y desenfocada, encima = la misma foto con c_fit.)
 export function storyImageUrl(url) {
-  const base = baseCloudinaryPath(url);
-  if (!base || !base.prefix.includes('/image/')) return null;
+  const base = splitCloudinaryUrl(url);
+  if (!base || base.kind !== 'image') return null;
   const layerId = base.path.replace(/^v\d+\//, '').replace(/\.[a-z0-9]+$/i, '').replace(/\//g, ':');
   return `${base.prefix}c_fill,w_1080,h_1920,e_blur:2000/l_${layerId},c_fit,w_1080,h_1920/fl_layer_apply/f_jpg,q_auto/${base.path}`;
 }
 
 // Video → MP4 H.264 1080x1920 (bordes negros si no es vertical), recortado a 60 s.
 export function storyVideoUrl(url) {
-  const base = baseCloudinaryPath(url);
-  if (!base || !base.prefix.includes('/video/')) return null;
+  const base = splitCloudinaryUrl(url);
+  if (!base || base.kind !== 'video') return null;
   return `${base.prefix}c_pad,w_1080,h_1920,b_black,du_60,vc_h264,ac_aac,f_mp4/${base.path.replace(/\.[a-z0-9]+$/i, '')}.mp4`;
-}
-
-async function uploadPng(png) {
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dlshym1te';
-  const form = new FormData();
-  form.set('file', new Blob([png], { type: 'image/png' }), 'historia.png');
-  form.set('upload_preset', 'portfolio_reels');
-  form.set('folder', 'social/historias');
-  const resp = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: form });
-  const data = await resp.json();
-  if (!resp.ok || !data.secure_url) throw new Error(data.error?.message || `Cloudinary ${resp.status}`);
-  return data.secure_url.replace('/image/upload/', '/image/upload/f_jpg,q_auto/');
 }
 
 // Valida el pedido y devuelve { tipo, mediaUrl } listo para previsualizar o publicar,
@@ -61,7 +38,8 @@ export async function buildStoryMedia({ tipo, titulo, etiqueta, mediaUrl } = {})
     const { png } = await renderNoticiaCard({
       title: t, topicLabel: String(etiqueta ?? '').trim() || 'Mariano Aliandri', topicId: 'historia', format: 'story',
     });
-    return { tipo, mediaUrl: await uploadPng(png) };
+    const url = await uploadPng(png, 'social/historias');
+    return { tipo, mediaUrl: url.replace('/image/upload/', '/image/upload/f_jpg,q_auto/') };
   }
 
   const url = tipo === 'imagen' ? storyImageUrl(String(mediaUrl ?? '')) : storyVideoUrl(String(mediaUrl ?? ''));

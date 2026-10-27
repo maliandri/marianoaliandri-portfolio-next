@@ -62,6 +62,11 @@ const ARGS = {
   update_ig_prospect: [{ handle: 'pana', estado: 'contactado' }, { handle: 'pana', estado: 'volando' }],
   get_places_usage: [{}],
   get_site_stats: [{}],
+  publish_free_post: [
+    { texto: 'Hola', redes: ['linkedin'], dry_run: true },
+    { texto: 'Hola', redes: ['facebook_instagram'], imagenes: ['https://ejemplo.com/a.png', 'https://ejemplo.com/b.png'] },
+  ],
+  publish_ig_story: [{ tipo: 'imagen', url: 'https://ejemplo.com/a.png', dry_run: true }, { tipo: 'texto', texto: 'Hola' }],
 };
 
 describe('servidor MCP — nada de secretos en las respuestas', () => {
@@ -70,7 +75,7 @@ describe('servidor MCP — nada de secretos en las respuestas', () => {
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error(LEAK); }));
   });
 
-  it('están exactamente las 15 tools de la spec, en snake_case', () => {
+  it('están exactamente las tools de ARGS, en snake_case', () => {
     expect(ALL_TOOLS.map(t => t.name).sort()).toEqual(Object.keys(ARGS).sort());
     for (const t of ALL_TOOLS) expect(t.name).toMatch(/^[a-z]+(_[a-z]+)*$/);
   });

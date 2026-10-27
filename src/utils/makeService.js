@@ -2,6 +2,7 @@
 // Servicio simple para publicar en redes sociales via Make.com
 import cloudinaryService from './cloudinaryService';
 import { adminFetch } from '@/utils/adminFetch';
+import { carouselFields } from '@/lib/freePost';
 
 // Cloudinary genera la versión JPG (f_jpg) recién en el primer pedido. Si Instagram la pide
 // antes de que exista, falla con 9004. Se pide acá y se espera antes de avisarle a Make
@@ -65,13 +66,11 @@ class MakeService {
         }
       }
 
-      // Carrusel (FB + IG): 2 a 10 imágenes. Se fuerza JPEG porque Instagram solo acepta JPEG.
-      const carouselImages = Array.isArray(data.images) && data.images.length > 1
-        ? data.images.slice(0, 10).map(u => (u.includes('/upload/') ? u.replace('/upload/', '/upload/f_jpg,q_auto/') : u))
-        : null;
+      // Carrusel (FB + IG): 2 a 10 imágenes, en JPEG (src/lib/freePost.js, compartido con el MCP).
+      const carousel = Array.isArray(data.images) && data.images.length > 1 ? carouselFields(data.images) : null;
 
-      if (carouselImages) {
-        const ready = await Promise.all(carouselImages.map(u => warmImage(u)));
+      if (carousel) {
+        const ready = await Promise.all(carousel.images.map(u => warmImage(u)));
         if (ready.includes(false)) {
           throw new Error('Cloudinary no pudo preparar todas las imágenes del carrusel. Reintentá en unos segundos.');
         }
@@ -95,14 +94,7 @@ class MakeService {
         metadata: data.metadata || {}
       };
 
-      // Los arrays con la forma exacta de los módulos de Make (FB photos / IG files) evitan Iterator+Aggregator en el escenario
-      if (carouselImages) {
-        payload.isCarousel = true;
-        payload.images = carouselImages;
-        payload.imageUrl = carouselImages[0];
-        payload.carouselPhotos = carouselImages.map(url => ({ type: 'url', url }));
-        payload.carouselFiles = carouselImages.map(image_url => ({ media_type: 'IMAGE', image_url }));
-      }
+      if (carousel) Object.assign(payload, carousel);
 
       // Solo incluir 'url' si hay un video (reels)
       if (data.url) {
