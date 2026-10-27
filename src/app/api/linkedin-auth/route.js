@@ -2,8 +2,10 @@ export const dynamic = 'force-dynamic';
 import admin, { getDb } from '@/lib/firebase-admin';
 const db = getDb();
 
-const LINKEDIN_CLIENT_ID = process.env.LINKEDIN_CLIENT_ID;
-const LINKEDIN_CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET;
+// .trim(): en Vercel estas dos quedaron cargadas con un "\n" al final (se setearon con echo) y
+// LinkedIn rechazaba el client_id → la conexión fallaba antes de pedir permiso.
+const LINKEDIN_CLIENT_ID = process.env.LINKEDIN_CLIENT_ID?.trim();
+const LINKEDIN_CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET?.trim();
 const SCOPES = ['openid', 'profile', 'email', 'w_member_social'];
 
 function getRedirectUri(request) {
