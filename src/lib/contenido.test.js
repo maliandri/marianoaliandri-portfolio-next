@@ -69,3 +69,14 @@ describe('bot de contenido', () => {
     await expect(generarPieza('p', [['caida', async () => { throw new Error('503'); }]])).rejects.toThrow(/caida: 503/);
   });
 });
+
+describe('stats de auditorías: sin repetidos', () => {
+  it('cuenta cada dominio una vez y normaliza las ciudades', () => {
+    const fila = (url, ciudad) => ({ siteUrl: url, seoScore: 40, metaDesc: '', ciudad });
+    const a = { results: [fila('https://www.a.com/', 'Neuquén'), fila('http://a.com/contacto', 'Neuquén, Neuquén'), fila('https://b.com', 'Neuquén, Neuquén'), fila('https://c.com', 'Cipolletti'), fila('https://d.com', 'Plottier'), fila('https://e.com', 'Allen')] };
+    const s = statsAuditorias([a, a]);
+    expect(s.sitiosAuditados).toBe(5);
+    expect(s.ciudades).toEqual(['Neuquén', 'Cipolletti', 'Plottier', 'Allen']);
+    expect(s.cantidadCiudades).toBe(4);
+  });
+});

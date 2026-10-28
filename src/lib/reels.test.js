@@ -39,6 +39,7 @@ describe('reels', () => {
     expect(r.escenas.filter(e => e.tipo === 'numero').map(e => e.valor)).toEqual([80, 68, 45]);
     expect(r.titulo).toBe('Revisé 40 webs de negocios de Neuquén');
     expect(reelDato(null)).toBeNull();
+    expect(reelDato({ sitiosAuditados: 9, cantidadCiudades: 6, ciudades: ['A', 'B'], pctSinSitemap: 50 }).titulo).toBe('Revisé 9 webs de negocios de 6 ciudades');
     expect(reelDato({ sitiosAuditados: 5, pctSinSitemap: 5 })).toBeNull();
   });
 

@@ -44,11 +44,16 @@ async function groq(prompt) {
   return j.choices?.[0]?.message?.content;
 }
 
-// Gemini suele saturarse (503) o colgarse: se prueba el modelo nuevo en modo rápido, el anterior y
-// Groq. Cada respuesta se valida; una que no sirve cuenta como fallo y se pasa a la siguiente.
+// Gemini suele saturarse (503) o colgarse: se prueban varios modelos y al final Groq. Cada respuesta se
+// valida; una que no sirve cuenta como fallo y se pasa a la siguiente. Medido el 2026-10-28: 3.8, 3.7, 3.6 y
+// flash-latest daban "high demand"; 3.5-flash y 3.5-flash-lite respondían. gemini-2.5-flash ya no está
+// habilitado para cuentas nuevas (las keys satélite de producción). Pocas keys por modelo y timeouts
+// cortos: la ruta tiene 300 s en total.
+const rapido = { thinkingConfig: { thinkingLevel: 'low' } };
 const PROVEEDORES = [
-  ['gemini', (p) => callGemini(p, { timeout: 60000, generationConfig: { thinkingConfig: { thinkingLevel: 'low' } } })],
-  ['gemini-2.5', (p) => callGemini(p, { timeout: 60000, model: 'gemini-2.5-flash' })],
+  ['gemini-3.8', (p) => callGemini(p, { timeout: 35000, maxKeys: 2, generationConfig: rapido })],
+  ['gemini-3.5', (p) => callGemini(p, { timeout: 60000, maxKeys: 2, model: 'gemini-3.5-flash' })],
+  ['gemini-3.5-lite', (p) => callGemini(p, { timeout: 50000, maxKeys: 2, model: 'gemini-3.5-flash-lite' })],
   ['groq', groq],
 ];
 

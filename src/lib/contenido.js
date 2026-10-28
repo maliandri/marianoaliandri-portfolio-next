@@ -15,8 +15,22 @@ export function pickSerie(series, ultimaCorrida = {}) {
 }
 
 // Números agregados de las últimas auditorías (para la serie "El error que más veo"). Sin nombres.
+// Un mismo sitio aparece en varias auditorías (pasó: "575 webs" contaba repetidos): se cuenta una vez por
+// dominio. La ciudad viene como "Neuquén" o "Neuquén, Neuquén": se queda la primera parte.
+const dominio = (u) => String(u || '').toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[/?#]/)[0];
+const ciudadCorta = (c) => String(c || '').split(',')[0].trim();
+
 export function statsAuditorias(auditorias) {
-  const filas = auditorias.flatMap(a => (a.results || []).map(r => ({ ...r, rubro: a.config?.tiposLabels?.[0] || r.tipo, ciudad: r.ciudad || a.config?.ciudades?.[0] })));
+  const vistos = new Set();
+  const filas = auditorias
+    .flatMap(a => (a.results || []).map(r => ({ ...r, rubro: a.config?.tiposLabels?.[0] || r.tipo, ciudad: ciudadCorta(r.ciudad || a.config?.ciudades?.[0]) })))
+    .filter(r => {
+      const k = dominio(r.siteUrl);
+      if (!k) return true; // sin web no hay con qué deduplicar
+      if (vistos.has(k)) return false;
+      vistos.add(k);
+      return true;
+    });
   const conScore = filas.filter(r => typeof r.seoScore === 'number');
   if (conScore.length < 5) return null;
   const pct = (pred) => {
@@ -25,7 +39,8 @@ export function statsAuditorias(auditorias) {
   };
   return {
     sitiosAuditados: filas.length,
-    ciudades: [...new Set(filas.map(r => r.ciudad).filter(Boolean))].slice(0, 8),
+    cantidadCiudades: new Set(filas.map(r => r.ciudad.toLowerCase()).filter(Boolean)).size,
+    ciudades: [...new Map(filas.filter(r => r.ciudad).map(r => [r.ciudad.toLowerCase(), r.ciudad])).values()].slice(0, 8),
     rubros: [...new Set(filas.map(r => r.rubro).filter(Boolean))].slice(0, 8),
     puntajeSeoPromedio: Math.round(conScore.reduce((s, r) => s + r.seoScore, 0) / conScore.length),
     pctPuntajeBajo50: pct(r => (typeof r.seoScore === 'number' ? r.seoScore < 50 : null)),

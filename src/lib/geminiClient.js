@@ -24,8 +24,10 @@ export function getGeminiKey() {
 }
 
 // generationConfig: opcional (ej. { thinkingConfig: { thinkingLevel: 'low' } } para que gemini-3.x no piense de más).
-export async function callGemini(prompt, { timeout = 25000, model, generationConfig } = {}) {
-  const keys = getKeys();
+// maxKeys: cuántas keys probar como mucho. Cuando el modelo está saturado o colgado, fallan todas igual:
+// probar las 6 con timeout largo se come el tiempo de la función antes de llegar a otro modelo.
+export async function callGemini(prompt, { timeout = 25000, model, generationConfig, maxKeys = Infinity } = {}) {
+  const keys = getKeys().slice(0, maxKeys);
   if (!keys.length) throw new Error('No hay ninguna GEMINI_API_KEY configurada');
 
   const url = model

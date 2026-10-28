@@ -69,7 +69,9 @@ export function reelDato(s) {
     s.pctSinSitemap != null && { valor: s.pctSinSitemap, texto: 'no le dice a Google qué páginas tiene', voz: 'no le avisa a Google qué páginas tiene' },
   ].filter(d => d && d.valor >= 20).sort((a, b) => b.valor - a.valor).slice(0, 3);
   if (!datos.length) return null;
-  const donde = s.ciudades?.length ? ` de ${s.ciudades.slice(0, 2).join(' y ')}` : '';
+  // Con 1 o 2 ciudades se nombran; con más, "de N ciudades" (nombrar 2 de 10 daba a entender que eran todas de ahí).
+  const n = s.cantidadCiudades ?? s.ciudades?.length ?? 0;
+  const donde = n > 2 ? ` de ${n} ciudades` : s.ciudades?.length ? ` de ${s.ciudades.slice(0, 2).join(' y ')}` : '';
   return {
     serie: 'El error que más veo',
     titulo: `Revisé ${s.sitiosAuditados} webs de negocios${donde}`,
