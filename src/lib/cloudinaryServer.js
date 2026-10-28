@@ -18,6 +18,7 @@ async function upload(file, { resourceType = 'image', folder = 'social' } = {}) 
 
 export const uploadPng = (png, folder) => upload(new Blob([png], { type: 'image/png' }), { folder });
 export const uploadBytes = (bytes, type, folder) => upload(new Blob([bytes], { type }), { folder });
+export const uploadVideo = (bytes, folder) => upload(new Blob([bytes], { type: 'video/mp4' }), { resourceType: 'video', folder });
 
 // Cloudinary baja el archivo de la URL pública (sirve para imágenes que llegan desde el chat de Claude).
 export const uploadFromUrl = (url, { resourceType = 'image', folder } = {}) => upload(url, { resourceType, folder });

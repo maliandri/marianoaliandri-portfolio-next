@@ -1,0 +1,17 @@
+{
+  "name": "maliandri-reels",
+  "private": true,
+  "description": "Reels automáticos (Remotion). Separado del sitio para no sumar dependencias al build de Next.",
+  "scripts": {
+    "studio": "remotion studio src/index.jsx",
+    "render": "remotion render src/index.jsx Reel out/reel.mp4 --props=props.json --codec=h264"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.539",
+    "@remotion/fonts": "4.0.539",
+    "@remotion/transitions": "4.0.539",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "remotion": "4.0.539"
+  }
+}

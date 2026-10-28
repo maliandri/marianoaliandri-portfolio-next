@@ -52,17 +52,20 @@ const PROVEEDORES = [
   ['groq', groq],
 ];
 
-export async function generarPieza(prompt, proveedores = PROVEEDORES) {
+// Genérico: prueba cada IA hasta que una devuelva algo que `parse` acepte (también los guiones semanales).
+export async function generarConRespaldo(prompt, parse, proveedores = PROVEEDORES) {
   const errores = [];
   for (const [nombre, fn] of proveedores) {
     try {
-      return { ...parseContenido(await fn(prompt)), proveedor: nombre };
+      return { ...parse(await fn(prompt)), proveedor: nombre };
     } catch (e) {
       errores.push(`${nombre}: ${e.message}`);
     }
   }
-  throw new Error(`Ninguna IA devolvió la pieza (${errores.join(' · ')})`);
+  throw new Error(`Ninguna IA devolvió una respuesta válida (${errores.join(' · ')})`);
 }
+
+export const generarPieza = (prompt, proveedores = PROVEEDORES) => generarConRespaldo(prompt, parseContenido, proveedores);
 
 async function recientesDeSerie(db, serieId) {
   const snap = await db.collection(CONTENIDOS).where('serieId', '==', serieId).get();

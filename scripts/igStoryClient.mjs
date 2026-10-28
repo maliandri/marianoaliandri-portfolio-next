@@ -35,11 +35,11 @@ async function waitForContainer(containerId, { accessToken, fetchImpl, retries, 
     const data = await resp.json().catch(() => ({}));
     if (data.status_code === 'FINISHED') return;
     if (data.status_code === 'ERROR' || data.status_code === 'EXPIRED') {
-      throw new Error(`Instagram: el contenedor de la historia quedó en ${data.status_code}`);
+      throw new Error(`Instagram: el contenedor quedó en ${data.status_code}`);
     }
     if (i < retries - 1) await new Promise(r => setTimeout(r, delayMs));
   }
-  throw new Error('Instagram: la historia no terminó de procesarse a tiempo');
+  throw new Error('Instagram: no terminó de procesarse a tiempo');
 }
 
 // mediaUrl tiene que ser un JPG público (Instagram no acepta PNG/WebP por URL en historias) o,
@@ -54,4 +54,39 @@ export async function publishIgStory(mediaUrl, {
   await waitForContainer(container.id, { ...opts, retries, delayMs });
   const published = await graphPost(`${creds.igUserId}/media_publish`, { creation_id: container.id }, opts);
   return published.id;
+}
+
+// Reel de Instagram (MP4 vertical H.264/AAC público). share_to_feed: también aparece en el perfil.
+// El video tarda en procesarse: se espera hasta ~5 min a que el contenedor quede FINISHED.
+export async function publishIgReel(videoUrl, caption, {
+  creds = igCredsFromEnv(), fetchImpl = fetch, retries = 60, delayMs = 5000,
+} = {}) {
+  if (!creds) throw new Error('IG_ACCESS_TOKEN o IG_USER_ID no configurados');
+  const opts = { accessToken: creds.accessToken, fetchImpl };
+  const container = await graphPost(`${creds.igUserId}/media`, {
+    media_type: 'REELS', video_url: videoUrl, caption: String(caption || '').slice(0, 2200), share_to_feed: 'true',
+  }, opts);
+  await waitForContainer(container.id, { ...opts, retries, delayMs });
+  const published = await graphPost(`${creds.igUserId}/media_publish`, { creation_id: container.id }, opts);
+  return published.id;
+}
+
+// Reel de la página de Facebook con el mismo token (es un token de página): la API de video_reels va
+// en tres pasos (start → subir por URL → finish). Devuelve el id del video.
+export async function publishFbReel(videoUrl, description, { creds = igCredsFromEnv(), fetchImpl = fetch } = {}) {
+  if (!creds) throw new Error('IG_ACCESS_TOKEN no configurado');
+  const opts = { accessToken: creds.accessToken, fetchImpl };
+  const meResp = await fetchImpl(`${GRAPH_URL}/me?fields=id&access_token=${encodeURIComponent(creds.accessToken)}`, { signal: AbortSignal.timeout(15000) });
+  const me = await meResp.json().catch(() => ({}));
+  if (!me.id) throw new Error(`Facebook: no se pudo identificar la página (${me.error?.message || meResp.status})`);
+  const start = await graphPost(`${me.id}/video_reels`, { upload_phase: 'start' }, opts);
+  const up = await fetchImpl(start.upload_url, {
+    method: 'POST', headers: { Authorization: `OAuth ${creds.accessToken}`, file_url: videoUrl }, signal: AbortSignal.timeout(120000),
+  });
+  const upData = await up.json().catch(() => ({}));
+  if (!up.ok || upData.success === false) throw new Error(`Facebook: no se pudo subir el reel (${upData.debug_info?.message || up.status})`);
+  await graphPost(`${me.id}/video_reels`, {
+    upload_phase: 'finish', video_id: start.video_id, video_state: 'PUBLISHED', description: String(description || '').slice(0, 2200),
+  }, opts);
+  return start.video_id;
 }

@@ -1,0 +1,53 @@
+name: Reel automático
+
+# Lun, mié y vie a las 10:00 ART. A diferencia del bot de noticias, acá un retraso del cron de GitHub
+# no importa (el reel sale igual ese día), así que usa `schedule` y no hace falta cron-job.org.
+# También se puede correr a mano (Actions → Reel automático → Run workflow), eligiendo el tipo.
+on:
+  schedule:
+    - cron: '0 13 * * 1,3,5'
+  workflow_dispatch:
+    inputs:
+      tipo:
+        description: 'explicador, ranking o dato (vacío = el que toca)'
+        required: false
+        default: ''
+
+concurrency:
+  group: reel-bot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  reel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+      FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEY_1: ${{ secrets.GEMINI_API_KEY_1 }}
+      GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+      GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
+      IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+      IG_USER_ID: ${{ secrets.IG_USER_ID }}
+      REEL_TIPO: ${{ github.event.inputs.tipo }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm ci
+        working-directory: video
+      - name: Escenas y voz en off
+        run: npx tsx --tsconfig jsconfig.json scripts/reel-prep.mjs
+      - name: Render (Remotion)
+        working-directory: video
+        run: |
+          if [ -f props.json ]; then npx remotion render src/index.jsx Reel out/reel.mp4 --props=props.json --codec=h264 --audio-codec=aac; fi
+      - name: Subir y publicar
+        run: npx tsx --tsconfig jsconfig.json scripts/reel-publish.mjs

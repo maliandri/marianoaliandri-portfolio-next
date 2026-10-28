@@ -133,6 +133,12 @@ export default function ContenidoBotCard() {
             </select>
             <button onClick={() => generar(false)} disabled={busy} className="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm disabled:opacity-50">Vista previa</button>
             <button onClick={() => generar(true)} disabled={busy} className="px-3 py-2 rounded-lg border border-indigo-600 text-indigo-700 dark:text-indigo-300 text-sm disabled:opacity-50">Generar y publicar</button>
+            <button disabled={busy}
+              onClick={() => { setMsg('Armando los guiones… (1 a 2 minutos)'); call('/api/cron/guiones/', 'POST', {}, d => `Te mandé ${d.enviados} guiones por mail: ${d.titulos.join(' · ')}`); }}
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm disabled:opacity-50"
+              title="Los lunes a las 8 llegan solos">
+              Mandarme los guiones de reels
+            </button>
           </div>
         )}
         {msg && <p className="mt-3 text-sm text-green-700 dark:text-green-400" role="status">{msg}</p>}

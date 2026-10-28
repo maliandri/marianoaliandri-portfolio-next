@@ -47,6 +47,7 @@ export const ADMIN_NAV_DEFAULT = [
     { id: 'auto-auditoria', label: 'Auditoría automática', icon: '🤖' },
     { id: 'demanda-auto', label: 'Informes de demanda', icon: '🔎' },
     { id: 'contenido-bot', label: 'Bot de contenido', icon: '✍️' },
+    { id: 'reels-bot', label: 'Reels automáticos', icon: '🎞️' },
     { id: 'audit-requests', label: 'Solicitudes SEO', icon: '🔍' },
     { id: 'emails', label: 'Emails', icon: '📧' },
     { id: 'style-quiz', label: 'Test de Estilo', icon: '🎨' },

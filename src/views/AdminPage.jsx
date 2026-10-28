@@ -20,6 +20,7 @@ import AuditoriasUnificado from '../components/admin/AuditoriasUnificado';
 import AutoAuditCard from '../components/admin/AutoAuditCard';
 import DemandaAutoCard from '../components/admin/DemandaAutoCard';
 import ContenidoBotCard from '../components/admin/ContenidoBotCard';
+import ReelsBotCard from '../components/admin/ReelsBotCard';
 import NoticiasBotManager from '../components/admin/NoticiasBotManager';
 import PaymentPlanEditor from '../components/admin/PaymentPlanEditor';
 import StoreExcelManager from '../components/admin/StoreExcelManager';
@@ -842,6 +843,11 @@ export default function AdminPage() {
         {activeTab === 'auto-auditoria' && (
           <div>
             <AutoAuditCard />
+          </div>
+        )}
+        {activeTab === 'reels-bot' && (
+          <div>
+            <ReelsBotCard />
           </div>
         )}
         {activeTab === 'contenido-bot' && (
