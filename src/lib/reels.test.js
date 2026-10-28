@@ -79,10 +79,10 @@ describe('voz en off (Gemini TTS)', () => {
 describe('publicar reel', () => {
   it('cada red por separado y el error queda guardado', async () => {
     const { db } = createFakeDb({ 'reels/r1': { videoUrl: 'https://v.mp4', caption: 'c', estado: 'borrador' } });
-    const r = await publicarReel(db, 'r1', { ig: async () => 'ig1', fb: async () => { throw new Error('sin permiso'); } });
+    const r = await publicarReel(db, 'r1', { redes: ['instagram', 'facebook'], ig: async () => 'ig1', fb: async () => { throw new Error('sin permiso'); } });
     expect(r.redes).toEqual({ instagram: { ok: true, id: 'ig1' }, facebook: { ok: false, error: 'sin permiso' } });
     const doc = (await db.collection('reels').doc('r1').get()).data();
     expect(doc.estado).toBe('publicado');
-    expect(doc.error).toBe('facebook: sin permiso');
+    expect(doc.error).toBe('Facebook: sin permiso');
   });
 });

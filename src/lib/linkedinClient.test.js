@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createFakeDb } from '@/test/fakeDb';
-import { linkedinVersion, littleText, getLinkedInAuth, publishDocumentPost, LinkedInError } from './linkedinClient';
+import { linkedinVersion, littleText, getLinkedInAuth, publishDocumentPost, publishVideoPost, LinkedInError } from './linkedinClient';
 import { checkLinkedIn } from './healthCheck';
 
 describe('linkedinClient', () => {
@@ -44,6 +44,34 @@ describe('linkedinClient', () => {
     expect(calls.map(c => c.method)).toEqual(['POST', 'PUT', 'GET', 'GET', 'POST']);
     const post = JSON.parse(calls.at(-1).body);
     expect(post).toMatchObject({ author: 'urn:li:person:abc', commentary: 'Hola {hashtag|\\#|Neuquén}', content: { media: { id: 'urn:li:document:D1', title: 'Informe' } } });
+  });
+
+  it('video: sube cada parte, finaliza con los ETag, espera AVAILABLE y publica', async () => {
+    const calls = [];
+    let polls = 0;
+    const fetchImpl = async (url, opts) => {
+      calls.push({ url, method: opts.method || 'GET', body: opts.body });
+      const json = (data, headers = {}) => ({ ok: true, json: async () => data, text: async () => '', headers: new Map(Object.entries(headers)) });
+      if (url.includes('initializeUpload')) {
+        return json({ value: { video: 'urn:li:video:V1', uploadToken: 'tk', uploadInstructions: [
+          { uploadUrl: 'https://up.li/1', firstByte: 0, lastByte: 3 }, { uploadUrl: 'https://up.li/2', firstByte: 4, lastByte: 5 },
+        ] } });
+      }
+      if (url.startsWith('https://up.li/')) return json({}, { etag: `e${url.at(-1)}` });
+      if (url.includes('finalizeUpload')) return json({});
+      if (url.includes('/videos/')) return json({ status: ++polls < 3 ? 'PROCESSING' : 'AVAILABLE' });
+      if (url.endsWith('/posts')) return json({}, { 'x-restli-id': 'urn:li:share:7' });
+      throw new Error(url);
+    };
+    const id = await publishVideoPost({
+      token: 't', author: 'urn:li:person:abc', video: Buffer.from('abcdef'), title: 'Reel', text: 'Hola',
+      fetchImpl, now: new Date('2026-10-28'), wait: async () => {},
+    });
+    expect(id).toBe('urn:li:share:7');
+    expect(calls.filter(c => c.url.startsWith('https://up.li/')).map(c => c.body.toString())).toEqual(['abcd', 'ef']);
+    expect(JSON.parse(calls.find(c => c.url.includes('finalizeUpload')).body).finalizeUploadRequest)
+      .toEqual({ video: 'urn:li:video:V1', uploadToken: 'tk', uploadedPartIds: ['e1', 'e2'] });
+    expect(JSON.parse(calls.at(-1).body).content.media.id).toBe('urn:li:video:V1');
   });
 
   it('error de LinkedIn sale con el código', async () => {

@@ -2,11 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthUser } from '@/hooks/useAuthUser';
+import { reelDownloadUrl, whatsappShareUrl } from '@/lib/reelShare';
 
 // Reels automáticos: los arma GitHub Actions (Remotion) lun/mié/vie 10:00. Acá se miran y se publican.
 const card = 'rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5';
 const TIPO = { explicador: 'Explicador', ranking: 'Ranking de demanda', dato: 'Dato de auditorías' };
 const ACTIONS_URL = 'https://github.com/maliandri/marianoaliandri-portfolio-next/actions/workflows/reel-bot.yml';
+const REDES = ['instagram', 'facebook', 'linkedin'];
+const NOMBRE = { instagram: 'Instagram', facebook: 'Facebook', linkedin: 'LinkedIn' };
 
 export default function ReelsBotCard() {
   const { user, loading: authLoading, getIdToken, login } = useAuthUser();
@@ -14,6 +17,16 @@ export default function ReelsBotCard() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [share, setShare] = useState(null); // { id, estado: 'bajando' | 'listo', file }
+  const [canShareFiles, setCanShareFiles] = useState(false);
+
+  // Solo celulares (y algunos navegadores de escritorio) comparten archivos con Web Share.
+  useEffect(() => {
+    try {
+      const f = new File([new Blob([''], { type: 'video/mp4' })], 'x.mp4', { type: 'video/mp4' });
+      setCanShareFiles(Boolean(navigator.canShare?.({ files: [f] })));
+    } catch { /* sin Web Share */ }
+  }, []);
 
   const authFetch = useCallback(async (url, options = {}) => {
     const token = await getIdToken();
@@ -49,10 +62,34 @@ export default function ReelsBotCard() {
     }
   };
 
-  const publicar = (id) => {
-    if (!window.confirm('¿Publicar este reel en Instagram y en la página de Facebook?')) return;
-    setMsg('Publicando… (Instagram tarda 1 o 2 minutos en procesar el video)');
-    call('POST', { id }, d => (d.error ? `Publicado con problemas: ${d.error}` : 'Publicado en Instagram y Facebook'));
+  const publicar = (r) => {
+    const faltan = REDES.filter(red => !r.redes?.[red]?.ok);
+    if (!window.confirm(`¿Publicar este reel en ${faltan.map(x => NOMBRE[x]).join(', ')}?`)) return;
+    setMsg('Publicando… (Instagram y LinkedIn tardan unos minutos en procesar el video)');
+    call('POST', { id: r.id, redes: faltan }, d => (d.error ? `Publicado con problemas: ${d.error}` : `Publicado en ${faltan.map(x => NOMBRE[x]).join(', ')}`));
+  };
+
+  // Celular: primer toque baja el video, segundo abre la hoja de compartir con el archivo (Web Share
+  // pide un toque reciente, y bajar el MP4 puede tardar más que eso).
+  const prepararCompartir = async (r) => {
+    setShare({ id: r.id, estado: 'bajando' });
+    try {
+      const blob = await (await fetch(r.videoUrl)).blob();
+      const file = new File([blob], 'reel.mp4', { type: 'video/mp4' });
+      setShare({ id: r.id, estado: 'listo', file });
+    } catch {
+      setShare(null);
+      setErrorMsg('No se pudo bajar el video para compartir');
+    }
+  };
+  const compartir = async (r) => {
+    try {
+      await navigator.share({ files: [share.file], text: r.caption });
+    } catch (e) {
+      if (e?.name !== 'AbortError') setErrorMsg('Este navegador no deja compartir el archivo: usá Descargar MP4');
+    } finally {
+      setShare(null);
+    }
   };
 
   if (authLoading) return <p className="text-sm text-gray-500">Cargando…</p>;
@@ -67,7 +104,8 @@ export default function ReelsBotCard() {
             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xl">
               Lunes, miércoles y viernes a las 10:00 se arma un reel (rotan: explicador del bot de contenido, ranking de
               demanda y dato de auditorías) con voz en off. Apagado = queda acá para revisarlo; prendido = se publica solo
-              en Instagram y Facebook. Para armar uno ahora: <a href={ACTIONS_URL} target="_blank" rel="noreferrer" className="underline">GitHub → Run workflow</a>.
+              en Instagram, Facebook y LinkedIn. Para WhatsApp, TikTok o Estados: Descargar MP4 o Compartir video
+              (desde el celular). Para armar uno ahora: <a href={ACTIONS_URL} target="_blank" rel="noreferrer" className="underline">GitHub → Run workflow</a>.
             </p>
           </div>
           <button onClick={() => call('PATCH', { activo: !data?.activo }, data?.activo ? 'Publicación automática apagada' : 'Publicación automática encendida')}
@@ -95,9 +133,29 @@ export default function ReelsBotCard() {
               <summary className="text-xs text-gray-500 cursor-pointer">Texto del post</summary>
               <p className="whitespace-pre-line text-xs text-gray-600 dark:text-gray-300 mt-1">{r.caption}</p>
             </details>
-            {r.estado !== 'publicado' && (
-              <button disabled={busy} onClick={() => publicar(r.id)} className="mt-3 px-3 py-2 rounded-lg bg-green-600 text-white text-sm disabled:opacity-50">Publicar</button>
-            )}
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {REDES.map(red => {
+                const x = r.redes?.[red];
+                const cls = x?.ok ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+                  : x ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                  : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
+                return <span key={red} title={x?.error || ''} className={`px-2 py-0.5 rounded-full text-xs ${cls}`}>{NOMBRE[red]} {x?.ok ? '✓' : x ? '✗' : '·'}</span>;
+              })}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {REDES.some(red => !r.redes?.[red]?.ok) && (
+                <button disabled={busy} onClick={() => publicar(r)} className="px-3 py-2 rounded-lg bg-green-600 text-white text-sm disabled:opacity-50">
+                  {r.estado === 'publicado' ? 'Publicar en lo que falta' : 'Publicar'}
+                </button>
+              )}
+              <a href={reelDownloadUrl(r.videoUrl, r.titulo)} className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200">Descargar MP4</a>
+              {canShareFiles && (share?.id === r.id && share.estado === 'listo'
+                ? <button onClick={() => compartir(r)} className="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm">Enviar (WhatsApp, Estado, TikTok…)</button>
+                : <button disabled={share?.id === r.id} onClick={() => prepararCompartir(r)} className="px-3 py-2 rounded-lg border border-indigo-400 text-indigo-700 dark:text-indigo-300 text-sm disabled:opacity-50">
+                    {share?.id === r.id ? 'Preparando…' : 'Compartir video'}
+                  </button>)}
+              <a href={whatsappShareUrl(r.caption, r.videoUrl)} target="_blank" rel="noreferrer" className="px-3 py-2 rounded-lg bg-[#25D366] text-white text-sm">WhatsApp (link)</a>
+            </div>
           </div>
         ))}
       </div>

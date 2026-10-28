@@ -413,7 +413,12 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   Cloud TTS NO acepta la API key de Gemini, da 401 — por eso `/api/reel-tts` probablemente no anda) y escribe `video/props.json`;
   2) `npx remotion render`; 3) `scripts/reel-publish.mjs` sube el MP4 a Cloudinary (`reels/`), lo guarda en `reels` y, si
   `reels_config.activo`, lo publica (`src/lib/reelPublish.js`): Instagram REELS y reel de la página de Facebook directo por Graph
-  API con el token de página de las historias (`publishIgReel`/`publishFbReel` en `scripts/igStoryClient.mjs`). Apagado = queda
+  API con el token de página de las historias (`publishIgReel`/`publishFbReel` en `scripts/igStoryClient.mjs`; Facebook necesita
+  `pages_manage_posts` en ese token), y LinkedIn como video nativo (`publishVideoPost` en `src/lib/linkedinClient.js`, conexión del
+  admin). `publicarReel` solo publica en las redes donde todavía no salió (`redes` del doc): "Publicar en lo que falta" no duplica.
+  Para WhatsApp/TikTok/Estados a mano: "Descargar MP4" (Cloudinary `fl_attachment`), "Compartir video" (Web Share con el archivo,
+  solo celular) y "WhatsApp (link)" (WhatsApp Web no acepta archivos de otra página), `src/lib/reelShare.js`. YouTube Shorts y
+  TikTok quedan afuera: sus APIs dejan los videos privados hasta pasar una auditoría de la app. Apagado = queda
   como borrador para mirar y publicar desde el admin (`/api/reels/`). Render de un reel de 45 s: ~2 min.
 - **Guiones semanales** (`/api/cron/guiones/`, lunes 11:00 UTC, y botón en Bot de contenido): Gemini (con respaldo,
   `generarConRespaldo`) arma 3 guiones de reels para grabar con la cara (gancho, tomas decir/mostrar, cierre, caption) con los

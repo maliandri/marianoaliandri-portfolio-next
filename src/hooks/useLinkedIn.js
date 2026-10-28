@@ -2,6 +2,14 @@
 
 // src/hooks/useLinkedIn.js
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { firebaseAuth } from '@/utils/firebaseservice';
+
+// Las dos rutas exigen sesión de admin (antes cualquiera podía desconectar LinkedIn o ver el perfil).
+async function authHeaders() {
+  await firebaseAuth.auth?.authStateReady?.(); // al recargar el admin, la sesión tarda un momento en volver
+  const token = await firebaseAuth.getCurrentUser()?.getIdToken().catch(() => null);
+  return { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+}
 
 const LINKEDIN_KEYS = {
   status: ['linkedin', 'status'],
@@ -11,9 +19,9 @@ const LINKEDIN_KEYS = {
 };
 
 async function linkedinAuthAction(action) {
-  const res = await fetch('/api/linkedin-auth', {
+  const res = await fetch('/api/linkedin-auth/', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await authHeaders(),
     body: JSON.stringify({ action })
   });
   if (!res.ok) throw new Error('Error en LinkedIn auth');
@@ -21,9 +29,9 @@ async function linkedinAuthAction(action) {
 }
 
 async function linkedinDataAction(action) {
-  const res = await fetch('/api/linkedin-data', {
+  const res = await fetch('/api/linkedin-data/', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await authHeaders(),
     body: JSON.stringify({ action })
   });
   if (!res.ok) {

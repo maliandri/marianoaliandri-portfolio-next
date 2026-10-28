@@ -1,6 +1,6 @@
 // Reels automáticos, paso 3 de 3: sube video/out/reel.mp4 a Cloudinary, lo guarda en `reels` (borrador)
 // y marca la fuente como usada. Si la publicación automática está prendida (reels_config.activo), además
-// lo publica en Instagram y Facebook. Si no, queda para revisar y publicar desde el admin.
+// lo publica en Instagram, Facebook y LinkedIn. Si no, queda para revisar y publicar desde el admin.
 // Se ejecuta con: npx tsx --tsconfig jsconfig.json scripts/reel-publish.mjs
 import fs from 'node:fs';
 import path from 'node:path';

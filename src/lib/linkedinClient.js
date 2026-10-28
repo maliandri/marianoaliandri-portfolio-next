@@ -1,5 +1,6 @@
 // Publicación directa en el perfil de LinkedIn de Mariano (API de LinkedIn, no Make): Make no sube
 // documentos, y los informes de demanda salen como post de documento (PDF que se pasa de página).
+// Los reels salen como video nativo (publishVideoPost).
 // Token: el que guarda la conexión del admin (pestaña LinkedIn → /api/linkedin-auth) en
 // `integrations/linkedin`. LinkedIn no da refresh token a esta app: vence a los 60 días y hay que
 // reconectar (el chequeo diario avisa, src/lib/healthCheck.js).
@@ -80,6 +81,10 @@ export async function publishDocumentPost({ token, author, pdf, title, text, fet
     await wait(3000);
   }
 
+  return createMediaPost(fetchImpl, { token, version, author, text, title, media: document });
+}
+
+async function createMediaPost(fetchImpl, { token, version, author, text, title, media }) {
   const res = await call(fetchImpl, `${API}/posts`, {
     token, version, method: 'POST',
     body: {
@@ -87,10 +92,45 @@ export async function publishDocumentPost({ token, author, pdf, title, text, fet
       commentary: littleText(text),
       visibility: 'PUBLIC',
       distribution: { feedDistribution: 'MAIN_FEED', targetEntities: [], thirdPartyDistributionChannels: [] },
-      content: { media: { title: String(title).slice(0, 200), id: document } },
+      content: { media: { title: String(title).slice(0, 200), id: media } },
       lifecycleState: 'PUBLISHED',
       isReshareDisabledByAuthor: false,
     },
   });
-  return res.headers.get('x-restli-id') || res.headers.get('x-linkedin-id') || document;
+  return res.headers.get('x-restli-id') || res.headers.get('x-linkedin-id') || media;
+}
+
+// Video nativo (los reels): initializeUpload da una o más partes (de a 4 MB) → PUT de cada una
+// juntando los ETag → finalizeUpload → esperar AVAILABLE → post. Devuelve el id del post.
+export async function publishVideoPost({ token, author, video, title, text, fetchImpl = fetch, now = new Date(), wait = ms => new Promise(r => setTimeout(r, ms)) }) {
+  const version = linkedinVersion(now);
+  const init = await (await call(fetchImpl, `${API}/videos?action=initializeUpload`, {
+    token, version, method: 'POST',
+    body: { initializeUploadRequest: { owner: author, fileSizeBytes: video.length, uploadCaptions: false, uploadThumbnail: false } },
+  })).json();
+  const { uploadInstructions, video: urn, uploadToken = '' } = init.value || {};
+  if (!uploadInstructions?.length || !urn) throw new LinkedInError('LinkedIn no devolvió dónde subir el video.');
+
+  const partes = [];
+  for (const { uploadUrl, firstByte, lastByte } of uploadInstructions) {
+    const res = await call(fetchImpl, uploadUrl, {
+      token, method: 'PUT', raw: video.subarray(firstByte, lastByte + 1), headers: { 'Content-Type': 'application/octet-stream' },
+    });
+    const etag = res.headers.get('etag');
+    if (!etag) throw new LinkedInError('LinkedIn no confirmó una parte del video.');
+    partes.push(etag);
+  }
+  await call(fetchImpl, `${API}/videos?action=finalizeUpload`, {
+    token, version, method: 'POST', body: { finalizeUploadRequest: { video: urn, uploadToken, uploadedPartIds: partes } },
+  });
+
+  // Un video tarda más que un PDF en procesarse: hasta ~3 minutos.
+  for (let i = 0; i < 36; i++) {
+    const v = await (await call(fetchImpl, `${API}/videos/${encodeURIComponent(urn)}`, { token, version })).json();
+    if (v.status === 'AVAILABLE') break;
+    if (v.status === 'PROCESSING_FAILED') throw new LinkedInError('LinkedIn no pudo procesar el video.');
+    if (i === 35) throw new LinkedInError('LinkedIn tardó demasiado en procesar el video.');
+    await wait(5000);
+  }
+  return createMediaPost(fetchImpl, { token, version, author, text, title, media: urn });
 }

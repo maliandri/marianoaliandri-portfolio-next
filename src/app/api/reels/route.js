@@ -1,12 +1,13 @@
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // Instagram tarda en procesar el video antes de publicarlo
+export const maxDuration = 800; // Instagram y LinkedIn tardan en procesar el video antes de publicarlo (Pro + Fluid)
 
 import { getDb } from '@/lib/firebase-admin';
 import { requireAdmin } from '@/lib/adminAuth';
-import { publicarReel, REELS } from '@/lib/reelPublish';
+import { publicarReel, REELS, REDES_REEL } from '@/lib/reelPublish';
 
 // Reels automáticos (los renderiza GitHub Actions, .github/workflows/reel-bot.yml).
-// GET: config + últimos reels. PATCH { activo }: publicación automática. POST { id }: publicar un borrador.
+// GET: config + últimos reels. PATCH { activo }: publicación automática.
+// POST { id, redes? }: publicar (o reintentar) en las redes donde todavía no salió.
 export async function GET(request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
@@ -18,7 +19,7 @@ export async function GET(request) {
     ]);
     const items = snap.docs.map(d => {
       const r = d.data();
-      return { id: d.id, tipo: r.tipo, titulo: r.titulo, caption: r.caption, videoUrl: r.videoUrl, duracion: r.duracion, estado: r.estado, error: r.error || null, createdAtMs: r.createdAtMs };
+      return { id: d.id, tipo: r.tipo, titulo: r.titulo, caption: r.caption, videoUrl: r.videoUrl, duracion: r.duracion, estado: r.estado, error: r.error || null, redes: r.redes || {}, createdAtMs: r.createdAtMs };
     });
     return Response.json({ activo: cfg.data()?.activo === true, ultimoTipo: cfg.data()?.ultimoTipo || null, items });
   } catch (e) {
@@ -41,7 +42,9 @@ export async function POST(request) {
   try {
     const body = await request.json().catch(() => ({}));
     if (typeof body?.id !== 'string') return Response.json({ error: 'Falta el id del reel' }, { status: 400 });
-    return Response.json({ ok: true, ...(await publicarReel(getDb(), body.id)) });
+    const redes = Array.isArray(body.redes) ? body.redes.filter(r => REDES_REEL.includes(r)) : REDES_REEL;
+    if (!redes.length) return Response.json({ error: 'Ninguna red válida' }, { status: 400 });
+    return Response.json({ ok: true, ...(await publicarReel(getDb(), body.id, { redes })) });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });
   }

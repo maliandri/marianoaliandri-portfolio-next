@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/firebase-admin';
+import { requireAdmin } from '@/lib/adminAuth';
 const db = getDb();
 
 async function getAccessToken() {
@@ -22,6 +23,8 @@ async function linkedinAPI(path, token) {
 }
 
 export async function POST(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
   try {
     const token = await getAccessToken();
     if (!token) {

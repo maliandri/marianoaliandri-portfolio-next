@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 import admin, { getDb } from '@/lib/firebase-admin';
+import { requireAdmin } from '@/lib/adminAuth';
 const db = getDb();
 
 // .trim(): en Vercel estas dos quedaron cargadas con un "\n" al final (se setearon con echo) y
@@ -66,8 +67,10 @@ export async function GET(request) {
   return Response.json({ error: 'Missing code parameter' }, { status: 400 });
 }
 
-// POST: Admin actions (getAuthUrl, status, disconnect)
+// POST: Admin actions (getAuthUrl, status, disconnect). Solo admin: sin esto cualquiera podía desconectar.
 export async function POST(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
   try {
     const { action } = await request.json();
 
