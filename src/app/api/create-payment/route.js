@@ -1,8 +1,11 @@
 export const dynamic = 'force-dynamic';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { requireAdmin } from '@/lib/adminAuth';
 
 
 export async function POST(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
   try {
     const client = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN });
     const preference = new Preference(client);

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SERVICES } from '../../data/serviceCatalog';
+import { adminFetch } from '@/utils/adminFetch';
 
 export default function BenefitsEditor() {
   const [dbBenefits, setDbBenefits]   = useState(null);
@@ -11,13 +12,38 @@ export default function BenefitsEditor() {
   const [search,     setSearch]       = useState('');
   const [expandedCats, setExpandedCats] = useState(new Set([SERVICES[0]?.category]));
   const [loading,    setLoading]      = useState(true);
+  const [precios,    setPrecios]      = useState({}); // precio que cobra la tienda (con lo editado acá)
+  const [precioDraft, setPrecioDraft] = useState({});
 
   useEffect(() => {
     fetch('/api/service-benefits')
       .then(r => r.json())
       .then(data => { setDbBenefits(data); setLoading(false); })
       .catch(() => { setDbBenefits({}); setLoading(false); });
+    fetch(`/api/tienda/?t=${Date.now()}`)
+      .then(r => r.json())
+      .then(d => setPrecios(Object.fromEntries((d.catalogo || []).flatMap(c => c.items).map(s => [s.id, s.priceUSD]))))
+      .catch(() => {});
   }, []);
+
+  const precioDe = (svc) => precios[svc.id] ?? svc.price;
+
+  const guardarPrecio = async (svc) => {
+    const draft = precioDraft[svc.id];
+    if (draft === undefined || Number(draft) === precioDe(svc)) return;
+    const valor = draft === '' ? null : Number(draft);
+    try {
+      const res = await adminFetch('/api/service-benefits', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: svc.id, priceUSD: valor }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Error');
+      setPrecios(prev => ({ ...prev, [svc.id]: valor ?? svc.price }));
+      setPrecioDraft(prev => { const n = { ...prev }; delete n[svc.id]; return n; });
+      flash(svc.id, 'Precio guardado');
+    } catch (e) { flash(svc.id, e.message, false); }
+  };
 
   const effectiveBenefit = (svc) =>
     drafts[svc.id] !== undefined ? drafts[svc.id]
@@ -44,7 +70,7 @@ export default function BenefitsEditor() {
     const benefit = effectiveBenefit(svc);
     setSavingId(svc.id);
     try {
-      const res = await fetch('/api/service-benefits', {
+      const res = await adminFetch('/api/service-benefits', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: svc.id, benefit }),
@@ -87,7 +113,7 @@ export default function BenefitsEditor() {
   const totalServices   = allSvcs.length;
   const totalCustomized = allSvcs.filter(s => isCustomized(s)).length;
   const totalDirty      = allSvcs.filter(s => isDirty(s)).length;
-  const totalValue      = allSvcs.reduce((sum, s) => sum + (s.price || 0), 0);
+  const totalValue      = allSvcs.reduce((sum, s) => sum + (precioDe(s) || 0), 0);
 
   if (loading) return (
     <div className="flex justify-center py-20">
@@ -130,7 +156,7 @@ export default function BenefitsEditor() {
           const expanded     = expandedCats.has(cat.category) || !!search;
           const catCustom    = cat.items.filter(s => isCustomized(s)).length;
           const catDirty     = cat.items.filter(s => isDirty(s)).length;
-          const catValue     = cat.items.reduce((sum, s) => sum + (s.price || 0), 0);
+          const catValue     = cat.items.reduce((sum, s) => sum + (precioDe(s) || 0), 0);
 
           return (
             <div key={cat.category} className="border border-gray-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
@@ -168,7 +194,7 @@ export default function BenefitsEditor() {
                       <tr className="border-b border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-900/30">
                         <th className="text-left px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[180px]">Servicio</th>
                         <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[200px]">Stack técnico</th>
-                        <th className="text-right px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[90px]">Precio USD</th>
+                        <th className="text-right px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[100px]" title="El que cobra /tienda. Vacío = vuelve al precio base">Precio USD</th>
                         <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Texto beneficio (presupuesto)</th>
                         <th className="px-3 py-2 w-[110px]"></th>
                       </tr>
@@ -209,13 +235,18 @@ export default function BenefitsEditor() {
 
                             {/* Precio */}
                             <td className="px-3 py-3 align-top text-right">
-                              <span className={`text-sm font-semibold tabular-nums ${
-                                svc.price >= 1000 ? 'text-indigo-600 dark:text-indigo-400' :
-                                svc.price >= 300  ? 'text-emerald-600 dark:text-emerald-400' :
-                                                    'text-teal-500 dark:text-teal-400'
-                              }`}>
-                                ${svc.price?.toLocaleString()}
-                              </span>
+                              <input
+                                type="number" min="1" step="1"
+                                aria-label={`Precio en USD de ${svc.label}`}
+                                value={precioDraft[svc.id] ?? precioDe(svc)}
+                                onChange={e => setPrecioDraft(prev => ({ ...prev, [svc.id]: e.target.value }))}
+                                onBlur={() => guardarPrecio(svc)}
+                                onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                                className={`w-20 text-right bg-transparent border border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-indigo-400 rounded-lg px-1.5 py-1 text-sm font-semibold tabular-nums focus:outline-none ${
+                                  precioDe(svc) !== svc.price ? 'text-indigo-600 dark:text-indigo-400' : 'text-emerald-600 dark:text-emerald-400'
+                                }`}
+                              />
+                              {precioDe(svc) !== svc.price && <span className="block text-[10px] text-gray-400">base {svc.price}</span>}
                             </td>
 
                             {/* Beneficio editable */}

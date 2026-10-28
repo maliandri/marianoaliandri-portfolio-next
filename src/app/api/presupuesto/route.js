@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { requireAdmin } from '@/lib/adminAuth';
 
 export async function POST(request) {
   try {
@@ -85,6 +86,8 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
   try {
     const { budgetId, ...updates } = await request.json();
     if (!budgetId) return Response.json({ error: 'budgetId requerido' }, { status: 400 });
@@ -105,6 +108,8 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
   try {
     const id = new URL(request.url).searchParams.get('id');
     if (!id) return Response.json({ error: 'id requerido' }, { status: 400 });
@@ -120,7 +125,9 @@ export async function DELETE(request) {
   }
 }
 
-export async function GET() {
+export async function GET(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
   try {
     const db = getDb();
     if (!db) return Response.json({ error: 'Error de base de datos' }, { status: 500 });

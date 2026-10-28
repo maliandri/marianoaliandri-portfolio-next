@@ -2,7 +2,9 @@
 // Feed XML para Google Merchant Center (formato RSS 2.0 con namespace g:)
 // URL a registrar en Merchant Center: https://marianoaliandri.com.ar/api/merchant-feed/
 
-import { products } from '@/data/products';
+import { catalogoEfectivo } from '@/lib/tienda';
+import { loadOverrides } from '@/lib/tiendaCheckout';
+import { dolarOficialVenta } from '@/lib/dolar';
 import { PLANS } from '@/data/plans';
 import { getDb } from '@/lib/firebase-admin';
 import { NextResponse } from 'next/server';
@@ -10,21 +12,10 @@ import { NextResponse } from 'next/server';
 const SITE_URL = 'https://marianoaliandri.com.ar';
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.jpg`;
 
+// Mismo dólar que cobra la tienda (oficial venta). Si no hay cotización, el feed sale sin servicios en
+// vez de con un precio viejo: Google Merchant penaliza los precios que no coinciden con el sitio.
 async function getExchangeRate() {
-  try {
-    const res = await fetch('https://api.bluelytics.com.ar/v2/latest', {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    const buy = Number(data?.oficial?.value_buy);
-    const sell = Number(data?.oficial?.value_sell);
-    const rate = Math.round((buy + sell) / 2);
-    if (!Number.isFinite(rate) || rate <= 0) throw new Error();
-    return rate;
-  } catch {
-    return 1200;
-  }
+  return dolarOficialVenta().then(d => d.cotizacion).catch(() => null);
 }
 
 function escapeXml(str) {
@@ -64,24 +55,23 @@ async function getLeadFinderPlans() {
 }
 
 export async function GET() {
-  const [leadFinderPlans, rate] = await Promise.all([
+  const [leadFinderPlans, rate, overrides] = await Promise.all([
     getLeadFinderPlans(),
     getExchangeRate(),
+    loadOverrides(getDb()).catch(() => ({})),
   ]);
 
-  // 1. Servicios de la tienda con precio fijo (USD → ARS)
-  const serviceItems = products
-    .filter((p) => p.priceUSD && !p.isCustom)
-    .map((p) =>
-      makeItem({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        priceARS: p.priceUSD * rate,
-        link: `${SITE_URL}/tienda/${p.id}`,
-        image: p.image?.startsWith('http') ? p.image : DEFAULT_IMAGE,
-      })
-    );
+  // 1. Servicios de la tienda (catálogo con los precios del admin, USD → ARS). Cada uno abre la tienda
+  // con ese servicio ya marcado.
+  const serviceItems = rate ? catalogoEfectivo(overrides).flatMap(c => c.items).map((s) =>
+    makeItem({
+      id: `servicio-${s.id}`,
+      name: s.label,
+      description: `${s.desc}. ${s.benefit}`,
+      priceARS: Math.round(s.priceUSD * rate),
+      link: `${SITE_URL}/tienda/?servicios=${s.id}`,
+    })
+  ) : [];
 
   // 2. Lead Finder Pro — planes activos desde Firestore (precio en ARS)
   const leadFinderItems = leadFinderPlans.map((p) =>

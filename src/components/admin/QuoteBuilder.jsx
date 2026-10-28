@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { adminFetch } from '@/utils/adminFetch';
 import { SERVICES } from '../../data/serviceCatalog';
 
 /* ── Helpers ─────────────────────────────────────────────────────────── */
@@ -362,7 +363,7 @@ export default function QuoteBuilder({ initialData = null }) {
     if (!items.length) { flash('Seleccioná al menos un servicio', false); return; }
     setSaving(true);
     try {
-      const res = await fetch('/api/presupuesto/save-quote', {
+      const res = await adminFetch('/api/presupuesto/save-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildPayload()),
@@ -380,7 +381,7 @@ export default function QuoteBuilder({ initialData = null }) {
     if (!items.length) { flash('Seleccioná al menos un servicio', false); return; }
     setSending(true);
     try {
-      const res = await fetch('/api/presupuesto/send-quote', {
+      const res = await adminFetch('/api/presupuesto/send-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildPayload()),

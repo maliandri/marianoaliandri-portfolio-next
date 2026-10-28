@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { Resend } from 'resend';
+import { requireAdmin } from '@/lib/adminAuth';
 
 const SITE_URL = 'https://marianoaliandri.com.ar';
 
@@ -197,6 +198,8 @@ function buildHtml({ clientName, clientEmail, clientCompany, items, totals, ivaR
 }
 
 export async function POST(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
   try {
     if (!process.env.RESEND_API_KEY) {
       return Response.json({ error: 'RESEND_API_KEY no configurada' }, { status: 500 });

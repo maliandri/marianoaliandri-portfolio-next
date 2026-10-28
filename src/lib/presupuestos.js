@@ -64,14 +64,15 @@ export function whatsappUrl(p, texto = mensajePresupuesto(p)) {
 
 // Preferencia de MercadoPago por el monto en pesos. metadata.type = 'presupuesto' hace que el
 // webhook de pagos marque el presupuesto como pagado (registrarPagoPresupuesto).
-export async function crearLinkPagoPresupuesto(p, montoARS) {
+// `titulo` y `metadata` extra los usa la tienda (seña/total y, con user_id, la orden de /mis-compras).
+export async function crearLinkPagoPresupuesto(p, montoARS, { titulo, metadata = {} } = {}) {
   const client = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN });
   const pref = await new Preference(client).create({
     body: {
       external_reference: `PRESUPUESTO-${p.id}`,
       items: [{
         id: `presupuesto-${p.id}`,
-        title: `Presupuesto - ${p.cliente || p.empresa || p.id}`.slice(0, 250),
+        title: (titulo || `Presupuesto - ${p.cliente || p.empresa || p.id}`).slice(0, 250),
         description: `Servicios: ${p.servicios.join(', ')}`.slice(0, 250),
         category_id: 'services',
         unit_price: Number(montoARS),
@@ -85,7 +86,7 @@ export async function crearLinkPagoPresupuesto(p, montoARS) {
         pending: `${SITE_URL}/?payment=pending`,
       },
       auto_return: 'approved',
-      metadata: { type: 'presupuesto', presupuesto_id: p.id },
+      metadata: { ...metadata, type: 'presupuesto', presupuesto_id: p.id },
       notification_url: `${SITE_URL}/api/payment-webhook/`,
     },
   });

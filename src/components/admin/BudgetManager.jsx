@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { adminFetch } from '@/utils/adminFetch';
+
 
 const STATUS_CONFIG = {
   pending:  { label: 'Pendiente',  color: 'bg-amber-100 text-amber-700 border-transparent dark:bg-amber-500/10 dark:text-amber-400' },
@@ -64,7 +66,7 @@ function BudgetDetail({ budget, onClose, onOpenInBuilder, onDelete }) {
   const [msg, setMsg] = useState('');
 
   const patch = async (updates) => {
-    const res = await fetch('/api/presupuesto', {
+    const res = await adminFetch('/api/presupuesto', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ budgetId: budget.id, ...updates }),
@@ -85,7 +87,7 @@ function BudgetDetail({ budget, onClose, onOpenInBuilder, onDelete }) {
     if (!budgetARS) { setMsg('Ingresá el monto en ARS primero'); return; }
     setGeneratingMP(true);
     try {
-      const res = await fetch('/api/create-payment', {
+      const res = await adminFetch('/api/create-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -401,7 +403,7 @@ export default function BudgetManager({ onOpenInBuilder }) {
 
   const loadBudgets = () => {
     setLoading(true);
-    fetch('/api/presupuesto')
+    adminFetch('/api/presupuesto')
       .then(r => r.json())
       .then(data => setBudgets(Array.isArray(data) ? data : []))
       .catch(() => {})
@@ -451,7 +453,7 @@ export default function BudgetManager({ onOpenInBuilder }) {
   const deleteBudget = async (id) => {
     setDeletingIds(prev => new Set(prev).add(id));
     try {
-      await fetch(`/api/presupuesto?id=${id}`, { method: 'DELETE' });
+      await adminFetch(`/api/presupuesto?id=${id}`, { method: 'DELETE' });
       setBudgets(prev => prev.filter(b => b.id !== id));
     } finally {
       setDeletingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
@@ -463,7 +465,7 @@ export default function BudgetManager({ onOpenInBuilder }) {
     if (!idsToRemove.length) return;
     if (!confirm(`Se van a eliminar ${idsToRemove.length} solicitud${idsToRemove.length !== 1 ? 'es' : ''} duplicada${idsToRemove.length !== 1 ? 's' : ''}. Se conserva la de mayor avance (o la más reciente) de cada grupo. ¿Continuar?`)) return;
     setDeletingIds(prev => new Set([...prev, ...idsToRemove]));
-    await Promise.all(idsToRemove.map(id => fetch(`/api/presupuesto?id=${id}`, { method: 'DELETE' })));
+    await Promise.all(idsToRemove.map(id => adminFetch(`/api/presupuesto?id=${id}`, { method: 'DELETE' })));
     setBudgets(prev => prev.filter(b => !idsToRemove.includes(b.id)));
     setDeletingIds(new Set());
     setShowDuplicates(false);
