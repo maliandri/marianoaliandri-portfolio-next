@@ -5,7 +5,7 @@
 import { SERVICES } from '@/data/serviceCatalog';
 
 export const MODOS = {
-  sena: { label: 'Seña del 50%', pct: 0.5, descuento: 0 },
+  sena: { label: 'Seña', pct: 0.5, descuento: 0 }, // pct real: primer hito del plan de pago del admin
   total: { label: 'Pago total (10% off)', pct: 1, descuento: 0.1 },
   presupuesto: { label: 'Pedir presupuesto', pct: 0, descuento: 0 },
 };
@@ -26,7 +26,7 @@ export function catalogoEfectivo(overrides = {}) {
 const redondear = (n) => Math.round(n * 100) / 100;
 
 // Total del pedido. `cotizacion` = pesos por dólar (oficial, venta). Tira si algo no cierra.
-export function cotizar({ ids, modo, catalogo, cotizacion }) {
+export function cotizar({ ids, modo, catalogo, cotizacion, senaPct = MODOS.sena.pct }) {
   if (!MODOS[modo]) throw new Error('Modo de pago inválido');
   const unicos = [...new Set((ids || []).map(String))];
   if (!unicos.length) throw new Error('Elegí al menos un servicio');
@@ -37,7 +37,9 @@ export function cotizar({ ids, modo, catalogo, cotizacion }) {
     if (!s) throw new Error(`Servicio desconocido: ${id}`);
     return { id: s.id, label: s.label, priceUSD: s.priceUSD };
   });
-  const { pct, descuento } = MODOS[modo];
+  if (!(senaPct > 0 && senaPct <= 1)) throw new Error('Seña inválida');
+  const { descuento } = MODOS[modo];
+  const pct = modo === 'sena' ? senaPct : MODOS[modo].pct;
   const subtotalUSD = redondear(items.reduce((t, i) => t + i.priceUSD, 0));
   const descuentoUSD = redondear(subtotalUSD * descuento);
   const totalUSD = redondear(subtotalUSD - descuentoUSD);

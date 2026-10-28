@@ -18,6 +18,7 @@ describe('tienda: precios', () => {
     const sena = cotizar({ ids: ['landing', 'payments_mp', 'landing'], modo: 'sena', catalogo, cotizacion: 1000 });
     expect(sena).toMatchObject({ subtotalUSD: 600, totalUSD: 600, aPagarUSD: 300, saldoUSD: 300, aPagarARS: 300000 });
     expect(sena.items).toHaveLength(2);
+    expect(cotizar({ ids: ['landing'], modo: 'sena', catalogo, cotizacion: 1000, senaPct: 0.6 }).aPagarUSD).toBe(210);
     const total = cotizar({ ids: ['landing', 'payments_mp'], modo: 'total', catalogo, cotizacion: 1000 });
     expect(total).toMatchObject({ descuentoUSD: 60, totalUSD: 540, aPagarUSD: 540, saldoUSD: 0, aPagarARS: 540000 });
   });
@@ -60,6 +61,10 @@ describe('tienda: checkout', () => {
     const [p, monto, opts] = crearLink.mock.calls[0];
     expect(monto).toBe(175000);
     expect(opts.titulo).toMatch(/^Seña 50% - Landing Page - Ana/);
+    const conPlan = createFakeDb({ 'site_config/payment_plan': { milestones: [{ label: 'Seña', pct: 30 }, { label: 'Final', pct: 70 }] } }).db;
+    const r2 = await checkoutTienda(conPlan, { servicios: ['landing'], modo: 'sena', cliente }, { dolar: async () => ({ cotizacion: 1000 }), crearLink });
+    expect(crearLink.mock.calls[1][1]).toBe(90000);
+    expect(r2.status).toBe(200);
     expect(opts.metadata).toMatchObject({ origen: 'tienda', payment_mode: 'deposit', user_id: 'u1' });
     const doc = (await db.collection('presupuestos').doc(r.id).get()).data();
     expect(doc).toMatchObject({ origen: 'tienda', modoPago: 'sena', budgetUSD: 350, aPagarARS: 175000, paymentLink: 'https://mp/pagar', status: 'pending' });

@@ -4,7 +4,7 @@ import { getDb } from '@/lib/firebase-admin';
 import { getUserFromRequest } from '@/lib/authServer';
 import { catalogoEfectivo, MODOS } from '@/lib/tienda';
 import { dolarOficialVenta } from '@/lib/dolar';
-import { checkoutTienda, loadOverrides } from '@/lib/tiendaCheckout';
+import { checkoutTienda, loadOverrides, loadSenaPct } from '@/lib/tiendaCheckout';
 import { alertError } from '@/lib/alert';
 
 const SITE = process.env.NEXT_PUBLIC_BASE_URL || 'https://marianoaliandri.com.ar';
@@ -13,12 +13,13 @@ const SITE = process.env.NEXT_PUBLIC_BASE_URL || 'https://marianoaliandri.com.ar
 // que se cobra se recalcula en el POST, esto es solo lo que se muestra).
 export async function GET() {
   try {
-    const [overrides, dolar] = await Promise.all([
+    const [overrides, senaPct, dolar] = await Promise.all([
       loadOverrides(getDb()),
+      loadSenaPct(getDb()),
       dolarOficialVenta().catch(() => null),
     ]);
     return Response.json(
-      { catalogo: catalogoEfectivo(overrides), cotizacion: dolar?.cotizacion ?? null, modos: MODOS },
+      { catalogo: catalogoEfectivo(overrides), cotizacion: dolar?.cotizacion ?? null, senaPct, modos: MODOS },
       { headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=600' } },
     );
   } catch (e) {

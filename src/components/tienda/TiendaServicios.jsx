@@ -16,11 +16,11 @@ const PUNTOS_DE_PARTIDA = [
 
 const usd = (n) => `US$ ${Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 2 })}`;
 const ars = (n) => `$ ${Math.round(n || 0).toLocaleString('es-AR')}`;
-const MODO_INFO = {
-  sena: { titulo: 'Seña del 50%', detalle: 'Pagás la mitad para arrancar y el resto al entregar.' },
+const modoInfo = (sena) => ({
+  sena: { titulo: `Seña del ${Math.round(sena * 100)}%`, detalle: 'Pagás una parte para arrancar y el resto durante el proyecto.' },
   total: { titulo: 'Pago total', detalle: 'Pagás todo ahora con 10% de descuento.' },
   presupuesto: { titulo: 'Pedir presupuesto', detalle: 'Sin pagar: te escribo en menos de 24 h.' },
-};
+});
 
 export default function TiendaServicios({ iniciales = [] }) {
   const [data, setData] = useState(null);
@@ -51,7 +51,8 @@ export default function TiendaServicios({ iniciales = [] }) {
   const subtotal = elegidosLista.reduce((t, i) => t + i.priceUSD, 0);
   const descuento = modo === 'total' ? subtotal * 0.1 : 0;
   const total = subtotal - descuento;
-  const aPagar = modo === 'sena' ? total / 2 : modo === 'total' ? total : 0;
+  const senaPct = data?.senaPct || 0.5;
+  const aPagar = modo === 'sena' ? total * senaPct : modo === 'total' ? total : 0;
   const cot = data?.cotizacion;
 
   const toggle = (id) => {
@@ -196,7 +197,7 @@ export default function TiendaServicios({ iniciales = [] }) {
         <div className="px-5 pt-3 pb-5 space-y-4">
           <fieldset className="grid gap-2">
             <legend className="text-sm font-semibold text-fg mb-2">¿Cómo seguimos?</legend>
-            {Object.entries(MODO_INFO).map(([id, m]) => (
+            {Object.entries(modoInfo(senaPct)).map(([id, m]) => (
               <label key={id} className={`flex gap-3 rounded-xl border px-3 py-2.5 cursor-pointer transition-colors ${modo === id ? 'border-accent-primary bg-accent-primary/5' : 'border-fg-500/20 hover:border-fg-500/40'}`}>
                 <input type="radio" name="modo" value={id} checked={modo === id} onChange={() => setModo(id)} className="mt-1 accent-[#4c01f9]" />
                 <span>

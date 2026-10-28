@@ -6,8 +6,15 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { catalogoEfectivo, cotizar, validarCliente, MODOS } from '@/lib/tienda';
 import { dolarOficialVenta } from '@/lib/dolar';
 import { crearLinkPagoPresupuesto } from '@/lib/presupuestos';
+import { advanceFraction } from '@/data/paymentPlan';
 
 export const PRESUPUESTOS = 'presupuestos';
+
+// Seña = primer hito del plan de pago (admin → Tienda, site_config/payment_plan). Sin plan guardado: 50%.
+export async function loadSenaPct(db) {
+  const snap = await db.collection('site_config').doc('payment_plan').get();
+  return snap.exists ? advanceFraction(snap.data()) || 0.5 : 0.5;
+}
 
 // Precios y beneficios editados en el admin (service_benefits/{id}).
 export async function loadOverrides(db) {
@@ -26,11 +33,12 @@ export async function checkoutTienda(db, body, {
   const modo = String(body?.modo || '');
   if (!MODOS[modo]) return { status: 400, error: 'Elegí cómo querés pagar' };
 
-  const catalogo = catalogoEfectivo(await loadOverrides(db));
+  const [overrides, senaPct] = await Promise.all([loadOverrides(db), loadSenaPct(db)]);
+  const catalogo = catalogoEfectivo(overrides);
   let q;
   try {
     const cotizacion = modo === 'presupuesto' ? null : (await dolar()).cotizacion;
-    q = cotizar({ ids: body?.servicios, modo, catalogo, cotizacion });
+    q = cotizar({ ids: body?.servicios, modo, catalogo, cotizacion, senaPct });
   } catch (e) {
     return { status: /cotización/.test(e.message) ? 503 : 400, error: e.message };
   }
@@ -67,7 +75,7 @@ export async function checkoutTienda(db, body, {
 
   if (modo === 'presupuesto') return { status: 200, id: ref.id, cotizacionResumen: q };
 
-  const titulo = `${modo === 'sena' ? 'Seña 50%' : 'Pago total'} - ${q.items.length === 1 ? q.items[0].label : `${q.items.length} servicios`} - ${cliente.nombre}`;
+  const titulo = `${modo === 'sena' ? `Seña ${Math.round(senaPct * 100)}%` : 'Pago total'} - ${q.items.length === 1 ? q.items[0].label : `${q.items.length} servicios`} - ${cliente.nombre}`;
   const link = await crearLink(
     { id: ref.id, cliente: cliente.nombre, empresa: cliente.empresa, email: cliente.email, servicios: q.items.map(i => i.label) },
     q.aPagarARS,

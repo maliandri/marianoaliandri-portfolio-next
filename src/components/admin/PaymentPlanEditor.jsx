@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { adminFetch } from '@/utils/adminFetch';
 import { DEFAULT_PAYMENT_PLAN, sanitizePlan } from '@/data/paymentPlan';
 
 // Editor del plan de pago de la tienda (seña + hitos). Persiste en Firestore
@@ -31,13 +32,10 @@ export default function PaymentPlanEditor() {
     setSaving(true);
     setMsg('');
     try {
-      const res = await fetch('/api/payment-plan', {
+      const res = await adminFetch('/api/payment-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          adminPassword: sessionStorage.getItem('adminPassword'),
-          plan: { milestones },
-        }),
+        body: JSON.stringify({ plan: { milestones } }),
       });
       const d = await res.json();
       if (!res.ok || d.error) throw new Error(d.error || 'Error');

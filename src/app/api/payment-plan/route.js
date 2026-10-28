@@ -1,8 +1,7 @@
 export const dynamic = 'force-dynamic';
 import admin, { getDb } from '@/lib/firebase-admin';
 import { DEFAULT_PAYMENT_PLAN, sanitizePlan } from '@/data/paymentPlan';
-
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+import { requireAdmin } from '@/lib/adminAuth';
 
 // GET público: devuelve el plan de pago vigente (override de Firestore o default).
 export async function GET() {
@@ -20,12 +19,12 @@ export async function GET() {
 }
 
 // POST admin: guarda un nuevo plan.
+// La seña (primer hito) es lo que cobra la tienda /tienda en modo "seña".
 export async function POST(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
   try {
-    const { adminPassword, plan } = await request.json();
-    if (adminPassword !== ADMIN_PASSWORD) {
-      return Response.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    const { plan } = await request.json();
     const clean = sanitizePlan(plan);
     const db = getDb();
     await db.collection('site_config').doc('payment_plan').set({

@@ -239,13 +239,14 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   (POST crea, PATCH togglea `publicable`) reusando `cloudinaryService.js`. Cada card de
   `ProyectosGrid.jsx` en el home linkea a esta pagina.
 - **Tienda** (`/tienda`, rehecha 2026-10-28): el cliente arma su proyecto con los servicios de `src/data/serviceCatalog.js`
-  (el mismo catálogo del armador de presupuestos), ve el total en USD y en pesos, y elige **seña 50%**, **pago total con 10% off**
+  (el mismo catálogo del armador de presupuestos), ve el total en USD y en pesos, y elige **seña** (el primer hito del plan de
+  pago de admin → Tienda, `site_config/payment_plan`; 50% si no hay plan), **pago total con 10% off**
   o **pedir presupuesto** (`src/components/tienda/TiendaServicios.jsx`). El monto lo calcula SIEMPRE el servidor
   (`src/lib/tienda.js` `cotizar`, `/api/tienda/` POST → `src/lib/tiendaCheckout.js`): guarda el pedido en `presupuestos`
   (`origen: 'tienda'`, `modoPago`, `items`, `aPagarARS`, `cotizacion`) y crea el link de MercadoPago con
   `crearLinkPagoPresupuesto` (metadata.type `presupuesto` → el webhook lo marca Aceptado y avisa; con sesión, `user_id` crea la
   orden de /mis-compras). Dólar oficial venta de `src/lib/dolar.js` (bluelytics → dolarapi; si fallan las dos NO cobra).
-  Precios editables en admin → Presupuestos → Beneficios (`service_benefits/{id}.priceUSD`, pisa al del código; también los usa
+  Precios editables en admin → Tienda (misma tabla que Presupuestos → Beneficios) (`service_benefits/{id}.priceUSD`, pisa al del código; también los usa
   el feed de Google Merchant). `/tienda/[productId]` (links viejos) redirige 308 a `/tienda/?servicios=<equivalentes>`
   (`PRODUCTOS_VIEJOS`). Los componentes viejos (Store, ProductCard, Cart, ProductDetailPage, `productos_alquiler`) quedaron sin uso.
   `/api/create-payment`, `/api/presupuesto` (GET/PATCH/DELETE, save-quote, send-quote) y `PATCH /api/service-benefits` exigen admin.

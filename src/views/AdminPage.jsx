@@ -23,7 +23,6 @@ import ContenidoBotCard from '../components/admin/ContenidoBotCard';
 import ReelsBotCard from '../components/admin/ReelsBotCard';
 import NoticiasBotManager from '../components/admin/NoticiasBotManager';
 import PaymentPlanEditor from '../components/admin/PaymentPlanEditor';
-import StoreExcelManager from '../components/admin/StoreExcelManager';
 import AuditRequestsManager from '../components/admin/AuditRequestsManager';
 import SentEmailsManager from '../components/admin/SentEmailsManager';
 import SubscriptionsManager from '../components/admin/SubscriptionsManager';
@@ -691,60 +690,21 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* Tienda (/tienda, rehecha 2026-10-28): precios de los servicios del catálogo + plan de pago, cuyo
+            primer hito es la seña que cobra MercadoPago. Los productos viejos (colección products, Excel,
+            ProductCard) quedaron fuera de uso con la tienda nueva. */}
         {!loading && activeTab === 'products' && (
-          <>
-          <StoreExcelManager />
-          <PaymentPlanEditor />
-          <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Productos de la tienda ({products.length})</h2>
-              <div className="flex flex-wrap items-center gap-3">
-                {/* Toggle Grid / Lista */}
-                <div className="flex items-center gap-1 bg-gray-100 dark:bg-neutral-800 rounded-lg p-1">
-                  <button
-                    onClick={() => setProductsView('grid')}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${productsView === 'grid' ? 'bg-white dark:bg-neutral-700 text-indigo-600 dark:text-indigo-400 shadow' : 'text-gray-500 dark:text-gray-400'}`}
-                  >
-                    Grid
-                  </button>
-                  <button
-                    onClick={() => setProductsView('list')}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${productsView === 'list' ? 'bg-white dark:bg-neutral-700 text-indigo-600 dark:text-indigo-400 shadow' : 'text-gray-500 dark:text-gray-400'}`}
-                  >
-                    Lista
-                  </button>
-                </div>
-                <button
-                  onClick={updateAllDescriptions}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm font-medium"
-                  disabled={loading}
-                >
-                  Actualizar descripciones
-                </button>
-                <button
-                  onClick={resetProducts}
-                  className="px-4 py-2 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-lg transition-colors text-sm font-medium"
-                  disabled={loading}
-                >
-                  Resetear productos (10)
-                </button>
-              </div>
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-5">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Estos son los precios que cobra <a href="/tienda/" target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 underline">la tienda</a>.
+                Cambiá el número de la columna <b>Precio USD</b> y se guarda al salir del campo (vacío = vuelve al precio base).
+                La tienda lo muestra en menos de un minuto y siempre cobra el precio guardado.
+              </p>
             </div>
-
-            <div className={productsView === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-2'}>
-              {products.map(product => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onUpdate={updateProduct}
-                  onDelete={deleteProduct}
-                  formatARS={formatARS}
-                  compact={productsView === 'list'}
-                />
-              ))}
-            </div>
+            <PaymentPlanEditor />
+            <BenefitsEditor />
           </div>
-          </>
         )}
 
         {!loading && activeTab === 'social' && (
