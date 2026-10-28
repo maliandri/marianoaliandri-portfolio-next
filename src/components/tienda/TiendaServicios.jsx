@@ -11,6 +11,7 @@ const PUNTOS_DE_PARTIDA = [
   { label: 'Landing para mostrar tu negocio', ids: ['landing', 'contact_form', 'domain', 'deploy_vercel'] },
   { label: 'Sitio con varias páginas', ids: ['web_business', 'seo_technical', 'domain', 'email_setup', 'deploy_vercel'] },
   { label: 'Tienda online que cobra', ids: ['ecommerce', 'payments_mp', 'domain', 'deploy_vercel'] },
+  { label: 'Tu negocio conectado a Claude', ids: ['claude_mcp', 'admin_panel', 'db_supabase', 'deploy_vercel'] },
 ];
 
 const usd = (n) => `US$ ${Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 2 })}`;

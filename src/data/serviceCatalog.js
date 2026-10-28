@@ -90,6 +90,8 @@ export const SERVICES = [
       benefit: 'Conectá tu negocio con cualquier herramienta del mercado. Datos fluyendo automáticamente entre sistemas sin intervención manual.' },
   ]},
   { category: '🤖 IA & Procesamiento', items: [
+    { id: 'claude_mcp',  label: 'Integrar Claude a tu sitio', desc: 'Servidor MCP propio: tu sitio y tu base conectados a Claude', price: 800,
+      benefit: 'Manejá tu negocio hablándole a Claude desde la compu o el celular: consultá ventas, pedidos y clientes, cargá datos y publicá, sin entrar al panel.' },
     { id: 'ai_content',  label: 'Generación de contenido IA', desc: 'Gemini: textos, captions, descripciones',         price: 250,
       benefit: 'Generá textos, descripciones y publicaciones con inteligencia artificial. Contenido de calidad en segundos, adaptado a tu voz y negocio.' },
     { id: 'ai_document', label: 'Análisis de documentos IA',  desc: 'PDF upload, extracción de datos, resúmenes',      price: 400,

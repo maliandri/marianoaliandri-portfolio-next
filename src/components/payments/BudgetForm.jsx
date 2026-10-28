@@ -79,6 +79,7 @@ const SERVICES = [
   {
     category: '🤖 IA & Procesamiento',
     items: [
+      { id: 'claude_mcp',  label: 'Integrar Claude a tu sitio', desc: 'Servidor MCP propio: tu sitio y tu base conectados a Claude',       price: 800  },
       { id: 'ai_content',  label: 'Generación de contenido IA', desc: 'Gemini genera textos, captions, descripciones de productos',        price: 250  },
       { id: 'ai_document', label: 'Análisis de documentos IA',  desc: 'PDF upload, extracción de datos, resúmenes automáticos',           price: 400  },
       { id: 'tts',         label: 'Text-to-Speech',             desc: 'Google TTS en español AR, voz natural para videos y reels',        price: 180  },
