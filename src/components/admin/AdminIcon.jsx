@@ -27,6 +27,7 @@ const PATHS = {
   'nav-config': 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM16 8l-2 6-6 2 2-6z',
   'rubros-buscados': 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3',
   'free-for-dev': 'M8 6l-6 6 6 6M16 6l6 6-6 6',
+  'contenido-bot': 'M4 20h4L19 9l-4-4L4 16zM13 7l4 4',
   'demanda-auto': 'M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14zM21 21l-5-5M8 13v-2M11 13V9M14 13v-3',
   'auto-auditoria': 'M12 8V4H8M4 12h16v8H4zM2 16h2M20 16h2M9 15v2M15 15v2',
   'keyword-publisher': 'M3 3v18h18M7 16v-4M12 16V8M17 16v-7',

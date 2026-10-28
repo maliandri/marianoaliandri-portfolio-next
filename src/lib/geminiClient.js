@@ -23,7 +23,8 @@ export function getGeminiKey() {
   return keys[idx];
 }
 
-export async function callGemini(prompt, { timeout = 25000, model } = {}) {
+// generationConfig: opcional (ej. { thinkingConfig: { thinkingLevel: 'low' } } para que gemini-3.x no piense de más).
+export async function callGemini(prompt, { timeout = 25000, model, generationConfig } = {}) {
   const keys = getKeys();
   if (!keys.length) throw new Error('No hay ninguna GEMINI_API_KEY configurada');
 
@@ -36,7 +37,7 @@ export async function callGemini(prompt, { timeout = 25000, model } = {}) {
       const resp = await fetch(`${url}?key=${key}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], ...(generationConfig ? { generationConfig } : {}) }),
         signal: AbortSignal.timeout(timeout),
       });
 
@@ -52,7 +53,8 @@ export async function callGemini(prompt, { timeout = 25000, model } = {}) {
       }
       return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
     } catch (err) {
-      if (err.message?.includes('429') || err.name === 'AbortError') continue;
+      // AbortSignal.timeout() corta con TimeoutError (no AbortError): sin esto, una key colgada tiraba todo.
+      if (err.message?.includes('429') || err.name === 'AbortError' || err.name === 'TimeoutError') continue;
       throw err;
     }
   }

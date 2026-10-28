@@ -10,6 +10,7 @@ export default function sitemap() {
     { url: `${BASE_URL}/presupuesto/`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE_URL}/auditorias/`,  lastModified: now, changeFrequency: 'weekly',  priority: 0.8 },
     { url: `${BASE_URL}/noticias/`,    lastModified: now, changeFrequency: 'daily',   priority: 0.7 },
+    { url: `${BASE_URL}/aprende/`,     lastModified: now, changeFrequency: 'daily',   priority: 0.8 },
     { url: `${BASE_URL}/demanda/`,     lastModified: now, changeFrequency: 'weekly',  priority: 0.8 },
     { url: `${BASE_URL}/lead-finder-pro/`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${BASE_URL}/en/lead-finder-pro/`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },

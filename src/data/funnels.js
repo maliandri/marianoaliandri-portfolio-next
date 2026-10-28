@@ -21,6 +21,14 @@ export const FUNNELS = [
     ],
   },
   {
+    id: 'aprende', titulo: 'Aprendé (bot de contenido)',
+    pasos: [
+      { label: 'Entraron a /aprende', page: '/aprende' },
+      { label: 'Tocaron WhatsApp', event: 'whatsapp_click', page: '/aprende' },
+      { label: 'Tocaron "Pedir presupuesto"', event: 'cta_presupuesto', page: '/aprende' },
+    ],
+  },
+  {
     id: 'demanda', titulo: 'Informes de demanda',
     pasos: [
       { label: 'Entraron a /demanda', page: '/demanda' },

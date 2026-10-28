@@ -10,6 +10,7 @@ const nextConfig = {
   outputFileTracingIncludes: {
     '/api/publish-story': ['./scripts/fonts/**'],
     '/api/mcp/[transport]': ['./scripts/fonts/**'],
+    '/api/cron/contenido': ['./scripts/fonts/**'],
   },
   async redirects() {
     return [

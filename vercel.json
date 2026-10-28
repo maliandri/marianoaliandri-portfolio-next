@@ -2,7 +2,8 @@
   "crons": [
     { "path": "/api/analitica/refresh/", "schedule": "0 10 * * *" },
     { "path": "/api/cron/health/", "schedule": "0 12 * * *" },
-    { "path": "/api/cron/demanda/", "schedule": "0 21 * * 2-5" }
+    { "path": "/api/cron/demanda/", "schedule": "0 21 * * 2-5" },
+    { "path": "/api/cron/contenido/", "schedule": "0 15 * * 1-5" }
   ],
   "headers": [
     {
