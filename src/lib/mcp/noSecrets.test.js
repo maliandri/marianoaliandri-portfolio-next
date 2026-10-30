@@ -75,6 +75,12 @@ const ARGS = {
   get_budget_request: [{ id: 'b1' }, { id: 'nope' }],
   quote_budget_request: [{ id: 'b1', monto_ars: 100000, dry_run: true }, { id: 'b1', monto_ars: 100000 }],
   set_budget_status: [{ id: 'b1', estado: 'rejected' }, { id: 'nope', estado: 'sent' }],
+  list_budget_services: [{}, { buscar: 'seo' }],
+  create_budget: [
+    { cliente: 'Ana', telefono: '2995551234', items: [{ servicio_id: 'landing' }, { nombre: 'Supabase', precio_usd: 200 }], cotizacion_ars: 1400, dry_run: true },
+    { cliente: 'Ana', email: 'ana@x.com', items: [{ nombre: 'X', precio_usd: 1 }] },
+  ],
+  send_budget_email: [{ id: 'b1', dry_run: true }, { id: 'nope' }],
   list_demand_reports: [{}, { zona: 'Alto Valle' }],
   get_demand_report: [{ id: 'd1' }, { id: 'nope' }],
   run_demand_report: [{ zona: 'Alto Valle' }, { zona: 'Nada', publicar: true }],

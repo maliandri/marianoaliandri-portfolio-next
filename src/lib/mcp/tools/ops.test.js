@@ -6,8 +6,11 @@ vi.mock('@/lib/presupuestos', async (orig) => ({
   crearLinkPagoPresupuesto: vi.fn(async () => 'https://mpago.la/abc'),
 }));
 
+const sendMail = vi.fn(async () => ({ data: { id: 'em1' } }));
+vi.mock('resend', () => ({ Resend: class { constructor() { this.emails = { send: sendMail }; } } }));
+
 import { createFakeDb } from '@/test/fakeDb';
-import { quoteBudgetRequestTool, listBudgetRequestsTool } from './presupuestos';
+import { quoteBudgetRequestTool, listBudgetRequestsTool, createBudgetTool, sendBudgetEmailTool } from './presupuestos';
 import { saveDemandZoneTool, resolverLocalidad } from './demanda';
 import { getAutomationStatusTool } from './status';
 import { ToolError } from '../defineTool';
@@ -36,6 +39,51 @@ describe('presupuestos (MCP)', () => {
     expect(doc).toMatchObject({ budgetARS: 500000, budgetUSD: 350, paymentLink: 'https://mpago.la/abc', status: 'sent', adminNotes: 'Entrega en 2 semanas.' });
     expect(r.data.whatsappUrl).toMatch(/^https:\/\/wa\.me\/5492995551234\?text=/);
     expect(decodeURIComponent(r.data.whatsappUrl)).toContain('Link de pago: https://mpago.la/abc');
+  });
+
+  it('create_budget arma ítems del catálogo y libres, calcula totales y guarda con link y WhatsApp', async () => {
+    const { db } = seed();
+    const args = {
+      cliente: 'Carla', empresa: 'Deco SRL', email: 'carla@deco.com', telefono: '299 155551234', cotizacion_ars: 1000, notas: 'Entrega en 3 semanas.',
+      items: [{ servicio_id: 'landing', descuento_pct: 10 }, { nombre: 'Base de datos en Supabase', precio_usd: 200 }],
+    };
+    const prev = await createBudgetTool.handler({ ...args, dry_run: true }, { db });
+    expect(prev.data.totales).toEqual({ netoUSD: 470, ivaUSD: 0, totalUSD: 470, totalARS: 470000 });
+    expect((await db.collection('presupuestos').get()).size).toBe(2);
+
+    const r = await createBudgetTool.handler(args, { db });
+    const doc = (await db.collection('presupuestos').doc(r.data.id).get()).data();
+    expect(doc).toMatchObject({ clientName: 'Carla', budgetARS: 470000, paymentLink: 'https://mpago.la/abc', source: 'mcp', status: 'reviewed' });
+    expect(doc.items.map(i => i.label)).toEqual(['Landing Page', 'Base de datos en Supabase']);
+    expect(decodeURIComponent(r.data.whatsappUrl)).toContain('Link de pago: https://mpago.la/abc');
+  });
+
+  it('create_budget sin email ni teléfono, o con ítem sin precio → error claro', async () => {
+    const { db } = seed();
+    await expect(createBudgetTool.handler({ cliente: 'X', items: [{ nombre: 'A', precio_usd: 1 }], cotizacion_ars: 1 }, { db })).rejects.toBeInstanceOf(ToolError);
+    await expect(createBudgetTool.handler({ cliente: 'X', email: 'x@x.com', items: [{ nombre: 'A' }], cotizacion_ars: 1 }, { db })).rejects.toThrow(/precio_usd/);
+  });
+
+  it('send_budget_email: dry_run no manda; el envío real manda el HTML con el botón de pago y marca Enviado', async () => {
+    process.env.RESEND_API_KEY = 'k';
+    const { db } = seed();
+    const { data: { id } } = await createBudgetTool.handler({ cliente: 'Carla', email: 'carla@deco.com', cotizacion_ars: 1000, items: [{ nombre: 'Cloudinary <setup>', precio_usd: 100 }] }, { db });
+    sendMail.mockClear();
+    const prev = await sendBudgetEmailTool.handler({ id, dry_run: true }, { db });
+    expect(prev.data).toMatchObject({ dryRun: true, to: 'carla@deco.com', totalARS: 100000 });
+    expect(sendMail).not.toHaveBeenCalled();
+
+    await sendBudgetEmailTool.handler({ id }, { db });
+    const mail = sendMail.mock.calls[0][0];
+    expect(mail.to).toBe('carla@deco.com');
+    expect(mail.html).toContain('Cloudinary &lt;setup&gt;');
+    expect(mail.html).toContain('https://mpago.la/abc');
+    expect((await db.collection('presupuestos').doc(id).get()).data().status).toBe('sent');
+  });
+
+  it('send_budget_email de un pedido sin monto → pide cotizarlo', async () => {
+    const { db } = seed();
+    await expect(sendBudgetEmailTool.handler({ id: 'b1', email: 'a@a.com' }, { db })).rejects.toThrow(/quote_budget_request/);
   });
 
   it('id inexistente → error claro', async () => {

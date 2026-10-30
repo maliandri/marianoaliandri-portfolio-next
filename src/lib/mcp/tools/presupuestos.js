@@ -3,6 +3,10 @@ import { FieldValue } from 'firebase-admin/firestore';
 import {
   ESTADOS_PRESUPUESTO, ESTADO_LABEL, presupuestoResumen, mensajePresupuesto, whatsappUrl, crearLinkPagoPresupuesto,
 } from '@/lib/presupuestos';
+import { calcularTotales, numeroPresupuesto, buildHtml } from '@/lib/presupuestoEmail';
+import { catalogoEfectivo } from '@/lib/tienda';
+import { loadOverrides } from '@/lib/tiendaCheckout';
+import { dolarOficialVenta } from '@/lib/dolar';
 import { defineTool, ToolError } from '../defineTool';
 import { pageArray } from '../paginate';
 
@@ -128,4 +132,196 @@ export const setBudgetStatusTool = defineTool({
   },
 });
 
-export const BUDGET_TOOLS = [listBudgetRequestsTool, getBudgetRequestTool, quoteBudgetRequestTool, setBudgetStatusTool];
+const redondear = (n) => Math.round(n * 100) / 100;
+const fechaAR = (x) => x.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+
+export const listBudgetServicesTool = defineTool({
+  name: 'list_budget_services',
+  title: 'Catálogo de servicios para presupuestos',
+  description:
+    'Los servicios del catálogo de Mariano (los mismos del armador de presupuestos del admin y de la tienda) con id, '
+    + 'nombre, descripción y precio en USD vigente (con los precios editados en el admin). Usala antes de '
+    + 'create_budget para proponer ítems con servicio_id; lo que no esté en el catálogo (ej. "Base de datos en '
+    + 'Supabase", "Imágenes con Cloudinary") va como ítem libre con nombre y precio.',
+  inputSchema: z.object({ buscar: z.string().max(100).optional().describe('Filtrar por texto (nombre o descripción).') }),
+  annotations: { readOnlyHint: true },
+  async handler(args, { db }) {
+    const q = (args.buscar || '').toLowerCase();
+    const categorias = catalogoEfectivo(await loadOverrides(db))
+      .map(c => ({
+        categoria: c.category,
+        items: c.items
+          .filter(s => !q || `${s.label} ${s.desc}`.toLowerCase().includes(q))
+          .map(s => ({ id: s.id, nombre: s.label, descripcion: s.desc, precioUSD: s.priceUSD })),
+      }))
+      .filter(c => c.items.length);
+    return { summary: `${categorias.reduce((t, c) => t + c.items.length, 0)} servicios.`, data: { categorias } };
+  },
+});
+
+const itemSchema = z.object({
+  servicio_id: z.string().max(50).optional().describe('Id del catálogo (list_budget_services). Completa nombre, descripción y precio si no los pasás.'),
+  nombre: z.string().max(120).optional().describe('Nombre del ítem. Obligatorio si no hay servicio_id.'),
+  descripcion: z.string().max(400).optional().describe('Qué incluye.'),
+  precio_usd: z.number().min(0).max(1e6).optional().describe('Precio en USD. Obligatorio si no hay servicio_id; si hay, pisa el del catálogo.'),
+  descuento_pct: z.number().min(0).max(100).optional().describe('Bonificación de este ítem, en %.'),
+});
+
+export const createBudgetTool = defineTool({
+  name: 'create_budget',
+  title: 'Armar un presupuesto nuevo',
+  description:
+    'Arma un presupuesto desde cero para un cliente (igual que el armador del admin): ítems del catálogo o libres '
+    + '(ej. "Base de datos en Supabase", "Imágenes con Cloudinary"), descuentos, IVA, cotización del dólar, notas y '
+    + 'validez; lo guarda en presupuestos y (por default) genera el link de pago de MercadoPago. Devuelve número, '
+    + 'totales, el link de WhatsApp con el mensaje ya escrito (whatsappUrl) y el id para mandarlo por mail con '
+    + 'send_budget_email. ANTES de llamarla pedile a Mariano lo que falte, todo junto en un solo mensaje: nombre del '
+    + 'cliente, empresa, email y/o teléfono (WhatsApp), los ítems con precio en USD (proponé los del catálogo con '
+    + 'list_budget_services), descuentos, si lleva IVA, alcance/plazos/forma de pago para las notas, días de validez y '
+    + 'si quiere link de pago (por el total o por una seña). Mostrale el resultado con dry_run: true y recién con su OK '
+    + 'llamala de verdad. Al final preguntale si lo manda por mail, por WhatsApp o por los dos.',
+  inputSchema: z.object({
+    cliente: z.string().min(1).max(120).describe('Nombre de la persona.'),
+    empresa: z.string().max(120).optional().describe('Empresa o negocio.'),
+    email: z.string().email().max(200).optional().describe('Email del cliente (para send_budget_email).'),
+    telefono: z.string().max(40).optional().describe('Teléfono / WhatsApp del cliente.'),
+    items: z.array(itemSchema).min(1).max(30).describe('Ítems del presupuesto.'),
+    iva: z.boolean().optional().describe('Sumar IVA (default false).'),
+    iva_pct: z.number().min(0).max(50).optional().describe('Alícuota de IVA (default 21).'),
+    cotizacion_ars: z.number().positive().max(1e6).optional().describe('Pesos por dólar. Default: dólar oficial venta de hoy.'),
+    notas: z.string().max(2000).optional().describe('Alcance, plazos, forma de pago, etc. Van en el mail y en el WhatsApp.'),
+    validez_dias: z.number().int().min(1).max(365).optional().describe('Días de validez (default 15).'),
+    link_pago: z.boolean().optional().describe('Generar link de MercadoPago (default true).'),
+    monto_link_ars: z.number().positive().max(1e10).optional().describe('Monto del link en pesos (ej. una seña). Default: el total.'),
+    dry_run: z.boolean().optional().describe('true = calcula y muestra, sin guardar ni crear el link.'),
+  }),
+  annotations: { readOnlyHint: false, openWorldHint: true },
+  async handler(args, { db, now = new Date() }) {
+    if (!args.email && !args.telefono) throw new ToolError('Falta cómo mandarlo: pedile a Mariano el email o el teléfono del cliente.');
+    const catalogo = Object.fromEntries(catalogoEfectivo(await loadOverrides(db)).flatMap(c => c.items).map(s => [s.id, s]));
+    const items = args.items.map((it, i) => {
+      const base = it.servicio_id ? catalogo[it.servicio_id] : null;
+      if (it.servicio_id && !base) throw new ToolError(`El servicio ${it.servicio_id} no está en el catálogo (list_budget_services).`);
+      const label = it.nombre || base?.label;
+      const priceUSD = it.precio_usd ?? base?.priceUSD;
+      if (!label || priceUSD == null) throw new ToolError(`Al ítem ${i + 1} le falta nombre o precio_usd.`);
+      return {
+        id: it.servicio_id || `libre_${i + 1}`, label, desc: it.descripcion ?? base?.desc ?? '',
+        benefit: base?.benefit || '', priceUSD, discount: it.descuento_pct || 0,
+      };
+    });
+
+    let arsRate = args.cotizacion_ars;
+    if (!arsRate) {
+      try { arsRate = (await dolarOficialVenta()).cotizacion; } catch { throw new ToolError('No pude leer el dólar oficial de hoy: pasame cotizacion_ars.'); }
+    }
+    const showIVA = args.iva === true;
+    const ivaRate = args.iva_pct ?? 21;
+    const totals = calcularTotales(items, { arsRate, ivaRate, showIVA });
+    const totalARS = Math.round(totals.totalARS);
+    const montoLink = args.monto_link_ars ?? totalARS;
+    const conLink = args.link_pago !== false && montoLink > 0;
+    const validDays = args.validez_dias ?? 15;
+    const quoteNumber = numeroPresupuesto(now);
+
+    const ref = db.collection('presupuestos').doc();
+    const p = {
+      id: ref.id, cliente: args.cliente, empresa: args.empresa || null, email: args.email || null, telefono: args.telefono || null,
+      servicios: items.map(i => i.label), montoUSD: redondear(totals.totalUSD), montoARS: totalARS, notas: args.notas || null, linkPago: null,
+    };
+    const resumen = {
+      numero: quoteNumber,
+      items: items.map(i => ({ nombre: i.label, precioUSD: i.priceUSD, descuentoPct: i.discount })),
+      cotizacion: arsRate,
+      totales: { netoUSD: redondear(totals.netoUSD), ivaUSD: redondear(totals.ivaUSD), totalUSD: p.montoUSD, totalARS },
+      montoLinkARS: conLink ? montoLink : null,
+      validezDias: validDays,
+    };
+    const montos = `USD ${p.montoUSD.toLocaleString('es-AR')} / ARS ${totalARS.toLocaleString('es-AR')}`;
+
+    if (args.dry_run) {
+      return {
+        summary: `Vista previa para ${args.cliente}: ${montos} (no se guardó nada).`,
+        data: { dryRun: true, ...resumen, ...conLinks({ ...p, linkPago: conLink ? '<se genera al confirmar>' : null }) },
+      };
+    }
+
+    if (conLink) {
+      try { p.linkPago = await crearLinkPagoPresupuesto(p, montoLink); } catch { throw new ToolError('MercadoPago no generó el link de pago. Probá de nuevo o con link_pago: false.'); }
+    }
+    await ref.set({
+      clientName: args.cliente, clientEmail: args.email || '', clientCompany: args.empresa || '', clientPhone: args.telefono || '',
+      projectDescription: args.notas || '', selectedServices: items.map(i => i.id), status: 'reviewed',
+      budgetUSD: p.montoUSD, budgetARS: totalARS, paymentLink: p.linkPago, paymentId: null, adminNotes: args.notas || '',
+      source: 'mcp', quoteNumber, validDays, arsRate, ivaRate, showIVA, items, totals, cuotas: null,
+      montoLinkARS: conLink ? montoLink : null,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    const out = conLinks(p);
+    return {
+      summary: `Presupuesto ${quoteNumber} para ${args.cliente} guardado (id ${ref.id}): ${montos}${p.linkPago ? ', con link de pago' : ''}. `
+        + [args.email && 'Por mail: send_budget_email.', out.whatsappUrl && 'Por WhatsApp: que Mariano toque whatsappUrl.'].filter(Boolean).join(' '),
+      data: { ...resumen, ...out },
+    };
+  },
+});
+
+export const sendBudgetEmailTool = defineTool({
+  name: 'send_budget_email',
+  title: 'Mandar un presupuesto por mail',
+  description:
+    'Le manda al cliente por mail (desde notificaciones@marianoaliandri.com.ar, las respuestas le llegan a Mariano) el '
+    + 'presupuesto con ítems, totales en USD y pesos, notas y botón de pago de MercadoPago si tiene link. Sirve para los '
+    + 'armados con create_budget, en el admin o cotizados con quote_budget_request. Le escribe a una persona real: '
+    + 'confirmá con Mariano y mostrá antes el dry_run: true. Después el presupuesto queda "Enviado".',
+  inputSchema: z.object({
+    id: z.string().min(1).max(100).describe('Id del presupuesto.'),
+    email: z.string().email().max(200).optional().describe('Mandarlo a este email en vez del guardado.'),
+    dry_run: z.boolean().optional().describe('true = muestra destinatario, asunto y total sin mandar.'),
+  }),
+  annotations: { readOnlyHint: false, openWorldHint: true },
+  async handler(args, { db, now = new Date() }) {
+    const snap = await db.collection('presupuestos').doc(args.id).get();
+    if (!snap.exists) throw new ToolError(`No existe el presupuesto ${args.id}. Usá list_budget_requests para ver los ids.`);
+    const d = snap.data();
+    const to = args.email || d.clientEmail;
+    if (!to) throw new ToolError('El presupuesto no tiene email: pasame uno o mandalo por WhatsApp (get_budget_request → whatsappUrl).');
+
+    // Los del formulario no tienen ítems: un renglón con los servicios y el monto cotizado.
+    let items = Array.isArray(d.items) && d.items.length ? d.items : null;
+    if (!items) {
+      if (!d.budgetUSD && !d.budgetARS) throw new ToolError('El presupuesto no tiene monto todavía: cotizalo con quote_budget_request.');
+      items = [{ label: (d.selectedServices || []).join(', ') || 'Servicios', desc: '', priceUSD: d.budgetUSD || 0, discount: 0 }];
+    }
+    const arsRate = d.arsRate || (d.budgetUSD && d.budgetARS ? d.budgetARS / d.budgetUSD : 0);
+    const totals = d.totals || { ...calcularTotales(items, { arsRate, ivaRate: 21, showIVA: false }), ...(d.budgetARS ? { totalARS: d.budgetARS, netoARS: d.budgetARS } : {}) };
+    const validDays = d.validDays || 15;
+    const quoteNumber = d.quoteNumber || numeroPresupuesto(now);
+    const subject = `Presupuesto N° ${quoteNumber}${d.clientName ? ` — ${d.clientName}` : ''}`;
+    const total = { totalUSD: redondear(totals.totalUSD || 0), totalARS: Math.round(totals.totalARS || 0) };
+
+    if (args.dry_run) {
+      return { summary: `Saldría a ${to}: "${subject}" (no se mandó).`, data: { dryRun: true, to, subject, ...total, linkPago: d.paymentLink || null } };
+    }
+    if (!process.env.RESEND_API_KEY) throw new ToolError('El envío de mails no está configurado en el servidor.');
+
+    const html = buildHtml({
+      clientName: d.clientName, clientEmail: to, clientCompany: d.clientCompany, items, totals,
+      ivaRate: d.ivaRate ?? 21, showIVA: !!(d.totals && d.showIVA), arsRate, notes: d.adminNotes || d.projectDescription,
+      quoteNumber, validDays, today: fechaAR(now), validUntil: fechaAR(new Date(now.getTime() + validDays * 864e5)),
+      cuotas: d.cuotas || null, paymentLink: d.paymentLink || null,
+    });
+    const { Resend } = await import('resend');
+    const r = await new Resend(process.env.RESEND_API_KEY).emails.send({
+      from: 'Mariano Aliandri <notificaciones@marianoaliandri.com.ar>', to, reply_to: 'marianoaliandri@gmail.com', subject, html,
+    });
+    if (r?.error) throw new ToolError('Resend no aceptó el mail. Probá de nuevo más tarde.');
+    await snap.ref.update({ status: 'sent', emailSentTo: to, emailSentAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
+    return { summary: `Presupuesto ${quoteNumber} mandado a ${to}.`, data: { id: args.id, to, subject, ...total, emailId: r?.data?.id || null } };
+  },
+});
+
+export const BUDGET_TOOLS = [
+  listBudgetRequestsTool, getBudgetRequestTool, quoteBudgetRequestTool, setBudgetStatusTool,
+  listBudgetServicesTool, createBudgetTool, sendBudgetEmailTool,
+];
