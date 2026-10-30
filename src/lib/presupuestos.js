@@ -52,6 +52,7 @@ export function mensajePresupuesto(p) {
   const lines = [`Hola ${p.cliente || ''}! Soy Mariano Aliandri. Te paso el presupuesto por ${p.servicios.join(', ') || 'lo que me pediste'}.`.replace('Hola !', 'Hola!')];
   if (montos) lines.push(`Total: ${montos}`);
   if (p.notas) lines.push(p.notas);
+  if (p.pdfUrl) lines.push(`Presupuesto en PDF: ${p.pdfUrl}`);
   if (p.linkPago) lines.push(`Link de pago: ${p.linkPago}`);
   lines.push('Cualquier duda me escribís por acá.');
   return lines.join('\n');

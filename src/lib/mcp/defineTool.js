@@ -56,14 +56,17 @@ export function registerTools(server, tools, { getDb }) {
 
       const t0 = Date.now();
       try {
-        const { summary, data } = await tool.handler(args || {}, { db, user, now: new Date() });
+        const { summary, data, extraContent = [] } = await tool.handler(args || {}, { db, user, now: new Date() });
         await logCall(db, { tool: tool.name, ok: true, ms: Date.now() - t0, args: argsResumen(args) });
         // Claude (claude.ai/app) le pasa al modelo el `content`, no siempre el `structuredContent`:
         // sin el JSON acá, Claude solo veía el resumen (pasó con rank_rubros_by_demand: "devolvió 5").
-        return redactSecrets({
+        // `extraContent` (archivos: imágenes, PDFs) va aparte, sin pasar por redactSecrets (es base64).
+        const res = redactSecrets({
           content: [{ type: 'text', text: summary }, { type: 'text', text: JSON.stringify(data) }],
           structuredContent: data,
         });
+        res.content.push(...extraContent);
+        return res;
       } catch (e) {
         const known = e instanceof ToolError;
         if (!known) console.error(`[mcp] ${tool.name} falló:`, e);

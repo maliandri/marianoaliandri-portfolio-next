@@ -81,6 +81,7 @@ const ARGS = {
     { cliente: 'Ana', email: 'ana@x.com', items: [{ nombre: 'X', precio_usd: 1 }] },
   ],
   send_budget_email: [{ id: 'b1', dry_run: true }, { id: 'nope' }],
+  get_budget_pdf: [{ id: 'b1' }, { id: 'nope' }],
   list_demand_reports: [{}, { zona: 'Alto Valle' }],
   get_demand_report: [{ id: 'd1' }, { id: 'nope' }],
   run_demand_report: [{ zona: 'Alto Valle' }, { zona: 'Nada', publicar: true }],

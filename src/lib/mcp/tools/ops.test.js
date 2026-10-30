@@ -10,7 +10,7 @@ const sendMail = vi.fn(async () => ({ data: { id: 'em1' } }));
 vi.mock('resend', () => ({ Resend: class { constructor() { this.emails = { send: sendMail }; } } }));
 
 import { createFakeDb } from '@/test/fakeDb';
-import { quoteBudgetRequestTool, listBudgetRequestsTool, createBudgetTool, sendBudgetEmailTool } from './presupuestos';
+import { quoteBudgetRequestTool, listBudgetRequestsTool, createBudgetTool, sendBudgetEmailTool, getBudgetPdfTool } from './presupuestos';
 import { saveDemandZoneTool, resolverLocalidad } from './demanda';
 import { getAutomationStatusTool } from './status';
 import { ToolError } from '../defineTool';
@@ -76,9 +76,27 @@ describe('presupuestos (MCP)', () => {
     await sendBudgetEmailTool.handler({ id }, { db });
     const mail = sendMail.mock.calls[0][0];
     expect(mail.to).toBe('carla@deco.com');
+    expect(mail.attachments[0].filename).toMatch(/^presupuesto-P-.*\.pdf$/);
+    expect(mail.attachments[0].content.subarray(0, 5).toString()).toBe('%PDF-');
     expect(mail.html).toContain('Cloudinary &lt;setup&gt;');
     expect(mail.html).toContain('https://mpago.la/abc');
     expect((await db.collection('presupuestos').doc(id).get()).data().status).toBe('sent');
+  });
+
+  it('get_budget_pdf devuelve el PDF adjunto, un link con token estable y el WhatsApp con el PDF', async () => {
+    const { db } = seed();
+    const { data: { id } } = await createBudgetTool.handler({
+      cliente: 'Carla', telefono: '2995551234', cotizacion_ars: 1000, notas: 'Entrega en 3 semanas. 🚀',
+      items: [{ nombre: 'Imágenes con Cloudinary', descripcion: 'Subida, recorte y CDN '.repeat(8), precio_usd: 150, descuento_pct: 10 }],
+    }, { db });
+    const r = await getBudgetPdfTool.handler({ id }, { db });
+    const res = r.extraContent[0].resource;
+    expect(res.mimeType).toBe('application/pdf');
+    expect(Buffer.from(res.blob, 'base64').subarray(0, 5).toString()).toBe('%PDF-');
+    expect(r.data.pdfUrl).toMatch(new RegExp(`/api/presupuesto/pdf/${id}/\\?t=[\\w-]{24}$`));
+    expect(decodeURIComponent(r.data.whatsappUrl)).toContain(`Presupuesto en PDF: ${r.data.pdfUrl}`);
+    const again = await getBudgetPdfTool.handler({ id }, { db });
+    expect(again.data.pdfUrl).toBe(r.data.pdfUrl);
   });
 
   it('send_budget_email de un pedido sin monto → pide cotizarlo', async () => {

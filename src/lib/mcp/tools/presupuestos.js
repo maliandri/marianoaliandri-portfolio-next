@@ -3,7 +3,8 @@ import { FieldValue } from 'firebase-admin/firestore';
 import {
   ESTADOS_PRESUPUESTO, ESTADO_LABEL, presupuestoResumen, mensajePresupuesto, whatsappUrl, crearLinkPagoPresupuesto,
 } from '@/lib/presupuestos';
-import { calcularTotales, numeroPresupuesto, buildHtml } from '@/lib/presupuestoEmail';
+import { calcularTotales, numeroPresupuesto, buildHtml, datosPresupuesto } from '@/lib/presupuestoEmail';
+import { generarPdfPresupuesto, pdfNombre, pdfUrl, tokenPdf } from '@/lib/presupuestoPdf';
 import { catalogoEfectivo } from '@/lib/tienda';
 import { loadOverrides } from '@/lib/tiendaCheckout';
 import { dolarOficialVenta } from '@/lib/dolar';
@@ -133,7 +134,15 @@ export const setBudgetStatusTool = defineTool({
 });
 
 const redondear = (n) => Math.round(n * 100) / 100;
-const fechaAR = (x) => x.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+
+async function presupuestoConMonto(db, id, now) {
+  const snap = await db.collection('presupuestos').doc(id).get();
+  if (!snap.exists) throw new ToolError(`No existe el presupuesto ${id}. Usá list_budget_requests para ver los ids.`);
+  const d = snap.data();
+  const datos = datosPresupuesto(id, d, now);
+  if (!datos) throw new ToolError('El presupuesto no tiene monto todavía: cotizalo con quote_budget_request.');
+  return { snap, d, datos };
+}
 
 export const listBudgetServicesTool = defineTool({
   name: 'list_budget_services',
@@ -260,7 +269,7 @@ export const createBudgetTool = defineTool({
     const out = conLinks(p);
     return {
       summary: `Presupuesto ${quoteNumber} para ${args.cliente} guardado (id ${ref.id}): ${montos}${p.linkPago ? ', con link de pago' : ''}. `
-        + [args.email && 'Por mail: send_budget_email.', out.whatsappUrl && 'Por WhatsApp: que Mariano toque whatsappUrl.'].filter(Boolean).join(' '),
+        + ['Para verlo en PDF: get_budget_pdf.', args.email && 'Por mail: send_budget_email.', out.whatsappUrl && 'Por WhatsApp: que Mariano toque whatsappUrl (o el de get_budget_pdf, que suma el link al PDF).'].filter(Boolean).join(' '),
       data: { ...resumen, ...out },
     };
   },
@@ -281,39 +290,24 @@ export const sendBudgetEmailTool = defineTool({
   }),
   annotations: { readOnlyHint: false, openWorldHint: true },
   async handler(args, { db, now = new Date() }) {
-    const snap = await db.collection('presupuestos').doc(args.id).get();
-    if (!snap.exists) throw new ToolError(`No existe el presupuesto ${args.id}. Usá list_budget_requests para ver los ids.`);
-    const d = snap.data();
+    const { snap, d, datos } = await presupuestoConMonto(db, args.id, now);
     const to = args.email || d.clientEmail;
     if (!to) throw new ToolError('El presupuesto no tiene email: pasame uno o mandalo por WhatsApp (get_budget_request → whatsappUrl).');
-
-    // Los del formulario no tienen ítems: un renglón con los servicios y el monto cotizado.
-    let items = Array.isArray(d.items) && d.items.length ? d.items : null;
-    if (!items) {
-      if (!d.budgetUSD && !d.budgetARS) throw new ToolError('El presupuesto no tiene monto todavía: cotizalo con quote_budget_request.');
-      items = [{ label: (d.selectedServices || []).join(', ') || 'Servicios', desc: '', priceUSD: d.budgetUSD || 0, discount: 0 }];
-    }
-    const arsRate = d.arsRate || (d.budgetUSD && d.budgetARS ? d.budgetARS / d.budgetUSD : 0);
-    const totals = d.totals || { ...calcularTotales(items, { arsRate, ivaRate: 21, showIVA: false }), ...(d.budgetARS ? { totalARS: d.budgetARS, netoARS: d.budgetARS } : {}) };
-    const validDays = d.validDays || 15;
-    const quoteNumber = d.quoteNumber || numeroPresupuesto(now);
-    const subject = `Presupuesto N° ${quoteNumber}${d.clientName ? ` — ${d.clientName}` : ''}`;
-    const total = { totalUSD: redondear(totals.totalUSD || 0), totalARS: Math.round(totals.totalARS || 0) };
+    const subject = `Presupuesto N° ${datos.quoteNumber}${d.clientName ? ` — ${d.clientName}` : ''}`;
+    const total = { totalUSD: datos.totalUSD, totalARS: datos.totalARS };
+    const quoteNumber = datos.quoteNumber;
 
     if (args.dry_run) {
-      return { summary: `Saldría a ${to}: "${subject}" (no se mandó).`, data: { dryRun: true, to, subject, ...total, linkPago: d.paymentLink || null } };
+      return { summary: `Saldría a ${to}: "${subject}" con el PDF adjunto (no se mandó).`, data: { dryRun: true, to, subject, ...total, linkPago: d.paymentLink || null } };
     }
     if (!process.env.RESEND_API_KEY) throw new ToolError('El envío de mails no está configurado en el servidor.');
 
-    const html = buildHtml({
-      clientName: d.clientName, clientEmail: to, clientCompany: d.clientCompany, items, totals,
-      ivaRate: d.ivaRate ?? 21, showIVA: !!(d.totals && d.showIVA), arsRate, notes: d.adminNotes || d.projectDescription,
-      quoteNumber, validDays, today: fechaAR(now), validUntil: fechaAR(new Date(now.getTime() + validDays * 864e5)),
-      cuotas: d.cuotas || null, paymentLink: d.paymentLink || null,
-    });
+    const html = buildHtml({ ...datos, clientEmail: to });
+    const pdf = Buffer.from(await generarPdfPresupuesto(datos));
     const { Resend } = await import('resend');
     const r = await new Resend(process.env.RESEND_API_KEY).emails.send({
       from: 'Mariano Aliandri <notificaciones@marianoaliandri.com.ar>', to, reply_to: 'marianoaliandri@gmail.com', subject, html,
+      attachments: [{ filename: pdfNombre(datos), content: pdf }],
     });
     if (r?.error) throw new ToolError('Resend no aceptó el mail. Probá de nuevo más tarde.');
     await snap.ref.update({ status: 'sent', emailSentTo: to, emailSentAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
@@ -321,7 +315,34 @@ export const sendBudgetEmailTool = defineTool({
   },
 });
 
+export const getBudgetPdfTool = defineTool({
+  name: 'get_budget_pdf',
+  title: 'PDF de un presupuesto',
+  description:
+    'Genera el PDF de un presupuesto (el mismo diseño del mail: ítems, totales en USD y pesos, plan de pagos, link de '
+    + 'MercadoPago y notas) y lo devuelve adjunto para mostrarlo en el chat, más un link público (pdfUrl) para '
+    + 'descargarlo o mandárselo al cliente, y el link de WhatsApp con el mensaje y el PDF ya escritos. No le manda nada '
+    + 'a nadie. Sirve para cualquier presupuesto que ya tenga monto (create_budget, quote_budget_request o el admin).',
+  inputSchema: z.object({ id: z.string().min(1).max(100).describe('Id del presupuesto.') }),
+  annotations: { readOnlyHint: false, idempotentHint: true },
+  async handler(args, { db, now = new Date() }) {
+    const { snap, d, datos } = await presupuestoConMonto(db, args.id, now);
+    const bytes = await generarPdfPresupuesto(datos);
+    const url = pdfUrl(args.id, await tokenPdf(snap.ref, d));
+    const p = { ...presupuestoResumen(args.id, d), pdfUrl: url };
+    return {
+      summary: `PDF del presupuesto ${datos.quoteNumber} (${d.clientName || args.id}), USD ${datos.totalUSD.toLocaleString('es-AR')}. `
+        + `Link para descargar o compartir: ${url}`,
+      data: { id: args.id, numero: datos.quoteNumber, archivo: pdfNombre(datos), pdfUrl: url, ...conLinks(p) },
+      extraContent: [{
+        type: 'resource',
+        resource: { uri: url, mimeType: 'application/pdf', blob: Buffer.from(bytes).toString('base64') },
+      }],
+    };
+  },
+});
+
 export const BUDGET_TOOLS = [
   listBudgetRequestsTool, getBudgetRequestTool, quoteBudgetRequestTool, setBudgetStatusTool,
-  listBudgetServicesTool, createBudgetTool, sendBudgetEmailTool,
+  listBudgetServicesTool, createBudgetTool, sendBudgetEmailTool, getBudgetPdfTool,
 ];

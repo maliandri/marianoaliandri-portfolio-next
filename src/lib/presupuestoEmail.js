@@ -27,6 +27,33 @@ export function numeroPresupuesto(now = new Date()) {
   return `P-${d}-${String(now.getTime()).slice(-4)}`;
 }
 
+const fechaAR = (x) => x.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+const r2 = (n) => Math.round(n * 100) / 100;
+
+// Todo lo que necesitan el mail y el PDF a partir de un doc de `presupuestos`. Los del formulario
+// no tienen ítems: sale un renglón con los servicios y el monto cotizado. null = todavía sin monto.
+export function datosPresupuesto(id, d, now = new Date()) {
+  let items = Array.isArray(d.items) && d.items.length ? d.items : null;
+  if (!items) {
+    if (!d.budgetUSD && !d.budgetARS) return null;
+    items = [{ label: (d.selectedServices || []).join(', ') || 'Servicios', desc: '', priceUSD: d.budgetUSD || 0, discount: 0 }];
+  }
+  const arsRate = d.arsRate || (d.budgetUSD && d.budgetARS ? d.budgetARS / d.budgetUSD : 0);
+  const showIVA = !!(d.totals && d.showIVA);
+  const totals = d.totals || { ...calcularTotales(items, { arsRate, showIVA: false }), ...(d.budgetARS ? { totalARS: d.budgetARS, netoARS: d.budgetARS } : {}) };
+  const validDays = d.validDays || 15;
+  const emitido = d.createdAt?.toDate?.() || now;
+  return {
+    clientName: d.clientName || '', clientEmail: d.clientEmail || '', clientCompany: d.clientCompany || '',
+    items, totals, arsRate, ivaRate: d.ivaRate ?? 21, showIVA, validDays,
+    notes: d.adminNotes || d.projectDescription || '',
+    quoteNumber: d.quoteNumber || `P-${id.slice(0, 6).toUpperCase()}`,
+    today: fechaAR(emitido), validUntil: fechaAR(new Date(emitido.getTime() + validDays * 864e5)),
+    cuotas: d.cuotas || null, paymentLink: d.paymentLink || null,
+    totalUSD: r2(totals.totalUSD || 0), totalARS: Math.round(totals.totalARS || 0),
+  };
+}
+
 export function buildHtml({ clientName, clientEmail, clientCompany, items, totals, ivaRate, showIVA, arsRate, notes, quoteNumber, validDays, today, validUntil, cuotas, paymentLink }) {
   const hasDiscount = totals?.hasDiscount;
 
