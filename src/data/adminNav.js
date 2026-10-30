@@ -34,7 +34,13 @@ export const ADMIN_NAV_DEFAULT = [
     { id: 'linkedin', label: 'LinkedIn', icon: '💼' },
     { id: 'cron', label: 'Cron Social', icon: '⏰' },
     { id: 'noticias-bot', label: 'Noticias (Bot)', icon: '📰' },
-    { id: 'contenido-bot', label: 'Bot de contenido', icon: '✍️' },
+    { id: 'contenido-bot', label: 'Bot de contenido', icon: '✍️', children: [
+      { id: 'generar', label: 'Generar y publicar' },
+      { id: 'piezas', label: 'Últimas piezas' },
+      { id: 'guiones', label: 'Guiones' },
+      { id: 'reels', label: 'Reels' },
+      { id: 'series', label: 'Series' },
+    ]},
     { id: 'reels-bot', label: 'Reels automáticos', icon: '🎞️' },
   ]},
   { id: 'marketing', label: 'Marketing', icon: '🎯', items: [

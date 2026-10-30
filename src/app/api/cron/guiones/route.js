@@ -2,55 +2,37 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 import { getDb } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
 import { requireAdmin } from '@/lib/adminAuth';
-import { buildPromptGuiones, parseGuiones, guionesHtml } from '@/lib/guiones';
-import { generarConRespaldo, loadContenidoConfig } from '@/lib/contenidoRun';
-import { statsAuditorias } from '@/lib/contenido';
-import { sendViaResend } from '@/lib/bizEmail';
+import { generarGuiones, loadGuionesConfig } from '@/lib/guionesRun';
+import { diaAR } from '@/lib/guiones';
 import { alertError } from '@/lib/alert';
 
-// Lunes 11:00 UTC (08:00 ART, vercel.json): 3 guiones de reels para grabar con la cara, por mail.
-// POST (admin) = mandarlos ahora.
-async function armarYMandar() {
-  const db = getDb();
-  const [config, auds, dem, prev] = await Promise.all([
-    loadContenidoConfig(db),
-    db.collection('auditorias').orderBy('createdAt', 'desc').limit(25).get(),
-    db.collection('demanda_reportes').orderBy('createdAtMs', 'desc').limit(1).get(),
-    db.collection('guiones_semana').orderBy('createdAtMs', 'desc').limit(3).get(),
-  ]);
-  const d = dem.docs[0]?.data();
-  const { guiones, proveedor } = await generarConRespaldo(buildPromptGuiones({
-    series: config.series,
-    auditorias: statsAuditorias(auds.docs.map(x => x.data())),
-    demanda: d ? { zona: d.zona, top: d.top.slice(0, 5).map(t => t.label), frase: d.top[0]?.ejemplos?.[0] } : null,
-    recientes: prev.docs.flatMap(x => x.data().guiones?.map(g => g.titulo) || []),
-  }), parseGuiones);
-  const semana = new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
-  const to = process.env.ALERT_EMAIL || process.env.ADMIN_EMAIL;
-  if (!to) throw new Error('Falta ADMIN_EMAIL');
-  await sendViaResend({ to, subject: `🎬 Tus 3 reels de la semana (${semana})`, html: guionesHtml(guiones, { semana }) });
-  await db.collection('guiones_semana').add({ guiones, proveedor, createdAtMs: Date.now(), createdAt: FieldValue.serverTimestamp() });
-  return { enviados: guiones.length, titulos: guiones.map(g => g.titulo) };
-}
-
+// Cron diario 11:00 UTC (08:00 ART, vercel.json): solo genera los días elegidos en el admin
+// (contenido_config/settings.guiones.dias, default lunes), con la cantidad elegida, y los manda por mail.
 export async function GET(request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) return Response.json({ error: 'No autorizado' }, { status: 401 });
   try {
-    return Response.json({ ok: true, ...(await armarYMandar()) });
+    const db = getDb();
+    const cfg = await loadGuionesConfig(db);
+    if (!cfg.dias.includes(diaAR(Date.now()))) return Response.json({ ok: true, skipped: 'no_toca_hoy' });
+    const r = await generarGuiones(db, { cantidad: cfg.cantidad, mail: cfg.mail, origen: 'cron' });
+    return Response.json({ ok: true, enviados: r.guiones.length, titulos: r.guiones.map(g => g.titulo) });
   } catch (e) {
-    await alertError('guiones', 'No salieron los guiones de reels de la semana', e);
+    await alertError('guiones', 'No salieron los guiones de reels', e);
     return Response.json({ error: e.message }, { status: 500 });
   }
 }
 
+// Admin: generar y mandar por mail ahora, con la config guardada.
 export async function POST(request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
   try {
-    return Response.json({ ok: true, ...(await armarYMandar()) });
+    const db = getDb();
+    const cfg = await loadGuionesConfig(db);
+    const r = await generarGuiones(db, { cantidad: cfg.cantidad, mail: true, origen: 'admin' });
+    return Response.json({ ok: true, enviados: r.guiones.length, titulos: r.guiones.map(g => g.titulo) });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });
   }

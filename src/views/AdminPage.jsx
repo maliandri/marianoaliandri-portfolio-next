@@ -812,7 +812,7 @@ export default function AdminPage() {
         )}
         {activeTab === 'contenido-bot' && (
           <div>
-            <ContenidoBotCard />
+            <ContenidoBotCard sub={activeSubTab || 'generar'} />
           </div>
         )}
         {activeTab === 'demanda-auto' && (

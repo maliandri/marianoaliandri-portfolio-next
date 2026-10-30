@@ -47,6 +47,7 @@ const seed = () => createFakeDb({
   'presupuestos/b1': { clientName: 'Ana', clientEmail: 'ana@x.com', clientPhone: '2995551234', selectedServices: ['web'], status: 'pending', projectDescription: LEAK },
   'demanda_reportes/d1': { zona: 'Alto Valle', localidades: ['Neuquén'], createdAtMs: 1, top: [{ id: 'f', label: 'Farmacia', pos: 1, interes: 100, ejemplos: [LEAK] }] },
   'alertas/a1': { key: LEAK, total: 2, ultimaVez: 1 },
+  'guiones/g1': { titulo: 'G', gancho: LEAK, tomas: [{ decir: 'a', mostrar: 'b' }], estado: 'pendiente', createdAtMs: 1 },
 });
 
 // Argumentos de ejemplo por tool (camino feliz y camino de error).
@@ -82,6 +83,10 @@ const ARGS = {
   ],
   send_budget_email: [{ id: 'b1', dry_run: true }, { id: 'nope' }],
   get_budget_pdf: [{ id: 'b1' }, { id: 'nope' }],
+  generate_reel_scripts: [{ tema: 'Supabase', cantidad: 2 }],
+  list_reel_scripts: [{}, { estado: 'pendiente' }],
+  update_reel_script: [{ id: 'g1', estado: 'grabado' }, { id: 'nope', estado: 'grabado' }],
+  create_content_piece: [{ tema: 'Una idea', en_cola: true }, { tema: 'Una idea', serie_id: 'nope' }],
   list_demand_reports: [{}, { zona: 'Alto Valle' }],
   get_demand_report: [{ id: 'd1' }, { id: 'nope' }],
   run_demand_report: [{ zona: 'Alto Valle' }, { zona: 'Nada', publicar: true }],

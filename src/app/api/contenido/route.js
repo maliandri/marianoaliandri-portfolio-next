@@ -12,13 +12,14 @@ export async function GET(request) {
     const db = getDb();
     if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });
     const config = await loadContenidoConfig(db);
-    const snap = await db.collection(CONTENIDOS).orderBy('createdAtMs', 'desc').limit(15).get();
+    const snap = await db.collection(CONTENIDOS).orderBy('createdAtMs', 'desc').limit(30).get();
     const items = snap.docs.map(d => {
       const c = d.data();
       return {
         id: d.id, serie: c.serieNombre, titulo: c.titulo, estado: c.estado, imagenes: c.imagenes || [],
         caption: c.caption, proveedor: c.proveedor, error: c.error || null, redes: c.redes || null,
         createdAtMs: c.createdAtMs, publicadoAtMs: c.publicadoAtMs || null,
+        tema: c.tema || null, reelId: c.reelId || null, reelPedido: c.reelPedido === true,
       };
     });
     return Response.json({ config, items });

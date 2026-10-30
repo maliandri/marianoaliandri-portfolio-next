@@ -23,9 +23,19 @@ const cfg = (await cfgRef.get()).data() || {};
 
 // Fuente de cada tipo. Devuelve { reel, fuente: { coleccion, id }, link, hashtags } o null si no hay.
 const FUENTES = {
+  // Primero la pieza pedida en el disparo (REEL_CONTENIDO_ID), después las marcadas con reelPedido
+  // ("Armar también el reel" en el admin) y si no, la más nueva sin reel.
   async explicador() {
-    const snap = await db.collection('contenidos').orderBy('createdAtMs', 'desc').limit(30).get();
-    const doc = snap.docs.find(d => !d.data().reelId && d.data().slides?.length);
+    let doc = null;
+    if (pedidaId) {
+      const d = await db.collection('contenidos').doc(pedidaId).get();
+      doc = d.exists && d.data().slides?.length ? d : null;
+    }
+    if (!doc) {
+      const snap = await db.collection('contenidos').orderBy('createdAtMs', 'desc').limit(30).get();
+      const libres = snap.docs.filter(d => !d.data().reelId && d.data().slides?.length);
+      doc = libres.find(d => d.data().reelPedido) || libres[0];
+    }
     if (!doc) return null;
     const c = doc.data();
     return { reel: reelExplicador(c), fuente: { coleccion: 'contenidos', id: doc.id }, link: contenidoUrl(doc.id), hashtags: c.hashtags || [] };
@@ -43,7 +53,10 @@ const FUENTES = {
   },
 };
 
-const pedido = process.env.REEL_TIPO;
+const pedidaId = process.env.REEL_CONTENIDO_ID || '';
+const hayPedidos = !pedidaId && (await db.collection('contenidos').where('reelPedido', '==', true).limit(10).get())
+  .docs.some(d => !d.data().reelId);
+const pedido = pedidaId || hayPedidos ? 'explicador' : process.env.REEL_TIPO;
 let tipo = null;
 let elegido = null;
 for (const t of pedido ? [pedido] : siguientesTipos(cfg.ultimoTipo)) {

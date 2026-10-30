@@ -51,7 +51,7 @@ export function statsAuditorias(auditorias) {
   };
 }
 
-export function buildPrompt(serie, { recientes = [], datos = null } = {}) {
+export function buildPrompt(serie, { recientes = [], datos = null, tema = '' } = {}) {
   return `Sos Mariano Aliandri, desarrollador de Neuquén (Argentina) que hace sistemas y sitios a medida para negocios
 y los conecta a Claude (la IA de Anthropic) con un servidor MCP, para que el dueño maneje su negocio hablando con
 Claude. Tu propuesta: sitio en Next.js, base de datos en Supabase, dominio propio sin cuota mensual, imágenes en
@@ -61,6 +61,7 @@ panel propio conectado a Claude.
 Escribí UNA pieza de la serie "${serie.nombre}" para Instagram, Facebook y LinkedIn.
 Qué tiene que hacer la pieza: ${serie.angulo}
 Ejemplo de gancho de esta serie (no lo copies tal cual): "${serie.gancho}"
+${tema ? `TEMA DE ESTA PIEZA, pedido por Mariano (manda sobre el ángulo de la serie): ${tema}` : ''}
 ${recientes.length ? `Ya publicaste estos títulos en la serie, NO repitas el mismo tema ni ángulo:\n${recientes.map(t => `- ${t}`).join('\n')}` : ''}
 ${datos ? `Datos reales que podés usar (no inventes otros números):\n${JSON.stringify(datos)}` : 'No inventes números ni estadísticas: si no tenés un dato real, no pongas cifras.'}
 
@@ -129,6 +130,8 @@ export function buildCaption(c, id) {
 }
 
 // PATCH del admin sobre la config y las series. Devuelve { update } o { error }.
+export const MAX_COLA = 20;
+
 export function validateContenidoPatch(body) {
   const update = {};
   if ('activo' in body) {
@@ -154,6 +157,19 @@ export function validateContenidoPatch(body) {
       });
     }
     update.series = series;
+  }
+  if ('cola' in body) {
+    if (!Array.isArray(body.cola) || body.cola.length > MAX_COLA) return { error: `cola: hasta ${MAX_COLA} ideas` };
+    const cola = [];
+    for (const c of body.cola) {
+      const tema = String(c?.tema || '').trim().slice(0, 500);
+      if (tema.length < 5) return { error: 'Cada idea de la cola necesita un tema' };
+      cola.push({
+        id: /^[\w-]{4,40}$/.test(c?.id || '') ? c.id : `c${Date.now().toString(36)}${cola.length}`,
+        tema, serieId: typeof c?.serieId === 'string' && c.serieId ? c.serieId : null, conReel: c?.conReel === true,
+      });
+    }
+    update.cola = cola;
   }
   if (!Object.keys(update).length) return { error: 'Nada para actualizar' };
   return { update };

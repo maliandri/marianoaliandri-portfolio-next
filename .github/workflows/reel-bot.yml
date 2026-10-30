@@ -12,6 +12,10 @@ on:
         description: 'explicador, ranking o dato (vacío = el que toca)'
         required: false
         default: ''
+      contenido_id:
+        description: 'id de una pieza del bot de contenido (lo manda el admin con "Armar también el reel")'
+        required: false
+        default: ''
 
 concurrency:
   group: reel-bot
@@ -35,6 +39,7 @@ jobs:
       IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
       IG_USER_ID: ${{ secrets.IG_USER_ID }}
       REEL_TIPO: ${{ github.event.inputs.tipo }}
+      REEL_CONTENIDO_ID: ${{ github.event.inputs.contenido_id }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

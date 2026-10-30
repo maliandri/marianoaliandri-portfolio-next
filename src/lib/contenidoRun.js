@@ -14,6 +14,7 @@ import { postToMakeSocial } from '@/lib/makeSocial';
 import { getLinkedInAuth, publishDocumentPost } from '@/lib/linkedinClient';
 import { imagesToPdf } from '@/lib/demandaPublish';
 import { sendAlert } from '@/lib/alert';
+import { dispararReel, textoReel } from '@/lib/reelDispatch';
 
 const CONFIG = 'contenido_config';
 export const CONTENIDOS = 'contenidos';
@@ -27,6 +28,7 @@ export async function loadContenidoConfig(db) {
     activo: d.activo === true, // arranca apagado: se prende desde el admin después de ver una vista previa
     series: d.series?.length ? d.series : SERIES_SEMILLA,
     ultimaCorrida: d.ultimaCorrida || {},
+    cola: Array.isArray(d.cola) ? d.cola : [],
   };
 }
 
@@ -139,12 +141,17 @@ export async function publicarContenido(db, id) {
 }
 
 // Genera una pieza. publicar=false la deja como borrador (vista previa en el admin, no se ve en el sitio).
-export async function runContenido({ force = false, serieId = null, publicar = true, now = Date.now } = {}) {
+// `tema` = la idea puntual de Mariano ("esta es la próxima pieza"); `conReel` = pedir también el reel.
+// Sin serieId ni tema, la corrida toma la primera idea de la cola (contenido_config.settings.cola) y,
+// si no hay, la serie que toca.
+export async function runContenido({ force = false, serieId = null, tema = '', conReel = false, publicar = true, now = Date.now } = {}) {
   const db = getDb();
   if (!db) throw new Error('DB no disponible');
   const nowMs = now();
   const config = await loadContenidoConfig(db);
   if (!force && !config.activo) return { skipped: 'inactivo' };
+  const deCola = !serieId && !tema ? config.cola[0] || null : null;
+  if (deCola) ({ serieId, tema, conReel } = { serieId: deCola.serieId, tema: deCola.tema, conReel: deCola.conReel });
   const serie = serieId ? config.series.find(s => s.id === serieId) : pickSerie(config.series, config.ultimaCorrida);
   if (!serie) return { skipped: serieId ? 'serie_inexistente' : 'sin_series' };
   if (!(await acquireLock(db, nowMs))) return { skipped: 'en_curso' };
@@ -152,21 +159,25 @@ export async function runContenido({ force = false, serieId = null, publicar = t
   const patch = { lock: { until: 0 } };
   try {
     const datos = serie.dato === 'auditorias' ? await datosAuditorias(db).catch(() => null) : null;
-    const pieza = await generarPieza(buildPrompt(serie, { recientes: await recientesDeSerie(db, serie.id), datos }));
+    const pieza = await generarPieza(buildPrompt(serie, { recientes: await recientesDeSerie(db, serie.id), datos, tema }));
     const ref = await db.collection(CONTENIDOS).add({
       serieId: serie.id, serieNombre: serie.nombre, cta: serie.cta,
       titulo: pieza.titulo, slides: pieza.slides, caption: pieza.caption, cuerpo: pieza.cuerpo, hashtags: pieza.hashtags,
       proveedor: pieza.proveedor, estado: 'borrador', createdAtMs: nowMs, createdAt: FieldValue.serverTimestamp(),
+      ...(tema ? { tema } : {}), ...(conReel ? { reelPedido: true } : {}),
     });
     const pngs = await renderContenidoSlides({ ...pieza, serieNombre: serie.nombre }, { ctaLabel: serie.cta.label, ctaPath: serie.cta.path });
     const imagenes = [];
     for (const png of pngs) imagenes.push(await uploadPng(png, `contenido/${ref.id}`));
     await ref.update({ imagenes });
     patch.ultimaCorrida = { [serie.id]: nowMs };
+    if (deCola) patch.cola = config.cola.filter(c => c.id !== deCola.id);
+    const reel = conReel ? await dispararReel(ref.id) : null;
+    const base = { id: ref.id, serie: serie.nombre, titulo: pieza.titulo, imagenes, tema: tema || null, deCola: !!deCola, ...(reel ? { reel: textoReel(reel) } : {}) };
 
-    if (!publicar) return { id: ref.id, estado: 'borrador', serie: serie.nombre, titulo: pieza.titulo, imagenes };
+    if (!publicar) return { ...base, estado: 'borrador' };
     const pub = await publicarContenido(db, ref.id);
-    return { id: ref.id, estado: 'publicado', serie: serie.nombre, titulo: pieza.titulo, imagenes, redes: pub.redes, error: pub.error };
+    return { ...base, estado: 'publicado', redes: pub.redes, error: pub.error };
   } catch (e) {
     await sendAlert({ key: 'contenido:error', titulo: `Bot de contenido: no salió la pieza (${serie.nombre})`, detalle: e.message });
     return { estado: 'error', serie: serie.nombre, error: e.message };
