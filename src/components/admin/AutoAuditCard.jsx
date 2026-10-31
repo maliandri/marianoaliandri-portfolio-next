@@ -191,7 +191,7 @@ export default function AutoAuditCard() {
               Una por línea. Una ciudad sola (<code>Bariloche</code>) o una zona con sus localidades
               (<code>Alto Valle: Neuquén, Plottier, Cipolletti</code>): la zona sale en un solo informe con los
               sitios de todas, y el cupo de comercios se reparte entre ellas. La primera localidad es la cabecera.
-              Si un nombre se repite en otra provincia, aclarala: <code>Las Heras, Mendoza</code>.
+              Si un nombre se repite en otra provincia, aclarala entre paréntesis: <code>Las Heras (Mendoza)</code>.
             </p>
             <label className="sr-only" htmlFor="aa-ciudades">Ciudades y zonas, una por línea</label>
             <textarea id="aa-ciudades" rows={10} className={input} value={ciudadesText} onChange={e => setCiudadesText(e.target.value)} />

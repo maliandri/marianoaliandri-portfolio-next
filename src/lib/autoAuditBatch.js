@@ -24,7 +24,8 @@ export async function runBatch(combo, opts = {}) {
   const { ciudad, rubro } = combo;
   // Zona: la cabecera (primera localidad) va al final, así se lleva el cupo que dejan libre las chicas.
   const [cabecera, ...resto] = combo.ciudades?.length ? combo.ciudades : [ciudad];
-  const localidades = [...resto, cabecera];
+  // "Las Heras (Mendoza)" → "Las Heras, Mendoza": el geocoder lo toma como ciudad + provincia.
+  const localidades = [...resto, cabecera].map(c => c.replace(/\s*\(([^)]+)\)\s*$/, ', $1'));
 
   const results = [];
   let examined = 0;

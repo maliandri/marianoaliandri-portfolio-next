@@ -77,6 +77,17 @@ describe('runBatch', () => {
     expect(porCiudad).toEqual({ Plottier: 3, Centenario: 3, Neuquén: 3 });
   });
 
+  it('zona: "Ciudad (Provincia)" se busca como "Ciudad, Provincia"', async () => {
+    const ZONA = { ciudad: 'Gran Mendoza', ciudades: ['Mendoza', 'Las Heras (Mendoza)'], rubro: TEXT.rubro };
+    const run = makeRun({
+      geocode: geoOk,
+      searchText: () => ({ ok: true, places: [], nextPageToken: null }),
+      auditPlace: () => audited(),
+    });
+    await runBatch(ZONA, { run, sleep: noSleep });
+    expect(run).toHaveBeenCalledWith('geocode', { city: 'Las Heras, Mendoza', country: 'Argentina' });
+  });
+
   it('respeta maxSites', async () => {
     const run = makeRun({
       geocode: geoOk,
