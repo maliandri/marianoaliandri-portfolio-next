@@ -39,8 +39,8 @@ describe('iaNichos', () => {
     expect(url.searchParams.get('text')).toContain(IA_NICHOS[0].nombre);
   });
 
-  it('el índice y cada nicho están en el sitemap, con barra final', () => {
-    const urls = sitemap().map(e => e.url);
+  it('el índice y cada nicho están en el sitemap, con barra final', async () => {
+    const urls = (await sitemap()).map(e => e.url);
     expect(urls).toContain('https://marianoaliandri.com.ar/ia-para/');
     for (const n of IA_NICHOS) expect(urls).toContain(`https://marianoaliandri.com.ar/ia-para/${n.slug}/`);
   });
