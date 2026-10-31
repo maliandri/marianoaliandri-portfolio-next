@@ -47,6 +47,19 @@ describe('buildBizEmailDraft', () => {
     expect(d.emailText).toBe(bueno);
   });
 
+  it('si pagan anuncios, se lo pasa a Gemini y lo usa la plantilla', async () => {
+    callGemini.mockResolvedValue('inválido');
+    const d = await buildBizEmailDraft({ ...neg, anuncios: { meta: true, google: false } }, { providedShot: null });
+    expect(callGemini.mock.calls[0][0]).toContain('anuncios de Facebook/Instagram');
+    expect(d.emailText).toContain('invierten en anuncios en Facebook/Instagram');
+  });
+
+  it('sin anuncios, el prompt no menciona pauta', async () => {
+    callGemini.mockResolvedValue(bueno);
+    await buildBizEmailDraft(neg, { providedShot: null });
+    expect(callGemini.mock.calls[0][0]).not.toContain('Dato clave');
+  });
+
   it('respeta el texto editado sin llamar a Gemini', async () => {
     const d = await buildBizEmailDraft(neg, { providedText: '  mi texto  ', providedShot: null });
     expect(d).toMatchObject({ source: 'edited', emailText: 'mi texto' });

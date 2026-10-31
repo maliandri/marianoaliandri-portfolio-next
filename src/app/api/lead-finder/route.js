@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { getUserFromRequest } from '@/lib/authServer';
 import { extractLatestLastmod } from '@/lib/sitemapUtils';
 import { extractInstagram, handleFromUrl } from '@/lib/instagramHandle';
+import { siteSignals } from '@/lib/siteSignals';
 
 // Cuenta registrada (Firebase Auth) reconocida como admin para esta ruta interna.
 // No es un password aparte -- es la MISMA cuenta con la que Mariano se loguea en el
@@ -165,6 +166,7 @@ async function auditSite(url) {
     }
 
     let lastModified = null, metaDesc = null, hasOG = false, emailFromHome = null, igFromHome = null;
+    let señales = { agencia: null, anuncios: null, plataforma: null };
     if (mainRes.status === 'fulfilled' && mainRes.value.ok) {
       lastModified = mainRes.value.headers.get('last-modified') || null;
       try {
@@ -173,6 +175,7 @@ async function auditSite(url) {
         igFromHome    = extractInstagram(html);
         metaDesc      = extractMetaDesc(html);
         hasOG         = detectOG(html);
+        señales       = siteSignals(html, url);
       } catch { /* ignore */ }
     }
 
@@ -193,9 +196,9 @@ async function auditSite(url) {
     const lastUpdated = extractLatestLastmod(sitemapXml)
       || (lastModified && Number.isFinite(Date.parse(lastModified)) ? new Date(lastModified).toISOString() : null);
 
-    return { hasSitemap, hasRobots, lastModified, lastUpdated, email, instagram, metaDesc, hasOG, seoScore };
+    return { hasSitemap, hasRobots, lastModified, lastUpdated, email, instagram, metaDesc, hasOG, seoScore, ...señales };
   } catch {
-    return { hasSitemap: false, hasRobots: false, lastModified: null, lastUpdated: null, email: null, instagram: null, metaDesc: null, hasOG: false, seoScore: null };
+    return { hasSitemap: false, hasRobots: false, lastModified: null, lastUpdated: null, email: null, instagram: null, metaDesc: null, hasOG: false, seoScore: null, agencia: null, anuncios: null, plataforma: null };
   }
 }
 
@@ -325,12 +328,16 @@ export async function runLeadFinderAction(action, params, clientKey) {
                 const { checkedAt: _omit, ...rest } = cached;
                 // Entradas guardadas antes de existir `lastUpdated`: se completa acá con la
                 // auditoría del sitio (gratis, sin Google) para no esperar 30 días al vencimiento.
-                // Igual con `instagram` (agregado 2026-10-23).
-                if (rest.siteUrl && (rest.lastUpdated === undefined || rest.instagram === undefined)) {
+                // Igual con `instagram` (agregado 2026-10-23) y las señales comerciales (2026-10-31).
+                if (rest.siteUrl && (rest.lastUpdated === undefined || rest.instagram === undefined || rest.anuncios === undefined)) {
                   const site = await auditSite(rest.siteUrl);
                   rest.lastUpdated = site.lastUpdated;
                   rest.instagram = site.instagram || handleFromUrl(rest.socialUrl);
-                  await cacheRef.set({ lastUpdated: rest.lastUpdated, instagram: rest.instagram }, { merge: true }).catch(() => {});
+                  Object.assign(rest, { agencia: site.agencia, anuncios: site.anuncios, plataforma: site.plataforma });
+                  await cacheRef.set({
+                    lastUpdated: rest.lastUpdated, instagram: rest.instagram,
+                    agencia: rest.agencia, anuncios: rest.anuncios, plataforma: rest.plataforma,
+                  }, { merge: true }).catch(() => {});
                 } else if (rest.instagram === undefined) {
                   rest.instagram = handleFromUrl(rest.socialUrl);
                   await cacheRef.set({ instagram: rest.instagram }, { merge: true }).catch(() => {});

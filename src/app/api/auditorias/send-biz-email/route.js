@@ -15,7 +15,7 @@ export async function POST(request) {
     const body = await request.json();
     const {
       nombre, siteUrl, email, seoScore, hasSitemap, hasRobots, metaDesc, hasOG,
-      ciudad, tipo, auditoriaId,
+      ciudad, tipo, auditoriaId, anuncios, plataforma,
       preview,                       // true = solo generar el texto, no enviar
       emailText: providedText,       // texto ya generado/editado por el admin (opcional)
       screenshotUrl: providedShot,   // screenshot ya obtenido en el preview (opcional)
@@ -42,7 +42,7 @@ export async function POST(request) {
       }
     }
 
-    const neg = { nombre, siteUrl, seoScore, hasSitemap, hasRobots, metaDesc, hasOG, ciudad, tipo };
+    const neg = { nombre, siteUrl, seoScore, hasSitemap, hasRobots, metaDesc, hasOG, ciudad, tipo, anuncios, plataforma };
     const { subject, emailText, source, screenshotUrl, extraServices } =
       await buildBizEmailDraft(neg, { providedText, providedShot });
 

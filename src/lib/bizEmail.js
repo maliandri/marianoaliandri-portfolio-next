@@ -69,7 +69,7 @@ export async function getScreenshot(url) {
 
 // Plantilla escrita a mano — se usa como fallback cuando Gemini no está disponible.
 // Personaliza el cuerpo con los datos reales de cada negocio.
-export function buildTemplateEmail({ nombre, siteUrl, seoScore, ciudad, problemas, nivelSeo }) {
+export function buildTemplateEmail({ nombre, siteUrl, seoScore, ciudad, problemas, nivelSeo, dondePauta = '' }) {
   const cleanUrl = (siteUrl || '').replace(/^https?:\/\/(www\.)?/, '').split(/[?#]/)[0].replace(/\/$/, '');
   const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 
@@ -83,7 +83,9 @@ export function buildTemplateEmail({ nombre, siteUrl, seoScore, ciudad, problema
     ? `Puntualmente, detecté que el sitio:\n${problemas.map(p => `• ${cap(p)}`).join('\n')}`
     : `La base está bien armada, pero hay algunos detalles finos que se pueden pulir para ganar posiciones en Google.`;
 
-  const impacto = `¿Por qué importa esto? Cuando un sitio tiene estos puntos flojos, Google lo muestra más abajo en los resultados y muchos clientes potenciales terminan eligiendo a un competidor que aparece antes. Corregirlo suele traducirse en más visitas y más consultas, sin necesidad de gastar en publicidad.`;
+  const impacto = dondePauta
+    ? `¿Por qué importa esto? Veo que invierten en anuncios en ${dondePauta}: cada persona que llega por esa publicidad aterriza en esta web, y si la web no está bien armada, parte de esa inversión se pierde. Además, con estos puntos flojos Google la muestra más abajo y se pierden las visitas que llegarían gratis.`
+    : `¿Por qué importa esto? Cuando un sitio tiene estos puntos flojos, Google lo muestra más abajo en los resultados y muchos clientes potenciales terminan eligiendo a un competidor que aparece antes. Corregirlo suele traducirse en más visitas y más consultas, sin necesidad de gastar en publicidad.`;
 
   const cierre = `Si te interesa, respondé este mail y coordinamos una charla sin compromiso para revisarlo juntos y ver qué conviene priorizar.\n\nSaludos,\nMariano Aliandri`;
 
@@ -121,12 +123,14 @@ export function validateGeneratedEmail(text, nombre) {
   return links.every(l => LINK_OK.test(l));
 }
 
-// neg = { nombre, siteUrl, seoScore, hasSitemap, hasRobots, metaDesc, hasOG, ciudad, tipo }
+// neg = { nombre, siteUrl, seoScore, hasSitemap, hasRobots, metaDesc, hasOG, ciudad, tipo, anuncios, plataforma }
 // Origen del cuerpo: editado por el admin > Gemini (si pasa la validación) > plantilla propia.
 export async function buildBizEmailDraft(neg, { providedText, providedShot } = {}) {
   const { nombre, siteUrl, seoScore, ciudad, tipo } = neg;
   const problemas = problemasSeo(neg);
   const nivel = nivelSeo(seoScore);
+  const pauta = neg.anuncios?.meta || neg.anuncios?.google;
+  const dondePauta = [neg.anuncios?.google && 'Google', neg.anuncios?.meta && 'Facebook/Instagram'].filter(Boolean).join(' y ');
   let emailText = null;
   let source;
   if (providedText?.trim()) {
@@ -140,6 +144,7 @@ Escribí el cuerpo de un email comercial personalizado para el negocio "${nombre
 Su sitio web es ${siteUrl}.
 Su Score SEO es ${seoScore ?? '—'}/100 (nivel: ${nivelSeo}).
 ${problemas.length > 0 ? `Problemas encontrados:\n${problemas.map(p => `- ${p}`).join('\n')}` : 'No se encontraron problemas críticos.'}
+${pauta ? `Dato clave: el sitio tiene instaladas las etiquetas de anuncios de ${dondePauta}, o sea que pagan publicidad que lleva gente a esta web. Usalo como argumento principal, con tacto: si pagan para traer visitas, cada problema de la web les hace perder plata de esa pauta. No digas cómo lo detectaste ni uses la palabra "píxel".` : ''}
 
 El email debe:
 - Saludar al negocio por su nombre en la primera línea
@@ -165,7 +170,7 @@ Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre pár
       emailText = null;
     }
     if (!emailText) {
-      emailText = buildTemplateEmail({ nombre, siteUrl, seoScore, ciudad, problemas, nivelSeo: nivel });
+      emailText = buildTemplateEmail({ nombre, siteUrl, seoScore, ciudad, problemas, nivelSeo: nivel, dondePauta });
       source = 'template';
     }
   }

@@ -72,7 +72,10 @@ export default async function AuditoriaDetailPage({ params }) {
   const a = await getAuditoria(id);
   if (!a) notFound();
 
-  const results     = a.results || [];
+  // Solo los campos que muestran la tabla, el mapa y el PDF: lo que se pasa a un componente de
+  // cliente viaja entero en el HTML. Nunca el email ni las señales comerciales (agencia, anuncios).
+  const results     = (a.results || []).map(({ id, nombre, ciudad, tipo, siteUrl, seoScore, hasSitemap, hasRobots, metaDesc, hasOG, lastModified, rating, lat, lon }) =>
+    ({ id, nombre, ciudad, tipo, siteUrl, seoScore, hasSitemap, hasRobots, metaDesc, hasOG, lastModified, rating, lat, lon }));
   const ciudades    = a.config?.ciudades || [];
   const ownDomains  = await getOwnDomains();
   const hasOwnSite  = ownDomains.length > 0 && results.some(r => {

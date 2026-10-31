@@ -49,6 +49,7 @@ async function findNegocio(db, user, { audit_id, search_id, job_id, place_id }) 
     placeId: r.id, nombre: r.nombre, siteUrl: r.siteUrl, email: r.email.trim().toLowerCase(), seoScore: r.seoScore ?? null,
     hasSitemap: r.hasSitemap, hasRobots: r.hasRobots, metaDesc: r.metaDesc, hasOG: r.hasOG,
     ciudad: r.ciudad || null, tipo: r.tipo || null, auditoriaId: audit_id || null,
+    anuncios: r.anuncios ?? null, plataforma: r.plataforma ?? null,
   };
 }
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import SendAuditEmailButton from './SendAuditEmailButton';
+import SenalesBadges from './SenalesBadges';
 import { buildAuditPublishPayload } from '@/lib/socialAuditPost';
 import { adminFetch } from '@/utils/adminFetch';
 
@@ -674,7 +675,7 @@ function AuditoriaDetail({ id }) {
         <table className="min-w-full text-xs">
           <thead className="bg-gray-50 dark:bg-gray-800/40 sticky top-0 z-10">
             <tr className="border-b border-gray-200 dark:border-neutral-800">
-              {['Negocio', 'Ciudad', 'Sitio web', 'Score', 'Sitemap', 'Robots', 'Meta', 'OG', '★', 'Email', 'DM'].map(h => (
+              {['Negocio', 'Ciudad', 'Sitio web', 'Score', 'Sitemap', 'Robots', 'Meta', 'OG', '★', 'Señales', 'Email', 'DM'].map(h => (
                 <th key={h} className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 whitespace-nowrap">{h}</th>
               ))}
             </tr>
@@ -707,6 +708,7 @@ function AuditoriaDetail({ id }) {
                 <td className="px-3 py-2 text-center text-yellow-500 whitespace-nowrap">
                   {neg.rating ? `★ ${neg.rating}` : '—'}
                 </td>
+                <td className="px-3 py-2 min-w-[120px]"><SenalesBadges neg={neg} /></td>
                 <td className="px-3 py-2">
                   <SendAuditEmailButton
                     neg={neg}

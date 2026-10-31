@@ -36,6 +36,8 @@ export default function SendAuditEmailButton({ neg, auditoriaId, sentCount = 0, 
     hasOG:      neg.hasOG,
     ciudad:     neg.ciudad,
     tipo:       neg.tipo,
+    anuncios:   neg.anuncios ?? null,
+    plataforma: neg.plataforma ?? null,
   };
 
   // Paso 1: generar el texto con Gemini (sin enviar) y abrir el preview

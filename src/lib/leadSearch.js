@@ -52,6 +52,8 @@ export function leadToAuditRow(lead) {
     metaDesc: lead.metaDesc ?? null, hasOG: lead.hasOG ?? null,
     lastModified: lead.lastUpdated || lead.lastModified || null,
     rating: lead.rating ?? null,
+    // Señales comerciales: solo para el admin y el mail; la página pública no las muestra.
+    agencia: lead.agencia ?? null, anuncios: lead.anuncios ?? null, plataforma: lead.plataforma ?? null,
   };
 }
 
