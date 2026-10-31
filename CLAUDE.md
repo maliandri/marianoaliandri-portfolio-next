@@ -304,7 +304,12 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
     `Nombre: loc1, loc2, ...` (`parseZona` en `src/lib/autoAudit.js`); la zona sale en un solo informe ("en Alto Valle").
     `runBatch` busca en cada localidad con la cabecera (la primera) al final y `searchLeads({ repartirEntreZonas })` le da a
     cada una su parte del cupo de examinados que queda. Nombre repetido en otra provincia: `Las Heras (Mendoza)`.
-    El cooldown va por nombre de zona. Los rubros no se tocan: están elegidos por los servicios que se venden.
+    El cooldown va por nombre de zona.
+  - **Rubros agrupados** (desde 2026-10-31): cada rubro es `{ label, prioritario, terminos: [], tipos: [] }` (varias
+    búsquedas, un informe: "Aberturas" = aluminio + PVC + fábrica + carpintería de aluminio); `busquedasDe()` lee también
+    el formato viejo `{ kind, value }`. Los grupos responden a los servicios que se venden (semilla en
+    `src/data/auditoriaAuto.js`; la config de prod no tiene `rubros` propios, usa la semilla). Tope `MAX_BUSQUEDAS` = 30
+    búsquedas de Places por corrida (`src/lib/autoAuditBatch.js`).
   - Cantidad de sitios por corrida: `cantidad` en `auditoria_auto/config` (default 15, rango 3–30, se edita en la tarjeta). Se examinan hasta `2 × cantidad` comercios (getDetails); con 15 son ~516/mes con 4 corridas por semana, la mitad del cupo gratis de Places. La tarjeta muestra el consumo estimado y lo pinta en rojo si supera 1.000/mes.
   - Mínimo 3 sitios con web para guardar/publicar (`MIN_SITES_TO_PUBLISH` en `src/lib/autoAuditRun.js`): si una combinación da menos (pasó el 2026-10-12 con Durlock × Formosa: Google tenía 2 comercios, 1 con web, y se publicó un informe de 1 sitio), se marca como hecha y se prueba otra en la misma corrida (hasta 3 intentos, compartiendo el tope de `maxCandidates` y el tiempo). Cada corrida guarda `intentos` (encontrados / examinados / con web por combinación), visible en la tarjeta del admin.
   - "Correr ahora" (admin) usa modo rápido (pensado para el límite de 60 s del viejo plan Hobby; con Pro se podría alargar): lote corto (hasta 8 sitios, 15 s) y resumen de plantilla sin Gemini; la corrida programada de GitHub Actions usa el presupuesto completo.
