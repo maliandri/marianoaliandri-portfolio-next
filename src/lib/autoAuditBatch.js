@@ -13,7 +13,7 @@ function makeCall(run) {
   };
 }
 
-// Audita un lote de negocios de una combinación ciudad × rubro con el motor compartido
+// Audita un lote de negocios de una combinación ciudad (o zona) × rubro con el motor compartido
 // (src/lib/leadSearch.js), sin pasar por HTTP. El informe es de SEO: solo leads con web.
 export async function runBatch(combo, opts = {}) {
   const {
@@ -22,6 +22,9 @@ export async function runBatch(combo, opts = {}) {
   } = opts;
   const deadline = now() + budgetMs;
   const { ciudad, rubro } = combo;
+  // Zona: la cabecera (primera localidad) va al final, así se lleva el cupo que dejan libre las chicas.
+  const [cabecera, ...resto] = combo.ciudades?.length ? combo.ciudades : [ciudad];
+  const localidades = [...resto, cabecera];
 
   const results = [];
   let examined = 0;
@@ -32,7 +35,8 @@ export async function runBatch(combo, opts = {}) {
 
   try {
     const gen = searchLeads({
-      zonas: [{ ciudad, pais: 'Argentina' }],
+      zonas: localidades.map(c => ({ ciudad: c, pais: 'Argentina' })),
+      repartirEntreZonas: localidades.length > 1,
       terminos: rubro.kind === 'text' ? [rubro.value] : [],
       tipos: rubro.kind === 'text' ? [] : [{ id: rubro.value, label: rubro.label }],
       radioKm: RADIO_KM, cantidad: maxSites, maxExaminados: maxCandidates, soloConWeb: true,

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  COOLDOWN_MS, DEFAULT_NETWORKS, comboKey, pickNext, buildStats, buildPost, validateConfigPatch, consumoMensual,
+  COOLDOWN_MS, DEFAULT_NETWORKS, comboKey, parseZona, pickNext, buildStats, buildPost, validateConfigPatch, consumoMensual,
 } from './autoAudit.js';
 import { auditScreenshotUrl } from './socialAuditPost.js';
 
@@ -56,6 +56,31 @@ describe('pickNext', () => {
     expect(pickNext(config, NOW)).toBeNull();
     expect(pickNext({ ciudades: [], rubros: [PRIO] }, NOW)).toBeNull();
     expect(pickNext({ ciudades: ['A'], rubros: [] }, NOW)).toBeNull();
+  });
+
+  it('una zona sale como combinación propia, con todas sus localidades', () => {
+    const c = pickNext({ ciudades: ['Alto Valle: Neuquén, Plottier'], rubros: [PRIO], ultimaCorrida: {} }, NOW, () => 0.1);
+    expect(c).toMatchObject({ ciudad: 'Alto Valle', ciudades: ['Neuquén', 'Plottier'] });
+  });
+
+  it('el cooldown de una zona va por su nombre', () => {
+    const config = {
+      ciudades: ['Alto Valle: Neuquén, Plottier', 'Bariloche'], rubros: [PRIO],
+      ultimaCorrida: { [comboKey('Alto Valle', PRIO)]: NOW - 1000 },
+    };
+    expect(pickNext(config, NOW, () => 0.1).ciudad).toBe('Bariloche');
+  });
+});
+
+describe('parseZona', () => {
+  it('ciudad sola', () => {
+    expect(parseZona(' Bariloche ')).toEqual({ nombre: 'Bariloche', ciudades: ['Bariloche'] });
+  });
+  it('zona con localidades (trim, sin vacías ni repetidas, comas internas no)', () => {
+    expect(parseZona('Gran Mendoza: Mendoza , Las Heras, ,Mendoza')).toEqual({ nombre: 'Gran Mendoza', ciudades: ['Mendoza', 'Las Heras'] });
+  });
+  it('zona sin localidades usa el nombre', () => {
+    expect(parseZona('Añelo:')).toEqual({ nombre: 'Añelo', ciudades: ['Añelo'] });
   });
 });
 
@@ -142,6 +167,12 @@ describe('validateConfigPatch', () => {
   it('normaliza ciudades: trim, descarta vacías y duplicadas', () => {
     const r = validateConfigPatch({ ciudades: [' Neuquén ', '', 'Neuquén', 'Salta'] });
     expect(r.update.ciudades).toEqual(['Neuquén', 'Salta']);
+  });
+
+  it('normaliza zonas y rechaza una zona sin nombre', () => {
+    const r = validateConfigPatch({ ciudades: [' Alto Valle :Neuquén,  Plottier ', 'Bariloche:'] });
+    expect(r.update.ciudades).toEqual(['Alto Valle: Neuquén, Plottier', 'Bariloche']);
+    expect(validateConfigPatch({ ciudades: [': Neuquén'] }).error).toMatch(/nombre/);
   });
 
   it('rechaza ciudades si no es array o queda vacío', () => {

@@ -25,7 +25,25 @@ export function comboKey(ciudad, rubro) {
   return `${ciudad}|${rubro.label}`;
 }
 
-// Elige la próxima combinación ciudad × rubro. Respeta la proporción prioritarios/secundarios,
+// Una entrada de "ciudades" es una ciudad sola ("Bariloche") o una zona con sus localidades
+// ("Alto Valle: Neuquén, Plottier, Cipolletti"). Una zona sale en un solo informe con los sitios
+// de todas sus localidades; la primera localidad es la cabecera.
+export function parseZona(entry) {
+  const text = String(entry).trim();
+  const i = text.indexOf(':');
+  if (i < 0) return { nombre: text, ciudades: [text] };
+  const nombre = text.slice(0, i).trim();
+  const ciudades = [...new Set(text.slice(i + 1).split(',').map(c => c.trim()).filter(Boolean))];
+  return { nombre, ciudades: ciudades.length ? ciudades : [nombre] };
+}
+
+// Forma canónica para guardar: "Nombre: a, b, c" (o solo "Nombre" si es una ciudad sola).
+function formatZona(entry) {
+  const { nombre, ciudades } = parseZona(entry);
+  return ciudades.length === 1 && ciudades[0] === nombre ? nombre : `${nombre}: ${ciudades.join(', ')}`;
+}
+
+// Elige la próxima combinación ciudad (o zona) × rubro. Respeta la proporción prioritarios/secundarios,
 // nunca repite una combinación dentro de COOLDOWN_MS y, dentro del pool, toma la corrida hace
 // más tiempo (las nunca corridas primero; empate → al azar).
 export function pickNext(config, nowMs = Date.now(), rand = Math.random) {
@@ -34,10 +52,12 @@ export function pickNext(config, nowMs = Date.now(), rand = Math.random) {
   const last = config?.ultimaCorrida || {};
 
   const eligible = [];
-  for (const ciudad of ciudades) {
+  for (const entry of ciudades) {
+    const zona = parseZona(entry);
+    if (!zona.nombre) continue;
     for (const rubro of rubros) {
-      const lastRun = last[comboKey(ciudad, rubro)] || 0;
-      if (nowMs - lastRun >= COOLDOWN_MS) eligible.push({ ciudad, rubro, lastRun });
+      const lastRun = last[comboKey(zona.nombre, rubro)] || 0;
+      if (nowMs - lastRun >= COOLDOWN_MS) eligible.push({ ciudad: zona.nombre, ciudades: zona.ciudades, rubro, lastRun });
     }
   }
   if (!eligible.length) return null;
@@ -50,7 +70,7 @@ export function pickNext(config, nowMs = Date.now(), rand = Math.random) {
   const oldest = Math.min(...pool.map(c => c.lastRun));
   const candidates = pool.filter(c => c.lastRun === oldest);
   const pick = candidates[Math.floor(rand() * candidates.length)];
-  return { ciudad: pick.ciudad, rubro: pick.rubro };
+  return { ciudad: pick.ciudad, ciudades: pick.ciudades, rubro: pick.rubro };
 }
 
 // Mismo shape que stats de POST /api/auditorias.
@@ -110,8 +130,9 @@ export function validateConfigPatch(body) {
   if ('ciudades' in body) {
     if (!Array.isArray(body.ciudades)) return { error: 'ciudades debe ser un array de textos' };
     const ciudades = [...new Set(
-      body.ciudades.map(c => (typeof c === 'string' ? c.trim() : '')).filter(Boolean)
+      body.ciudades.map(c => (typeof c === 'string' && c.trim() ? formatZona(c) : '')).filter(Boolean)
     )];
+    if (ciudades.some(c => !parseZona(c).nombre)) return { error: 'ciudades: cada zona necesita un nombre antes de los dos puntos' };
     if (!ciudades.length || ciudades.length > 300) return { error: 'ciudades: debe haber entre 1 y 300' };
     update.ciudades = ciudades;
   }

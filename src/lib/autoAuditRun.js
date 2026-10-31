@@ -80,7 +80,7 @@ function fechaLarga(ms) {
 
 async function saveReport(combo, results, stats, nowMs, useGemini) {
   const title = `Auditoría SEO de ${stats.total} sitios de ${combo.rubro.label} en ${combo.ciudad} (${fechaLarga(nowMs)})`;
-  const config = { ciudades: [combo.ciudad], pais: 'Argentina', radioKm: 15, tiposLabels: [combo.rubro.label] };
+  const config = { ciudades: combo.ciudades?.length ? combo.ciudades : [combo.ciudad], pais: 'Argentina', radioKm: 15, tiposLabels: [combo.rubro.label] };
   return saveAuditoria({ title, config, results, stats, useGemini });
 }
 

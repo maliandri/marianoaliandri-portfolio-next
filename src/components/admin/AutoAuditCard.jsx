@@ -127,7 +127,7 @@ export default function AutoAuditCard() {
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Auditoría automática</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Audita un rubro en una ciudad, publica el informe y lo anuncia en redes. Corre lunes, miércoles, viernes y sábado (cron-job.org → GitHub Actions).
+              Audita un rubro en una ciudad o zona, publica el informe y lo anuncia en redes. Corre lunes, miércoles, viernes y sábado (cron-job.org → GitHub Actions).
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -186,14 +186,20 @@ export default function AutoAuditCard() {
           </div>
 
           <div className={card}>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Ciudades ({(config.ciudades || []).length})</h3>
-            <label className="sr-only" htmlFor="aa-ciudades">Ciudades, una por línea</label>
-            <textarea id="aa-ciudades" rows={8} className={input} value={ciudadesText} onChange={e => setCiudadesText(e.target.value)} />
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Ciudades y zonas ({(config.ciudades || []).length})</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              Una por línea. Una ciudad sola (<code>Bariloche</code>) o una zona con sus localidades
+              (<code>Alto Valle: Neuquén, Plottier, Cipolletti</code>): la zona sale en un solo informe con los
+              sitios de todas, y el cupo de comercios se reparte entre ellas. La primera localidad es la cabecera.
+              Si un nombre se repite en otra provincia, aclarala: <code>Las Heras, Mendoza</code>.
+            </p>
+            <label className="sr-only" htmlFor="aa-ciudades">Ciudades y zonas, una por línea</label>
+            <textarea id="aa-ciudades" rows={10} className={input} value={ciudadesText} onChange={e => setCiudadesText(e.target.value)} />
             <button
-              onClick={() => patch({ ciudades: ciudadesText.split('\n') }, 'Ciudades guardadas')}
+              onClick={() => patch({ ciudades: ciudadesText.split('\n') }, 'Ciudades y zonas guardadas')}
               disabled={busy}
               className="mt-2 px-3 py-2 rounded-lg bg-gray-800 text-white text-sm dark:bg-gray-600 disabled:opacity-50">
-              Guardar ciudades
+              Guardar ciudades y zonas
             </button>
           </div>
 

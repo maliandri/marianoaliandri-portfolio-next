@@ -80,7 +80,7 @@ export function normalizarLeadsGuardados(rows) {
 export async function* searchLeads(params, deps) {
   const {
     zonas = [], terminos = [], tipos = [], radioKm = 10, cantidad = 10,
-    perfil = 'dev', producto = '', soloConWeb = false,
+    perfil = 'dev', producto = '', soloConWeb = false, repartirEntreZonas = false,
   } = params;
   const maxExaminados = params.maxExaminados ?? cantidad * 3;
   const { call, sleep = defaultSleep, isCancelled = () => false } = deps;
@@ -90,6 +90,11 @@ export async function* searchLeads(params, deps) {
   const seen = new Set();
   const totals = { encontrados: 0, examinados: 0, leads: 0, conWeb: 0, descartados: 0 };
   const listo = () => totals.leads >= cantidad || totals.examinados >= maxExaminados || isCancelled();
+  // repartirEntreZonas: cada localidad examina como mucho su parte de lo que queda del cupo; lo que
+  // una no usa pasa a las siguientes (la auditoría automática por zona pone la cabecera al final).
+  let topeZona = Infinity;
+  let examinadosZona = 0;
+  const listoZona = () => listo() || examinadosZona >= topeZona;
 
   // Conteos de productos: corren en paralelo a la búsqueda; cada uno deja su evento listo y se
   // entrega en el próximo punto de la búsqueda (o al final).
@@ -117,8 +122,12 @@ export async function* searchLeads(params, deps) {
   ];
 
   try {
-    for (const zona of zonas) {
+    for (const [zi, zona] of zonas.entries()) {
       if (listo()) break;
+      if (repartirEntreZonas) {
+        topeZona = Math.ceil((maxExaminados - totals.examinados) / (zonas.length - zi));
+        examinadosZona = 0;
+      }
       yield { type: 'zona', ciudad: zona.ciudad };
 
       let geo;
@@ -131,11 +140,11 @@ export async function* searchLeads(params, deps) {
       }
 
       for (const b of busquedas) {
-        if (listo()) break;
+        if (listoZona()) break;
         yield { type: 'busqueda', ciudad: zona.ciudad, etiqueta: b.etiqueta };
 
         let pageToken = null;
-        for (let page = 0; page < MAX_PAGINAS && !listo(); page++) {
+        for (let page = 0; page < MAX_PAGINAS && !listoZona(); page++) {
           let res;
           try {
             res = await call(b.action, b.action === 'searchText'
@@ -152,7 +161,7 @@ export async function* searchLeads(params, deps) {
           totals.encontrados += nuevos.length;
 
           for (const place of nuevos) {
-            if (listo()) break;
+            if (listoZona()) break;
             const negocio = {
               id: place.id,
               nombre: place.displayName?.text || 'Sin nombre',
@@ -164,6 +173,7 @@ export async function* searchLeads(params, deps) {
             };
             yield { type: 'negocio', negocio };
             totals.examinados++;
+            examinadosZona++;
 
             let audit;
             try {
@@ -197,7 +207,7 @@ export async function* searchLeads(params, deps) {
 
           pageToken = res.nextPageToken || null;
           if (!pageToken) break;
-          if (page < MAX_PAGINAS - 1 && !listo()) await sleep(PAUSA_PAGINA_MS);
+          if (page < MAX_PAGINAS - 1 && !listoZona()) await sleep(PAUSA_PAGINA_MS);
         }
       }
     }

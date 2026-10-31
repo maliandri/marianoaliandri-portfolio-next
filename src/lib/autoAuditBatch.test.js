@@ -58,6 +58,25 @@ describe('runBatch', () => {
     expect(out.examined).toBe(3);
   });
 
+  it('zona: busca en cada localidad con la cabecera al final y reparte el cupo', async () => {
+    const ZONA = { ciudad: 'Alto Valle', ciudades: ['Neuquén', 'Plottier', 'Centenario'], rubro: TEXT.rubro };
+    const run = makeRun({
+      geocode: geoOk,
+      searchText: ({ query }) => ({
+        ok: true,
+        places: ['1', '2', '3', '4', '5', '6', '7', '8'].map(n => place(`${query}-${n}`)),
+        nextPageToken: null,
+      }),
+      auditPlace: () => audited(),
+    });
+    const out = await runBatch(ZONA, { run, sleep: noSleep, maxSites: 30, maxCandidates: 9 });
+    const ciudades = run.mock.calls.filter(([a]) => a === 'geocode').map(([, p]) => p.city);
+    expect(ciudades).toEqual(['Plottier', 'Centenario', 'Neuquén']);
+    const porCiudad = {};
+    for (const r of out.results) porCiudad[r.ciudad] = (porCiudad[r.ciudad] || 0) + 1;
+    expect(porCiudad).toEqual({ Plottier: 3, Centenario: 3, Neuquén: 3 });
+  });
+
   it('respeta maxSites', async () => {
     const run = makeRun({
       geocode: geoOk,
