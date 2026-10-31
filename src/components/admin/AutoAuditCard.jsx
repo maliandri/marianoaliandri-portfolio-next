@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthUser } from '@/hooks/useAuthUser';
-import { CANTIDAD_DEFAULT, CANTIDAD_MIN, CANTIDAD_MAX, consumoMensual } from '@/lib/autoAudit';
+import { CANTIDAD_DEFAULT, CANTIDAD_MIN, CANTIDAD_MAX, consumoMensual, busquedasDe } from '@/lib/autoAudit';
 import { PLACES_LIMITS } from '@/data/placesFreeTier';
 
 const ESTADO_STYLE = {
@@ -13,6 +13,9 @@ const ESTADO_STYLE = {
   error: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
 };
 
+const RUBRO_VACIO = { label: '', terminos: '', tipos: '', prioritario: true, index: null };
+const aLista = (text) => text.split(',').map(t => t.trim()).filter(Boolean);
+
 const NETWORK_LABELS = { linkedin: 'LinkedIn', instagram: 'Instagram', facebook: 'Facebook' };
 
 export default function AutoAuditCard() {
@@ -21,7 +24,7 @@ export default function AutoAuditCard() {
   const [runs, setRuns] = useState([]);
   const [ciudadesText, setCiudadesText] = useState('');
   const [rubros, setRubros] = useState([]);
-  const [newRubro, setNewRubro] = useState({ label: '', kind: 'text', value: '', prioritario: true });
+  const [newRubro, setNewRubro] = useState(RUBRO_VACIO);
   const [cantidadText, setCantidadText] = useState(String(CANTIDAD_DEFAULT));
   const [busy, setBusy] = useState(false);
   const [running, setRunning] = useState(false);
@@ -96,11 +99,23 @@ export default function AutoAuditCard() {
     patch({ networks: next }, 'Redes actualizadas');
   };
 
-  const addRubro = () => {
-    if (!newRubro.label.trim() || !newRubro.value.trim()) return;
-    const next = [...rubros, { ...newRubro, label: newRubro.label.trim(), value: newRubro.value.trim() }];
-    setNewRubro({ label: '', kind: 'text', value: '', prioritario: true });
-    patch({ rubros: next }, 'Rubro agregado');
+  const rubroValido = newRubro.label.trim() && (aLista(newRubro.terminos).length || aLista(newRubro.tipos).length);
+
+  const saveRubro = () => {
+    if (!rubroValido) return;
+    const rubro = {
+      label: newRubro.label.trim(), prioritario: newRubro.prioritario,
+      terminos: aLista(newRubro.terminos), tipos: aLista(newRubro.tipos),
+    };
+    const editando = newRubro.index !== null;
+    const next = editando ? rubros.map((x, j) => (j === newRubro.index ? rubro : x)) : [...rubros, rubro];
+    setNewRubro(RUBRO_VACIO);
+    patch({ rubros: next }, editando ? 'Rubro actualizado' : 'Rubro agregado');
+  };
+
+  const editRubro = (r, index) => {
+    const { terminos, tipos } = busquedasDe(r);
+    setNewRubro({ label: r.label, terminos: terminos.join(', '), tipos: tipos.join(', '), prioritario: r.prioritario, index });
   };
 
   const cantidadNum = parseInt(cantidadText, 10);
@@ -206,13 +221,22 @@ export default function AutoAuditCard() {
           <div className={card}>
             <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Rubros ({rubros.length})</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Prioritarios (⭐): negocios con etapas constructivas o de fabricación. Salen ~80% de las corridas.
+              Cada rubro es un grupo de búsquedas que sale en un solo informe. Prioritarios (⭐): negocios con etapas
+              constructivas o de fabricación. Salen ~80% de las corridas.
             </p>
             <ul className="max-h-72 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700 mb-4">
               {rubros.map((r, i) => (
-                <li key={`${r.label}-${i}`} className="flex items-center justify-between py-1.5 text-sm text-gray-800 dark:text-gray-200">
-                  <span>{r.prioritario ? '⭐ ' : ''}{r.label} <span className="text-xs text-gray-400">({r.kind === 'type' ? 'tipo Places' : 'texto'})</span></span>
-                  <span className="flex gap-2">
+                <li key={`${r.label}-${i}`} className="flex items-center justify-between gap-3 py-1.5 text-sm text-gray-800 dark:text-gray-200">
+                  <span>
+                    {r.prioritario ? '⭐ ' : ''}{r.label}
+                    <span className="block text-xs text-gray-400">
+                      {[...busquedasDe(r).terminos, ...busquedasDe(r).tipos.map(t => `[${t}]`)].join(' · ')}
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 gap-2">
+                    <button disabled={busy} className="text-xs underline" onClick={() => editRubro(r, i)}>
+                      Editar
+                    </button>
                     <button disabled={busy} className="text-xs underline"
                       onClick={() => patch({ rubros: rubros.map((x, j) => j === i ? { ...x, prioritario: !x.prioritario } : x) }, 'Rubro actualizado')}>
                       {r.prioritario ? 'Quitar ⭐' : 'Dar ⭐'}
@@ -225,18 +249,27 @@ export default function AutoAuditCard() {
                 </li>
               ))}
             </ul>
-            <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
-              <input className={input} placeholder="Nombre (ej. Steel framing)" aria-label="Nombre del rubro"
+            <div className="grid gap-2">
+              <input className={input} placeholder="Nombre del grupo (ej. Construcción en seco)" aria-label="Nombre del rubro"
                 value={newRubro.label} onChange={e => setNewRubro({ ...newRubro, label: e.target.value })} />
-              <input className={input} placeholder="Búsqueda o tipo (ej. steel framing)" aria-label="Término de búsqueda o tipo de Places"
-                value={newRubro.value} onChange={e => setNewRubro({ ...newRubro, value: e.target.value })} />
-              <select className={input} aria-label="Tipo de búsqueda" value={newRubro.kind}
-                onChange={e => setNewRubro({ ...newRubro, kind: e.target.value })}>
-                <option value="text">texto</option>
-                <option value="type">tipo Places</option>
-              </select>
-              <button onClick={addRubro} disabled={busy}
-                className="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm disabled:opacity-50">Agregar</button>
+              <input className={input} placeholder="Búsquedas en Google Maps, separadas por coma (ej. durlock, steel framing)" aria-label="Búsquedas de texto, separadas por coma"
+                value={newRubro.terminos} onChange={e => setNewRubro({ ...newRubro, terminos: e.target.value })} />
+              <input className={input} placeholder="Tipos de Places, opcional (ej. hardware_store, plumber)" aria-label="Tipos de Places, separados por coma"
+                value={newRubro.tipos} onChange={e => setNewRubro({ ...newRubro, tipos: e.target.value })} />
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                  <input type="checkbox" checked={newRubro.prioritario}
+                    onChange={e => setNewRubro({ ...newRubro, prioritario: e.target.checked })} />
+                  Prioritario ⭐
+                </label>
+                <button onClick={saveRubro} disabled={busy || !rubroValido}
+                  className="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm disabled:opacity-50">
+                  {newRubro.index !== null ? 'Guardar cambios' : 'Agregar rubro'}
+                </button>
+                {newRubro.index !== null && (
+                  <button onClick={() => setNewRubro(RUBRO_VACIO)} className="text-sm underline text-gray-600 dark:text-gray-300">Cancelar</button>
+                )}
+              </div>
             </div>
           </div>
 

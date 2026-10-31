@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  COOLDOWN_MS, DEFAULT_NETWORKS, comboKey, parseZona, pickNext, buildStats, buildPost, validateConfigPatch, consumoMensual,
+  COOLDOWN_MS, DEFAULT_NETWORKS, comboKey, parseZona, busquedasDe, pickNext, buildStats, buildPost, validateConfigPatch, consumoMensual,
 } from './autoAudit.js';
 import { auditScreenshotUrl } from './socialAuditPost.js';
 
@@ -69,6 +69,17 @@ describe('pickNext', () => {
       ultimaCorrida: { [comboKey('Alto Valle', PRIO)]: NOW - 1000 },
     };
     expect(pickNext(config, NOW, () => 0.1).ciudad).toBe('Bariloche');
+  });
+});
+
+describe('busquedasDe', () => {
+  it('grupo con términos y tipos', () => {
+    expect(busquedasDe({ terminos: ['durlock', 'steel framing'], tipos: ['hardware_store'] }))
+      .toEqual({ terminos: ['durlock', 'steel framing'], tipos: ['hardware_store'] });
+  });
+  it('formato viejo kind/value', () => {
+    expect(busquedasDe({ kind: 'text', value: 'durlock' })).toEqual({ terminos: ['durlock'], tipos: [] });
+    expect(busquedasDe({ kind: 'type', value: 'plumber' })).toEqual({ terminos: [], tipos: ['plumber'] });
   });
 });
 
@@ -173,6 +184,18 @@ describe('validateConfigPatch', () => {
     const r = validateConfigPatch({ ciudades: [' Alto Valle :Neuquén,  Plottier ', 'Bariloche:'] });
     expect(r.update.ciudades).toEqual(['Alto Valle: Neuquén, Plottier', 'Bariloche']);
     expect(validateConfigPatch({ ciudades: [': Neuquén'] }).error).toMatch(/nombre/);
+  });
+
+  it('rubros agrupados: limpia listas, convierte el formato viejo y exige al menos una búsqueda', () => {
+    const r = validateConfigPatch({ rubros: [
+      { label: ' Aberturas ', prioritario: true, terminos: [' aberturas de PVC ', '', 'aberturas de PVC', 'herrería'], tipos: [] },
+      { label: 'Plomeros', kind: 'type', value: 'plumber', prioritario: false },
+    ] });
+    expect(r.update.rubros).toEqual([
+      { label: 'Aberturas', prioritario: true, terminos: ['aberturas de PVC', 'herrería'], tipos: [] },
+      { label: 'Plomeros', prioritario: false, terminos: [], tipos: ['plumber'] },
+    ]);
+    expect(validateConfigPatch({ rubros: [{ label: 'X', prioritario: true, terminos: [' '], tipos: [] }] }).error).toMatch(/rubros/);
   });
 
   it('rechaza ciudades si no es array o queda vacío', () => {

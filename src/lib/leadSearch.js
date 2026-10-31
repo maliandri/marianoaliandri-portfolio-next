@@ -81,6 +81,7 @@ export async function* searchLeads(params, deps) {
   const {
     zonas = [], terminos = [], tipos = [], radioKm = 10, cantidad = 10,
     perfil = 'dev', producto = '', soloConWeb = false, repartirEntreZonas = false,
+    maxBusquedas = Infinity, // tope de llamadas a searchText/searchNearby (cada una cuesta cupo de Places)
   } = params;
   const maxExaminados = params.maxExaminados ?? cantidad * 3;
   const { call, sleep = defaultSleep, isCancelled = () => false } = deps;
@@ -89,6 +90,7 @@ export async function* searchLeads(params, deps) {
 
   const seen = new Set();
   const totals = { encontrados: 0, examinados: 0, leads: 0, conWeb: 0, descartados: 0 };
+  let busquedasHechas = 0;
   const listo = () => totals.leads >= cantidad || totals.examinados >= maxExaminados || isCancelled();
   // repartirEntreZonas: cada localidad examina como mucho su parte de lo que queda del cupo; lo que
   // una no usa pasa a las siguientes (la auditoría automática por zona pone la cabecera al final).
@@ -145,6 +147,8 @@ export async function* searchLeads(params, deps) {
 
         let pageToken = null;
         for (let page = 0; page < MAX_PAGINAS && !listoZona(); page++) {
+          if (busquedasHechas >= maxBusquedas) break;
+          busquedasHechas++;
           let res;
           try {
             res = await call(b.action, b.action === 'searchText'

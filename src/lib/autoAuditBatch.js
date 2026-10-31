@@ -1,8 +1,12 @@
 // src/lib/autoAuditBatch.js
 import { runLeadFinderAction } from '@/app/api/lead-finder/route';
 import { searchLeads, leadToAuditRow } from '@/lib/leadSearch';
+import { busquedasDe } from '@/lib/autoAudit';
 
 export const RADIO_KM = 15;
+// Con zonas y rubros agrupados una corrida puede pedir muchas búsquedas (localidades × términos).
+// 30 × ~17 corridas/mes ≈ 510, debajo del cupo gratis de 1.000 por SKU.
+export const MAX_BUSQUEDAS = 30;
 
 // runLeadFinderAction devuelve un Response; el motor espera datos o un Error con .code.
 function makeCall(run) {
@@ -37,9 +41,9 @@ export async function runBatch(combo, opts = {}) {
   try {
     const gen = searchLeads({
       zonas: localidades.map(c => ({ ciudad: c, pais: 'Argentina' })),
-      repartirEntreZonas: localidades.length > 1,
-      terminos: rubro.kind === 'text' ? [rubro.value] : [],
-      tipos: rubro.kind === 'text' ? [] : [{ id: rubro.value, label: rubro.label }],
+      repartirEntreZonas: localidades.length > 1, maxBusquedas: MAX_BUSQUEDAS,
+      terminos: busquedasDe(rubro).terminos,
+      tipos: busquedasDe(rubro).tipos.map(id => ({ id, label: rubro.label })),
       radioKm: RADIO_KM, cantidad: maxSites, maxExaminados: maxCandidates, soloConWeb: true,
     }, { call: makeCall(run), isCancelled: () => now() >= deadline, ...(sleep ? { sleep } : {}) });
 

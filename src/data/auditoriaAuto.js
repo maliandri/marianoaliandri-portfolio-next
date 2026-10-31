@@ -12,44 +12,39 @@ export const CIUDADES_SEMILLA = [
   'Posadas', 'Formosa', 'Concordia', 'Villa Carlos Paz',
 ];
 
-// kind 'type' → includedTypes de Places (searchNearby). kind 'text' → searchText libre.
+// Cada rubro es un GRUPO de búsquedas que sale en un solo informe ("… de Aberturas en Alto Valle"):
+// terminos → searchText libre, tipos → tipos de Places (searchNearby). Los grupos responden a los
+// servicios que se venden.
 // prioritario: negocios con etapas constructivas o de fabricación que consumen insumos
 // (el tipo de sistema desarrollado en Almamod: requisiciones, stock, seguimiento, cómputo).
 export const RUBROS_SEMILLA = [
-  // Prioritarios — tipos de Places
-  { label: 'Electricista', kind: 'type', value: 'electrician',        prioritario: true },
-  { label: 'Plomero',      kind: 'type', value: 'plumber',            prioritario: true },
-  { label: 'Pintor',       kind: 'type', value: 'painter',            prioritario: true },
-  { label: 'Ferretería',   kind: 'type', value: 'hardware_store',     prioritario: true },
-  // Prioritarios — texto libre (general_contractor no existe en Places API New)
-  { label: 'Constructor',                kind: 'text', value: 'constructor',                prioritario: true },
-  { label: 'Construcción en seco',       kind: 'text', value: 'construcción en seco',       prioritario: true },
-  { label: 'Steel framing',              kind: 'text', value: 'steel framing',              prioritario: true },
-  { label: 'Durlock',                    kind: 'text', value: 'durlock',                    prioritario: true },
-  { label: 'Casas modulares',            kind: 'text', value: 'casas modulares',            prioritario: true },
-  { label: 'Casas prefabricadas',        kind: 'text', value: 'casas prefabricadas',        prioritario: true },
-  { label: 'Contenedores habitables',    kind: 'text', value: 'contenedores habitables',    prioritario: true },
-  { label: 'Constructora',               kind: 'text', value: 'constructora',               prioritario: true },
-  { label: 'Estudio de arquitectura',    kind: 'text', value: 'estudio de arquitectura',    prioritario: true },
-  { label: 'Maestro mayor de obras',     kind: 'text', value: 'maestro mayor de obras',     prioritario: true },
-  { label: 'Metalúrgica',                kind: 'text', value: 'metalúrgica',                prioritario: true },
-  { label: 'Herrería',                   kind: 'text', value: 'herrería',                   prioritario: true },
-  { label: 'Carpintería metálica',       kind: 'text', value: 'carpintería metálica',       prioritario: true },
-  { label: 'Carpintería de aluminio',    kind: 'text', value: 'carpintería de aluminio',    prioritario: true },
-  { label: 'Aberturas de aluminio',      kind: 'text', value: 'aberturas de aluminio',      prioritario: true },
-  { label: 'Aberturas de PVC',           kind: 'text', value: 'aberturas de PVC',           prioritario: true },
-  { label: 'Fábrica de aberturas',       kind: 'text', value: 'fábrica de aberturas',       prioritario: true },
-  { label: 'Carpintería',                kind: 'text', value: 'carpintería',                prioritario: true },
-  { label: 'Fábrica de muebles a medida', kind: 'text', value: 'fábrica de muebles a medida', prioritario: true },
-  { label: 'Fábrica de premoldeados',    kind: 'text', value: 'fábrica de premoldeados',    prioritario: true },
-  { label: 'Corralón',                   kind: 'text', value: 'corralón',                   prioritario: true },
-  { label: 'Vidriería',                  kind: 'text', value: 'vidriería',                  prioritario: true },
-  { label: 'Confección textil',          kind: 'text', value: 'confección textil',          prioritario: true },
+  // Prioritarios (general_contractor no existe en Places API New: las constructoras van por texto)
+  { label: 'Constructoras', prioritario: true, tipos: [],
+    terminos: ['constructora', 'constructor', 'empresa constructora', 'maestro mayor de obras'] },
+  { label: 'Estudios de arquitectura', prioritario: true, tipos: [],
+    terminos: ['estudio de arquitectura', 'arquitecto'] },
+  { label: 'Construcción en seco', prioritario: true, tipos: [],
+    terminos: ['construcción en seco', 'durlock', 'steel framing'] },
+  { label: 'Viviendas industrializadas', prioritario: true, tipos: [],
+    terminos: ['casas prefabricadas', 'casas modulares', 'contenedores habitables'] },
+  { label: 'Aberturas', prioritario: true, tipos: [],
+    terminos: ['aberturas de aluminio', 'aberturas de PVC', 'fábrica de aberturas', 'carpintería de aluminio'] },
+  { label: 'Metalúrgicas y herrerías', prioritario: true, tipos: [],
+    terminos: ['metalúrgica', 'herrería', 'carpintería metálica'] },
+  { label: 'Muebles a medida y carpinterías', prioritario: true, tipos: [],
+    terminos: ['fábrica de muebles a medida', 'carpintería', 'amoblamientos'] },
+  { label: 'Corralones y ferreterías', prioritario: true, tipos: ['hardware_store'],
+    terminos: ['corralón', 'materiales de construcción'] },
+  { label: 'Premoldeados y vidrierías', prioritario: true, tipos: [],
+    terminos: ['fábrica de premoldeados', 'vidriería'] },
+  { label: 'Electricistas, plomeros y pintores', prioritario: true,
+    tipos: ['electrician', 'plumber', 'painter'], terminos: [] },
+  { label: 'Confección textil', prioritario: true, tipos: [],
+    terminos: ['confección textil', 'taller textil'] },
   // Secundarios — variedad de contenido
-  { label: 'Restaurante',  kind: 'type', value: 'restaurant',         prioritario: false },
-  { label: 'Panadería',    kind: 'type', value: 'bakery',             prioritario: false },
-  { label: 'Ropa',         kind: 'type', value: 'clothing_store',     prioritario: false },
-  { label: 'Mecánico',     kind: 'type', value: 'car_repair',         prioritario: false },
-  { label: 'Inmobiliaria', kind: 'type', value: 'real_estate_agency', prioritario: false },
-  { label: 'Contabilidad', kind: 'type', value: 'accounting',         prioritario: false },
+  { label: 'Gastronomía', prioritario: false, tipos: ['restaurant', 'bakery'], terminos: [] },
+  { label: 'Comercios de ropa', prioritario: false, tipos: ['clothing_store'], terminos: [] },
+  { label: 'Talleres mecánicos', prioritario: false, tipos: ['car_repair'], terminos: [] },
+  { label: 'Inmobiliarias', prioritario: false, tipos: ['real_estate_agency'], terminos: [] },
+  { label: 'Estudios contables', prioritario: false, tipos: ['accounting'], terminos: [] },
 ];

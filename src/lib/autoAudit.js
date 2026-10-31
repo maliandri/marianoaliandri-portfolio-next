@@ -37,6 +37,18 @@ export function parseZona(entry) {
   return { nombre, ciudades: ciudades.length ? ciudades : [nombre] };
 }
 
+// Un rubro es un grupo de búsquedas que sale en un solo informe: términos libres (searchText) y/o
+// tipos de Places (searchNearby). Formato viejo { kind, value } = un solo término o tipo.
+export function busquedasDe(rubro) {
+  const terminos = [...(rubro?.terminos || [])];
+  const tipos = [...(rubro?.tipos || [])];
+  if (!rubro?.terminos && !rubro?.tipos && rubro?.value) (rubro.kind === 'type' ? tipos : terminos).push(rubro.value);
+  return { terminos, tipos };
+}
+
+const limpiarLista = (v) => [...new Set((Array.isArray(v) ? v : [])
+  .map(x => (typeof x === 'string' ? x.trim() : '')).filter(Boolean))];
+
 // Forma canónica para guardar: "Nombre: a, b, c" (o solo "Nombre" si es una ciudad sola).
 function formatZona(entry) {
   const { nombre, ciudades } = parseZona(entry);
@@ -144,11 +156,14 @@ export function validateConfigPatch(body) {
     const rubros = [];
     for (const r of body.rubros) {
       const label = typeof r?.label === 'string' ? r.label.trim() : '';
-      const value = typeof r?.value === 'string' ? r.value.trim() : '';
-      if (!label || !value || !['type', 'text'].includes(r?.kind) || typeof r?.prioritario !== 'boolean') {
-        return { error: 'rubros: cada rubro necesita label, value, kind (type|text) y prioritario (boolean)' };
+      if ('kind' in (r || {}) && !['type', 'text'].includes(r.kind)) return { error: 'rubros: kind debe ser type o text' };
+      const legacy = busquedasDe({ kind: r?.kind, value: typeof r?.value === 'string' ? r.value.trim() : '' });
+      const terminos = limpiarLista(r?.terminos ?? legacy.terminos);
+      const tipos = limpiarLista(r?.tipos ?? legacy.tipos);
+      if (!label || (!terminos.length && !tipos.length) || typeof r?.prioritario !== 'boolean') {
+        return { error: 'rubros: cada rubro necesita label, al menos un término o tipo de Places y prioritario (boolean)' };
       }
-      rubros.push({ label, kind: r.kind, value, prioritario: r.prioritario });
+      rubros.push({ label, terminos, tipos, prioritario: r.prioritario });
     }
     update.rubros = rubros;
   }

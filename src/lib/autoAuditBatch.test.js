@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 // Evita cargar firebase-admin/authServer reales; runBatch recibe `run` inyectado.
 vi.mock('@/app/api/lead-finder/route', () => ({ runLeadFinderAction: vi.fn() }));
 
-import { runBatch } from './autoAuditBatch.js';
+import { runBatch, MAX_BUSQUEDAS } from './autoAuditBatch.js';
 
 const TYPE = { ciudad: 'Mendoza', rubro: { label: 'Ferretería', kind: 'type', value: 'hardware_store', prioritario: true } };
 const TEXT = { ciudad: 'Salta', rubro: { label: 'Steel framing', kind: 'text', value: 'steel framing', prioritario: false } };
@@ -86,6 +86,30 @@ describe('runBatch', () => {
     });
     await runBatch(ZONA, { run, sleep: noSleep });
     expect(run).toHaveBeenCalledWith('geocode', { city: 'Las Heras, Mendoza', country: 'Argentina' });
+  });
+
+  it('rubro agrupado: busca cada término y cada tipo, sin repetir negocios', async () => {
+    const GRUPO = { ciudad: 'Neuquén', rubro: { label: 'Corralones', prioritario: true, terminos: ['corralón', 'materiales'], tipos: ['hardware_store'] } };
+    const run = makeRun({
+      geocode: geoOk,
+      searchText: ({ query }) => ({ ok: true, places: [place('comun'), place(query)], nextPageToken: null }),
+      searchNearby: () => ({ ok: true, places: [place('comun'), place('ferre')], nextPageToken: null }),
+      auditPlace: () => audited(),
+    });
+    const out = await runBatch(GRUPO, { run, sleep: noSleep, maxSites: 30, maxCandidates: 30 });
+    expect(run).toHaveBeenCalledWith('searchNearby', expect.objectContaining({ type: 'hardware_store' }));
+    expect(run).toHaveBeenCalledWith('searchText', expect.objectContaining({ query: 'corralón, Neuquén' }));
+    expect(run).toHaveBeenCalledWith('searchText', expect.objectContaining({ query: 'materiales, Neuquén' }));
+    expect(out.results.map(r => r.id).sort()).toEqual(['comun', 'corralón, Neuquén', 'ferre', 'materiales, Neuquén']);
+    expect(out.results.every(r => r.rubro === 'Corralones')).toBe(true);
+  });
+
+  it('no pasa de MAX_BUSQUEDAS búsquedas por corrida', async () => {
+    const ZONA = { ciudad: 'Z', ciudades: Array.from({ length: 12 }, (_, i) => `C${i}`),
+      rubro: { label: 'G', prioritario: true, terminos: ['a', 'b', 'c', 'd'], tipos: [] } };
+    const run = makeRun({ geocode: geoOk, searchText: () => ({ ok: true, places: [], nextPageToken: null }), auditPlace: () => audited() });
+    await runBatch(ZONA, { run, sleep: noSleep });
+    expect(run.mock.calls.filter(([a]) => a === 'searchText')).toHaveLength(MAX_BUSQUEDAS);
   });
 
   it('respeta maxSites', async () => {
