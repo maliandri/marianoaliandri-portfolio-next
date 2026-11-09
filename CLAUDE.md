@@ -293,6 +293,16 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   - **Historias de Instagram** (desde 2026-10-26): si Instagram está entre las redes y hay `IG_ACCESS_TOKEN`/`IG_USER_ID`, después del post sube como historia la captura del informe en formato celular (`auditStoryScreenshotUrl`, 1080x1920 JPG). Resultado en `historia` del run; un fallo no cambia `estado`. Lo mismo en el bot de noticias con el checkbox "Publicar también como historia" del tópico (`historia`, default false): tarjeta 9:16 (`renderNoticiaCard({ format: 'story' })`), resultado en `storyId`/`storyError` de la nota. Ambos usan `scripts/igStoryClient.mjs` (Graph API, no Make).
   - El post usa solo datos agregados (sin nombres de negocios). Arranca **apagada**: activar desde
     la tarjeta tras probar "Correr ahora".
+  - **Revisión antes de publicar** (desde 2026-10-31, `revision` en `auditoria_auto/config`, default prendido):
+    la corrida NO publica; deja el lote en `auditoria_auto_borradores` (estado `pendiente`, sitios, stats y
+    `busqueda` = encontrados / examinados / con web, `porLocalidad` e `intentos`) y el run queda `en_revision`.
+    Se aprueba (con sitios excluidos, con o sin redes) o se descarta desde la tarjeta del admin ("Para revisar",
+    `AutoAuditDrafts.jsx` → `/api/auditoria-auto/borradores/`) o desde Claude (MCP `list_audit_drafts` /
+    `review_audit_draft`). Lógica en `src/lib/autoAuditReview.js`; aprobar llama `publicarInforme` de
+    `autoAuditRun.js` (lo mismo que hacía la corrida directa). Con `revision: false` vuelve a publicar sola.
+  - Zonas con localidades pegadas (Gran Mendoza): todas devuelven casi los mismos comercios. El motor
+    (`leadSearch.js`) marca un comercio como hecho recién al examinarlo, no al verlo: antes, lo que la primera
+    localidad no llegaba a examinar quedaba "visto" y la corrida del 2026-10-31 examinó 7 de 39.
   - Rubros prioritarios = negocios con etapas constructivas o de fabricación (candidatos al
     punto 3: oferta de sistema a medida). Cada resultado guarda `rubro` y `aptoSistemaMedida`.
   - Secrets de GitHub necesarios: `FIREBASE_*`, `GOOGLE_PLACES_API_KEY`, `GEMINI_API_KEY`,
@@ -507,6 +517,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 | `noticias_config` | Interruptor on/off + tope diario opcional del bot | Admin (tab Noticias) |
 | `auditoria_auto` | Config de la auditoría automática (`config`: activo, ciudades, rubros, puntero, candado) | Admin SDK (server) / admin tab |
 | `auditoria_auto_runs` | Historial de corridas de la auditoría automática | Admin SDK (server) |
+| `auditoria_auto_borradores` | Lotes de la auditoría automática esperando revisión (pendiente/aprobando/publicado/descartado), con emails: no público | Solo Admin SDK |
 | `ig_prospectos` | Negocios con @ de Instagram a contactar por DM: DM sugerido (Gemini, fallback plantilla), estado (pendiente/contactado/respondio/cliente/descartado), notas. Doc id = handle | Solo Admin SDK vía `/api/ig-prospectos` (admin) y el MCP |
 | `email_bajas` | Bajas de los mails a negocios (email + dominios de su web). Permanentes | `/api/email-baja` (link firmado del pie del mail) |
 | `mcp_oauth_clients` / `mcp_oauth_codes` / `mcp_oauth_tokens` | OAuth del servidor MCP: clientes DCR, códigos y tokens (solo el sha256). Borrar un doc de tokens = cortar ese acceso | Solo Admin SDK |

@@ -13,6 +13,7 @@ import { problemasSeo } from '@/lib/bizEmail';
 import { defineTool, ToolError } from '../defineTool';
 import { decodeCursor, encodeCursor, pageArray } from '../paginate';
 import { getLeadJob } from '../leadJobs';
+import { listarBorradores, aprobarBorrador, descartarBorrador, ReviewError } from '@/lib/autoAuditReview';
 
 const COL = 'auditorias';
 const NETWORKS = ['linkedin', 'instagram', 'facebook'];
@@ -184,4 +185,77 @@ export const publishAuditSocialTool = defineTool({
   },
 });
 
-export const AUDIT_TOOLS = [listAuditsTool, getAuditTool, createAuditReportTool, publishAuditSocialTool];
+// Errores de la revisión (ya publicado, pocos sitios…) se le muestran a Claude tal cual.
+async function conReview(fn) {
+  try { return await fn(); } catch (e) { if (e instanceof ReviewError) throw new ToolError(e.message); throw e; }
+}
+
+export const listAuditDraftsTool = defineTool({
+  name: 'list_audit_drafts',
+  title: 'Borradores de la auditoría automática',
+  description:
+    'Lotes que dejó la auditoría automática para revisar antes de publicar (no son públicos todavía). '
+    + 'Cada uno trae rubro, zona, cuántos comercios encontró Google, cuántos se examinaron, cuántos tenían web '
+    + '(por localidad) y los sitios con su puntaje SEO y señales (plataforma, agencia, pauta). Revisá que los '
+    + 'sitios sean del rubro (Google mezcla cadenas, supermercados, farmacias) y aprobá o descartá con review_audit_draft.',
+  inputSchema: z.object({
+    estado: z.enum(['pendiente', 'publicado', 'descartado', 'todos']).optional().describe('Default pendiente.'),
+    limit: z.number().int().min(1).max(20).optional().describe('Cuántos (default 10).'),
+  }),
+  annotations: { readOnlyHint: true },
+  async handler(args, { db }) {
+    const items = (await listarBorradores(db, { estado: args.estado || 'pendiente', limit: args.limit ?? 10 })).map(b => ({
+      id: b.id, estado: b.estado, rubro: b.rubro, zona: b.ciudad, localidades: b.localidades, creado: b.creado,
+      busqueda: b.busqueda, stats: b.stats, redesPorDefecto: b.networks,
+      auditoriaId: b.auditoriaId, url: b.auditoriaId ? auditReportUrl(b.auditoriaId) : null, motivo: b.motivo,
+      sitios: b.results.map(r => ({
+        placeId: r.id, nombre: r.nombre, ciudad: r.ciudad || null, web: r.siteUrl || null, seoScore: r.seoScore ?? null,
+        rating: r.rating ?? null, email: r.email || null,
+        plataforma: r.plataforma ?? null, agencia: r.agencia ?? null, anuncios: r.anuncios ?? null,
+      })),
+    }));
+    return { summary: `${items.length} borradores${args.estado && args.estado !== 'pendiente' ? '' : ' pendientes'}.`, data: { items } };
+  },
+});
+
+export const reviewAuditDraftTool = defineTool({
+  name: 'review_audit_draft',
+  title: 'Aprobar o descartar un borrador de auditoría',
+  description:
+    'aprobar: PUBLICA el informe en marianoaliandri.com.ar/auditorias (sin los sitios de `excluir`) y, si '
+    + 'publicar_redes no es false, lo anuncia en LinkedIn/Instagram/Facebook vía Make + historia de Instagram. '
+    + 'descartar: no publica nada. Usá dry_run: true para ver cuántos sitios quedarían. Mínimo 3 sitios.',
+  inputSchema: z.object({
+    id: z.string().max(60).describe('Id del borrador (de list_audit_drafts).'),
+    accion: z.enum(['aprobar', 'descartar']),
+    excluir: z.array(z.string().max(200)).max(30).optional().describe('placeIds a sacar del informe (no son del rubro, datos raros…).'),
+    publicar_redes: z.boolean().optional().describe('false = solo el informe en la web, sin posts. Default true.'),
+    networks: z.array(z.enum(NETWORKS)).min(1).max(3).optional().describe('Redes; si no, las de la config.'),
+    motivo: z.string().max(500).optional().describe('Por qué se descarta (queda registrado).'),
+    dry_run: z.boolean().optional().describe('true = no publica, solo muestra qué quedaría.'),
+  }),
+  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+  async handler(args, { db }) {
+    if (args.accion === 'descartar') {
+      if (args.dry_run) return { summary: 'Prueba: se descartaría el borrador.', data: { dryRun: true } };
+      const out = await conReview(() => descartarBorrador(db, args.id, args.motivo));
+      return { summary: 'Borrador descartado: no se publicó nada.', data: out };
+    }
+    const out = await conReview(() => aprobarBorrador(db, args.id, {
+      redes: args.publicar_redes !== false, networks: args.networks, excluir: args.excluir || [], dryRun: args.dry_run === true,
+    }));
+    if (out.dryRun) {
+      return { summary: `Prueba: saldría un informe de ${out.sitios} sitios${out.redes.length ? ` y posts en ${out.redes.join(', ')}` : ' sin posts'}.`, data: out };
+    }
+    revalidatePath('/auditorias');
+    revalidatePath('/auditorias/[id]', 'page');
+    const url = auditReportUrl(out.auditoriaId);
+    const redes = out.estado === 'ok' ? ' y enviado a Make para las redes' : out.estado === 'guardado' ? '' : ` — redes: ${out.error}`;
+    return {
+      summary: `Informe publicado (${out.sitios} sitios): ${url}${redes}.`,
+      data: { auditoriaId: out.auditoriaId, url, estado: out.estado, error: out.error || null, historia: out.historia || null },
+    };
+  },
+});
+
+export const AUDIT_TOOLS = [listAuditsTool, getAuditTool, createAuditReportTool, publishAuditSocialTool, listAuditDraftsTool, reviewAuditDraftTool];

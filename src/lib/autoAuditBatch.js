@@ -32,6 +32,9 @@ export async function runBatch(combo, opts = {}) {
   const localidades = [...resto, cabecera].map(c => c.replace(/\s*\(([^)]+)\)\s*$/, ', $1'));
 
   const results = [];
+  // Para revisar el lote: comercios examinados, con web (en el informe) y descartados por localidad.
+  const porLocalidad = {};
+  const loc = (c) => (porLocalidad[c] ||= { examinados: 0, conWeb: 0, descartados: 0 });
   let examined = 0;
   let found = null;
   let primerAviso = null;
@@ -48,10 +51,13 @@ export async function runBatch(combo, opts = {}) {
     }, { call: makeCall(run), isCancelled: () => now() >= deadline, ...(sleep ? { sleep } : {}) });
 
     for await (const ev of gen) {
-      if (ev.type === 'negocio') examined++;
+      if (ev.type === 'negocio') { examined++; loc(ev.negocio.ciudad).examinados++; }
+      if (ev.type === 'descartado') loc(ev.negocio.ciudad).descartados++;
       if (ev.type === 'aviso' && !ev.negocioId && !primerAviso) primerAviso = ev.mensaje;
       if (ev.type === 'fin') found = ev.totals.encontrados;
+      if (ev.type === 'lead' && typeof ev.lead.seoScore !== 'number') loc(ev.lead.ciudad).descartados++;
       if (ev.type === 'lead' && typeof ev.lead.seoScore === 'number') {
+        loc(ev.lead.ciudad).conWeb++;
         results.push({
           ...leadToAuditRow(ev.lead),
           tipo: rubro.label,
@@ -72,5 +78,5 @@ export async function runBatch(combo, opts = {}) {
   const cortadoPorTiempo = now() >= deadline;
   const agotado = status === 'ok' && !cortadoPorTiempo && examined < maxCandidates;
 
-  return { results, status, ...(status === 'error' ? { error } : {}), examined, found: found ?? examined, agotado, cortadoPorTiempo };
+  return { results, status, ...(status === 'error' ? { error } : {}), examined, found: found ?? examined, agotado, cortadoPorTiempo, porLocalidad };
 }

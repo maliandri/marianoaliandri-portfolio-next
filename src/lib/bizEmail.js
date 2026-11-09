@@ -233,7 +233,11 @@ export function renderBizEmailHtml({ nombre: rawNombre, siteUrl: rawSiteUrl, seo
     ${bodyLines}
     ${extraServicesHtml}
     ${screenshotHtml}
-    <div style="margin:28px 0 4px;text-align:center">
+    <div style="margin:24px 0 0;text-align:center">
+      <a href="${SITE_URL}/tienda" target="_blank" style="display:inline-block;background:#4f46e5;color:#ffffff;padding:14px 34px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">🛍️ Ver servicios y contratar en la tienda</a>
+      <p style="margin:10px 0 0;font-size:12px;color:#9ca3af">Landing, sitio web, tienda online, chatbot con IA y desarrollo a medida. Se paga online.</p>
+    </div>
+    <div style="margin:20px 0 4px;text-align:center">
       <a href="${waLink}" target="_blank" style="display:inline-block;background:#22c55e;color:#ffffff;padding:14px 34px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">💬 Escribime por WhatsApp</a>
       <p style="margin:10px 0 0;font-size:12px;color:#9ca3af">o directamente al ${WHATSAPP_DISPLAY}</p>
     </div>

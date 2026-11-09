@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { CANTIDAD_DEFAULT, CANTIDAD_MIN, CANTIDAD_MAX, consumoMensual, busquedasDe } from '@/lib/autoAudit';
 import { PLACES_LIMITS } from '@/data/placesFreeTier';
+import AutoAuditDrafts from './AutoAuditDrafts';
 
 const ESTADO_STYLE = {
+  en_revision: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
   ok: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
   sin_resultados: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
   cuota_agotada: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
@@ -30,6 +32,7 @@ export default function AutoAuditCard() {
   const [running, setRunning] = useState(false);
   const [msg, setMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [draftsKey, setDraftsKey] = useState(0);
 
   const authFetch = useCallback(async (url, options = {}) => {
     const token = await getIdToken();
@@ -77,7 +80,10 @@ export default function AutoAuditCard() {
   };
 
   const runNow = async () => {
-    if (!window.confirm('Esto audita y PUBLICA en redes de verdad. ¿Correr ahora?')) return;
+    const aviso = config?.revision
+      ? 'Audita un lote y lo deja para revisar (no publica nada). ¿Correr ahora?'
+      : 'Esto audita y PUBLICA en redes de verdad. ¿Correr ahora?';
+    if (!window.confirm(aviso)) return;
     setRunning(true); setMsg(''); setErrorMsg('');
     try {
       const res = await authFetch('/api/cron/auditoria/', { method: 'POST' });
@@ -85,6 +91,7 @@ export default function AutoAuditCard() {
       if (!res.ok) throw new Error(data.error || 'Falló la corrida');
       setMsg(`Corrida: ${data.estado || data.skipped} (${data.auditados ?? 0} sitios)`);
       await load();
+      setDraftsKey(k => k + 1);
     } catch (e) {
       setErrorMsg(e.message);
     } finally {
@@ -142,7 +149,7 @@ export default function AutoAuditCard() {
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Auditoría automática</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Audita un rubro en una ciudad o zona, publica el informe y lo anuncia en redes. Corre lunes, miércoles, viernes y sábado (cron-job.org → GitHub Actions).
+              Audita un rubro en una ciudad o zona{config?.revision ? ' y deja el lote para revisar: el informe y los posts salen cuando lo aprobás' : ', publica el informe y lo anuncia en redes'}. Corre lunes, miércoles, viernes y sábado (cron-job.org → GitHub Actions).
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -159,12 +166,38 @@ export default function AutoAuditCard() {
             </button>
           </div>
         </div>
+        {config && (
+          <label className="mt-3 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input type="checkbox" checked={config.revision !== false} disabled={busy}
+              onChange={() => patch({ revision: !config.revision }, config.revision ? 'Publica directo (sin revisión)' : 'Revisión antes de publicar')} />
+            Revisar antes de publicar (recomendado)
+          </label>
+        )}
+        {config && (
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={config.emailAuto === true} disabled={busy}
+                onChange={() => patch({ emailAuto: !config.emailAuto }, config.emailAuto ? 'Mails automáticos apagados' : 'Mails automáticos prendidos')} />
+              Mandar solo el mail a los negocios con email (tras publicar el informe)
+            </label>
+            <label className="flex items-center gap-1">
+              Tope por día
+              <select value={config.emailTope ?? 10} disabled={busy}
+                onChange={e => patch({ emailTope: Number(e.target.value) }, 'Tope de mails guardado')}
+                className="rounded border border-gray-300 bg-white px-1 py-0.5 dark:border-gray-600 dark:bg-gray-800">
+                {[5, 10, 15, 20, 30].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+          </div>
+        )}
         {msg && <p className="mt-3 text-sm text-green-700 dark:text-green-400" role="status">{msg}</p>}
         {errorMsg && <p className="mt-3 text-sm text-red-600 dark:text-red-400" role="alert">{errorMsg}</p>}
       </div>
 
       {config && (
         <>
+          <AutoAuditDrafts authFetch={authFetch} refreshKey={draftsKey} />
+
           <div className={card}>
             <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Redes</h3>
             <div className="flex flex-wrap gap-4 mb-4">
@@ -284,10 +317,11 @@ export default function AutoAuditCard() {
                   <span className="text-gray-500">{r.auditados ?? 0} sitios</span>
                   {r.createdAt && <span className="text-gray-400 text-xs">{new Date(r.createdAt).toLocaleString('es-AR')}</span>}
                   {r.auditoriaId && <a className="text-indigo-600 underline text-xs" href={`/auditorias/${r.auditoriaId}`} target="_blank" rel="noreferrer">ver informe</a>}
+                  {r.borradorId && <span className="text-amber-700 dark:text-amber-400 text-xs">borrador para revisar</span>}
                   {r.error && <span className="text-xs text-red-600 dark:text-red-400">{r.error}</span>}
                   {r.intentos?.length > 0 && (
                     <span className="basis-full text-xs text-gray-500">
-                      {r.intentos.map(t => `${t.rubro} · ${t.ciudad}: ${t.encontrados ?? '?'} encontrados, ${t.conWeb} con web`).join(' → ')}
+                      {r.intentos.map(t => `${t.rubro} · ${t.ciudad}: ${t.encontrados ?? '?'} encontrados, ${t.examinados ?? '?'} examinados, ${t.conWeb} con web`).join(' → ')}
                     </span>
                   )}
                 </li>

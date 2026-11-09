@@ -17,7 +17,7 @@ const NOW = Date.UTC(2026, 9, 9);
 const RUBRO = { label: 'Ferretería', kind: 'type', value: 'hardware_store', prioritario: true };
 const COMBO_KEY = comboKey('Neuquén', RUBRO);
 const BASE_CONFIG = {
-  activo: true, ciudades: ['Neuquén'], rubros: [RUBRO],
+  activo: true, revision: false, ciudades: ['Neuquén'], rubros: [RUBRO],
   networks: ['linkedin', 'instagram', 'facebook'], ultimaCorrida: {},
 };
 
@@ -31,7 +31,7 @@ function merge(a, b) {
 
 // Firestore falso: doc de config + colección de runs + transacciones.
 function createFakeDb(initialConfig) {
-  const state = { config: initialConfig, runs: [], setCalls: [] };
+  const state = { config: initialConfig, runs: [], drafts: [], setCalls: [] };
   const configRef = {
     async get() { return { exists: state.config !== undefined, data: () => state.config }; },
     async set(patch) {
@@ -41,9 +41,11 @@ function createFakeDb(initialConfig) {
   };
   return {
     state,
-    collection: (name) => (name === 'auditoria_auto_runs'
-      ? { add: async (doc) => { state.runs.push(doc); return { id: `run-${state.runs.length}` }; } }
-      : { doc: () => configRef }),
+    collection: (name) => {
+      if (name === 'auditoria_auto_runs') return { add: async (doc) => { state.runs.push(doc); return { id: `run-${state.runs.length}` }; } };
+      if (name === 'auditoria_auto_borradores') return { add: async (doc) => { state.drafts.push(doc); return { id: `bor-${state.drafts.length}` }; } };
+      return { doc: () => configRef };
+    },
     runTransaction: async (fn) => fn({ get: (ref) => ref.get(), set: (ref, patch) => ref.set(patch) }),
   };
 }
@@ -434,6 +436,45 @@ describe('runAutoAudit — flujo', () => {
       runBatch.mockResolvedValue({ results: [], status: 'ok', examined: 30, found: 30 });
       await runAutoAudit({ now: () => NOW });
       expect(runBatch).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('revisión (revision: true, el default)', () => {
+    it('loadConfig: sin el campo, revisión prendida; false la apaga', async () => {
+      expect((await loadConfig(createFakeDb({ activo: true }))).revision).toBe(true);
+      expect((await loadConfig(createFakeDb({ revision: false }))).revision).toBe(false);
+    });
+
+    it('guarda un borrador con los conteos, no publica nada y marca la combinación', async () => {
+      runBatch.mockResolvedValueOnce({
+        results, status: 'ok', examined: 7, found: 39,
+        porLocalidad: { 'Godoy Cruz': { examinados: 5, conWeb: 3, descartados: 2 } },
+      });
+      const db = createFakeDb({ ...BASE_CONFIG, revision: true });
+      getDb.mockReturnValue(db);
+      const out = await runAutoAudit({ now: () => NOW });
+      expect(out).toMatchObject({ estado: 'en_revision', borradorId: 'bor-1', auditoriaId: null, auditados: 3 });
+      expect(saveAuditoria).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(db.state.drafts[0]).toMatchObject({
+        estado: 'pendiente',
+        combo: { ciudad: 'Neuquén', rubro: { label: 'Ferretería', prioritario: true } },
+        stats: { total: 3 },
+        busqueda: { encontrados: 39, examinados: 7, conWeb: 3, porLocalidad: { 'Godoy Cruz': { conWeb: 3 } } },
+        networks: BASE_CONFIG.networks,
+      });
+      expect(db.state.drafts[0].results).toHaveLength(3);
+      expect(db.state.config.ultimaCorrida[COMBO_KEY]).toBe(NOW);
+    });
+
+    it('cuota agotada con 5 o más: también va a borrador', async () => {
+      const cinco = ['a', 'b', 'c', 'd', 'e'].map(id => ({ id, nombre: id, seoScore: 40 }));
+      runBatch.mockResolvedValueOnce({ results: cinco, status: 'cuota_agotada', examined: 5 });
+      const db = createFakeDb({ ...BASE_CONFIG, revision: true });
+      getDb.mockReturnValue(db);
+      const out = await runAutoAudit({ now: () => NOW });
+      expect(out).toMatchObject({ estado: 'cuota_agotada', borradorId: 'bor-1' });
+      expect(saveAuditoria).not.toHaveBeenCalled();
     });
   });
 

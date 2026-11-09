@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { loadConfig as loadAuditConfig } from '@/lib/autoAuditRun';
+import { listarBorradores } from '@/lib/autoAuditReview';
 import { loadDemandaConfig } from '@/lib/demandaAutoRun';
 import { defineTool } from '../defineTool';
 
@@ -29,7 +30,7 @@ export const getAutomationStatusTool = defineTool({
   description:
     'Resumen de todo lo que corre solo en el sitio, para contestar "¿anda todo bien?": bot de noticias (prendido, '
     + 'publicadas y fallidas en las últimas 24 h), auditoría automática e informes de demanda (prendidos y últimas '
-    + 'corridas), presupuestos pendientes de responder y las últimas alertas por mail (errores del servidor, '
+    + 'corridas, lotes de auditoría esperando revisión), presupuestos pendientes de responder y las últimas alertas por mail (errores del servidor, '
     + 'webhooks de pago, tokens por vencer).',
   inputSchema: z.object({}),
   annotations: { readOnlyHint: true },
@@ -52,7 +53,11 @@ export const getAutomationStatusTool = defineTool({
           ultima: snap.docs[0] ? { titulo: snap.docs[0].data().title || null, cuando: iso(snap.docs[0].data().publishedAt) } : null,
         };
       }),
-      seguro(async () => ({ prendida: (await loadAuditConfig(db)).activo, corridas: await ultimaCorrida(db, 'auditoria_auto_runs') })),
+      seguro(async () => {
+        const cfg = await loadAuditConfig(db);
+        const borradores = cfg.revision ? (await listarBorradores(db)).length : 0;
+        return { prendida: cfg.activo, revision: cfg.revision, borradoresPendientes: borradores, corridas: await ultimaCorrida(db, 'auditoria_auto_runs') };
+      }),
       seguro(async () => {
         const cfg = await loadDemandaConfig(db);
         return { prendida: cfg.activo, zonas: cfg.zonas.length, corridas: await ultimaCorrida(db, 'demanda_auto_runs') };
@@ -74,13 +79,14 @@ export const getAutomationStatusTool = defineTool({
     if (noticias.fallidas24h) problemas.push(`${noticias.fallidas24h} noticias fallidas en 24 h`);
     for (const [nombre, x] of [['auditoría automática', auditoria], ['informes de demanda', demanda]]) {
       const u = x.corridas?.[0];
-      if (u && !['ok', 'guardado', 'sin_resultados'].includes(u.estado)) problemas.push(`última ${nombre}: ${u.estado}`);
+      if (u && !['ok', 'guardado', 'sin_resultados', 'en_revision'].includes(u.estado)) problemas.push(`última ${nombre}: ${u.estado}`);
     }
     const alertasHoy = Array.isArray(alertas) ? alertas.filter(a => a.ultimaVez && Date.parse(a.ultimaVez) >= desde) : [];
     if (alertasHoy.length) problemas.push(`${alertasHoy.length} alertas en 24 h`);
     for (const [k, v] of Object.entries({ noticias, auditoria, demanda, presupuestos, alertas })) if (v?.error) problemas.push(`no se pudo leer ${k}`);
 
-    const pend = presupuestos.pendientes ? ` ${presupuestos.pendientes} presupuestos sin responder.` : '';
+    const pend = (presupuestos.pendientes ? ` ${presupuestos.pendientes} presupuestos sin responder.` : '')
+      + (auditoria.borradoresPendientes ? ` ${auditoria.borradoresPendientes} auditorías para revisar (list_audit_drafts).` : '');
     return {
       summary: (problemas.length ? `Ojo: ${problemas.join('; ')}.` : 'Todo en orden en las últimas 24 h.') + pend,
       data: { noticias, auditoriaAutomatica: auditoria, informesDemanda: demanda, presupuestos, alertas },

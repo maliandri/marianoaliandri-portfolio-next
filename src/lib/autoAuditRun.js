@@ -6,16 +6,18 @@ import { runBatch } from '@/lib/autoAuditBatch';
 import { saveAuditoria } from '@/lib/auditoriasStore';
 import { imageIsReachable } from '@/lib/imageCheck';
 import { postToMakeSocial } from '@/lib/makeSocial';
+import { enviarMailsAuditoria, EMAIL_TOPE_DEFAULT } from '@/lib/autoAuditEmail';
 import { auditStoryScreenshotUrl } from '@/lib/socialAuditPost';
 import { publishIgStory, igCredsFromEnv } from '../../scripts/igStoryClient.mjs';
 
 const CONFIG_COLLECTION = 'auditoria_auto';
 const RUNS_COLLECTION = 'auditoria_auto_runs';
+export const DRAFTS_COLLECTION = 'auditoria_auto_borradores';
 const LOCK_MS = 15 * 60 * 1000;          // un candado huérfano vence solo a los 15 min
 const MIN_SITES_TO_SAVE = 5;             // con cuota agotada solo se guarda si hay al menos 5
 // Un informe de 1 o 2 sitios no dice nada (pasó con Durlock × Formosa: Google tenía 2 comercios).
 // Por debajo de esto la combinación se marca como hecha y se prueba otra en la misma corrida.
-const MIN_SITES_TO_PUBLISH = 3;
+export const MIN_SITES_TO_PUBLISH = 3;
 const MAX_COMBO_ATTEMPTS = 3;
 
 // Historia de Instagram con la captura del informe en formato celular. Sale si Instagram está
@@ -40,6 +42,9 @@ export function defaultConfig() {
     rubros: RUBROS_SEMILLA.map(r => ({ ...r })),
     networks: [...DEFAULT_NETWORKS],
     cantidad: CANTIDAD_DEFAULT,
+    revision: true, // el lote queda como borrador: el informe y los posts salen recién al aprobarlo
+    emailAuto: false, // manda solo el mail de la auditoría a cada negocio con email (apagado por defecto)
+    emailTope: EMAIL_TOPE_DEFAULT,
     ultimaCorrida: {},
   };
 }
@@ -57,6 +62,9 @@ export async function loadConfig(db) {
     rubros: d.rubros?.length ? d.rubros : base.rubros,
     networks: d.networks?.length ? d.networks : base.networks,
     cantidad: Number.isInteger(d.cantidad) ? Math.min(CANTIDAD_MAX, Math.max(CANTIDAD_MIN, d.cantidad)) : base.cantidad,
+    revision: d.revision !== false,
+    emailAuto: d.emailAuto === true,
+    emailTope: Number.isInteger(d.emailTope) ? d.emailTope : EMAIL_TOPE_DEFAULT,
     ultimaCorrida: d.ultimaCorrida || {},
   };
 }
@@ -84,6 +92,55 @@ async function saveReport(combo, results, stats, nowMs, useGemini) {
   return saveAuditoria({ title, config, results, stats, useGemini });
 }
 
+
+// Guarda el informe público y lo anuncia en redes (+ historia de Instagram). Lo usan la corrida
+// directa (revision: false) y la aprobación de un borrador (src/lib/autoAuditReview.js).
+// redes: false = solo el informe en la web.
+export async function publicarInforme({ combo, results, nowMs, useGemini = true, networks, redes = true }) {
+  const out = { estado: 'ok', auditoriaId: null };
+  const stats = buildStats(results);
+  const saved = await saveReport(combo, results, stats, nowMs, useGemini);
+  out.auditoriaId = saved.id;
+  if (!redes) { out.estado = 'guardado'; return out; }
+
+  const { payload } = buildPost({ combo, stats, auditoriaId: saved.id, summary: saved.summary, networks });
+  const image = await imageIsReachable(payload.imageUrl);
+  if (!image.ok) {
+    out.estado = 'post_fallido';
+    out.error = `La captura del informe no responde con una imagen (Microlink): ${image.detail}`;
+    return out;
+  }
+  try {
+    await postToMakeSocial(payload, { timeoutMs: 10000 });
+    const historia = await publishAuditStory(saved.id, payload.networks);
+    if (historia) out.historia = historia;
+  } catch (e) {
+    out.estado = 'post_fallido';
+    out.error = e.status ? `Make respondió ${e.status}` : e.message;
+  }
+  return out;
+}
+
+// Lote para revisar (Mariano desde el admin o Claude por el MCP): nada público hasta aprobarlo.
+async function guardarBorrador(db, { combo, batch, intentos, nowMs, networks }) {
+  const ref = await db.collection(DRAFTS_COLLECTION).add({
+    estado: 'pendiente',
+    combo: {
+      ciudad: combo.ciudad, ciudades: combo.ciudades || [combo.ciudad],
+      rubro: { label: combo.rubro.label, prioritario: combo.rubro.prioritario === true },
+    },
+    results: JSON.parse(JSON.stringify(batch.results)), // Firestore no acepta undefined
+    stats: buildStats(batch.results),
+    busqueda: {
+      encontrados: batch.found ?? null, examinados: batch.examined ?? 0, conWeb: batch.results.length,
+      porLocalidad: batch.porLocalidad || {}, intentos: intentos || [],
+    },
+    networks,
+    creadoMs: nowMs,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+  return ref.id;
+}
 
 // Una corrida de la auditoría automática. La invocan el script de GitHub Actions
 // (scripts/auto-audit.mjs) y el botón "Correr ahora" del admin (force: true).
@@ -144,36 +201,31 @@ export async function runAutoAudit({
       } else if (batch.status === 'cuota_agotada') {
         run.estado = 'cuota_agotada';
         if (batch.results.length >= MIN_SITES_TO_SAVE) {
-          const stats = buildStats(batch.results);
-          const saved = await saveReport(combo, batch.results, stats, nowMs, useGemini);
-          run.auditoriaId = saved.id;
+          if (config.revision) {
+            run.borradorId = await guardarBorrador(db, { combo, batch, intentos: run.intentos, nowMs, networks: config.networks });
+          } else {
+            const saved = await saveReport(combo, batch.results, buildStats(batch.results), nowMs, useGemini);
+            run.auditoriaId = saved.id;
+          }
           markRan = true;
         }
       } else if (batch.results.length < MIN_SITES_TO_PUBLISH) {
         run.estado = 'sin_resultados';
         markRan = conclusivo(batch); // cortado por presupuesto: no se descarta la combinación
-      } else {
-        const stats = buildStats(batch.results);
-        const saved = await saveReport(combo, batch.results, stats, nowMs, useGemini);
-        run.auditoriaId = saved.id;
+      } else if (config.revision) {
+        run.borradorId = await guardarBorrador(db, { combo, batch, intentos: run.intentos, nowMs, networks: config.networks });
+        run.estado = 'en_revision';
         markRan = true;
-
-        const { payload } = buildPost({
-          combo, stats, auditoriaId: saved.id, summary: saved.summary,
-          networks: config.networks,
-        });
-        const image = await imageIsReachable(payload.imageUrl);
-        if (!image.ok) {
-          run.estado = 'post_fallido';
-          run.error = `La captura del informe no responde con una imagen (Microlink): ${image.detail}`;
-        } else try {
-          await postToMakeSocial(payload, { timeoutMs: 10000 });
-          run.estado = 'ok';
-          const historia = await publishAuditStory(saved.id, payload.networks);
-          if (historia) run.historia = historia;
-        } catch (e) {
-          run.estado = 'post_fallido';
-          run.error = e.status ? `Make respondió ${e.status}` : e.message;
+      } else {
+        Object.assign(run, await publicarInforme({
+          combo, results: batch.results, nowMs, useGemini, networks: config.networks,
+        }));
+        markRan = true;
+        // Con el informe ya publicado, los mails a los negocios (si están prendidos).
+        if (run.auditoriaId && config.emailAuto) {
+          run.mails = await enviarMailsAuditoria(db, {
+            combo, results: batch.results, auditoriaId: run.auditoriaId, config, configRef, now: new Date(nowMs),
+          });
         }
       }
     }

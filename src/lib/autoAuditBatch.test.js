@@ -77,6 +77,23 @@ describe('runBatch', () => {
     expect(porCiudad).toEqual({ Plottier: 3, Centenario: 3, Neuquén: 3 });
   });
 
+  // Gran Mendoza (2026-10-31): las localidades están a menos de 15 km, searchNearby devuelve casi
+  // los mismos 20 comercios en todas y los que la primera no llegó a examinar quedaban como vistos.
+  it('zona superpuesta: lo que una localidad no examinó lo examina la siguiente (con su ciudad de origen)', async () => {
+    const ZONA = { ciudad: 'Gran Mendoza', ciudades: ['Mendoza', 'Godoy Cruz', 'Maipú'], rubro: TYPE.rubro };
+    const mismos = Array.from({ length: 20 }, (_, i) => place(`p${i}`));
+    const run = makeRun({
+      geocode: geoOk,
+      searchNearby: () => ({ ok: true, places: mismos, nextPageToken: null }),
+      auditPlace: () => audited(),
+    });
+    const out = await runBatch(ZONA, { run, sleep: noSleep, maxSites: 15, maxCandidates: 30 });
+    expect(out.examined).toBe(15);
+    expect(out.found).toBe(20);
+    expect(new Set(out.results.map(r => r.id)).size).toBe(15);
+    expect(out.results.every(r => r.ciudad === 'Godoy Cruz')).toBe(true); // la primera que los encontró
+  });
+
   it('zona: "Ciudad (Provincia)" se busca como "Ciudad, Provincia"', async () => {
     const ZONA = { ciudad: 'Gran Mendoza', ciudades: ['Mendoza', 'Las Heras (Mendoza)'], rubro: TEXT.rubro };
     const run = makeRun({

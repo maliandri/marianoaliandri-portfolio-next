@@ -26,6 +26,10 @@ export async function saveAuditoria({ title, config, results, stats, summary: pr
     hasOG:        r.hasOG,
     lastModified: r.lastModified || null,
     rating:       r.rating   || null,
+    // Señales comerciales (admin y mail; la página pública no las muestra)
+    agencia:      r.agencia    ?? null,
+    anuncios:     r.anuncios   ?? null,
+    plataforma:   r.plataforma ?? null,
   }));
 
   // Resumen del reporte: usar el texto editado si vino; si no, Gemini; si falla, plantilla.

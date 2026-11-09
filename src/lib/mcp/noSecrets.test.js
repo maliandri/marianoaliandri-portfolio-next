@@ -39,6 +39,7 @@ import { ALL_TOOLS } from './register';
 
 const row = { id: 'p1', nombre: 'Panadería La Espiga', siteUrl: 'https://espiga.com', email: 'info@espiga.com', seoScore: 30, canal: 'web' };
 const seed = () => createFakeDb({
+  'auditoria_auto_borradores/bd1': { estado: 'pendiente', creadoMs: 1, createdAt: 1, networks: ['facebook'], combo: { ciudad: 'Neuquén', ciudades: ['Neuquén'], rubro: { label: 'Ropa' } }, results: [row, { ...row, id: 'p2' }, { ...row, id: 'p3' }], busqueda: { avisos: LEAK } },
   'auditorias/a1': { title: 'T', summary: LEAK, results: [row, { ...row, id: 'p2' }, { ...row, id: 'p3' }] },
   'leadfinder_searches/u1/items/s1': { ciudades: ['Neuquén'], tipos: [], terminos: ['x'], results: [row, { ...row, id: 'p2' }, { ...row, id: 'p3' }] },
   'mcp_lead_jobs/j1': { uid: 'u1', status: 'error', error: LEAK, totals: {}, avisos: [LEAK], leads: [row] },
@@ -59,6 +60,8 @@ const ARGS = {
   list_audits: [{}],
   get_audit: [{ id: 'a1' }, { id: 'nope' }],
   create_audit_report: [{ search_id: 's1' }, { search_id: 'nope' }],
+  list_audit_drafts: [{}, { estado: 'todos' }],
+  review_audit_draft: [{ id: 'bd1', accion: 'aprobar', dry_run: true }, { id: 'bd1', accion: 'aprobar' }, { id: 'nope', accion: 'descartar' }],
   publish_audit_social: [{ id: 'a1', networks: ['facebook'], dry_run: true }, { id: 'a1', networks: ['facebook'] }],
   draft_business_email: [{ audit_id: 'a1', place_id: 'p1' }, { audit_id: 'a1', place_id: 'nope' }],
   send_business_email: [{ audit_id: 'a1', place_id: 'p1' }, { audit_id: 'a1', place_id: 'p1', dry_run: true }],

@@ -90,11 +90,11 @@ const lockId = (kind, v) => `${kind}_${createHmac('sha256', 'lock').update(v).di
 // (email y dominio de la web, último envío), cupo diario (día UTC) y, si viene, el borrador.
 // Así dos rutinas en paralelo (o un reintento de Claude) no le mandan dos mails al mismo negocio.
 // Devuelve { ok: true, release } o { ok: false, motivo }. release() deshace todo si el envío falla.
-export async function reserveSend(db, { email, dominio, cap, days, now = new Date(), draftRef = null }) {
+export async function reserveSend(db, { email, dominio, cap, days, now = new Date(), draftRef = null, counter: counterName = COUNTER }) {
   const nowMs = now.getTime();
   const locks = [lockId('e', cleanEmail(email)), ...(dominio ? [lockId('d', dominio)] : [])]
     .map(id => db.collection(LOCKS).doc(id));
-  const counterRef = db.collection(COUNTER).doc(now.toISOString().slice(0, 10));
+  const counterRef = db.collection(counterName).doc(now.toISOString().slice(0, 10));
 
   const res = await db.runTransaction(async tx => {
     const lockSnaps = await Promise.all(locks.map(r => tx.get(r)));

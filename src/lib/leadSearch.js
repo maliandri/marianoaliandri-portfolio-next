@@ -90,7 +90,12 @@ export async function* searchLeads(params, deps) {
   const keyword = perfil === 'empresa' ? String(producto || '').trim() : '';
   const radiusM = radioKm * 1000;
 
-  const seen = new Set();
+  // origen: id → ciudad donde apareció por primera vez (para contar encontrados sin repetir).
+  // examinados: ids ya auditados. Uno encontrado pero sin examinar (la localidad llegó a su tope)
+  // se examina cuando lo devuelva otra búsqueda: en zonas con localidades pegadas (Gran Mendoza)
+  // todas devuelven casi los mismos comercios.
+  const origen = new Map();
+  const examinadosIds = new Set();
   const totals = { encontrados: 0, examinados: 0, leads: 0, conWeb: 0, descartados: 0 };
   let busquedasHechas = 0;
   const listo = () => totals.leads >= cantidad || totals.examinados >= maxExaminados || isCancelled();
@@ -162,16 +167,19 @@ export async function* searchLeads(params, deps) {
             break;
           }
 
-          const nuevos = (res.places || []).filter(p => !seen.has(p.id));
-          nuevos.forEach(p => seen.add(p.id));
-          totals.encontrados += nuevos.length;
+          for (const p of res.places || []) {
+            if (!origen.has(p.id)) { origen.set(p.id, zona.ciudad); totals.encontrados++; }
+          }
+          const nuevos = (res.places || []).filter(p => !examinadosIds.has(p.id));
 
           for (const place of nuevos) {
             if (listoZona()) break;
+            if (examinadosIds.has(place.id)) continue; // la misma búsqueda puede repetir un id
+            examinadosIds.add(place.id);
             const negocio = {
               id: place.id,
               nombre: place.displayName?.text || 'Sin nombre',
-              ciudad: zona.ciudad,
+              ciudad: origen.get(place.id),
               tipo: b.etiqueta,
               lat: place.location?.latitude ?? null,
               lon: place.location?.longitude ?? null,

@@ -176,6 +176,23 @@ export function validateConfigPatch(body) {
     update.networks = [...new Set(body.networks)];
   }
 
+  if ('revision' in body) {
+    if (typeof body.revision !== 'boolean') return { error: 'revision debe ser boolean' };
+    update.revision = body.revision;
+  }
+
+  if ('emailAuto' in body) {
+    if (typeof body.emailAuto !== 'boolean') return { error: 'emailAuto debe ser boolean' };
+    update.emailAuto = body.emailAuto;
+  }
+
+  if ('emailTope' in body) {
+    if (!Number.isInteger(body.emailTope) || body.emailTope < 1 || body.emailTope > 30) {
+      return { error: 'emailTope: debe ser un entero entre 1 y 30' };
+    }
+    update.emailTope = body.emailTope;
+  }
+
   if ('cantidad' in body) {
     const c = body.cantidad;
     if (!Number.isInteger(c) || c < CANTIDAD_MIN || c > CANTIDAD_MAX) {
@@ -184,7 +201,7 @@ export function validateConfigPatch(body) {
     update.cantidad = c;
   }
   if (!Object.keys(update).length) {
-    return { error: 'Nada para actualizar (activo, ciudades, rubros, networks o cantidad)' };
+    return { error: 'Nada para actualizar (activo, revision, emailAuto, emailTope, ciudades, rubros, networks o cantidad)' };
   }
   return { update };
 }
