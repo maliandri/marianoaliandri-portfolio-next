@@ -41,6 +41,21 @@ describe('POST /api/cron/auditoria', () => {
     expect(await res.json()).toEqual({ ok: true, estado: 'ok', auditoriaId: 'x', auditados: 3 });
   });
 
+  it('con ciudad y rubro en el body los pasa a runAutoAudit', async () => {
+    runAutoAudit.mockResolvedValue({ estado: 'en_revision' });
+    await POST({ json: async () => ({ ciudad: 'Neuquén', rubro: 'Durlock' }) });
+    expect(runAutoAudit).toHaveBeenCalledWith({
+      force: true, budgetMs: 15000, fast: true, useGemini: false, ciudad: 'Neuquén', rubro: 'Durlock',
+    });
+  });
+
+  it('una combinación que no existe responde 400 con el mensaje', async () => {
+    runAutoAudit.mockRejectedValue(Object.assign(new Error('El rubro "X" no está en la configuración.'), { status: 400 }));
+    const res = await POST({ json: async () => ({ rubro: 'X' }) });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toContain('no está en la configuración');
+  });
+
   it('500 con el mensaje si runAutoAudit lanza', async () => {
     runAutoAudit.mockRejectedValue(new Error('DB no disponible'));
     const res = await POST({});

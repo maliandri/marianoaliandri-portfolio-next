@@ -3,6 +3,7 @@ import {
   COOLDOWN_MS, DEFAULT_NETWORKS, comboKey, parseZona, busquedasDe, pickNext, buildStats, buildPost, validateConfigPatch, consumoMensual,
 } from './autoAudit.js';
 import { auditScreenshotUrl } from './socialAuditPost.js';
+import { filtrarConfig } from './autoAudit.js';
 
 const NOW = Date.UTC(2026, 9, 9);
 const PRIO = { label: 'Ferretería', kind: 'type', value: 'hardware_store', prioritario: true };
@@ -236,5 +237,29 @@ describe('consumoMensual', () => {
   it('estima las consultas de detalle por mes (2 × cantidad × 4 corridas × 4,3 semanas)', () => {
     expect(consumoMensual(15)).toBe(516);
     expect(consumoMensual(30)).toBe(1032);
+  });
+});
+
+describe('filtrarConfig (Correr ahora con selector)', () => {
+  const cfg = {
+    ciudades: ['Neuquén', 'Alto Valle: Cipolletti, Plottier'],
+    rubros: [{ label: 'Durlock' }, { label: 'Ropa' }],
+    ultimaCorrida: { 'Neuquén|Durlock': Date.now() },
+  };
+  it('deja solo la ciudad y el rubro elegidos y ignora la espera de 30 días', () => {
+    const f = filtrarConfig(cfg, { ciudad: 'Neuquén', rubro: 'Durlock' });
+    expect(f.ciudades).toEqual(['Neuquén']);
+    expect(f.rubros).toEqual([{ label: 'Durlock' }]);
+    expect(f.ultimaCorrida).toEqual({});
+  });
+  it('una zona se elige por su nombre', () => {
+    expect(filtrarConfig(cfg, { ciudad: 'Alto Valle' }).ciudades).toEqual(['Alto Valle: Cipolletti, Plottier']);
+  });
+  it('con solo uno elegido deja libre el otro', () => {
+    expect(filtrarConfig(cfg, { rubro: 'Ropa' }).ciudades).toHaveLength(2);
+  });
+  it('si no existe tira un error 400', () => {
+    expect(() => filtrarConfig(cfg, { ciudad: 'Marte' })).toThrow(/no está en la configuración/);
+    try { filtrarConfig(cfg, { rubro: 'X' }); } catch (e) { expect(e.status).toBe(400); }
   });
 });

@@ -85,6 +85,17 @@ export function pickNext(config, nowMs = Date.now(), rand = Math.random) {
   return { ciudad: pick.ciudad, ciudades: pick.ciudades, rubro: pick.rubro };
 }
 
+// "Correr ahora" con selector: deja solo la ciudad/zona y/o el rubro elegidos (por nombre) y no aplica
+// la espera de 30 días, porque la combinación la pidió Mariano. Si no hay nada que coincida, tira un
+// Error con status 400 para que el admin lo muestre.
+export function filtrarConfig(config, { ciudad, rubro } = {}) {
+  const ciudades = ciudad ? (config?.ciudades || []).filter(e => parseZona(e).nombre === ciudad) : (config?.ciudades || []);
+  const rubros = rubro ? (config?.rubros || []).filter(r => r.label === rubro) : (config?.rubros || []);
+  if (!ciudades.length) throw Object.assign(new Error(`La ciudad o zona "${ciudad}" no está en la configuración.`), { status: 400 });
+  if (!rubros.length) throw Object.assign(new Error(`El rubro "${rubro}" no está en la configuración.`), { status: 400 });
+  return { ...config, ciudades, rubros, ultimaCorrida: {} };
+}
+
 // Mismo shape que stats de POST /api/auditorias.
 export function buildStats(results) {
   const total = results.length;

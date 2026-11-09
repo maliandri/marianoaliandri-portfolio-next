@@ -1,7 +1,7 @@
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { CIUDADES_SEMILLA, RUBROS_SEMILLA } from '@/data/auditoriaAuto';
-import { pickNext, comboKey, buildStats, buildPost, DEFAULT_NETWORKS, CANTIDAD_DEFAULT, CANTIDAD_MIN, CANTIDAD_MAX, FAST_MAX_SITES } from '@/lib/autoAudit';
+import { pickNext, filtrarConfig, comboKey, buildStats, buildPost, DEFAULT_NETWORKS, CANTIDAD_DEFAULT, CANTIDAD_MIN, CANTIDAD_MAX, FAST_MAX_SITES } from '@/lib/autoAudit';
 import { runBatch } from '@/lib/autoAuditBatch';
 import { saveAuditoria } from '@/lib/auditoriasStore';
 import { imageIsReachable } from '@/lib/imageCheck';
@@ -160,13 +160,16 @@ async function guardarBorrador(db, { combo, batch, intentos, nowMs, networks }) 
 // Una corrida de la auditoría automática. La invocan el script de GitHub Actions
 // (scripts/auto-audit.mjs) y el botón "Correr ahora" del admin (force: true).
 export async function runAutoAudit({
-  force = false, now = Date.now, budgetMs = 45000, fast = false, useGemini = true,
+  force = false, now = Date.now, budgetMs = 45000, fast = false, useGemini = true, ciudad = null, rubro = null,
 } = {}) {
   const db = getDb();
   if (!db) throw new Error('DB no disponible');
 
   const nowMs = now();
   const config = await loadConfig(db);
+  // Con ciudad y/o rubro elegidos solo se considera esa combinación (se valida antes de tomar el candado).
+  const filtro = ciudad || rubro ? { ciudad, rubro } : null;
+  const base = filtro ? filtrarConfig(config, filtro) : config;
   if (!force && config.activo !== true) return { skipped: 'inactivo' };
   if (!(await acquireLock(db, nowMs))) return { skipped: 'en_curso' };
 
@@ -188,7 +191,7 @@ export async function runAutoAudit({
     const conclusivo = (b) => b.agotado === true || (!fast && b.cortadoPorTiempo !== true && (b.examined || 0) >= fullCap);
     for (let i = 0; i < MAX_COMBO_ATTEMPTS; i++) {
       if (i > 0 && (candidatesLeft <= 0 || deadline - now() <= 0)) break;
-      const next = pickNext({ ...config, ultimaCorrida: { ...config.ultimaCorrida, ...descartadas } }, nowMs);
+      const next = pickNext({ ...base, ultimaCorrida: { ...base.ultimaCorrida, ...descartadas } }, nowMs);
       if (!next) break;
       combo = next;
       batch = await runBatch(combo, { budgetMs: deadline - now(), maxSites: cantidad, maxCandidates: candidatesLeft });
@@ -197,6 +200,7 @@ export async function runAutoAudit({
         ciudad: combo.ciudad, rubro: combo.rubro.label,
         encontrados: batch.found ?? null, examinados: batch.examined ?? 0, conWeb: batch.results.length,
       });
+      if (filtro) break; // combinación pedida a mano: no se cambia por otra si salen pocos sitios
       if (batch.status !== 'ok' || batch.results.length >= MIN_SITES_TO_PUBLISH) break;
       // Concluyente: Google se quedó sin negocios, o una corrida programada gastó todo su cupo.
       // Cortes por tiempo o por cupo reducido (modo rápido, 2º intento) no dicen nada de la combinación.

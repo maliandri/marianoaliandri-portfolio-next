@@ -456,6 +456,34 @@ describe('runAutoAudit — flujo', () => {
     });
   });
 
+  describe('Correr ahora con ciudad y rubro elegidos', () => {
+    const RUBRO2 = { label: 'Ropa', terminos: ['ropa'], tipos: [], prioritario: false };
+    const CFG = { ...BASE_CONFIG, ciudades: ['Neuquén', 'Cipolletti'], rubros: [RUBRO, RUBRO2] };
+
+    it('audita exactamente esa combinación, aunque sea reciente', async () => {
+      const db = createFakeDb({ ...CFG, ultimaCorrida: { 'Cipolletti|Ropa': NOW } });
+      getDb.mockReturnValue(db);
+      await runAutoAudit({ now: () => NOW, force: true, ciudad: 'Cipolletti', rubro: 'Ropa' });
+      expect(runBatch.mock.calls[0][0]).toMatchObject({ ciudad: 'Cipolletti', rubro: { label: 'Ropa' } });
+    });
+
+    it('no la cambia por otra si salen pocos sitios', async () => {
+      const db = createFakeDb(CFG);
+      getDb.mockReturnValue(db);
+      runBatch.mockResolvedValue({ results: [], status: 'ok', examined: 30, found: 5, agotado: true });
+      await runAutoAudit({ now: () => NOW, force: true, ciudad: 'Neuquén', rubro: 'Ropa' });
+      expect(runBatch).toHaveBeenCalledTimes(1);
+    });
+
+    it('una combinación que no existe falla antes de tomar el candado', async () => {
+      const db = createFakeDb(CFG);
+      getDb.mockReturnValue(db);
+      await expect(runAutoAudit({ now: () => NOW, force: true, ciudad: 'Marte' })).rejects.toThrow(/no está en la configuración/);
+      expect(runBatch).not.toHaveBeenCalled();
+      expect(db.state.setCalls).toHaveLength(0);
+    });
+  });
+
   describe('revisión (revision: true, el default)', () => {
     it('loadConfig: sin el campo, revisión prendida; false la apaga', async () => {
       expect((await loadConfig(createFakeDb({ activo: true }))).revision).toBe(true);

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthUser } from '@/hooks/useAuthUser';
-import { CANTIDAD_DEFAULT, CANTIDAD_MIN, CANTIDAD_MAX, consumoMensual, busquedasDe } from '@/lib/autoAudit';
+import { CANTIDAD_DEFAULT, CANTIDAD_MIN, CANTIDAD_MAX, consumoMensual, busquedasDe, parseZona } from '@/lib/autoAudit';
 import { PLACES_LIMITS } from '@/data/placesFreeTier';
 import AutoAuditDrafts from './AutoAuditDrafts';
 
@@ -33,6 +33,8 @@ export default function AutoAuditCard() {
   const [msg, setMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [draftsKey, setDraftsKey] = useState(0);
+  const [pickCiudad, setPickCiudad] = useState(''); // '' = lo decide el sistema
+  const [pickRubro, setPickRubro] = useState('');
 
   const authFetch = useCallback(async (url, options = {}) => {
     const token = await getIdToken();
@@ -80,13 +82,17 @@ export default function AutoAuditCard() {
   };
 
   const runNow = async () => {
+    const que = [pickRubro || 'un rubro a elección', pickCiudad || 'una ciudad a elección'].join(' en ');
     const aviso = config?.revision
-      ? 'Audita un lote y lo deja para revisar (no publica nada). ¿Correr ahora?'
-      : 'Esto audita y PUBLICA en redes de verdad. ¿Correr ahora?';
+      ? `Audita ${que} y deja el lote para revisar (no publica nada). ¿Correr ahora?`
+      : `Esto audita ${que} y PUBLICA en redes de verdad. ¿Correr ahora?`;
     if (!window.confirm(aviso)) return;
     setRunning(true); setMsg(''); setErrorMsg('');
     try {
-      const res = await authFetch('/api/cron/auditoria/', { method: 'POST' });
+      const res = await authFetch('/api/cron/auditoria/', {
+        method: 'POST',
+        body: JSON.stringify({ ...(pickCiudad ? { ciudad: pickCiudad } : {}), ...(pickRubro ? { rubro: pickRubro } : {}) }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Falló la corrida');
       setMsg(`Corrida: ${data.estado || data.skipped} (${data.auditados ?? 0} sitios)`);
@@ -166,6 +172,28 @@ export default function AutoAuditCard() {
             </button>
           </div>
         </div>
+        {config && (
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+            <span className="font-medium">Correr ahora con:</span>
+            <label className="flex items-center gap-1">
+              Rubro
+              <select value={pickRubro} onChange={e => setPickRubro(e.target.value)} disabled={running}
+                className="rounded border border-gray-300 bg-white px-1 py-0.5 dark:border-gray-600 dark:bg-gray-800">
+                <option value="">Automático</option>
+                {(config.rubros || []).map(r => <option key={r.label} value={r.label}>{r.label}</option>)}
+              </select>
+            </label>
+            <label className="flex items-center gap-1">
+              Ciudad o zona
+              <select value={pickCiudad} onChange={e => setPickCiudad(e.target.value)} disabled={running}
+                className="rounded border border-gray-300 bg-white px-1 py-0.5 dark:border-gray-600 dark:bg-gray-800">
+                <option value="">Automática</option>
+                {[...new Set((config.ciudades || []).map(c => parseZona(c).nombre))].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Si elegís los dos, audita exactamente esa combinación.</span>
+          </div>
+        )}
         {config && (
           <label className="mt-3 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <input type="checkbox" checked={config.revision !== false} disabled={busy}
