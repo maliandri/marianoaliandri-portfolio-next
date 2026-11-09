@@ -2,7 +2,8 @@
 // en auditoria_auto_borradores y nada es público hasta aprobarlo. Lo usan el admin
 // (/api/auditoria-auto/borradores/) y el MCP (list_audit_drafts / review_audit_draft).
 import { FieldValue } from 'firebase-admin/firestore';
-import { DRAFTS_COLLECTION, MIN_SITES_TO_PUBLISH, publicarInforme } from '@/lib/autoAuditRun';
+import { DRAFTS_COLLECTION, MIN_SITES_TO_PUBLISH, publicarInforme, loadConfig } from '@/lib/autoAuditRun';
+import { enviarMailsAuditoria } from '@/lib/autoAuditEmail';
 import { buildStats } from '@/lib/autoAudit';
 
 const CLAIM_MS = 5 * 60 * 1000; // una aprobación colgada (se cayó a mitad) se puede retomar a los 5 min
@@ -86,12 +87,27 @@ export async function aprobarBorrador(db, id, {
     await ref.update({ estado: 'pendiente', aprobandoMs: FieldValue.delete() });
     throw e;
   }
+  // Mails a los negocios (si están prendidos), igual que cuando la corrida publica directo.
+  let mails = null;
+  if (resultado.auditoriaId) {
+    try {
+      const config = await loadConfig(db);
+      if (config.emailAuto) {
+        mails = await enviarMailsAuditoria(db, {
+          combo: { ciudad: raw.combo.ciudad, rubro: raw.combo.rubro }, results, auditoriaId: resultado.auditoriaId,
+          config, configRef: db.collection('auditoria_auto').doc('config'),
+        });
+      }
+    } catch (e) {
+      console.error('[auto-audit] mails tras aprobar:', e.message);
+    }
+  }
   await ref.update({
     estado: 'publicado', auditoriaId: resultado.auditoriaId, excluidos: [...fuera],
-    resultado: { estado: resultado.estado, error: resultado.error || null, redes: redes ? redesFinal : [], historia: resultado.historia || null },
+    resultado: { estado: resultado.estado, error: resultado.error || null, redes: redes ? redesFinal : [], historia: resultado.historia || null, mails },
     aprobadoEn: FieldValue.serverTimestamp(), aprobandoMs: FieldValue.delete(),
   });
-  return { ...resultado, sitios: results.length };
+  return { ...resultado, sitios: results.length, ...(mails ? { mails } : {}) };
 }
 
 export async function descartarBorrador(db, id, motivo = '') {

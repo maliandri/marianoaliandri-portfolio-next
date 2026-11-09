@@ -110,6 +110,11 @@ export async function publicarInforme({ combo, results, nowMs, useGemini = true,
     out.error = `La captura del informe no responde con una imagen (Microlink): ${image.detail}`;
     return out;
   }
+  // Imagen vertical para Instagram: se pide antes (Microlink la renderiza la primera vez). Si no
+  // responde, Make usa la imagen apaisada de siempre.
+  if (payload.instagramImageUrl && !(await imageIsReachable(payload.instagramImageUrl)).ok) {
+    delete payload.instagramImageUrl;
+  }
   try {
     await postToMakeSocial(payload, { timeoutMs: 10000 });
     const historia = await publishAuditStory(saved.id, payload.networks);

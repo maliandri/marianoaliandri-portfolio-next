@@ -2,10 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('firebase-admin/firestore', () => ({ FieldValue: { serverTimestamp: () => 'TS', delete: () => '__DEL__' } }));
 vi.mock('@/lib/autoAuditRun', () => ({
-  DRAFTS_COLLECTION: 'auditoria_auto_borradores', MIN_SITES_TO_PUBLISH: 3, publicarInforme: vi.fn(),
+  DRAFTS_COLLECTION: 'auditoria_auto_borradores', MIN_SITES_TO_PUBLISH: 3, publicarInforme: vi.fn(), loadConfig: vi.fn(async () => ({ emailAuto: false })),
 }));
+vi.mock('@/lib/autoAuditEmail', () => ({ enviarMailsAuditoria: vi.fn(async () => ({ enviados: 2, omitidos: {}, pausado: false })) }));
 
-import { publicarInforme } from '@/lib/autoAuditRun';
+import { publicarInforme, loadConfig } from '@/lib/autoAuditRun';
+import { enviarMailsAuditoria } from '@/lib/autoAuditEmail';
 import { aprobarBorrador, descartarBorrador, listarBorradores, ReviewError } from './autoAuditReview.js';
 
 const fila = (id, seoScore = 50) => ({ id, nombre: id, seoScore, siteUrl: `https://${id}.com` });
@@ -59,6 +61,20 @@ describe('autoAuditReview', () => {
     expect(arg).toMatchObject({ nowMs: 1000, redes: true, networks: ['linkedin', 'instagram'], combo: { ciudad: 'Gran Mendoza' } });
     expect(db.store.b1).toMatchObject({ estado: 'publicado', auditoriaId: 'aud-9', excluidos: ['farmacia'] });
     expect(db.store.b1.aprobandoMs).toBeUndefined();
+  });
+
+  it('aprobar manda los mails solo si emailAuto está prendido, y sin los excluidos', async () => {
+    const db = createFakeDb({ b1: BORRADOR, b2: BORRADOR });
+    await aprobarBorrador(db, 'b1');
+    expect(enviarMailsAuditoria).not.toHaveBeenCalled();
+
+    loadConfig.mockResolvedValueOnce({ emailAuto: true, emailTope: 10 });
+    const out = await aprobarBorrador(db, 'b2', { excluir: ['farmacia'] });
+    expect(enviarMailsAuditoria).toHaveBeenCalledTimes(1);
+    const arg = enviarMailsAuditoria.mock.calls[0][1];
+    expect(arg.results.map(r => r.id)).toEqual(['a', 'b', 'c']);
+    expect(arg.auditoriaId).toBe('aud-9');
+    expect(out.mails).toMatchObject({ enviados: 2 });
   });
 
   it('aprobar sin redes y con otras redes', async () => {
