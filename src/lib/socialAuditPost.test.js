@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { auditReportUrl, auditScreenshotUrl, buildAuditPublishPayload } from './socialAuditPost.js';
 
-const SHOT = 'https://api.microlink.io/?url=https%3A%2F%2Fmarianoaliandri.com.ar%2Fauditorias%2Fabc123%3Fscreenshot%3D1&screenshot=true&meta=false&embed=screenshot.url&viewport.width=1280&viewport.height=980';
+const SHOT = 'https://api.microlink.io/?url=https%3A%2F%2Fmarianoaliandri.com.ar%2Fauditorias%2Fabc123%3Fscreenshot%3D1&screenshot=true&meta=false&embed=screenshot.url&screenshot.type=jpeg&viewport.width=900&viewport.height=1125&viewport.deviceScaleFactor=1.2&waitForTimeout=2500';
 
 describe('socialAuditPost', () => {
   it('auditReportUrl y auditScreenshotUrl', () => {
@@ -46,7 +46,7 @@ describe('socialAuditPost', () => {
     const id = 'zzz999';
     const reportUrl = `https://marianoaliandri.com.ar/auditorias/${id}`;
     const screenshotUrl = `${reportUrl}?screenshot=1`;
-    const imageUrl = `https://api.microlink.io/?url=${encodeURIComponent(screenshotUrl)}&screenshot=true&meta=false&embed=screenshot.url&viewport.width=1280&viewport.height=980`;
+    const imageUrl = `https://api.microlink.io/?url=${encodeURIComponent(screenshotUrl)}&screenshot=true&meta=false&embed=screenshot.url&screenshot.type=jpeg&viewport.width=900&viewport.height=1125&viewport.deviceScaleFactor=1.2&waitForTimeout=2500`;
     const old = {
       text: pubCaption, content: pubCaption, caption: pubCaption, description: pubCaption, message: pubCaption,
       networks, type: 'service', useAI: false, aiProvider: 'gemini',
