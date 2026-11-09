@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthUser } from '@/hooks/useAuthUser';
-import { CANTIDAD_DEFAULT, CANTIDAD_MIN, CANTIDAD_MAX, consumoMensual, busquedasDe, parseZona } from '@/lib/autoAudit';
+import { CANTIDAD_DEFAULT, CANTIDAD_MIN, CANTIDAD_MAX, consumoMensual, busquedasDe, parseZona, RADIO_DEFAULT } from '@/lib/autoAudit';
 import { PLACES_LIMITS } from '@/data/placesFreeTier';
 import AutoAuditDrafts from './AutoAuditDrafts';
+
+const RADIOS = [5, 10, 15, 20, 30, 40, 50];
+const opcionesRadio = (actual) => [...new Set([...RADIOS, actual].filter(Boolean))].sort((a, b) => a - b);
 
 const ESTADO_STYLE = {
   en_revision: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
@@ -35,6 +38,7 @@ export default function AutoAuditCard() {
   const [draftsKey, setDraftsKey] = useState(0);
   const [pickCiudad, setPickCiudad] = useState(''); // '' = lo decide el sistema
   const [pickRubro, setPickRubro] = useState('');
+  const [pickRadio, setPickRadio] = useState(''); // '' = el radio configurado
 
   const authFetch = useCallback(async (url, options = {}) => {
     const token = await getIdToken();
@@ -82,7 +86,8 @@ export default function AutoAuditCard() {
   };
 
   const runNow = async () => {
-    const que = [pickRubro || 'un rubro a elección', pickCiudad || 'una ciudad a elección'].join(' en ');
+    const radio = Number(pickRadio) || config?.radioKm || RADIO_DEFAULT;
+    const que = `${[pickRubro || 'un rubro a elección', pickCiudad || 'una ciudad a elección'].join(' en ')} (radio ${radio} km)`;
     const aviso = config?.revision
       ? `Audita ${que} y deja el lote para revisar (no publica nada). ¿Correr ahora?`
       : `Esto audita ${que} y PUBLICA en redes de verdad. ¿Correr ahora?`;
@@ -91,7 +96,7 @@ export default function AutoAuditCard() {
     try {
       const res = await authFetch('/api/cron/auditoria/', {
         method: 'POST',
-        body: JSON.stringify({ ...(pickCiudad ? { ciudad: pickCiudad } : {}), ...(pickRubro ? { rubro: pickRubro } : {}) }),
+        body: JSON.stringify({ ...(pickCiudad ? { ciudad: pickCiudad } : {}), ...(pickRubro ? { rubro: pickRubro } : {}), ...(pickRadio ? { radioKm: Number(pickRadio) } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Falló la corrida');
@@ -191,7 +196,15 @@ export default function AutoAuditCard() {
                 {[...new Set((config.ciudades || []).map(c => parseZona(c).nombre))].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
             </label>
-            <span className="text-xs text-gray-500 dark:text-gray-400">Si elegís los dos, audita exactamente esa combinación.</span>
+            <label className="flex items-center gap-1">
+              Radio
+              <select value={pickRadio} onChange={e => setPickRadio(e.target.value)} disabled={running}
+                className="rounded border border-gray-300 bg-white px-1 py-0.5 dark:border-gray-600 dark:bg-gray-800">
+                <option value="">Configurado ({config.radioKm ?? RADIO_DEFAULT} km)</option>
+                {opcionesRadio(0).map(n => <option key={n} value={n}>{n} km</option>)}
+              </select>
+            </label>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Si elegís rubro y ciudad, audita exactamente esa combinación.</span>
           </div>
         )}
         {config && (
@@ -262,11 +275,26 @@ export default function AutoAuditCard() {
           </div>
 
           <div className={card}>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Radio de búsqueda</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+              Kilómetros alrededor del centro de la ciudad. Con una ciudad grande y un radio más amplio entran los
+              pueblos vecinos, sin arrancar por los chicos (donde Google tiene pocos comercios). Máximo 50 km.
+            </p>
+            <select value={config.radioKm ?? RADIO_DEFAULT} disabled={busy}
+              onChange={e => patch({ radioKm: Number(e.target.value) }, 'Radio guardado')}
+              className={`${input} w-32`}>
+              {opcionesRadio(config.radioKm ?? RADIO_DEFAULT).map(n => <option key={n} value={n}>{n} km</option>)}
+            </select>
+          </div>
+
+          <div className={card}>
             <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Ciudades y zonas ({(config.ciudades || []).length})</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Una por línea. Una ciudad sola (<code>Bariloche</code>) o una zona con sus localidades
-              (<code>Alto Valle: Neuquén, Plottier, Cipolletti</code>): la zona sale en un solo informe con los
-              sitios de todas, y el cupo de comercios se reparte entre ellas. La primera localidad es la cabecera.
+              Una por línea. Lo recomendado es la <strong>ciudad central con su radio</strong>:{' '}
+              <code>Alto Valle: Neuquén @50</code> es la zona "Alto Valle", centrada en Neuquén, con 50 km a la redonda
+              (<code>@NN</code> = km, de 5 a 50; sin <code>@</code> usa el radio de arriba). Una ciudad sola también vale
+              (<code>Bariloche</code>). El formato viejo con varias localidades (<code>Alto Valle: Neuquén, Plottier</code>)
+              sigue andando, pero busca primero las chicas y reparte el cupo entre todas.
               Si un nombre se repite en otra provincia, aclarala entre paréntesis: <code>Las Heras (Mendoza)</code>.
             </p>
             <label className="sr-only" htmlFor="aa-ciudades">Ciudades y zonas, una por línea</label>

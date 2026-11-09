@@ -322,6 +322,16 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
     búsquedas de Places por corrida (`src/lib/autoAuditBatch.js`).
   - Cantidad de sitios por corrida: `cantidad` en `auditoria_auto/config` (default 15, rango 3–30, se edita en la tarjeta). Se examinan hasta `2 × cantidad` comercios (getDetails); con 15 son ~516/mes con 4 corridas por semana, la mitad del cupo gratis de Places. La tarjeta muestra el consumo estimado y lo pinta en rojo si supera 1.000/mes.
   - Mínimo 3 sitios con web para guardar/publicar (`MIN_SITES_TO_PUBLISH` en `src/lib/autoAuditRun.js`): si una combinación da menos (pasó el 2026-10-12 con Durlock × Formosa: Google tenía 2 comercios, 1 con web, y se publicó un informe de 1 sitio), se marca como hecha y se prueba otra en la misma corrida (hasta 3 intentos, compartiendo el tope de `maxCandidates` y el tiempo). Cada corrida guarda `intentos` (encontrados / examinados / con web por combinación), visible en la tarjeta del admin.
+  - Radio y selector (2026-11-09): `config.radioKm` (5–50 km, default 15; 50 es el máximo de Places) es el radio de búsqueda alrededor
+    del centro de la ciudad; se guarda en el informe (`config.radioKm`) y en el borrador. Lo recomendado es cargar ciudades grandes solas y
+    subir el radio, porque en una zona las localidades chicas se buscan primero y consumen el cupo con pocos comercios. "Correr ahora"
+    acepta `{ ciudad, rubro, radioKm }` (body de `POST /api/cron/auditoria/`): con ciudad y rubro audita esa combinación exacta, sin la
+    espera de 30 días y sin cambiarla por otra si salen pocos sitios (`filtrarConfig` en `src/lib/autoAudit.js`).
+  - Imagen de las auditorías (2026-11-09): una sola tarjeta 1080×1350 dibujada en el servidor (`src/lib/auditCard.js`, satori + resvg) y subida
+    a Cloudinary para Instagram, Facebook y LinkedIn; la usan la corrida automática, `/api/publish-social` (botones de Auditorías y Lead
+    Finder) y el MCP `publish_audit_social` (`src/lib/auditCardPublish.js`). Si no se puede armar no se publica nada.
+  - Mails automáticos (2026-11-09): `src/lib/autoAuditEmail.js`, `config.emailAuto` (apagado por defecto) y `emailTope`; solo SEO < 70.
+    Se disparan al publicar directo y también al aprobar un borrador.
   - "Correr ahora" (admin) usa modo rápido (pensado para el límite de 60 s del viejo plan Hobby; con Pro se podría alargar): lote corto (hasta 8 sitios, 15 s) y resumen de plantilla sin Gemini; la corrida programada de GitHub Actions usa el presupuesto completo.
 - **Informes de demanda** (`/demanda/` + admin → Marketing → Informes de demanda, desde 2026-10-27): ranking de los 20
   rubros más buscados por zona (autocompletado de Google vía `analyzedConCache` de `src/lib/rubroDemand.js`, gratis, sin Places).

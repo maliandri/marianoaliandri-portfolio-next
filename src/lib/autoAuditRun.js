@@ -1,7 +1,7 @@
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { CIUDADES_SEMILLA, RUBROS_SEMILLA } from '@/data/auditoriaAuto';
-import { pickNext, filtrarConfig, comboKey, buildStats, buildPost, DEFAULT_NETWORKS, CANTIDAD_DEFAULT, CANTIDAD_MIN, CANTIDAD_MAX, FAST_MAX_SITES } from '@/lib/autoAudit';
+import { pickNext, filtrarConfig, comboKey, buildStats, buildPost, DEFAULT_NETWORKS, CANTIDAD_DEFAULT, CANTIDAD_MIN, CANTIDAD_MAX, FAST_MAX_SITES, RADIO_DEFAULT, RADIO_MIN, RADIO_MAX } from '@/lib/autoAudit';
 import { runBatch } from '@/lib/autoAuditBatch';
 import { saveAuditoria } from '@/lib/auditoriasStore';
 import { imageIsReachable } from '@/lib/imageCheck';
@@ -44,6 +44,7 @@ export function defaultConfig() {
     rubros: RUBROS_SEMILLA.map(r => ({ ...r })),
     networks: [...DEFAULT_NETWORKS],
     cantidad: CANTIDAD_DEFAULT,
+    radioKm: RADIO_DEFAULT, // radio alrededor de la ciudad
     revision: true, // el lote queda como borrador: el informe y los posts salen recién al aprobarlo
     emailAuto: false, // manda solo el mail de la auditoría a cada negocio con email (apagado por defecto)
     emailTope: EMAIL_TOPE_DEFAULT,
@@ -65,6 +66,7 @@ export async function loadConfig(db) {
     networks: d.networks?.length ? d.networks : base.networks,
     cantidad: Number.isInteger(d.cantidad) ? Math.min(CANTIDAD_MAX, Math.max(CANTIDAD_MIN, d.cantidad)) : base.cantidad,
     revision: d.revision !== false,
+    radioKm: Number.isInteger(d.radioKm) ? Math.min(RADIO_MAX, Math.max(RADIO_MIN, d.radioKm)) : base.radioKm,
     emailAuto: d.emailAuto === true,
     emailTope: Number.isInteger(d.emailTope) ? d.emailTope : EMAIL_TOPE_DEFAULT,
     ultimaCorrida: d.ultimaCorrida || {},
@@ -88,9 +90,9 @@ function fechaLarga(ms) {
   });
 }
 
-async function saveReport(combo, results, stats, nowMs, useGemini) {
+async function saveReport(combo, results, stats, nowMs, useGemini, radioKm = RADIO_DEFAULT) {
   const title = `Auditoría SEO de ${stats.total} sitios de ${combo.rubro.label} en ${combo.ciudad} (${fechaLarga(nowMs)})`;
-  const config = { ciudades: combo.ciudades?.length ? combo.ciudades : [combo.ciudad], pais: 'Argentina', radioKm: 15, tiposLabels: [combo.rubro.label] };
+  const config = { ciudades: combo.ciudades?.length ? combo.ciudades : [combo.ciudad], pais: 'Argentina', radioKm, tiposLabels: [combo.rubro.label] };
   return saveAuditoria({ title, config, results, stats, useGemini });
 }
 
@@ -98,10 +100,10 @@ async function saveReport(combo, results, stats, nowMs, useGemini) {
 // Guarda el informe público y lo anuncia en redes (+ historia de Instagram). Lo usan la corrida
 // directa (revision: false) y la aprobación de un borrador (src/lib/autoAuditReview.js).
 // redes: false = solo el informe en la web.
-export async function publicarInforme({ combo, results, nowMs, useGemini = true, networks, redes = true }) {
+export async function publicarInforme({ combo, results, nowMs, useGemini = true, networks, redes = true, radioKm = RADIO_DEFAULT }) {
   const out = { estado: 'ok', auditoriaId: null };
   const stats = buildStats(results);
-  const saved = await saveReport(combo, results, stats, nowMs, useGemini);
+  const saved = await saveReport(combo, results, stats, nowMs, useGemini, radioKm);
   out.auditoriaId = saved.id;
   if (!redes) { out.estado = 'guardado'; return out; }
 
@@ -110,7 +112,7 @@ export async function publicarInforme({ combo, results, nowMs, useGemini = true,
   // Instagram, Facebook y LinkedIn. Si no se puede armar, no se publica nada con una imagen distinta.
   let cardUrl;
   try {
-    const png = await renderAuditCard({ rubro: combo.rubro.label, ciudad: combo.ciudad, stats, results });
+    const png = await renderAuditCard({ rubro: combo.rubro.label, ciudad: combo.ciudad, radioKm, stats, results });
     cardUrl = await uploadPng(png, `auditorias/${saved.id}`);
   } catch (e) {
     out.estado = 'post_fallido';
@@ -137,7 +139,7 @@ export async function publicarInforme({ combo, results, nowMs, useGemini = true,
 }
 
 // Lote para revisar (Mariano desde el admin o Claude por el MCP): nada público hasta aprobarlo.
-async function guardarBorrador(db, { combo, batch, intentos, nowMs, networks }) {
+async function guardarBorrador(db, { combo, batch, intentos, nowMs, networks, radioKm }) {
   const ref = await db.collection(DRAFTS_COLLECTION).add({
     estado: 'pendiente',
     combo: {
@@ -150,7 +152,7 @@ async function guardarBorrador(db, { combo, batch, intentos, nowMs, networks }) 
       encontrados: batch.found ?? null, examinados: batch.examined ?? 0, conWeb: batch.results.length,
       porLocalidad: batch.porLocalidad || {}, intentos: intentos || [],
     },
-    networks,
+    networks, radioKm,
     creadoMs: nowMs,
     createdAt: FieldValue.serverTimestamp(),
   });
@@ -160,7 +162,7 @@ async function guardarBorrador(db, { combo, batch, intentos, nowMs, networks }) 
 // Una corrida de la auditoría automática. La invocan el script de GitHub Actions
 // (scripts/auto-audit.mjs) y el botón "Correr ahora" del admin (force: true).
 export async function runAutoAudit({
-  force = false, now = Date.now, budgetMs = 45000, fast = false, useGemini = true, ciudad = null, rubro = null,
+  force = false, now = Date.now, budgetMs = 45000, fast = false, useGemini = true, ciudad = null, rubro = null, radioKm: radioPedido = null,
 } = {}) {
   const db = getDb();
   if (!db) throw new Error('DB no disponible');
@@ -169,6 +171,9 @@ export async function runAutoAudit({
   const config = await loadConfig(db);
   // Con ciudad y/o rubro elegidos solo se considera esa combinación (se valida antes de tomar el candado).
   const filtro = ciudad || rubro ? { ciudad, rubro } : null;
+  // Radio: el pedido en "Correr ahora" > el de la ciudad/zona ("Neuquén @50") > el configurado.
+  const radioPedidoOk = Number.isInteger(radioPedido) && radioPedido >= RADIO_MIN && radioPedido <= RADIO_MAX ? radioPedido : null;
+  let radioKm = radioPedidoOk ?? config.radioKm;
   const base = filtro ? filtrarConfig(config, filtro) : config;
   if (!force && config.activo !== true) return { skipped: 'inactivo' };
   if (!(await acquireLock(db, nowMs))) return { skipped: 'en_curso' };
@@ -194,7 +199,8 @@ export async function runAutoAudit({
       const next = pickNext({ ...base, ultimaCorrida: { ...base.ultimaCorrida, ...descartadas } }, nowMs);
       if (!next) break;
       combo = next;
-      batch = await runBatch(combo, { budgetMs: deadline - now(), maxSites: cantidad, maxCandidates: candidatesLeft });
+      radioKm = radioPedidoOk ?? next.radioKm ?? config.radioKm;
+      batch = await runBatch(combo, { budgetMs: deadline - now(), maxSites: cantidad, maxCandidates: candidatesLeft, radioKm });
       candidatesLeft -= batch.examined || 0;
       (run.intentos ||= []).push({
         ciudad: combo.ciudad, rubro: combo.rubro.label,
@@ -221,9 +227,9 @@ export async function runAutoAudit({
         run.estado = 'cuota_agotada';
         if (batch.results.length >= MIN_SITES_TO_SAVE) {
           if (config.revision) {
-            run.borradorId = await guardarBorrador(db, { combo, batch, intentos: run.intentos, nowMs, networks: config.networks });
+            run.borradorId = await guardarBorrador(db, { combo, batch, intentos: run.intentos, nowMs, networks: config.networks, radioKm });
           } else {
-            const saved = await saveReport(combo, batch.results, buildStats(batch.results), nowMs, useGemini);
+            const saved = await saveReport(combo, batch.results, buildStats(batch.results), nowMs, useGemini, radioKm);
             run.auditoriaId = saved.id;
           }
           markRan = true;
@@ -232,12 +238,12 @@ export async function runAutoAudit({
         run.estado = 'sin_resultados';
         markRan = conclusivo(batch); // cortado por presupuesto: no se descarta la combinación
       } else if (config.revision) {
-        run.borradorId = await guardarBorrador(db, { combo, batch, intentos: run.intentos, nowMs, networks: config.networks });
+        run.borradorId = await guardarBorrador(db, { combo, batch, intentos: run.intentos, nowMs, networks: config.networks, radioKm });
         run.estado = 'en_revision';
         markRan = true;
       } else {
         Object.assign(run, await publicarInforme({
-          combo, results: batch.results, nowMs, useGemini, networks: config.networks,
+          combo, results: batch.results, nowMs, useGemini, networks: config.networks, radioKm,
         }));
         markRan = true;
         // Con el informe ya publicado, los mails a los negocios (si están prendidos).

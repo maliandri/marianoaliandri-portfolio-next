@@ -49,6 +49,14 @@ describe('POST /api/cron/auditoria', () => {
     });
   });
 
+  it('pasa el radio pedido', async () => {
+    runAutoAudit.mockResolvedValue({ estado: 'en_revision' });
+    await POST({ json: async () => ({ radioKm: 30 }) });
+    expect(runAutoAudit).toHaveBeenCalledWith({
+      force: true, budgetMs: 15000, fast: true, useGemini: false, radioKm: 30,
+    });
+  });
+
   it('una combinación que no existe responde 400 con el mensaje', async () => {
     runAutoAudit.mockRejectedValue(Object.assign(new Error('El rubro "X" no está en la configuración.'), { status: 400 }));
     const res = await POST({ json: async () => ({ rubro: 'X' }) });

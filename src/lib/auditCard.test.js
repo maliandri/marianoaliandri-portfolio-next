@@ -18,6 +18,12 @@ describe('auditCard', () => {
     expect(largo.startsWith('Comodoro Rivadavia')).toBe(true);
   });
 
+  it('la tarjeta lleva el radio en la zona', async () => {
+    const { auditCardTree } = await import('./auditCard.js');
+    const json = JSON.stringify(auditCardTree({ rubro: 'Ropa', ciudad: 'Neuquén', radioKm: 30, stats: { total: 3 }, results: [] }));
+    expect(json).toContain('Neuquén · radio 30 km');
+  });
+
   it('distribucion sin sitios no divide por cero', () => {
     expect(distribucion([]).map(r => [r.n, r.pct])).toEqual([[0, 0], [0, 0], [0, 0]]);
   });

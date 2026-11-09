@@ -81,7 +81,7 @@ export async function aprobarBorrador(db, id, {
   try {
     resultado = await publicarInforme({
       combo: { ciudad: raw.combo.ciudad, ciudades: raw.combo.ciudades, rubro: raw.combo.rubro },
-      results, nowMs: raw.creadoMs || nowMs, useGemini, networks: redesFinal, redes,
+      results, nowMs: raw.creadoMs || nowMs, useGemini, networks: redesFinal, redes, radioKm: raw.radioKm || undefined,
     });
   } catch (e) {
     await ref.update({ estado: 'pendiente', aprobandoMs: FieldValue.delete() });

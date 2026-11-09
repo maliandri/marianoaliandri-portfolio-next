@@ -213,7 +213,7 @@ describe('runAutoAudit — flujo', () => {
     await runAutoAudit({ now: () => NOW, budgetMs: 480000 });
     expect(runBatch).toHaveBeenCalledWith(
       expect.objectContaining({ ciudad: 'Neuquén' }),
-      { budgetMs: 480000, maxSites: 20, maxCandidates: 40 },
+      { budgetMs: 480000, maxSites: 20, maxCandidates: 40, radioKm: 15 },
     );
   });
 
@@ -453,6 +453,49 @@ describe('runAutoAudit — flujo', () => {
       runBatch.mockResolvedValue({ results: [], status: 'ok', examined: 30, found: 30 });
       await runAutoAudit({ now: () => NOW });
       expect(runBatch).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('radio de búsqueda', () => {
+    it('loadConfig: 15 km por defecto, se acota entre 5 y 50', async () => {
+      expect((await loadConfig(createFakeDb({ activo: true }))).radioKm).toBe(15);
+      expect((await loadConfig(createFakeDb({ radioKm: 30 }))).radioKm).toBe(30);
+      expect((await loadConfig(createFakeDb({ radioKm: 500 }))).radioKm).toBe(50);
+      expect((await loadConfig(createFakeDb({ radioKm: 1 }))).radioKm).toBe(5);
+    });
+
+    it('la corrida usa el radio configurado y lo guarda en el informe', async () => {
+      const db = createFakeDb({ ...BASE_CONFIG, radioKm: 30 });
+      getDb.mockReturnValue(db);
+      await runAutoAudit({ now: () => NOW });
+      expect(runBatch.mock.calls[0][1].radioKm).toBe(30);
+      expect(saveAuditoria.mock.calls[0][0].config.radioKm).toBe(30);
+    });
+
+    it('el radio de la zona ("Alto Valle: Neuquén @50") pisa el configurado, pero no el pedido', async () => {
+      const cfg = { ...BASE_CONFIG, radioKm: 15, ciudades: ['Alto Valle: Neuquén @50'] };
+      getDb.mockReturnValue(createFakeDb(cfg));
+      await runAutoAudit({ now: () => NOW });
+      expect(runBatch.mock.calls[0][1].radioKm).toBe(50);
+      expect(saveAuditoria.mock.calls[0][0].config.radioKm).toBe(50);
+      runBatch.mockClear();
+      getDb.mockReturnValue(createFakeDb(cfg));
+      await runAutoAudit({ now: () => NOW, force: true, radioKm: 20 });
+      expect(runBatch.mock.calls[0][1].radioKm).toBe(20);
+    });
+
+    it('un radio pedido en "Correr ahora" pisa el configurado', async () => {
+      const db = createFakeDb({ ...BASE_CONFIG, radioKm: 30 });
+      getDb.mockReturnValue(db);
+      await runAutoAudit({ now: () => NOW, force: true, radioKm: 45 });
+      expect(runBatch.mock.calls[0][1].radioKm).toBe(45);
+    });
+
+    it('un radio fuera de rango se ignora y usa el configurado', async () => {
+      const db = createFakeDb({ ...BASE_CONFIG, radioKm: 20 });
+      getDb.mockReturnValue(db);
+      await runAutoAudit({ now: () => NOW, force: true, radioKm: 999 });
+      expect(runBatch.mock.calls[0][1].radioKm).toBe(20);
     });
   });
 

@@ -22,6 +22,7 @@ export function cardDataFromAudit(a) {
   return {
     rubro: tipos.length === 1 ? tipos[0] : tipos.length ? tipos.join(', ') : 'negocios',
     ciudad: ciudades.join(' · '),
+    radioKm: a.config?.radioKm || null,
     stats: a.stats || buildStats(results),
     results,
   };

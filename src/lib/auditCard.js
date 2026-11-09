@@ -68,12 +68,13 @@ function barra({ label, color, n, pct }, total) {
 }
 
 // Árbol de la tarjeta. Se exporta para testearlo sin renderizar.
-export function auditCardTree({ rubro, ciudad, stats, results }) {
+export function auditCardTree({ rubro, ciudad, radioKm, stats, results }) {
   const dist = distribucion(results);
   const total = stats?.total ?? (results || []).length;
   const scored = dist.reduce((a, r) => a + r.n, 0);
   const titulo = txt(rubro, 60);
-  const lugar = resumirLugar(ciudad);
+  const radio = radioKm ? ` · radio ${radioKm} km` : '';
+  const lugar = resumirLugar(ciudad, 64 - radio.length) + radio;
 
   const header = h('div', { display: 'flex', alignItems: 'center' }, [
     h('div', { display: 'flex', alignItems: 'center', padding: '12px 24px', borderRadius: 999, backgroundColor: 'rgba(6,8,16,0.72)', border: `2px solid ${T.accent}` }, [

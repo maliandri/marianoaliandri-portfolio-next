@@ -12,6 +12,10 @@ const SUMMARY_MAX = 240;
 // Sitios con web por corrida (configurable desde la tarjeta del admin). El tope de comercios
 // examinados es el doble: cada uno es una consulta de detalle paga de Google Places.
 export const CANTIDAD_DEFAULT = 15;
+// Radio de búsqueda alrededor de la ciudad (km). 50 es el máximo que acepta Google Places.
+export const RADIO_DEFAULT = 15;
+export const RADIO_MIN = 5;
+export const RADIO_MAX = 50;
 export const CANTIDAD_MIN = 3;
 export const CANTIDAD_MAX = 30;
 export const FAST_MAX_SITES = 8; // "Correr ahora" corre en Vercel Hobby (corte a los 60 s)
@@ -28,13 +32,25 @@ export function comboKey(ciudad, rubro) {
 // Una entrada de "ciudades" es una ciudad sola ("Bariloche") o una zona con sus localidades
 // ("Alto Valle: Neuquén, Plottier, Cipolletti"). Una zona sale en un solo informe con los sitios
 // de todas sus localidades; la primera localidad es la cabecera.
+// Una entrada puede cerrar con "@50" (o "@ 50 km"): radio propio de esa ciudad o zona, en km.
+// "Alto Valle: Neuquén @50" = la zona Alto Valle, centrada en Neuquén, con 50 km a la redonda.
+const RADIO_RE = /\s*@\s*(\d+)\s*(?:km)?\s*$/i;
+
 export function parseZona(entry) {
-  const text = String(entry).trim();
+  let text = String(entry).trim();
+  let radioKm = null;
+  const conRadio = (z) => (radioKm ? { ...z, radioKm } : z);
+  const m = text.match(RADIO_RE);
+  if (m) {
+    const r = Number(m[1]);
+    if (r >= RADIO_MIN && r <= RADIO_MAX) radioKm = r;
+    text = text.slice(0, m.index).trim();
+  }
   const i = text.indexOf(':');
-  if (i < 0) return { nombre: text, ciudades: [text] };
+  if (i < 0) return conRadio({ nombre: text, ciudades: [text] });
   const nombre = text.slice(0, i).trim();
   const ciudades = [...new Set(text.slice(i + 1).split(',').map(c => c.trim()).filter(Boolean))];
-  return { nombre, ciudades: ciudades.length ? ciudades : [nombre] };
+  return conRadio({ nombre, ciudades: ciudades.length ? ciudades : [nombre] });
 }
 
 // Un rubro es un grupo de búsquedas que sale en un solo informe: términos libres (searchText) y/o
@@ -51,8 +67,9 @@ const limpiarLista = (v) => [...new Set((Array.isArray(v) ? v : [])
 
 // Forma canónica para guardar: "Nombre: a, b, c" (o solo "Nombre" si es una ciudad sola).
 function formatZona(entry) {
-  const { nombre, ciudades } = parseZona(entry);
-  return ciudades.length === 1 && ciudades[0] === nombre ? nombre : `${nombre}: ${ciudades.join(', ')}`;
+  const { nombre, ciudades, radioKm } = parseZona(entry);
+  const base = ciudades.length === 1 && ciudades[0] === nombre ? nombre : `${nombre}: ${ciudades.join(', ')}`;
+  return radioKm ? `${base} @${radioKm}` : base;
 }
 
 // Elige la próxima combinación ciudad (o zona) × rubro. Respeta la proporción prioritarios/secundarios,
@@ -69,7 +86,7 @@ export function pickNext(config, nowMs = Date.now(), rand = Math.random) {
     if (!zona.nombre) continue;
     for (const rubro of rubros) {
       const lastRun = last[comboKey(zona.nombre, rubro)] || 0;
-      if (nowMs - lastRun >= COOLDOWN_MS) eligible.push({ ciudad: zona.nombre, ciudades: zona.ciudades, rubro, lastRun });
+      if (nowMs - lastRun >= COOLDOWN_MS) eligible.push({ ciudad: zona.nombre, ciudades: zona.ciudades, radioKm: zona.radioKm, rubro, lastRun });
     }
   }
   if (!eligible.length) return null;
@@ -82,7 +99,7 @@ export function pickNext(config, nowMs = Date.now(), rand = Math.random) {
   const oldest = Math.min(...pool.map(c => c.lastRun));
   const candidates = pool.filter(c => c.lastRun === oldest);
   const pick = candidates[Math.floor(rand() * candidates.length)];
-  return { ciudad: pick.ciudad, ciudades: pick.ciudades, rubro: pick.rubro };
+  return { ciudad: pick.ciudad, ciudades: pick.ciudades, radioKm: pick.radioKm, rubro: pick.rubro };
 }
 
 // "Correr ahora" con selector: deja solo la ciudad/zona y/o el rubro elegidos (por nombre) y no aplica
@@ -152,6 +169,9 @@ export function validateConfigPatch(body) {
 
   if ('ciudades' in body) {
     if (!Array.isArray(body.ciudades)) return { error: 'ciudades debe ser un array de textos' };
+    const fueraDeRango = body.ciudades.map(c => (typeof c === 'string' ? c.match(RADIO_RE) : null))
+      .find(m => m && (Number(m[1]) < RADIO_MIN || Number(m[1]) > RADIO_MAX));
+    if (fueraDeRango) return { error: `ciudades: el radio (@) debe estar entre ${RADIO_MIN} y ${RADIO_MAX} km` };
     const ciudades = [...new Set(
       body.ciudades.map(c => (typeof c === 'string' && c.trim() ? formatZona(c) : '')).filter(Boolean)
     )];
@@ -204,6 +224,14 @@ export function validateConfigPatch(body) {
     update.emailTope = body.emailTope;
   }
 
+  if ('radioKm' in body) {
+    const r = body.radioKm;
+    if (!Number.isInteger(r) || r < RADIO_MIN || r > RADIO_MAX) {
+      return { error: `radioKm: debe ser un entero entre ${RADIO_MIN} y ${RADIO_MAX}` };
+    }
+    update.radioKm = r;
+  }
+
   if ('cantidad' in body) {
     const c = body.cantidad;
     if (!Number.isInteger(c) || c < CANTIDAD_MIN || c > CANTIDAD_MAX) {
@@ -212,7 +240,7 @@ export function validateConfigPatch(body) {
     update.cantidad = c;
   }
   if (!Object.keys(update).length) {
-    return { error: 'Nada para actualizar (activo, revision, emailAuto, emailTope, ciudades, rubros, networks o cantidad)' };
+    return { error: 'Nada para actualizar (activo, revision, emailAuto, emailTope, radioKm, ciudades, rubros, networks o cantidad)' };
   }
   return { update };
 }

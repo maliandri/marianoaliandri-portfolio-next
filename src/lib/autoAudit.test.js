@@ -240,6 +240,13 @@ describe('consumoMensual', () => {
   });
 });
 
+describe('validateConfigPatch radioKm', () => {
+  it('acepta enteros de 5 a 50 y rechaza el resto', () => {
+    expect(validateConfigPatch({ radioKm: 30 })).toEqual({ update: { radioKm: 30 } });
+    for (const mal of [4, 51, 12.5, '30', null]) expect(validateConfigPatch({ radioKm: mal }).error).toMatch(/radioKm/);
+  });
+});
+
 describe('filtrarConfig (Correr ahora con selector)', () => {
   const cfg = {
     ciudades: ['Neuquén', 'Alto Valle: Cipolletti, Plottier'],
@@ -261,5 +268,23 @@ describe('filtrarConfig (Correr ahora con selector)', () => {
   it('si no existe tira un error 400', () => {
     expect(() => filtrarConfig(cfg, { ciudad: 'Marte' })).toThrow(/no está en la configuración/);
     try { filtrarConfig(cfg, { rubro: 'X' }); } catch (e) { expect(e.status).toBe(400); }
+  });
+});
+
+describe('radio propio por ciudad o zona (@)', () => {
+  it('parseZona lee "@50" y lo saca del nombre', () => {
+    expect(parseZona('Alto Valle: Neuquén @50')).toEqual({ nombre: 'Alto Valle', ciudades: ['Neuquén'], radioKm: 50 });
+    expect(parseZona('Bariloche @ 30 km')).toEqual({ nombre: 'Bariloche', ciudades: ['Bariloche'], radioKm: 30 });
+    expect(parseZona('Viedma')).toEqual({ nombre: 'Viedma', ciudades: ['Viedma'] });
+    expect(parseZona('Alto Valle: Neuquén, Plottier').radioKm).toBeUndefined();
+  });
+  it('pickNext devuelve el radio de la entrada elegida', () => {
+    const cfg = { ciudades: ['Alto Valle: Neuquén @50'], rubros: [{ label: 'Ropa', prioritario: true }], ultimaCorrida: {} };
+    expect(pickNext(cfg, Date.now(), () => 0)).toMatchObject({ ciudad: 'Alto Valle', ciudades: ['Neuquén'], radioKm: 50 });
+  });
+  it('validateConfigPatch conserva el radio y rechaza los fuera de rango', () => {
+    expect(validateConfigPatch({ ciudades: ['Alto Valle:  Neuquén  @ 50 km', 'Viedma'] }).update.ciudades).toEqual(['Alto Valle: Neuquén @50', 'Viedma']);
+    expect(validateConfigPatch({ ciudades: ['Neuquén @80'] }).error).toMatch(/entre 5 y 50/);
+    expect(validateConfigPatch({ ciudades: ['Neuquén @2'] }).error).toMatch(/entre 5 y 50/);
   });
 });

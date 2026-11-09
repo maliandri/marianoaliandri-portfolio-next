@@ -21,7 +21,7 @@ function makeCall(run) {
 // (src/lib/leadSearch.js), sin pasar por HTTP. El informe es de SEO: solo leads con web.
 export async function runBatch(combo, opts = {}) {
   const {
-    budgetMs = 45000, maxSites = 15, maxCandidates = 30,
+    budgetMs = 45000, maxSites = 15, maxCandidates = 30, radioKm = RADIO_KM,
     run = runLeadFinderAction, now = Date.now, sleep,
   } = opts;
   const deadline = now() + budgetMs;
@@ -47,7 +47,7 @@ export async function runBatch(combo, opts = {}) {
       repartirEntreZonas: localidades.length > 1, maxBusquedas: MAX_BUSQUEDAS,
       terminos: busquedasDe(rubro).terminos,
       tipos: busquedasDe(rubro).tipos.map(id => ({ id, label: rubro.label })),
-      radioKm: RADIO_KM, cantidad: maxSites, maxExaminados: maxCandidates, soloConWeb: true,
+      radioKm, cantidad: maxSites, maxExaminados: maxCandidates, soloConWeb: true,
     }, { call: makeCall(run), isCancelled: () => now() >= deadline, ...(sleep ? { sleep } : {}) });
 
     for await (const ev of gen) {
