@@ -1,14 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { auditReportUrl, auditScreenshotUrl, auditInstagramImageUrl, buildAuditPublishPayload } from './socialAuditPost.js';
+import { auditReportUrl, auditScreenshotUrl, buildAuditPublishPayload } from './socialAuditPost.js';
 
 const SHOT = 'https://api.microlink.io/?url=https%3A%2F%2Fmarianoaliandri.com.ar%2Fauditorias%2Fabc123%3Fscreenshot%3D1&screenshot=true&meta=false&embed=screenshot.url&viewport.width=1280&viewport.height=980';
 
 describe('socialAuditPost', () => {
-  it('la imagen de Instagram es vertical 4:5 y la general sigue apaisada', () => {
-    expect(auditInstagramImageUrl('abc123')).toContain('viewport.width=900&viewport.height=1125');
-    expect(auditScreenshotUrl('abc123')).toContain('viewport.width=1280&viewport.height=980');
-  });
-
   it('auditReportUrl y auditScreenshotUrl', () => {
     expect(auditReportUrl('abc123')).toBe('https://marianoaliandri.com.ar/auditorias/abc123');
     expect(auditScreenshotUrl('abc123')).toBe(SHOT);
@@ -28,7 +23,6 @@ describe('socialAuditPost', () => {
       useAI: false,
       aiProvider: 'gemini',
       imageUrl: SHOT,
-      instagramImageUrl: auditInstagramImageUrl('abc123'),
       url: SHOT,
       link: 'https://marianoaliandri.com.ar/auditorias/abc123',
       reportUrl: 'https://marianoaliandri.com.ar/auditorias/abc123',
@@ -59,9 +53,7 @@ describe('socialAuditPost', () => {
       imageUrl, url: imageUrl, link: reportUrl, reportUrl,
       metadata: { topic: 'auditoria', reportUrl, link: reportUrl },
     };
-    // instagramImageUrl es un campo nuevo y opcional (Make lo usa solo para Instagram); el resto no cambia.
-    const { instagramImageUrl, ...next } = buildAuditPublishPayload({ caption: pubCaption, networks, auditoriaId: id });
-    expect(instagramImageUrl).toContain('viewport.height=1125');
+    const next = buildAuditPublishPayload({ caption: pubCaption, networks, auditoriaId: id });
     expect(JSON.stringify(next)).toBe(JSON.stringify(old));
   });
 });

@@ -11,6 +11,9 @@ const nextConfig = {
     '/api/publish-story': ['./scripts/fonts/**'],
     '/api/mcp/[transport]': ['./scripts/fonts/**'],
     '/api/cron/contenido': ['./scripts/fonts/**'],
+    '/api/cron/auditoria': ['./scripts/fonts/**'],
+    '/api/publish-social': ['./scripts/fonts/**'],
+    '/api/auditoria-auto/borradores': ['./scripts/fonts/**'],
   },
   async redirects() {
     return [

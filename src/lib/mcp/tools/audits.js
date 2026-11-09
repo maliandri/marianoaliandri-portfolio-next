@@ -3,9 +3,9 @@ import { revalidatePath } from 'next/cache';
 import { FieldValue } from 'firebase-admin/firestore';
 import { buildAuditReportDraft, MIN_SITIOS_INFORME } from '@/lib/auditReportDraft';
 import { saveAuditoria } from '@/lib/auditoriasStore';
-import { imageIsReachable } from '@/lib/imageCheck';
+import { uploadAuditCard } from '@/lib/auditCardPublish';
 import { postToMakeSocial } from '@/lib/makeSocial';
-import { buildAuditPublishPayload, auditReportUrl, auditScreenshotUrl } from '@/lib/socialAuditPost';
+import { buildAuditPublishPayload, auditReportUrl } from '@/lib/socialAuditPost';
 import { getSearch } from '@/lib/leadSearchesStore';
 import { tipoParams } from '@/lib/leadDemand';
 import { ciudadDe } from '@/lib/rubroDemand';
@@ -137,7 +137,7 @@ export const publishAuditSocialTool = defineTool({
   name: 'publish_audit_social',
   title: 'Publicar auditoría en redes',
   description:
-    'Anuncia un informe en LinkedIn, Instagram y/o Facebook (vía Make) con la captura del informe como imagen. '
+    'Anuncia un informe en LinkedIn, Instagram y/o Facebook (vía Make) con una tarjeta del informe como imagen (título, números y distribución del SEO). '
     + 'PUBLICA DE VERDAD en las redes de Mariano. Usá dry_run: true para ver qué se publicaría sin publicar. '
     + 'Si el informe ya se publicó, hace falta force: true.',
   inputSchema: z.object({
@@ -154,9 +154,9 @@ export const publishAuditSocialTool = defineTool({
       throw new ToolError(`Este informe ya se publicó en redes (${toIso(a.publicadoEn)}). Pasá force: true para publicarlo otra vez.`);
     }
     const caption = args.caption?.trim() || `${a.title}\n\n${a.summary || ''}`.trim();
-    // Make responde 200 aunque la imagen esté rota: se verifica antes (y de paso Microlink la cachea).
-    const image = await imageIsReachable(auditScreenshotUrl(a.id));
-    if (!image.ok) throw new ToolError(`La captura del informe no responde con una imagen (${image.detail}); no se publicó. Probá de nuevo en un rato.`);
+    // Make responde 200 aunque la imagen esté rota: la tarjeta se dibuja y se verifica antes de publicar.
+    let cardUrl;
+    try { cardUrl = await uploadAuditCard(db, a.id); } catch (e) { throw new ToolError(`${e.message}; no se publicó. Probá de nuevo en un rato.`); }
     if (args.dry_run) {
       return { summary: `Prueba: se publicaría en ${args.networks.join(', ')}. Imagen OK.`, data: { dryRun: true, caption, networks: args.networks, imageOk: true } };
     }
@@ -172,7 +172,7 @@ export const publishAuditSocialTool = defineTool({
     if (claim === 'en_curso') throw new ToolError('Este informe se está publicando ahora mismo; esperá un minuto y fijate con get_audit.');
     if (claim === 'ya_publicado') throw new ToolError('Este informe ya se publicó en redes. Pasá force: true para publicarlo otra vez.');
     try {
-      await postToMakeSocial(buildAuditPublishPayload({ caption, networks: args.networks, auditoriaId: a.id }), { timeoutMs: 10000 });
+      await postToMakeSocial({ ...buildAuditPublishPayload({ caption, networks: args.networks, auditoriaId: a.id }), imageUrl: cardUrl, url: cardUrl }, { timeoutMs: 10000 });
     } catch (e) {
       await a.ref.update({ publicando: FieldValue.delete() });
       throw e;

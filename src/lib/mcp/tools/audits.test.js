@@ -3,6 +3,7 @@ vi.mock('firebase-admin/firestore', async () => (await import('@/test/fakeDb')).
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/auditoriasStore', () => ({ saveAuditoria: vi.fn(async () => ({ id: 'aud1', summary: 's' })) }));
 vi.mock('@/lib/imageCheck', () => ({ imageIsReachable: vi.fn() }));
+vi.mock('@/lib/cloudinaryServer', () => ({ uploadPng: vi.fn(async () => 'https://res.cloudinary.com/x/image/upload/v1/auditorias/a1/card.png') }));
 vi.mock('@/lib/makeSocial', () => ({ postToMakeSocial: vi.fn() }));
 import { createFakeDb } from '@/test/fakeDb';
 import { saveAuditoria } from '@/lib/auditoriasStore';

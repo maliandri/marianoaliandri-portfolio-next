@@ -4,9 +4,13 @@ vi.mock('@/lib/firebase-admin', () => ({ getDb: vi.fn() }));
 vi.mock('@/lib/autoAuditBatch', () => ({ runBatch: vi.fn() }));
 vi.mock('@/lib/auditoriasStore', () => ({ saveAuditoria: vi.fn() }));
 vi.mock('firebase-admin/firestore', () => ({ FieldValue: { serverTimestamp: () => 'TS' } }));
+vi.mock('@/lib/auditCard', () => ({ renderAuditCard: vi.fn(async () => Buffer.from('png')) }));
+vi.mock('@/lib/cloudinaryServer', () => ({ uploadPng: vi.fn(async () => 'https://res.cloudinary.com/x/image/upload/v1/auditorias/aud-1/card.png') }));
 vi.mock('../../scripts/igStoryClient.mjs', () => ({ publishIgStory: vi.fn(), igCredsFromEnv: vi.fn(() => null) }));
 
 import { getDb } from '@/lib/firebase-admin';
+import { renderAuditCard } from '@/lib/auditCard';
+import { uploadPng } from '@/lib/cloudinaryServer';
 import { runBatch } from '@/lib/autoAuditBatch';
 import { saveAuditoria } from '@/lib/auditoriasStore';
 import { publishIgStory, igCredsFromEnv } from '../../scripts/igStoryClient.mjs';
@@ -57,7 +61,8 @@ const results = [
 ];
 
 const MICROLINK = 'https://api.microlink.io/';
-const isShot = (url) => String(url).startsWith(MICROLINK);
+// La imagen del informe es la tarjeta subida a Cloudinary (mock); Microlink queda para la historia.
+const isShot = (url) => String(url).startsWith(MICROLINK) || String(url).startsWith('https://res.cloudinary.com/');
 const okShot = () => ({ ok: true, status: 200, headers: { get: () => 'image/png' }, body: { cancel() {} } });
 const makeCalls = () => fetchMock.mock.calls.filter(c => !isShot(c[0]));
 let fetchMock;
@@ -150,7 +155,8 @@ describe('runAutoAudit — flujo', () => {
     const body = JSON.parse(makeCalls()[0][1].body);
     expect(body.type).toBe('service');
     expect(body.networks).toEqual(['linkedin', 'instagram', 'facebook']);
-    expect(body.imageUrl.startsWith('https://api.microlink.io/')).toBe(true);
+    expect(body.imageUrl.startsWith('https://res.cloudinary.com/')).toBe(true);
+    expect(body.url).toBe(body.imageUrl);
     expect(body.link).toBe('https://marianoaliandri.com.ar/auditorias/aud-1');
     expect(body.text).toContain('https://marianoaliandri.com.ar/auditorias/aud-1');
     expect(body.text).toContain('/auditorias/aud-1');
@@ -304,11 +310,22 @@ describe('runAutoAudit — flujo', () => {
   const expectShotFailure = (out, db, detail) => {
     expect(makeCalls()).toHaveLength(0);
     expect(out).toMatchObject({ estado: 'post_fallido', auditoriaId: 'aud-1' });
-    expect(out.error).toContain('captura');
+    expect(out.error).toContain('imagen del informe');
     if (detail) expect(out.error).toContain(detail);
     expect(db.state.config.lock.until).toBe(0);
     expect(db.state.config.ultimaCorrida[COMBO_KEY]).toBe(NOW);
   };
+
+  it('no se puede armar o subir la tarjeta: no llama a Make y no publica una imagen distinta', async () => {
+    const db = createFakeDb(BASE_CONFIG);
+    getDb.mockReturnValue(db);
+    uploadPng.mockRejectedValueOnce(new Error('Cloudinary 500'));
+    const out = await runAutoAudit({ now: () => NOW });
+    expect(out).toMatchObject({ estado: 'post_fallido', auditoriaId: 'aud-1' });
+    expect(out.error).toContain('No se pudo armar la imagen del informe');
+    expect(makeCalls()).toHaveLength(0);
+    expect(renderAuditCard).toHaveBeenCalledTimes(1);
+  });
 
   it('captura GET 404: no llama a Make, post_fallido, combo marcado', async () => {
     const db = createFakeDb(BASE_CONFIG);

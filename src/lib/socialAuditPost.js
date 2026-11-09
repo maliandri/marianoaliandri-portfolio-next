@@ -8,17 +8,11 @@ export function auditReportUrl(id) {
 }
 
 // screenshot=1 oculta navbar/footer/WA; viewport.height corta antes de la tabla.
-// Captura apaisada (1280x980): la que van bien en LinkedIn y Facebook.
+// Captura apaisada (1280x980). La publicación automática ya no la usa (manda la tarjeta de
+// src/lib/auditCard.js); sigue para el botón "Publicar en redes" y el MCP.
 export function auditScreenshotUrl(id) {
   const shot = `${auditReportUrl(id)}?screenshot=1`;
   return `https://api.microlink.io/?url=${encodeURIComponent(shot)}&screenshot=true&meta=false&embed=screenshot.url&viewport.width=1280&viewport.height=980`;
-}
-
-// Para Instagram: vertical 4:5 (1080x1350). La grilla recorta del centro y una captura apaisada
-// quedaba descentrada en la miniatura. waitForTimeout deja cargar el mapa antes de capturar.
-export function auditInstagramImageUrl(id) {
-  const shot = `${auditReportUrl(id)}?screenshot=1`;
-  return `https://api.microlink.io/?url=${encodeURIComponent(shot)}&screenshot=true&meta=false&embed=screenshot.url&screenshot.type=jpeg&viewport.width=900&viewport.height=1125&viewport.deviceScaleFactor=1.2&waitForTimeout=2500`;
 }
 
 // Misma captura en formato celular (540x960 a 2x = 1080x1920, JPG) para la historia de Instagram.
@@ -41,7 +35,6 @@ export function buildAuditPublishPayload({ caption, networks, auditoriaId }) {
     useAI:       false,
     aiProvider:  'gemini',
     imageUrl,
-    instagramImageUrl: auditInstagramImageUrl(auditoriaId), // Make: Instagram usa esta si viene
     url:         imageUrl,
     link:        reportUrl,
     reportUrl,

@@ -8,6 +8,8 @@ import { imageIsReachable } from '@/lib/imageCheck';
 import { postToMakeSocial } from '@/lib/makeSocial';
 import { enviarMailsAuditoria, EMAIL_TOPE_DEFAULT } from '@/lib/autoAuditEmail';
 import { auditStoryScreenshotUrl } from '@/lib/socialAuditPost';
+import { renderAuditCard } from '@/lib/auditCard';
+import { uploadPng } from '@/lib/cloudinaryServer';
 import { publishIgStory, igCredsFromEnv } from '../../scripts/igStoryClient.mjs';
 
 const CONFIG_COLLECTION = 'auditoria_auto';
@@ -104,16 +106,24 @@ export async function publicarInforme({ combo, results, nowMs, useGemini = true,
   if (!redes) { out.estado = 'guardado'; return out; }
 
   const { payload } = buildPost({ combo, stats, auditoriaId: saved.id, summary: saved.summary, networks });
-  const image = await imageIsReachable(payload.imageUrl);
-  if (!image.ok) {
+  // Una sola imagen para todas las redes, dibujada acá (no una captura de la página): sale igual en
+  // Instagram, Facebook y LinkedIn. Si no se puede armar, no se publica nada con una imagen distinta.
+  let cardUrl;
+  try {
+    const png = await renderAuditCard({ rubro: combo.rubro.label, ciudad: combo.ciudad, stats, results });
+    cardUrl = await uploadPng(png, `auditorias/${saved.id}`);
+  } catch (e) {
     out.estado = 'post_fallido';
-    out.error = `La captura del informe no responde con una imagen (Microlink): ${image.detail}`;
+    out.error = `No se pudo armar la imagen del informe: ${e.message}`;
     return out;
   }
-  // Imagen vertical para Instagram: se pide antes (Microlink la renderiza la primera vez). Si no
-  // responde, Make usa la imagen apaisada de siempre.
-  if (payload.instagramImageUrl && !(await imageIsReachable(payload.instagramImageUrl)).ok) {
-    delete payload.instagramImageUrl;
+  payload.imageUrl = cardUrl;
+  payload.url = cardUrl;
+  const image = await imageIsReachable(cardUrl);
+  if (!image.ok) {
+    out.estado = 'post_fallido';
+    out.error = `La imagen del informe no responde (Cloudinary): ${image.detail}`;
+    return out;
   }
   try {
     await postToMakeSocial(payload, { timeoutMs: 10000 });
