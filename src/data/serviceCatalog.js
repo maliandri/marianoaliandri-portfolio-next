@@ -1,17 +1,58 @@
-export const SERVICES = [
-  { category: '🌐 Desarrollo Web', items: [
-    { id: 'landing',      label: 'Landing Page',        desc: 'Página de conversión, diseño custom, mobile-first',  price: 300,
-      benefit: 'Tu tarjeta de presentación digital que trabaja 24/7. Diseñada para que los visitantes tomen acción: te llamen, escriban o compren.' },
-    { id: 'web_business', label: 'Sitio Multi-página',  desc: 'Hasta 8 páginas, menú, formulario, SEO',              price: 700,
-      benefit: 'Contale a tus clientes todo lo que hacés. Mostrá tus servicios, tu historia y construí confianza antes de que te contacten.' },
-    { id: 'ecommerce',    label: 'E-commerce',          desc: 'Catálogo, carrito, MercadoPago, stock',               price: 1400,
-      benefit: 'Vendé online sin depender de redes sociales ni intermediarios. Tus clientes compran cuando quieren, con pago seguro y acreditación automática.' },
-    { id: 'webapp',       label: 'Web App / Portal',    desc: 'Auth, dashboard, roles, CRUD completo',               price: 2200,
-      benefit: 'Una herramienta digital hecha a medida de tu negocio. Gestioná tu operación, clientes y datos desde cualquier dispositivo.' },
-    { id: 'blog',         label: 'Blog / Noticias',     desc: 'CMS liviano, categorías, RSS, SEO',                   price: 450,
+// Catálogo SEMILLA y respaldo. La fuente de verdad es la colección Firestore `tienda_catalogo` (se carga desde
+// admin → Tienda → "Cargar catálogo inicial"); este archivo solo se usa para sembrarla y como respaldo si está
+// vacía. Tiene precios: NO importarlo desde componentes de cliente (iría al bundle público).
+//
+// Modelo: una web se arma sumando piezas que NO se pisan —
+//   tipo 'base'    → diseño y estructura del sitio (se cobra una vez)
+//   tipo 'seccion' → bloques de la página (portada, servicios, galería…); `porUnidad` = se puede pedir x veces
+//   tipo 'modulo'  → funciones con lógica (pagos, turnos, stock, auth…)
+// `requiere` = piezas que se agregan solas (ver src/lib/tiendaDeps.js). `activo: false` = oculta (los
+// paquetes viejos —Landing, Multi-página, E-commerce, Web App— se conservan para presupuestos ya armados).
+const DB = 'db_firestore|db_supabase|db_mongodb';
+
+const RAW = [
+  { category: '🧱 Base del sitio', items: [
+    { id: 'base_sitio', tipo: 'base', label: 'Base del sitio', desc: 'Diseño a medida, responsive (celular y compu), menú, pie de página y estructura',  price: 150,
+      benefit: 'El esqueleto de tu sitio: identidad visual, navegación y que se vea bien en cualquier pantalla. Sobre esto se arma todo lo demás.' },
+  ]},
+  { category: '🧩 Secciones y páginas', items: [
+    { id: 'sec_portada',     tipo: 'seccion', label: 'Portada con llamado a la acción', desc: 'Lo primero que se ve: título, bajada y botón de contacto o compra', price: 50,
+      benefit: 'La primera impresión. Un mensaje claro y un botón para que el visitante actúe en segundos.' },
+    { id: 'sec_servicios',   tipo: 'seccion', label: 'Sección de servicios o productos', desc: 'Grilla de lo que ofrecés, con imagen y texto breve',            price: 40,
+      benefit: 'Mostrá de un vistazo lo que hacés o vendés, ordenado y fácil de recorrer.' },
+    { id: 'sec_nosotros',    tipo: 'seccion', label: 'Sección Nosotros', desc: 'Tu historia, equipo y valores',                                              price: 40,
+      benefit: 'Que te conozcan antes de escribirte. La confianza se construye con cara y nombre.' },
+    { id: 'sec_galeria',     tipo: 'seccion', label: 'Galería de fotos', desc: 'Grilla de imágenes optimizadas con vista ampliada',                           price: 50,
+      benefit: 'Tus trabajos y tu local a la vista. Fotos que cargan rápido y se ven bien en el celular.' },
+    { id: 'sec_testimonios', tipo: 'seccion', label: 'Testimonios', desc: 'Opiniones de clientes con nombre y foto',                                          price: 40,
+      benefit: 'Lo que dicen tus clientes vende más que lo que decís vos.' },
+    { id: 'sec_faq',         tipo: 'seccion', label: 'Preguntas frecuentes', desc: 'Acordeón con las dudas más comunes',                                      price: 30,
+      benefit: 'Respondé una vez las preguntas que te hacen todo el tiempo y ahorrá consultas repetidas.' },
+    { id: 'sec_precios',     tipo: 'seccion', label: 'Precios o planes', desc: 'Tabla de precios o planes comparables',                                       price: 50,
+      benefit: 'Que el cliente vea cuánto cuesta y qué incluye cada opción, sin tener que preguntarlo.' },
+    { id: 'sec_ubicacion',   tipo: 'seccion', label: 'Ubicación y horarios', desc: 'Mapa simple, dirección, horarios y cómo llegar',                          price: 60,
+      benefit: 'Que te encuentren y sepan cuándo estás abierto.' },
+    { id: 'sec_pagina',      tipo: 'seccion', porUnidad: true, label: 'Página interna extra', desc: 'Una página completa adicional con su propio contenido (se pide por cantidad)', price: 100,
+      benefit: 'Una página más para un servicio, un producto o una campaña, con su propia dirección en Google.' },
+  ]},
+  { category: '🌐 Sitio y tienda', items: [
+    { id: 'catalogo_productos', tipo: 'modulo', label: 'Catálogo de productos', desc: 'Listado con filtros y ficha de cada producto, administrable',        price: 400,
+      benefit: 'Tus productos ordenados, con fotos y precios, que podés actualizar vos sin tocar código.' },
+    { id: 'carrito',            tipo: 'modulo', label: 'Carrito de compras', desc: 'Carrito, resumen del pedido y checkout',                                price: 250,
+      benefit: 'Tus clientes arman su pedido y lo pagan solos, a cualquier hora.' },
+    { id: 'blog',         label: 'Blog / Noticias',     desc: 'Listado y notas con categorías, administrable y RSS',  price: 450,
       benefit: 'Posicioná tu marca como referente del sector. El contenido que publicás atrae clientes desde Google y genera confianza a largo plazo.' },
-    { id: 'memberships',  label: 'Membresías / Acceso', desc: 'Login, contenido protegido, suscripciones',           price: 900,
+    { id: 'memberships',  label: 'Membresías / Acceso', desc: 'Contenido protegido por plan y cobro recurrente',      price: 900,
       benefit: 'Cobrá de forma recurrente por acceso a contenido exclusivo, cursos o servicios. Ingresos predecibles todos los meses.' },
+    // Paquetes viejos: desactivados (se pisaban con las piezas sueltas). Quedan para resolver presupuestos ya armados.
+    { id: 'landing',      activo: false, label: 'Landing Page',        desc: 'Página de conversión, diseño custom, mobile-first',  price: 300,
+      benefit: 'Tu tarjeta de presentación digital que trabaja 24/7. Diseñada para que los visitantes tomen acción: te llamen, escriban o compren.' },
+    { id: 'web_business', activo: false, label: 'Sitio Multi-página',  desc: 'Hasta 8 páginas, menú, formulario, SEO',              price: 700,
+      benefit: 'Contale a tus clientes todo lo que hacés. Mostrá tus servicios, tu historia y construí confianza antes de que te contacten.' },
+    { id: 'ecommerce',    activo: false, label: 'E-commerce',          desc: 'Catálogo, carrito, MercadoPago, stock',               price: 1400,
+      benefit: 'Vendé online sin depender de redes sociales ni intermediarios. Tus clientes compran cuando quieren, con pago seguro y acreditación automática.' },
+    { id: 'webapp',       activo: false, label: 'Web App / Portal',    desc: 'Auth, dashboard, roles, CRUD completo',               price: 2200,
+      benefit: 'Una herramienta digital hecha a medida de tu negocio. Gestioná tu operación, clientes y datos desde cualquier dispositivo.' },
   ]},
   { category: '⚙️ Funcionalidades', items: [
     { id: 'contact_form', label: 'Formulario de contacto', desc: 'Validación, anti-spam, email automático',          price: 80,
@@ -136,6 +177,24 @@ export const SERVICES = [
       benefit: 'Una app instalable desde el navegador, sin pasar por tiendas. Experiencia de app nativa a una fracción del costo de desarrollo mobile.' },
   ]},
 ];
+
+// Dependencias: lo que se agrega solo al elegir cada pieza ('a|b|c' = alguna de esas).
+const REQUIERE = {
+  contact_form: ['base_sitio'], booking: ['base_sitio', DB], payments_mp: ['base_sitio'], user_auth: ['base_sitio'],
+  ai_chatbot: ['base_sitio'], search: ['base_sitio'], analytics_ga: ['base_sitio'], inventory: ['catalogo_productos'],
+  crm_basic: [DB], multilang: ['base_sitio'],
+  seo_technical: ['base_sitio'], seo_meta: ['base_sitio'], seo_schema: ['base_sitio'], seo_gsc: ['base_sitio'], seo_speed: ['base_sitio'],
+  blog: ['base_sitio', DB], memberships: ['user_auth', 'payments_mp', DB],
+  catalogo_productos: ['base_sitio', DB], carrito: ['catalogo_productos', 'payments_mp'],
+  sec_portada: ['base_sitio'], sec_servicios: ['base_sitio'], sec_nosotros: ['base_sitio'], sec_galeria: ['base_sitio'],
+  sec_testimonios: ['base_sitio'], sec_faq: ['base_sitio'], sec_precios: ['base_sitio'], sec_ubicacion: ['base_sitio'], sec_pagina: ['base_sitio'],
+  maps_leaflet: ['base_sitio'], calendar_system: [DB], admin_panel: ['user_auth', DB], mobile_pwa: ['base_sitio'],
+};
+
+export const SERVICES = RAW.map(cat => ({
+  ...cat,
+  items: cat.items.map(s => ({ tipo: 'modulo', requiere: REQUIERE[s.id] || [], ...s })),
+}));
 
 export const ALL_SERVICES = SERVICES.flatMap(cat => cat.items);
 export const SVC_MAP = Object.fromEntries(ALL_SERVICES.map(s => [s.id, s]));

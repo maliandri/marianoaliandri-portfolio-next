@@ -3,7 +3,7 @@
 // MercadoPago por la seña o el total en pesos. El webhook de pagos (metadata.type = 'presupuesto') lo marca
 // Aceptado y te avisa por mail; con user_id además crea la orden de /mis-compras.
 import { FieldValue } from 'firebase-admin/firestore';
-import { catalogoEfectivo, cotizar, validarCliente, MODOS } from '@/lib/tienda';
+import { catalogoEfectivo, normalizarItem, cotizar, validarCliente, MODOS } from '@/lib/tienda';
 import { dolarOficialVenta } from '@/lib/dolar';
 import { crearLinkPagoPresupuesto } from '@/lib/presupuestos';
 import { advanceFraction } from '@/data/paymentPlan';
@@ -16,10 +16,22 @@ export async function loadSenaPct(db) {
   return snap.exists ? advanceFraction(snap.data()) || 0.5 : 0.5;
 }
 
-// Precios y beneficios editados en el admin (service_benefits/{id}).
+// Precios y beneficios editados en el admin ANTES de pasar el catálogo a Firestore (service_benefits/{id}).
+// Solo se usan mientras `tienda_catalogo` esté vacía.
 export async function loadOverrides(db) {
   const snap = await db.collection('service_benefits').get();
   return Object.fromEntries(snap.docs.map(d => [d.id, d.data()]));
+}
+
+export const CATALOGO = 'tienda_catalogo';
+
+// Catálogo de la tienda como lista plana (activos e inactivos; filtrar con agruparCatalogo). La fuente es la
+// colección `tienda_catalogo`; si está vacía (todavía no se cargó desde admin → Tienda) cae al del código
+// con los precios editados en service_benefits.
+export async function cargarCatalogo(db) {
+  const snap = await db.collection(CATALOGO).get();
+  if (snap.empty) return catalogoEfectivo(await loadOverrides(db));
+  return snap.docs.map((d, i) => normalizarItem(d.id, d.data(), i));
 }
 
 export async function checkoutTienda(db, body, {
@@ -28,17 +40,18 @@ export async function checkoutTienda(db, body, {
   crearLink = crearLinkPagoPresupuesto,
   now = Date.now,
 } = {}) {
+  // Los precios son solo para quien inició sesión: sin sesión no se cotiza ni se cobra.
+  if (!user) return { status: 401, error: 'Iniciá sesión con Google para continuar' };
   const { cliente, error } = validarCliente(body?.cliente);
   if (error) return { status: 400, error };
   const modo = String(body?.modo || '');
   if (!MODOS[modo]) return { status: 400, error: 'Elegí cómo querés pagar' };
 
-  const [overrides, senaPct] = await Promise.all([loadOverrides(db), loadSenaPct(db)]);
-  const catalogo = catalogoEfectivo(overrides);
+  const [catalogo, senaPct] = await Promise.all([cargarCatalogo(db), loadSenaPct(db)]);
   let q;
   try {
     const cotizacion = modo === 'presupuesto' ? null : (await dolar()).cotizacion;
-    q = cotizar({ ids: body?.servicios, modo, catalogo, cotizacion, senaPct });
+    q = cotizar({ ids: body?.servicios, cantidades: body?.cantidades, modo, catalogo, cotizacion, senaPct });
   } catch (e) {
     return { status: /cotización/.test(e.message) ? 503 : 400, error: e.message };
   }

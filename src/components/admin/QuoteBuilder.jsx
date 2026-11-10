@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { adminFetch } from '@/utils/adminFetch';
-import { SERVICES } from '../../data/serviceCatalog';
 
 /* ── Helpers ─────────────────────────────────────────────────────────── */
 const fmt = (n) =>
@@ -22,22 +21,20 @@ const DEFAULT_CUOTAS = [
 ];
 
 /* ── Resolve initialData items ─────────────────────────────────────── */
-const ALL_SERVICES = SERVICES.flatMap(cat => cat.items);
-const SVC_MAP = Object.fromEntries(ALL_SERVICES.map(s => [s.id, s]));
-
-function resolveItems(data) {
+// El catálogo sale de Firestore (/api/tienda-catalogo/), no del código: svcMap llega cuando termina de cargar.
+function resolveItems(data, svcMap = {}) {
   if (!data) return [];
   if (Array.isArray(data.items) && data.items.length > 0) {
     return data.items.map(item => ({
       ...item,
-      benefit: item.benefit || SVC_MAP[item.id]?.benefit || '',
+      benefit: item.benefit || svcMap[item.id]?.benefit || '',
     }));
   }
   if (Array.isArray(data.selectedServices)) {
     return data.selectedServices
-      .map(id => SVC_MAP[id])
+      .map(id => svcMap[id])
       .filter(Boolean)
-      .map(s => ({ id: s.id, label: s.label, desc: s.desc, benefit: s.benefit, priceUSD: s.price || '', discount: 0 }));
+      .map(s => ({ id: s.id, label: s.label, desc: s.desc, benefit: s.benefit, priceUSD: s.priceUSD || '', discount: 0 }));
   }
   return [];
 }
@@ -73,19 +70,30 @@ export default function QuoteBuilder({ initialData = null }) {
     return DEFAULT_CUOTAS;
   });
 
-  /* db benefits — overrides hardcoded when available */
-  const [dbBenefits, setDbBenefits] = useState({});
+  /* catálogo de la tienda (Firestore tienda_catalogo): precios y textos vigentes, activos e inactivos */
+  const [catalogo, setCatalogo] = useState([]);
   useEffect(() => {
-    fetch('/api/service-benefits')
+    adminFetch('/api/tienda-catalogo/')
       .then(r => r.json())
-      .then(data => {
-        if (data && typeof data === 'object') setDbBenefits(data);
-      })
+      .then(d => { if (Array.isArray(d.items)) setCatalogo(d.items); })
       .catch(() => {});
   }, []);
+  const svcMap = useMemo(() => Object.fromEntries(catalogo.map(s => [s.id, s])), [catalogo]);
+  /* para el selector: solo piezas activas, agrupadas por categoría en orden */
+  const SERVICES = useMemo(() => {
+    const m = new Map();
+    [...catalogo].filter(s => s.activo !== false).sort((a, b) => a.orden - b.orden)
+      .forEach(s => { if (!m.has(s.categoria)) m.set(s.categoria, []); m.get(s.categoria).push(s); });
+    return [...m].map(([category, items]) => ({ category, items }));
+  }, [catalogo]);
 
-  /* apply db benefits to new items when they're added */
-  const getBenefit = (svc) => dbBenefits[svc.id] ?? svc.benefit;
+  /* presupuesto que viene de una solicitud con ids sueltos: se completa cuando carga el catálogo */
+  useEffect(() => {
+    if (!catalogo.length) return;
+    setItems(prev => (prev.length ? prev : resolveItems(initialData, svcMap)));
+  }, [catalogo]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const getBenefit = (svc) => svc.benefit;
 
   /* ui */
   const [search,  setSearch]  = useState('');
@@ -134,7 +142,7 @@ export default function QuoteBuilder({ initialData = null }) {
   const toggleService = (svc) =>
     setItems(prev => prev.find(i => i.id === svc.id)
       ? prev.filter(i => i.id !== svc.id)
-      : [...prev, { id: svc.id, label: svc.label, desc: svc.desc, benefit: getBenefit(svc), priceUSD: svc.price || '', discount: 0 }]
+      : [...prev, { id: svc.id, label: svc.label, desc: svc.desc, benefit: getBenefit(svc), priceUSD: svc.priceUSD || '', discount: 0 }]
     );
 
   const setField = (id, field, val) =>
@@ -399,10 +407,10 @@ export default function QuoteBuilder({ initialData = null }) {
     if (!q) return SERVICES;
     return SERVICES
       .map(cat => ({ ...cat, items: cat.items.filter(s =>
-        s.label.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q) || s.benefit.toLowerCase().includes(q)
+        s.label.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q) || (s.benefit || '').toLowerCase().includes(q)
       )}))
       .filter(cat => cat.items.length > 0);
-  }, [search]);
+  }, [search, SERVICES]);
 
   const inp = 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30';
 
@@ -444,9 +452,9 @@ export default function QuoteBuilder({ initialData = null }) {
                         <span>
                           <span className="font-medium block leading-tight">{svc.label}</span>
                           <span className="text-gray-400 dark:text-gray-500 leading-tight block mt-0.5">{svc.desc}</span>
-                          {svc.price && (
+                          {svc.priceUSD > 0 && (
                             <span className={`leading-tight block mt-0.5 text-[10px] font-semibold ${sel ? 'text-indigo-400' : 'text-emerald-600 dark:text-emerald-500'}`}>
-                              USD {svc.price.toLocaleString()}
+                              USD {svc.priceUSD.toLocaleString()}
                             </span>
                           )}
                         </span>

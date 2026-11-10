@@ -249,6 +249,19 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   Precios editables en admin → Tienda (misma tabla que Presupuestos → Beneficios) (`service_benefits/{id}.priceUSD`, pisa al del código; también los usa
   el feed de Google Merchant). `/tienda/[productId]` (links viejos) redirige 308 a `/tienda/?servicios=<equivalentes>`
   (`PRODUCTOS_VIEJOS`). Los componentes viejos (Store, ProductCard, Cart, ProductDetailPage, `productos_alquiler`) quedaron sin uso.
+  **Rehecha otra vez (2026-11-10): catálogo por piezas en Firestore + precios solo con login de Google.** Se arma con piezas que no se
+  pisan: `base` (150) + `seccion` (portada, servicios, galería…, `porUnidad` = páginas extra por cantidad) + `modulo` (pagos, stock, auth…).
+  Los paquetes viejos (Landing, Multi-página, E-commerce, Web App) quedaron `activo: false`. Cada pieza tiene `requiere` (se suman solas;
+  `a|b` = alguna de las dos; lógica pura en `src/lib/tiendaDeps.js`, sin precios porque viaja al navegador). Fuente de verdad = colección
+  **`tienda_catalogo/{id}`** (`categoria, tipo, label, desc, benefit, priceUSD, requiere[], porUnidad, activo, orden`); mientras esté vacía la
+  tienda usa `src/data/serviceCatalog.js` (semilla/respaldo, CON precios: nunca importarlo desde un componente de cliente). Se carga con
+  admin → Tienda → "Cargar catálogo inicial en Firestore" (`POST /api/tienda-catalogo/ {accion:'sembrar'}`, toma los precios de
+  `service_benefits`) y se edita ahí mismo (`BenefitsEditor.jsx`: precio, texto, dependencias, activar, alta/baja). `cargarCatalogo(db)` en
+  `tiendaCheckout.js` es lo que leen la tienda, el MCP (`list_budget_services`/`create_budget`) y el armador de presupuestos del admin
+  (`QuoteBuilder`, vía `/api/tienda-catalogo/`). **Precios solo con sesión**: `/tienda` es ISR (5 min) y su HTML lleva el catálogo SIN precios
+  (`sinPrecios`); los precios + dólar + seña salen de `GET /api/tienda/precios/` (idToken, 401 sin sesión, no-store); `POST /api/tienda/`
+  exige sesión. La preselección `?servicios=` se lee en el navegador. **Merchant**: los servicios salieron de `/api/merchant-feed/` (Merchant
+  exige el precio visible en la página).
   `/api/create-payment`, `/api/presupuesto` (GET/PATCH/DELETE, save-quote, send-quote) y `PATCH /api/service-benefits` exigen admin.
 - **Presupuesto** (`/presupuesto`):
   - Formulario publico de 3 pasos: datos del cliente → grilla de servicios (checkboxes) → resumen + envio

@@ -2,21 +2,12 @@
 // Feed XML para Google Merchant Center (formato RSS 2.0 con namespace g:)
 // URL a registrar en Merchant Center: https://marianoaliandri.com.ar/api/merchant-feed/
 
-import { catalogoEfectivo } from '@/lib/tienda';
-import { loadOverrides } from '@/lib/tiendaCheckout';
-import { dolarOficialVenta } from '@/lib/dolar';
 import { PLANS } from '@/data/plans';
 import { getDb } from '@/lib/firebase-admin';
 import { NextResponse } from 'next/server';
 
 const SITE_URL = 'https://marianoaliandri.com.ar';
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.jpg`;
-
-// Mismo dólar que cobra la tienda (oficial venta). Si no hay cotización, el feed sale sin servicios en
-// vez de con un precio viejo: Google Merchant penaliza los precios que no coinciden con el sitio.
-async function getExchangeRate() {
-  return dolarOficialVenta().then(d => d.cotizacion).catch(() => null);
-}
 
 function escapeXml(str) {
   return String(str ?? '')
@@ -55,23 +46,10 @@ async function getLeadFinderPlans() {
 }
 
 export async function GET() {
-  const [leadFinderPlans, rate, overrides] = await Promise.all([
-    getLeadFinderPlans(),
-    getExchangeRate(),
-    loadOverrides(getDb()).catch(() => ({})),
-  ]);
+  const leadFinderPlans = await getLeadFinderPlans();
 
-  // 1. Servicios de la tienda (catálogo con los precios del admin, USD → ARS). Cada uno abre la tienda
-  // con ese servicio ya marcado.
-  const serviceItems = rate ? catalogoEfectivo(overrides).flatMap(c => c.items).map((s) =>
-    makeItem({
-      id: `servicio-${s.id}`,
-      name: s.label,
-      description: `${s.desc}. ${s.benefit}`,
-      priceARS: Math.round(s.priceUSD * rate),
-      link: `${SITE_URL}/tienda/?servicios=${s.id}`,
-    })
-  ) : [];
+  // 1. (Servicios de la tienda: fuera del feed desde que los precios se ven solo con sesión de Google.
+  // Merchant Center exige que el precio del feed sea visible en la página del producto.)
 
   // 2. Lead Finder Pro — planes activos desde Firestore (precio en ARS)
   const leadFinderItems = leadFinderPlans.map((p) =>
@@ -97,7 +75,7 @@ export async function GET() {
       })
     );
 
-  const allItems = [...serviceItems, ...leadFinderItems, ...planItems].join('\n');
+  const allItems = [...leadFinderItems, ...planItems].join('\n');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">

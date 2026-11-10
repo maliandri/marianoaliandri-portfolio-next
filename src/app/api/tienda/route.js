@@ -2,33 +2,16 @@ export const dynamic = 'force-dynamic';
 
 import { getDb } from '@/lib/firebase-admin';
 import { getUserFromRequest } from '@/lib/authServer';
-import { catalogoEfectivo, MODOS } from '@/lib/tienda';
-import { dolarOficialVenta } from '@/lib/dolar';
-import { checkoutTienda, loadOverrides, loadSenaPct } from '@/lib/tiendaCheckout';
+import { MODOS } from '@/lib/tienda';
+import { checkoutTienda } from '@/lib/tiendaCheckout';
 import { alertError } from '@/lib/alert';
 
 const SITE = process.env.NEXT_PUBLIC_BASE_URL || 'https://marianoaliandri.com.ar';
 
-// GET: catálogo con precios efectivos + cotización del dólar (público, cacheado 1 min en la CDN: el precio
-// que se cobra se recalcula en el POST, esto es solo lo que se muestra).
-export async function GET() {
-  try {
-    const [overrides, senaPct, dolar] = await Promise.all([
-      loadOverrides(getDb()),
-      loadSenaPct(getDb()),
-      dolarOficialVenta().catch(() => null),
-    ]);
-    return Response.json(
-      { catalogo: catalogoEfectivo(overrides), cotizacion: dolar?.cotizacion ?? null, senaPct, modos: MODOS },
-      { headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=600' } },
-    );
-  } catch (e) {
-    console.error('[tienda GET]', e);
-    return Response.json({ error: 'No se pudo cargar el catálogo' }, { status: 500 });
-  }
-}
-
-// POST { servicios: [ids], modo: 'sena' | 'total' | 'presupuesto', cliente, website (trampa para bots) }
+// Catálogo y precios: el catálogo sin precios sale en la página (/tienda); los precios, solo con sesión, en
+// /api/tienda/precios/.
+// POST { servicios: [ids], cantidades: { id: n }, modo: 'sena' | 'total' | 'presupuesto', cliente, website (trampa para bots) }
+// Exige sesión de Google (Authorization: Bearer <idToken>): sin ella responde 401.
 export async function POST(request) {
   try {
     const body = await request.json().catch(() => ({}));

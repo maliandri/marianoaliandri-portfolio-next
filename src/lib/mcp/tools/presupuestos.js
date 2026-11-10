@@ -5,8 +5,8 @@ import {
 } from '@/lib/presupuestos';
 import { calcularTotales, numeroPresupuesto, buildHtml, datosPresupuesto } from '@/lib/presupuestoEmail';
 import { generarPdfPresupuesto, pdfNombre, pdfUrl, tokenPdf } from '@/lib/presupuestoPdf';
-import { catalogoEfectivo } from '@/lib/tienda';
-import { loadOverrides } from '@/lib/tiendaCheckout';
+import { agruparCatalogo } from '@/lib/tienda';
+import { cargarCatalogo } from '@/lib/tiendaCheckout';
 import { dolarOficialVenta } from '@/lib/dolar';
 import { defineTool, ToolError } from '../defineTool';
 import { pageArray } from '../paginate';
@@ -156,7 +156,7 @@ export const listBudgetServicesTool = defineTool({
   annotations: { readOnlyHint: true },
   async handler(args, { db }) {
     const q = (args.buscar || '').toLowerCase();
-    const categorias = catalogoEfectivo(await loadOverrides(db))
+    const categorias = agruparCatalogo(await cargarCatalogo(db))
       .map(c => ({
         categoria: c.category,
         items: c.items
@@ -207,7 +207,7 @@ export const createBudgetTool = defineTool({
   annotations: { readOnlyHint: false, openWorldHint: true },
   async handler(args, { db, now = new Date() }) {
     if (!args.email && !args.telefono) throw new ToolError('Falta cómo mandarlo: pedile a Mariano el email o el teléfono del cliente.');
-    const catalogo = Object.fromEntries(catalogoEfectivo(await loadOverrides(db)).flatMap(c => c.items).map(s => [s.id, s]));
+    const catalogo = Object.fromEntries((await cargarCatalogo(db)).map(s => [s.id, s]));
     const items = args.items.map((it, i) => {
       const base = it.servicio_id ? catalogo[it.servicio_id] : null;
       if (it.servicio_id && !base) throw new ToolError(`El servicio ${it.servicio_id} no está en el catálogo (list_budget_services).`);
