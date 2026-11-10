@@ -8,6 +8,8 @@ const S = {
   MAKE_SOCIAL_WEBHOOK_URL: 'https://hook.us2.make.com/sentinel-make-123',
   FIREBASE_PRIVATE_KEY: 'sentinel-private-key-1234567890',
   EMAIL_UNSUBSCRIBE_SECRET: 'sentinel-unsub-1234567890',
+  IG_ACCESS_TOKEN: 'sentinel-ig-token-1234567890',
+  IG_USER_ID: '1784140401365',
 };
 const LEAK = 'boom con sentinel-gemini-1234567890 adentro';
 
@@ -71,6 +73,8 @@ const ARGS = {
   get_places_usage: [{}],
   get_site_stats: [{}],
   get_funnels: [{}],
+  get_instagram_stats: [{}, { days: 7, posts: 3 }],
+  get_linkedin_stats: [{}],
   publish_free_post: [
     { texto: 'Hola', redes: ['linkedin'], dry_run: true },
     { texto: 'Hola', redes: ['facebook_instagram'], imagenes: ['https://ejemplo.com/a.png', 'https://ejemplo.com/b.png'] },

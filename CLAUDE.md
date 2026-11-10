@@ -555,6 +555,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 | `reels` / `reels_config` | Reels renderizados (video, caption, tipo, fuente, estado, redes) y config (activo = publica solo, ultimoTipo) | Scripts de Actions / admin |
 | `guiones_semana` | Guiones de reels mandados cada lunes | Solo Admin SDK |
 | `alertas` | Una por clave de alerta: último envío, total y repeticiones suprimidas (tope 1 mail/hora) | Solo Admin SDK (`src/lib/alert.js`) |
+| `social_stats` | Una foto por red y día de los seguidores (`instagram_YYYY-MM-DD`), para ver el crecimiento | Solo Admin SDK (MCP `get_instagram_stats`) |
 | `mcp_rate` / `mcp_tool_calls` | Rate limiting y registro de cada llamada a una tool del MCP | Solo Admin SDK |
 
 **IMPORTANTE `entitlements/{uid}`**: el cliente NO puede escribirla (regla `write: if false`).
@@ -763,7 +764,7 @@ Las herramientas del sitio expuestas como **servidor MCP remoto** para usarlas d
   internos salen como "Error interno"; `src/lib/mcp/noSecrets.test.js` corre todas las tools con
   valores centinela en las env vars.
 - **Registro**: cada llamada queda en `mcp_tool_calls` (tool, ok, ms, args resumidos).
-- **Tools** (35): presupuestos (desde 2026-10-28, `tools/presupuestos.js` + `src/lib/presupuestos.js`):
+- **Tools** (37): presupuestos (desde 2026-10-28, `tools/presupuestos.js` + `src/lib/presupuestos.js`):
   `list_budget_requests`, `get_budget_request`, `quote_budget_request` (monto + link de MercadoPago con
   `metadata.type: 'presupuesto'`; devuelve `whatsappUrl` con el mensaje escrito, no le escribe al cliente; `dry_run`) y
   `set_budget_status`; además `list_budget_services` (catálogo con precios efectivos), `create_budget` (arma un presupuesto
@@ -782,7 +783,12 @@ Las herramientas del sitio expuestas como **servidor MCP remoto** para usarlas d
   (no manda DMs), `get_places_usage`, `get_site_stats`, `publish_free_post` (Publicación Libre vía Make: texto +
   0-10 imágenes por URL o `tarjeta_titulo`; 2+ = carrusel solo FB+IG; `dry_run`) y `publish_ig_story` (historia
   texto/imagen/video directo por Graph API; `dry_run` devuelve `preview_url` y se publica pasando ese mismo
-  `preview_url`). Las imágenes externas se suben a Cloudinary (`src/lib/cloudinaryServer.js`). Las dos comparten
+  `preview_url`). Estadísticas de redes (`tools/redes.js` + `src/lib/socialStats.js`, desde 2026-11-10):
+  `get_instagram_stats` (perfil, últimos posts con likes/comentarios y, si el token tiene `instagram_manage_insights`,
+  alcance/vistas/interacciones de la cuenta y de cada post; sin ese permiso devuelve lo básico y `insights.error`; guarda una
+  foto diaria de seguidores en `social_stats/{red}_{fecha}` para ver la evolución) y `get_linkedin_stats` (lo publicado en
+  LinkedIn desde el sitio: piezas, reels y demanda, con link al post; las métricas siguen bloqueadas hasta que LinkedIn apruebe
+  la Community Management API). Las imágenes externas se suben a Cloudinary (`src/lib/cloudinaryServer.js`). Las dos comparten
   el tope `MCP_SOCIAL_DAILY_CAP`=10 por día (`src/lib/mcp/socialCap.js`, colección `mcp_social_counter`).
 - **Lógica compartida con la UI** (no duplicar): `src/lib/leadFinderPro.js`, `leadSearchesStore.js`,
   `leadDemand.js`, `leadSearch.js` (`reduceLeadEvent`), `auditReportDraft.js`, `imageCheck.js`,

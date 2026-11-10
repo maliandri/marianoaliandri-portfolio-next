@@ -8,8 +8,9 @@ import { BUDGET_TOOLS } from './tools/presupuestos';
 import { DEMAND_TOOLS } from './tools/demanda';
 import { STATUS_TOOLS } from './tools/status';
 import { CONTENT_TOOLS } from './tools/contenido';
+import { SOCIAL_STATS_TOOLS } from './tools/redes';
 
 // Todas las tools del servidor MCP. Para sumar una: definirla con defineTool() en
 // src/lib/mcp/tools/<grupo>.js llamando a lógica de src/lib/, y agregarla acá.
 export const ALL_TOOLS = [...LEAD_TOOLS, ...AUDIT_TOOLS, ...EMAIL_TOOLS, ...INSTAGRAM_TOOLS, ...STATS_TOOLS, ...SOCIAL_TOOLS,
-  ...BUDGET_TOOLS, ...DEMAND_TOOLS, ...STATUS_TOOLS, ...CONTENT_TOOLS];
+  ...BUDGET_TOOLS, ...DEMAND_TOOLS, ...STATUS_TOOLS, ...CONTENT_TOOLS, ...SOCIAL_STATS_TOOLS];
