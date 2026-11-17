@@ -6,12 +6,13 @@ import { redactSecrets } from '@/lib/mcp/redact';
 // la misma lógica y los mismos frenos que Claude por MCP (cupo de Places, lista de bajas, tope de mails).
 // Un error de la tool vuelve como resultado ({ error }) para que el modelo lo lea y se adapte, en vez de
 // cortar toda la corrida. Los errores internos no filtran detalles. `onCall` registra cada llamada.
-export function mcpToAiTools(tools, ctx, { onCall } = {}) {
+export function mcpToAiTools(tools, ctx, { onCall, onStart } = {}) {
   return Object.fromEntries(tools.map(t => [t.name, tool({
     description: t.description,
     inputSchema: t.inputSchema,
     async execute(args) {
       const t0 = Date.now();
+      onStart?.({ tool: t.name, args });
       try {
         const { summary, data } = await t.handler(args || {}, { ...ctx, now: new Date() });
         const out = redactSecrets({ summary, data });

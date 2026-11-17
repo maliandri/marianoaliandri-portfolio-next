@@ -55,30 +55,58 @@ export const toolsDelAgente = () => ALL_TOOLS.filter(t => HERRAMIENTAS_AGENTE.in
 // Resumen corto de los argumentos para mostrar en el registro de pasos.
 const resumirArgs = (a) => Object.fromEntries(Object.entries(a || {}).map(([k, v]) => [k, typeof v === 'string' && v.length > 80 ? `${v.slice(0, 80)}…` : v]));
 
-export async function correrAgenteProspeccion({ db, user, objetivo, generar = generateText }) {
+export async function correrAgenteProspeccion({ db, user, objetivo, generar = generateText, onEvento = () => {} }) {
   const pasos = [];
   const borradores = [];
+  let n = 0; // id que une el "empezó" y el "terminó" de cada herramienta en el visor
+  const abiertas = [];
+  const onStart = (c) => {
+    const id = ++n;
+    abiertas.push({ tool: c.tool, id });
+    onEvento({ tipo: 'herramienta', fase: 'inicio', id, tool: c.tool, args: resumirArgs(c.args) });
+  };
   const onCall = (c) => {
+    const i = abiertas.findIndex(a => a.tool === c.tool);
+    const id = i >= 0 ? abiertas.splice(i, 1)[0].id : ++n;
     pasos.push({ tool: c.tool, args: resumirArgs(c.args), ok: c.ok, resumen: c.summary, ms: c.ms });
+    onEvento({ tipo: 'herramienta', fase: 'fin', id, tool: c.tool, ok: c.ok, resumen: c.summary, ms: c.ms });
     if (c.tool === 'draft_business_email' && c.ok && c.data?.draftId) {
       const d = c.data;
       borradores.push({ draftId: d.draftId, to: d.to, subject: d.subject, emailText: d.emailText, source: d.source, bloqueo: d.bloqueo || null });
+      onEvento({ tipo: 'borrador', texto: `Borrador para ${d.to}${d.bloqueo ? ` (no se le puede escribir: ${d.bloqueo})` : ''}` });
     }
   };
-  const tools = { ...mcpToAiTools(toolsDelAgente(), { db, user }, { onCall }), esperar };
+  const esperarVisible = tool({
+    ...esperar,
+    async execute(args) {
+      onStart({ tool: 'esperar', args });
+      const r = await esperar.execute(args);
+      onCall({ tool: 'esperar', args, ok: true, summary: `Esperó ${args.segundos} s`, ms: args.segundos * 1000 });
+      return r;
+    },
+  });
+  const tools = { ...mcpToAiTools(toolsDelAgente(), { db, user }, { onCall, onStart }), esperar: esperarVisible };
 
+  onEvento({ tipo: 'inicio', texto: `Objetivo: ${String(objetivo).slice(0, 300)}` });
   // Si el modelo principal está saturado y todavía no hizo nada, se prueba con el de respaldo. Una vez que el
   // agente llamó a alguna herramienta NO se reinicia con otro modelo: repetiría búsquedas (cupo de Places).
-  const result = await conRespaldo((model, timeout) => generar({
-    model,
-    system: SYSTEM,
-    prompt: String(objetivo).slice(0, 1000),
-    tools,
-    stopWhen: stepCountIs(MAX_PASOS),
-    temperature: 0.3,
-    maxRetries: 0,
-    timeout,
-  }), {
+  const result = await conRespaldo((model, timeout) => {
+    onEvento({ tipo: 'modelo', texto: `Pensando con ${model.modelId || 'Gemini'}` });
+    return generar({
+      model,
+      system: SYSTEM,
+      prompt: String(objetivo).slice(0, 1000),
+      tools,
+      stopWhen: stepCountIs(MAX_PASOS),
+      temperature: 0.3,
+      maxRetries: 0,
+      timeout,
+      onStepFinish: (step) => {
+        const t = step?.text?.trim();
+        if (t) onEvento({ tipo: 'texto', texto: t });
+      },
+    });
+  }, {
     timeouts: [{ stepMs: 25000, totalMs: 270000 }],
     puedeReintentar: () => pasos.length === 0,
   });

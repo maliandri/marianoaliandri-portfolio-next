@@ -63,4 +63,18 @@ describe('correrAgenteProspeccion', () => {
     expect(generar).toHaveBeenCalledOnce();
     vi.unstubAllEnvs();
   });
+
+  it('avisa cada paso en vivo (inicio, modelo y lo que va pensando)', async () => {
+    vi.stubEnv('GEMINI_API_KEY', 'test-key-123456');
+    const eventos = [];
+    const generar = vi.fn(async ({ onStepFinish }) => {
+      onStepFinish({ text: 'Voy a mirar las auditorías.' });
+      onStepFinish({ text: '   ' }); // vacío: no es un evento
+      return { text: 'Listo.', steps: [{}] };
+    });
+    await correrAgenteProspeccion({ db: {}, user: { uid: 'u' }, objetivo: 'ferreterías en Cipolletti', generar, onEvento: e => eventos.push(e) });
+    expect(eventos.map(e => e.tipo)).toEqual(['inicio', 'modelo', 'texto']);
+    expect(eventos[2].texto).toBe('Voy a mirar las auditorías.');
+    vi.unstubAllEnvs();
+  });
 });

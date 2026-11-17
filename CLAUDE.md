@@ -525,13 +525,18 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   `hitRateLimit` (20 por IP sin sesión, 60 por usuario), mensaje ≤1000 caracteres, historial ≤10 turnos
   (`src/lib/ai/chatHistory.js`). Antes `/api/chat` no lo usaba ningún componente: el bot era solo reglas.
 - **Agente de prospección** (admin → Marketing → Agente de prospección, desde 2026-11-17): `POST /api/agente-prospeccion/` (admin,
-  10 corridas/hora, `maxDuration` 300) recibe un objetivo en texto y corre un agente (`src/lib/ai/prospectingAgent.js`) que usa
+  10 corridas/hora, `maxDuration` 300; responde `{ runId }` al instante y corre en segundo plano con `after()`) recibe un objetivo en texto y corre un agente (`src/lib/ai/prospectingAgent.js`) que usa
   en ciclo las MISMAS tools del servidor MCP por un adaptador (`src/lib/ai/mcpAdapter.js` convierte `defineTool` en `tool()` del
   AI SDK), así valen los mismos frenos (cupo de Places, bajas, tope de mails). Lista blanca `HERRAMIENTAS_AGENTE`: busca
   (`search_leads`, `get_lead_search`, `rank_rubros_by_demand`), lee (`list_audits`, `get_audit`, `list_lead_searches`,
   `list_sent_emails`, `list_ig_prospects`) y **redacta** (`draft_business_email`). **NUNCA envía ni publica**: un test falla si
   se suma una tool de envío. Los borradores quedan en `mcp_email_drafts` (7 días) y se envían de a uno con "Aprobar y enviar"
   → `POST /api/agente-prospeccion/enviar/`, que llama al handler de `send_business_email` (todos los frenos del servidor).
+- **Visor del agente** (misma pantalla): cada paso se guarda a medida que ocurre en `agente_runs/{id}/eventos/{seq}` (`src/lib/ai/agentRuns.js`:
+  inicio, modelo usado, lo que va pensando, cada herramienta con sus argumentos y resultado, borradores) y la pantalla consulta
+  `GET /api/agente-prospeccion/?id=&desde=` cada 2 s; al recargar se engancha sola a la corrida en curso y hay un selector de
+  corridas anteriores. Una sola corrida a la vez (409 si hay otra). Una corrida "corriendo" que pasa 6 min sin cerrar se marca
+  `cortado` al leerla. Pendiente: botón para cancelar una corrida en curso.
 - **IA con AI SDK — modelos y respaldo** (`src/lib/ai/gemini.js`): `conRespaldo` prueba una cadena de modelos, por defecto
   `gemini-3.8-flash` → `gemini-2.5-flash` (override con la env `AI_MODELS="m1,m2"`), con timeout por paso (`stepMs`) para no
   esperar a un modelo colgado, y `conClaves` rota las `GEMINI_API_KEY*` (misma lógica que `geminiClient.js`). Medido el
@@ -576,6 +581,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 | `contenidos` | Piezas del bot de contenido (título, slides, caption, cuerpo, imágenes, estado `borrador`/`publicado`, redes) | Solo Admin SDK |
 | `reels` / `reels_config` | Reels renderizados (video, caption, tipo, fuente, estado, redes) y config (activo = publica solo, ultimoTipo) | Scripts de Actions / admin |
 | `guiones_semana` | Guiones de reels mandados cada lunes | Solo Admin SDK |
+| `agente_runs` (+ subcolección `eventos`) | Corridas del agente de prospección: objetivo, estado (corriendo/listo/error/cortado), informe, borradores y cada paso en vivo | Solo Admin SDK (`src/lib/ai/agentRuns.js`) |
 | `alertas` | Una por clave de alerta: último envío, total y repeticiones suprimidas (tope 1 mail/hora) | Solo Admin SDK (`src/lib/alert.js`) |
 | `social_stats` | Una foto por red y día de los seguidores (`instagram_YYYY-MM-DD`), para ver el crecimiento | Solo Admin SDK (MCP `get_instagram_stats`) |
 | `mcp_rate` / `mcp_tool_calls` | Rate limiting y registro de cada llamada a una tool del MCP | Solo Admin SDK |
