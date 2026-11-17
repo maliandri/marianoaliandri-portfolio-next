@@ -20,6 +20,7 @@ import AuditoriasUnificado from '../components/admin/AuditoriasUnificado';
 import AutoAuditCard from '../components/admin/AutoAuditCard';
 import DemandaAutoCard from '../components/admin/DemandaAutoCard';
 import ContenidoBotCard from '../components/admin/ContenidoBotCard';
+import ProspectingAgentCard from '../components/admin/ProspectingAgentCard';
 import ReelsBotCard from '../components/admin/ReelsBotCard';
 import NoticiasBotManager from '../components/admin/NoticiasBotManager';
 import PaymentPlanEditor from '../components/admin/PaymentPlanEditor';
@@ -736,6 +737,7 @@ export default function AdminPage() {
         {activeTab === 'embudos' && <FunnelsPanel />}
 
         {activeTab === 'ig-prospectos' && <InstagramProspects />}
+        {activeTab === 'agente-prospeccion' && <ProspectingAgentCard />}
 
         {activeTab === 'leadfinder-plans' && (
           <div>

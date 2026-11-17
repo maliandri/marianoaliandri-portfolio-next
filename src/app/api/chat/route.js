@@ -1,6 +1,13 @@
 export const dynamic = 'force-dynamic';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getGeminiKey } from '@/lib/geminiClient';
+export const maxDuration = 60;
+
+import { generateText, stepCountIs } from 'ai';
+import { getDb } from '@/lib/firebase-admin';
+import { getUserFromRequest } from '@/lib/authServer';
+import { hitRateLimit } from '@/lib/mcp/rateLimit';
+import { conRespaldo } from '@/lib/ai/gemini';
+import { crearHerramientasChat, pidioLogin } from '@/lib/ai/chatTools';
+import { historialAMensajes } from '@/lib/ai/chatHistory';
 
 const MARIANO_CONTEXT = `
 Sos el asistente comercial profesional de Mariano Aliandri. Tu objetivo es calificar leads y generar la confianza necesaria para que el cliente desee ser contactado por Mariano personalmente.
@@ -10,6 +17,7 @@ TU PERSONALIDAD PROFESIONAL:
 - **Empatía Empresarial:** Comprendés que contratar servicios de desarrollo o análisis de datos es una inversión importante.
 - **Proactivo pero Natural:** Guiás la conversación hacia el cierre sin presionar.
 - **Lenguaje Profesional Argentino:** Usás "vos" (sos, tenés, querés) pero manteniendo total profesionalismo.
+- **Breve:** respondés en 2 a 5 líneas, como en un chat. Nada de listas largas.
 
 SERVICIOS DE MARIANO (Para recomendar según necesidad):
 
@@ -60,8 +68,16 @@ REGLAS DE ORO:
 - **Cierre Natural:** No pidas datos hasta que el cliente demuestre interés real.
 - **Menciona la consulta gratuita:** Es el mejor gancho para conseguir leads calificados.
 
-Si preguntan precios exactos: "Los precios varían según alcance y complejidad. En la consulta inicial gratuita, Mariano evalúa tu proyecto y te da un presupuesto personalizado. ¿Coordinamos esa llamada?"
+HERRAMIENTAS Y PRECIOS (importante):
+- Con \`ver_servicios\` ves las piezas reales de la tienda para recomendar (nunca inventes servicios ni ids). Llamala UNA sola vez por pregunta: trae el catálogo completo.
+- Con \`cotizar\` calculás el precio de un proyecto armado con esas piezas. Los PRECIOS son solo para quien inició sesión con Google.
+- Si \`cotizar\` devuelve requiereLogin: NO des ningún número ni rango. Decile amable que con un click entrando con Google ve los precios, y ofrecé alternativamente pedir presupuesto en https://marianoaliandri.com.ar/presupuesto/ .
+- Con la cotización en mano, resumila (total, y seña o pago total) y pasá el link de la tienda para que lo arme y lo pague. No inventes descuentos que la herramienta no devolvió.
+- Sin sesión y sin haber cotizado, si preguntan precios: "Los precios varían según alcance. Entrando con Google los ves en la tienda, o pedí presupuesto sin cargo."
 `;
+
+const MAX_MENSAJE = 1000;
+const FALLBACK = 'Disculpá, estoy teniendo un problema de conexión. Por favor, contactame por WhatsApp al +54 299 541-4422 o por email a marianoaliandri@gmail.com';
 
 function detectLeadInfo(message) {
   const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
@@ -88,11 +104,11 @@ function detectLeadInfo(message) {
   };
 }
 
-async function sendLeadNotification(leadInfo, lastMessage, conversationHistory, baseUrl) {
+async function sendLeadNotification(leadInfo, lastMessage, historial, baseUrl) {
   if (!process.env.RESEND_API_KEY) return;
-  const conversationSummary = conversationHistory
+  const conversationSummary = historial
     .filter(msg => msg.role === 'user')
-    .map((msg, i) => `${i + 1}. ${msg.parts[0].text}`)
+    .map((msg, i) => `${i + 1}. ${msg.content}`)
     .join('\n');
   await fetch(`${baseUrl}/api/send-email`, {
     method: 'POST',
@@ -108,46 +124,54 @@ async function sendLeadNotification(leadInfo, lastMessage, conversationHistory, 
   });
 }
 
+const ipDe = (request) => (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'sin-ip';
+
 export async function POST(request) {
   try {
-    const { message, conversationHistory = [] } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const message = String(body?.message ?? '').trim().slice(0, MAX_MENSAJE);
     if (!message) {
       return Response.json({ error: 'Message is required' }, { status: 400 });
     }
-    const apiKey = getGeminiKey();
-    if (!apiKey) {
-      return Response.json({
-        error: 'API key no configurada',
-        response: 'El chatbot no está disponible temporalmente. Por favor, contactame por WhatsApp al +54 299 541-4422 o por email a marianoaliandri@gmail.com',
-      }, { status: 500 });
+    const db = getDb();
+    const user = await getUserFromRequest(request);
+
+    // Endpoint público que gasta tokens: tope por hora, más alto para quien inició sesión.
+    if (db) {
+      const rl = await hitRateLimit(db, `chat:${user ? `u_${user.uid}` : `ip_${ipDe(request)}`}`, { limit: user ? 60 : 20, windowS: 3600 });
+      if (!rl.ok) {
+        return Response.json({
+          error: 'Demasiados mensajes',
+          response: 'Hablamos un montón por hoy 🙂. Para seguir, escribile directo a Mariano por WhatsApp al +54 299 541-4422 o pedí tu presupuesto en https://marianoaliandri.com.ar/presupuesto/',
+        }, { status: 429 });
+      }
     }
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-3.8-flash',
-      generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 800 },
-    });
-    let history = [
-      { role: 'user', parts: [{ text: MARIANO_CONTEXT }] },
-      { role: 'model', parts: [{ text: 'Comprendido. Soy el asistente virtual de Mariano Aliandri.' }] },
-    ];
-    if (conversationHistory && conversationHistory.length > 0) {
-      history = [...history, ...conversationHistory.map(msg => ({ role: msg.role, parts: msg.parts }))];
-    }
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(message);
-    const response = await result.response.text();
+
+    const historial = historialAMensajes(body?.conversationHistory);
+    const result = await conRespaldo((model, timeout) => generateText({
+      model,
+      system: MARIANO_CONTEXT,
+      messages: [...historial, { role: 'user', content: message }],
+      tools: crearHerramientasChat({ db, user }),
+      stopWhen: stepCountIs(5),
+      maxOutputTokens: 800,
+      temperature: 0.7,
+      maxRetries: 0,
+      timeout,
+    }), { timeouts: [{ stepMs: 12000, totalMs: 25000 }, { stepMs: 20000, totalMs: 30000 }] });
+
+    const response = result.text?.trim() || 'Contame un poco más sobre tu proyecto y te oriento 🙂';
     const leadDetected = detectLeadInfo(message);
     if (leadDetected.isLead) {
       const baseUrl = new URL(request.url).origin;
-      sendLeadNotification(leadDetected.info, message, conversationHistory, baseUrl).catch(console.error);
+      sendLeadNotification(leadDetected.info, message, historial, baseUrl).catch(console.error);
     }
-    return Response.json({ success: true, response, leadCaptured: leadDetected.isLead });
+    return Response.json({
+      success: true, response, leadCaptured: leadDetected.isLead,
+      needsLogin: !user && pidioLogin(result.steps),
+    });
   } catch (error) {
     console.error('Error en chat:', error);
-    return Response.json({
-      error: 'Error al procesar el mensaje',
-      response: 'Disculpá, estoy teniendo un problema de conexión. Por favor, contactame por WhatsApp al +54 299 541-4422 o por email a marianoaliandri@gmail.com',
-      details: error.message,
-    }, { status: 500 });
+    return Response.json({ error: 'Error al procesar el mensaje', response: FALLBACK }, { status: 500 });
   }
 }

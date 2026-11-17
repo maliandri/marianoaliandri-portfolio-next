@@ -515,7 +515,29 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   Primera sincronización 2026-10-19: 430 ítems (421 productos + 9 de info del vendedor).
 - **Auth**: Firebase Auth (Google login)
 - **Likes + Visitas**: Contadores en Firestore, anonimos con localStorage
-- **AI Chatbot**: Integrado en header (Gemini 2.5 Flash)
+- **AI Chatbot** (header, `src/components/social/AIChatBot.jsx`, con herramientas desde 2026-11-17): pregunta a `/api/chat` (Vercel
+  AI SDK `ai` + `@ai-sdk/google`, `generateText` con `stopWhen: stepCountIs(5)`) y, si la IA falla, contesta el motor de reglas
+  del propio componente (`getReply`), así nunca queda mudo. Herramientas (`src/lib/ai/chatTools.js`): `ver_servicios` (catálogo
+  de `tienda_catalogo` SIN precios) y `cotizar` (total en USD y pesos, pago total con 10% off y seña, mismo `cotizar` de
+  `src/lib/tienda.js`). **Precios solo con sesión de Google**, igual que la tienda: el navegador manda el idToken en
+  `Authorization`; sin sesión `cotizar` NO devuelve ningún número (devuelve `requiereLogin`), la ruta responde `needsLogin: true`
+  y el chat muestra el botón "Entrar con Google para ver precios". Endpoint público que gasta tokens: tope por hora vía
+  `hitRateLimit` (20 por IP sin sesión, 60 por usuario), mensaje ≤1000 caracteres, historial ≤10 turnos
+  (`src/lib/ai/chatHistory.js`). Antes `/api/chat` no lo usaba ningún componente: el bot era solo reglas.
+- **Agente de prospección** (admin → Marketing → Agente de prospección, desde 2026-11-17): `POST /api/agente-prospeccion/` (admin,
+  10 corridas/hora, `maxDuration` 300) recibe un objetivo en texto y corre un agente (`src/lib/ai/prospectingAgent.js`) que usa
+  en ciclo las MISMAS tools del servidor MCP por un adaptador (`src/lib/ai/mcpAdapter.js` convierte `defineTool` en `tool()` del
+  AI SDK), así valen los mismos frenos (cupo de Places, bajas, tope de mails). Lista blanca `HERRAMIENTAS_AGENTE`: busca
+  (`search_leads`, `get_lead_search`, `rank_rubros_by_demand`), lee (`list_audits`, `get_audit`, `list_lead_searches`,
+  `list_sent_emails`, `list_ig_prospects`) y **redacta** (`draft_business_email`). **NUNCA envía ni publica**: un test falla si
+  se suma una tool de envío. Los borradores quedan en `mcp_email_drafts` (7 días) y se envían de a uno con "Aprobar y enviar"
+  → `POST /api/agente-prospeccion/enviar/`, que llama al handler de `send_business_email` (todos los frenos del servidor).
+- **IA con AI SDK — modelos y respaldo** (`src/lib/ai/gemini.js`): `conRespaldo` prueba una cadena de modelos, por defecto
+  `gemini-3.8-flash` → `gemini-2.5-flash` (override con la env `AI_MODELS="m1,m2"`), con timeout por paso (`stepMs`) para no
+  esperar a un modelo colgado, y `conClaves` rota las `GEMINI_API_KEY*` (misma lógica que `geminiClient.js`). Medido el
+  2026-11-17: 3.8-flash tardaba 24 s en responder "high demand" mientras 2.5-flash respondía en 1,5 s; el error final lista el
+  motivo de cada intento. El agente solo cambia de modelo si todavía no llamó a ninguna herramienta (si no, repetiría búsquedas
+  que gastan cupo de Places).
 - **WhatsApp Button**: Flotante en todas las paginas
 - **Favicon dinamico**: Emoji segun dia de la semana (Dom😴 Lun😊 Mar😄 Mie🥳 Jue😎 Vie🤩 Sab😁) — script inline en `<head>`, sin archivos ni requests
 - **Dark mode**: Persistido en localStorage, aplicado antes del primer render (sin flash)
@@ -833,6 +855,9 @@ Las herramientas del sitio expuestas como **servidor MCP remoto** para usarlas d
   tolera credenciales ausentes en build time, ver seccion de abajo), así que el workflow
   no necesita secrets. Si el build alguna vez empieza a requerir una env var real,
   agregarla como secret de GitHub igual que se hizo para `scripts/noticias-bot.mjs`.
+- **Node 25 en la PC de escritorio**: `npm test` con el pool por defecto falla en todos los archivos (`Cannot read properties of
+  undefined (reading 'config')`); CI usa Node 20 y anda. En local, `npx vitest run --pool=vmThreads` corre los tests puros (los de
+  `src/lib/ai/` pasan) pero rompe los que usan `vi.mock`.
 - **Pendiente** (no implementado todavía): tests de `/api/subscribe` y
   `/api/payment-webhook`/`/api/subscription-webhook` end-to-end (hoy solo está probada
   la validación de firma, no el flujo completo de acreditación).

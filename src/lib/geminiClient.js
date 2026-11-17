@@ -13,6 +13,9 @@ function getKeys() {
   return [...new Set(keys)]; // dedup
 }
 
+// Todas las keys disponibles (sin duplicados), para quien necesite rotarlas por su cuenta (AI SDK).
+export const getGeminiKeys = getKeys;
+
 const keyProblem = (status, message) =>
   status === 401 || status === 403 || (status === 400 && /api key/i.test(message));
 

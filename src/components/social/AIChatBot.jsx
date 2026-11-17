@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CAPABILITIES } from '@/data/capabilities';
+import { useAuthUser } from '@/hooks/useAuthUser';
 
 const PRESUPUESTO_URL = 'https://marianoaliandri.com.ar/presupuesto';
 
@@ -71,6 +72,8 @@ function AIChatBot() {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(true);
+  const [needsLogin, setNeedsLogin] = useState(false);
+  const { getIdToken, login } = useAuthUser();
   const messagesEndRef = useRef(null);
 
   const quickReplies = [
@@ -114,13 +117,48 @@ function AIChatBot() {
     });
   };
 
+  // Pregunta a /api/chat (Gemini con herramientas: servicios de la tienda y cotización con sesión).
+  // Si la IA no responde (sin red, cupo, error), contesta el motor de reglas de arriba: el chat nunca queda mudo.
+  const askAI = async (message) => {
+    const history = messages.map((m) => ({ role: m.isBot ? 'model' : 'user', parts: [{ text: m.text }] }));
+    const token = await getIdToken();
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ message, conversationHistory: history }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok && !data.response) throw new Error(`Chat ${res.status}`);
+    return data;
+  };
+
   const handleSendMessage = async (message = inputValue) => {
-    if (!message.trim()) return;
+    if (!message.trim() || isTyping) return;
     addUserMessage(message);
     setInputValue('');
     setShowQuickReplies(false);
-    await simulateTyping(700);
-    addBotMessage(getReply(message));
+    setNeedsLogin(false);
+    setIsTyping(true);
+    try {
+      const data = await askAI(message);
+      addBotMessage(data.response);
+      setNeedsLogin(data.needsLogin === true);
+    } catch {
+      await simulateTyping(400);
+      addBotMessage(getReply(message));
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const handleLogin = async () => {
+    try {
+      await login();
+      setNeedsLogin(false);
+      addBotMessage('¡Listo! Ya podés ver precios. Pedime de nuevo que te cotice el proyecto y te paso los números 🙂');
+    } catch {
+      addBotMessage('No pude iniciar sesión. Probá de nuevo, o pedí tu presupuesto sin cargo 👉 [acá](' + PRESUPUESTO_URL + ')');
+    }
   };
 
   const handleQuickReply = (reply) => handleSendMessage(reply.text);
@@ -255,6 +293,17 @@ function AIChatBot() {
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
                   </div>
+                </motion.div>
+              )}
+
+              {needsLogin && !isTyping && (
+                <motion.div className="flex justify-start" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                  <button
+                    onClick={handleLogin}
+                    className="px-3 py-2 text-sm font-semibold rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-500 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Entrar con Google para ver precios
+                  </button>
                 </motion.div>
               )}
 
