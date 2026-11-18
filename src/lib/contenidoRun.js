@@ -15,6 +15,8 @@ import { getLinkedInAuth, publishDocumentPost } from '@/lib/linkedinClient';
 import { imagesToPdf } from '@/lib/demandaPublish';
 import { sendAlert } from '@/lib/alert';
 import { dispararReel, textoReel } from '@/lib/reelDispatch';
+import { storyImageUrl, publishStory } from '@/lib/igStory';
+import { igCredsFromEnv } from '../../scripts/igStoryClient.mjs';
 
 const CONFIG = 'contenido_config';
 export const CONTENIDOS = 'contenidos';
@@ -100,6 +102,26 @@ async function acquireLock(db, nowMs) {
   });
 }
 
+// Historias de Instagram de la pieza: la portada y el cierre (el que lleva el link a /aprende), cada una en
+// 9:16 con la placa entera sobre su propio fondo desenfocado. Cada historia falla por separado y un fallo
+// NO cambia el estado de la pieza (igual que en las auditorías y el bot de noticias).
+export async function publicarHistorias(db, imagenes, { publish = publishStory } = {}) {
+  if (!igCredsFromEnv()) return { ok: false, error: 'sin IG_ACCESS_TOKEN / IG_USER_ID' };
+  const elegidas = imagenes.length > 1 ? [imagenes[0], imagenes[imagenes.length - 1]] : imagenes;
+  const ids = [];
+  const errores = [];
+  for (const url of elegidas) {
+    try {
+      const mediaUrl = storyImageUrl(url);
+      if (!mediaUrl) throw new Error('la placa no está en Cloudinary');
+      ids.push((await publish({ db, tipo: 'imagen', mediaUrl, origen: 'contenido' })).storyId);
+    } catch (e) {
+      errores.push(e.message);
+    }
+  }
+  return { ok: ids.length > 0, ids, ...(errores.length ? { error: errores.join(' · ') } : {}) };
+}
+
 // Publica una pieza ya generada (borrador o recién creada). Cada red falla por separado.
 export async function publicarContenido(db, id) {
   const ref = db.collection(CONTENIDOS).doc(id);
@@ -128,16 +150,17 @@ export async function publicarContenido(db, id) {
   } catch (e) {
     redes.linkedin = { ok: false, error: e.message };
   }
+  const historia = await publicarHistorias(db, c.imagenes).catch(e => ({ ok: false, error: e.message }));
   const fallas = Object.entries(redes).filter(([, r]) => !r.ok);
   const error = fallas.map(([k, r]) => `${k === 'linkedin' ? 'LinkedIn' : 'Facebook + Instagram'}: ${r.error}`).join(' · ') || null;
   await ref.update({
-    estado: 'publicado', publicadoAtMs: Date.now(), publicadoAt: FieldValue.serverTimestamp(), redes, error,
+    estado: 'publicado', publicadoAtMs: Date.now(), publicadoAt: FieldValue.serverTimestamp(), redes, historia, error,
   });
   await revalidar(id);
   if (fallas.length) {
     await sendAlert({ key: `contenido:post:${fallas.map(([k]) => k).join(',')}`, titulo: 'Bot de contenido: falló la publicación en una red', detalle: error, contexto: { contenido: id } });
   }
-  return { id, redes, error };
+  return { id, redes, historia, error };
 }
 
 // Genera una pieza. publicar=false la deja como borrador (vista previa en el admin, no se ve en el sitio).

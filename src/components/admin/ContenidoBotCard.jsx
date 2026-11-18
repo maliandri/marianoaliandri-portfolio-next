@@ -52,7 +52,7 @@ function Serie({ s, onSave, busy }) {
 // Cómo sale todo solo, en el orden real en que pasa.
 function ComoSale({ activo, reels }) {
   const pasos = [
-    ['Lun a vie · 12:00', 'Pieza del día', 'Toma la primera idea de la cola o, si no hay, la serie que toca. La IA la escribe, se arman las placas y sale en Facebook + Instagram (carrusel), LinkedIn (PDF) y /aprende.', activo],
+    ['Lun a vie · 12:00', 'Pieza del día', 'Toma la primera idea de la cola o, si no hay, la serie que toca. La IA la escribe, se arman las placas y sale en Facebook + Instagram (carrusel), LinkedIn (PDF), /aprende y dos historias de Instagram (portada y cierre).', activo],
     ['Lun, mié y vie · 10:00', 'Reel automático', 'Toma una pieza sin reel (primero las que marcaste "con reel"), le pone voz y la anima. Si "Armar también el reel" puede pedirlo a GitHub, sale en unos 5 minutos.', true],
     ['Cuando termina el reel', 'Publicación del reel', reels ? 'Se publica solo en Instagram, Facebook y LinkedIn.' : 'Queda como borrador en Reels para que lo mires y lo publiques (la publicación automática del reel está apagada).', reels],
   ];
