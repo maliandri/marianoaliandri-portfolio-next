@@ -10,9 +10,9 @@ export const MODELO_CHAT = 'gemini-3.8-flash';
 // armado, tool que falla) fallaría igual con todas.
 export function esErrorDeKey(e) {
   const status = e?.statusCode ?? e?.status;
-  if ([401, 403, 429, 500, 502, 503, 504].includes(status)) return true;
+  if ([401, 403, 404, 429, 500, 502, 503, 504].includes(status)) return true; // 404: modelo no disponible para ESA cuenta
   if (e?.name === 'TimeoutError' || e?.name === 'AbortError') return false; // el tiempo total se agotó: no insistir
-  return /quota|overload|unavailable|api key|rate limit|resource.?exhausted/i.test(String(e?.message || ''));
+  return /quota|overload|unavailable|no longer available|api key|rate limit|resource.?exhausted/i.test(String(e?.message || ''));
 }
 
 // Keys en orden rotado a partir de un punto al azar (reparte la carga entre cuentas).
@@ -37,15 +37,19 @@ export async function conRespaldo(fn, {
   modelos = modelosConfigurados(), timeouts = [], puedeReintentar = () => true, ...opts
 } = {}) {
   let ultimo;
+  const motivos = [];
   for (const [i, modelo] of modelos.entries()) {
     const timeout = timeouts[i] ?? timeouts.at(-1) ?? { stepMs: 20000, totalMs: 50000 };
     try {
       return await conClaves(model => fn(model, timeout), { ...opts, modelo });
     } catch (e) {
       ultimo = e;
+      motivos.push(`${modelo}: ${String(e.message).slice(0, 200)}`);
       if (!puedeReintentar(e)) throw e;
     }
   }
+  // Si se probó más de un modelo, el error cuenta qué pasó con cada uno (antes solo quedaba el último).
+  if (motivos.length > 1) throw new Error(motivos.join(' || '));
   throw ultimo;
 }
 
