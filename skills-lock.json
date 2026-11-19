@@ -13,6 +13,20 @@
       "skillPath": "skills/ai-seo/SKILL.md",
       "computedHash": "de09eb5f5ebaeb5c4e1c5967d90432c442cdcf83fbeca8e5ce8999bbb0e6c8b7"
     },
+    "cold-email": {
+      "source": "coreyhaines31/marketingskills",
+      "commit": "73573e94a06a39965978b3fa1f9c1eace8cebc7c",
+      "sourceType": "github",
+      "skillPath": "skills/cold-email/SKILL.md",
+      "computedHash": "c23aac9954d5647e1a571e11ffb589ea30b3c90159d4d8854dff748dd1ff9841"
+    },
+    "content-strategy": {
+      "source": "coreyhaines31/marketingskills",
+      "commit": "73573e94a06a39965978b3fa1f9c1eace8cebc7c",
+      "sourceType": "github",
+      "skillPath": "skills/content-strategy/SKILL.md",
+      "computedHash": "94a23ddb279c20ea8c7c7751eb07f548c855a5287aed8983f31e63b49e7dbf1a"
+    },
     "copywriting": {
       "source": "coreyhaines31/marketingskills",
       "sourceType": "github",
@@ -43,6 +57,20 @@
       "skillPath": "skills/frontend-design/SKILL.md",
       "computedHash": "93f53fd1c0352d3d7ec17b8f73d7351bf76f4821e55d123c9d2abc2c53ba48e4"
     },
+    "instagram-growth": {
+      "source": "social-media-skills/skills",
+      "commit": "f28cef2b7067ec64e79c9d85421c022c06659e03",
+      "sourceType": "github",
+      "skillPath": "skills/instagram-growth/SKILL.md",
+      "computedHash": "5a38bd26d67f0846544fb56d83ce3569ba1f25dbf15e9bee15c83ca3efcb4b4f"
+    },
+    "marketing-psychology": {
+      "source": "coreyhaines31/marketingskills",
+      "commit": "73573e94a06a39965978b3fa1f9c1eace8cebc7c",
+      "sourceType": "github",
+      "skillPath": "skills/marketing-psychology/SKILL.md",
+      "computedHash": "9542dca644cf683b8d171b962054679a51b2e740bfad0692c2edcfd85d129c9c"
+    },
     "pricing": {
       "source": "coreyhaines31/marketingskills",
       "sourceType": "github",
@@ -54,6 +82,13 @@
       "sourceType": "github",
       "skillPath": "skills/programmatic-seo/SKILL.md",
       "computedHash": "55f7d5ab827c57ab916890ddd1aee1521f3aa447d66f75d9e8606236663d9180"
+    },
+    "sales-enablement": {
+      "source": "coreyhaines31/marketingskills",
+      "commit": "73573e94a06a39965978b3fa1f9c1eace8cebc7c",
+      "sourceType": "github",
+      "skillPath": "skills/sales-enablement/SKILL.md",
+      "computedHash": "a097c96210ed88e19fdb3a43b4b9e53a4f394bf5942d96af3c1f2c1b3c8b93e8"
     },
     "schema": {
       "source": "coreyhaines31/marketingskills",
