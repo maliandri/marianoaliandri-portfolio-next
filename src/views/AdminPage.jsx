@@ -38,6 +38,7 @@ import { mergeNavWithDefaults } from '../lib/navMerge';
 import PlacesUsagePanel from '../components/admin/PlacesUsagePanel';
 import FunnelsPanel from '../components/admin/FunnelsPanel';
 import InstagramProspects from '../components/leadfinder/admin/InstagramProspects';
+import InstagramFollowers from '../components/admin/InstagramFollowers';
 import NavConfigEditor from '../components/admin/NavConfigEditor';
 import KeywordExplorer from '../components/audit/KeywordExplorer';
 import KeywordAnalyticsPublisher from '../components/admin/KeywordAnalyticsPublisher';
@@ -737,6 +738,7 @@ export default function AdminPage() {
         {activeTab === 'embudos' && <FunnelsPanel />}
 
         {activeTab === 'ig-prospectos' && <InstagramProspects />}
+        {activeTab === 'ig-followers' && <InstagramFollowers />}
         {activeTab === 'agente-prospeccion' && <ProspectingAgentCard />}
 
         {activeTab === 'leadfinder-plans' && (
