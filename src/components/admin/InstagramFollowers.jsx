@@ -60,8 +60,10 @@ export default function InstagramFollowers() {
   const [error, setError] = useState('');
   const [orden, setOrden] = useState({ col: 'handle', dir: 'asc' });
   const [activo, setActivo] = useState(false);
-  const [porHora, setPorHora] = useState(120);
+  const [porHora, setPorHora] = useState(180);
   const [aviso, setAviso] = useState('');
+  const [progreso, setProgreso] = useState(null); // { handle, n, total, proxima }
+  const [ahora, setAhora] = useState(() => Date.now());
   const corriendo = useRef(false);
   const datosRef = useRef({});
 
@@ -72,6 +74,13 @@ export default function InstagramFollowers() {
     } catch { /* sin storage */ }
     return () => { corriendo.current = false; };
   }, []);
+
+  // Reloj de 1 s mientras se traen datos, para la cuenta regresiva de la próxima consulta.
+  useEffect(() => {
+    if (!activo) return undefined;
+    const t = setInterval(() => setAhora(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [activo]);
 
   const guardar = (next) => {
     setData(next);
@@ -145,9 +154,10 @@ export default function InstagramFollowers() {
     setActivo(true);
     setAviso('');
     try {
-      for (const handle of pendientes) {
+      for (const [i, handle] of pendientes.entries()) {
         if (!corriendo.current) break;
         if (datosRef.current[handle]) continue;
+        setProgreso({ handle, n: i + 1, total: pendientes.length, proxima: null });
         const idToken = await getIdToken();
         const resp = await fetch('/api/ig-seguidos', {
           method: 'POST',
@@ -158,11 +168,15 @@ export default function InstagramFollowers() {
         for (const item of json.items || []) guardarDato(item);
         if (json.pausa) { setAviso('Meta pidió una pausa por límite de uso. Esperá un rato y volvé a apretar "Traer datos": retoma donde quedó.'); break; }
         if (!resp.ok) { setAviso(resp.status === 401 || resp.status === 403 ? 'Entrá con tu cuenta de admin para traer los datos.' : (json.error || `Error ${resp.status}`)); break; }
-        await dormir(3600000 / porHora);
+        const espera = 3600000 / porHora;
+        setAhora(Date.now());
+        setProgreso(p => (p ? { ...p, proxima: Date.now() + espera } : p));
+        await dormir(espera);
       }
     } finally {
       corriendo.current = false;
       setActivo(false);
+      setProgreso(null);
     }
   };
   const detener = () => { corriendo.current = false; };
@@ -239,6 +253,7 @@ export default function InstagramFollowers() {
                 <option value={60}>60 por hora</option>
                 <option value={120}>120 por hora</option>
                 <option value={180}>180 por hora</option>
+                <option value={300}>300 por hora</option>
               </select>
             </label>
             <button type="button" onClick={descargarCsv} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-fg/5 text-fg hover:bg-fg/10">
@@ -248,6 +263,14 @@ export default function InstagramFollowers() {
               {traidos} consultadas · {profesionales} profesionales. Se traen de a una por la API oficial; dejá esta pestaña abierta.
               Las cuentas personales no devuelven datos.
             </span>
+            {activo && progreso && (
+              <p role="status" className="w-full text-sm text-fg">
+                {progreso.proxima == null
+                  ? `Consultando @${progreso.handle} (${progreso.n} de ${progreso.total})…`
+                  : `Última: @${progreso.handle} (${progreso.n} de ${progreso.total}) · próxima consulta en ${Math.max(0, Math.ceil((progreso.proxima - ahora) / 1000))} s`}
+                {' · '}quedan unas {Math.max(0, Math.ceil(((progreso.total - progreso.n) * 3600) / porHora / 60))} min
+              </p>
+            )}
             {aviso && <p className="w-full text-sm text-amber-600">{aviso}</p>}
           </div>
 
