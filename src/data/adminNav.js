@@ -42,6 +42,7 @@ export const ADMIN_NAV_DEFAULT = [
       { id: 'series', label: 'Series' },
     ]},
     { id: 'reels-bot', label: 'Reels automáticos', icon: '🎞️' },
+    { id: 'redes-stats', label: 'Métricas de redes', icon: '📈' },
   ]},
   { id: 'marketing', label: 'Marketing', icon: '🎯', items: [
     { id: 'leads', label: 'Lead Finder', icon: '🎯' },
