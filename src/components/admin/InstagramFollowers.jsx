@@ -10,14 +10,17 @@ import { parseIgExport, cruzar, igUrl } from '@/lib/igFollowers';
 
 const KEY = 'ig_followers_export_v1';
 const KEY_DATOS = 'ig_followers_datos_v1';
+const KEY_DEJADOS = 'ig_followers_dejados_v1'; // handle → momento (ms) en que se marcó "dejé de seguir"
 const FILTROS = [
   { id: 'noMeSiguen', label: 'No me siguen' },
   { id: 'mutuos', label: 'Mutuos' },
   { id: 'noSigo', label: 'No los sigo' },
   { id: 'todos', label: 'Todos' },
+  { id: 'dejados', label: 'Ya dejados' },
 ];
 const COLUMNAS = [
   { id: 'handle', label: 'Usuario', tipo: 'texto' },
+  { id: 'dejado', label: 'Dejé de seguir', tipo: 'bool' },
   { id: 'meSigue', label: 'Me sigue', tipo: 'bool' },
   { id: 'loSigo', label: 'Lo sigo', tipo: 'bool' },
   { id: 'nombre', label: 'Nombre', tipo: 'texto' },
@@ -55,6 +58,7 @@ export default function InstagramFollowers() {
   const { getIdToken } = useAuthUser();
   const [data, setData] = useState({ seguidores: [], seguidos: [], subidoEn: null });
   const [datos, setDatos] = useState({}); // handle → resultado de /api/ig-seguidos
+  const [dejados, setDejados] = useState({}); // handle → cuándo marqué "dejé de seguir"
   const [filtro, setFiltro] = useState('noMeSiguen');
   const [q, setQ] = useState('');
   const [error, setError] = useState('');
@@ -71,6 +75,7 @@ export default function InstagramFollowers() {
     try {
       const s = localStorage.getItem(KEY); if (s) setData(JSON.parse(s));
       const d = localStorage.getItem(KEY_DATOS); if (d) { const p = JSON.parse(d); setDatos(p); datosRef.current = p; }
+      const j = localStorage.getItem(KEY_DEJADOS); if (j) setDejados(JSON.parse(j));
     } catch { /* sin storage */ }
     return () => { corriendo.current = false; };
   }, []);
@@ -85,6 +90,17 @@ export default function InstagramFollowers() {
   const guardar = (next) => {
     setData(next);
     try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* sin storage */ }
+  };
+
+  // Tilde "Dejé de seguir": la cuenta sale de la grilla y los contadores se descuentan. Destildar en
+  // "Ya dejados" la devuelve. Solo guarda en este navegador (no deja de seguir a nadie en Instagram).
+  const marcarDejado = (handle, valor) => {
+    setDejados(prev => {
+      const next = { ...prev };
+      if (valor) next[handle] = Date.now(); else delete next[handle];
+      try { localStorage.setItem(KEY_DEJADOS, JSON.stringify(next)); } catch { /* sin storage */ }
+      return next;
+    });
   };
 
   const guardarDato = useCallback((item) => {
@@ -119,11 +135,31 @@ export default function InstagramFollowers() {
     }
   };
 
-  const { stats, filas } = useMemo(() => cruzar(data.seguidores, data.seguidos), [data]);
+  const { stats: statsBase, filas: filasBase } = useMemo(() => cruzar(data.seguidores, data.seguidos), [data]);
+
+  // Las cuentas marcadas como dejadas pasan a "no las sigo": si tampoco me seguían, desaparecen de todo.
+  const filas = useMemo(() => filasBase
+    .map(f => ({ ...f, dejado: Boolean(dejados[f.handle]), loSigo: dejados[f.handle] ? false : f.loSigo }))
+    .filter(f => f.meSigue || f.loSigo), [filasBase, dejados]);
+  const stats = useMemo(() => ({
+    seguidores: statsBase.seguidores,
+    seguidos: filas.filter(f => f.loSigo).length,
+    mutuos: filas.filter(f => f.loSigo && f.meSigue).length,
+    noMeSiguen: filas.filter(f => f.loSigo && !f.meSigue).length,
+    noSigo: filas.filter(f => f.meSigue && !f.loSigo).length,
+  }), [filas, statsBase]);
+  const listaDejados = useMemo(
+    () => filasBase.filter(f => dejados[f.handle]).map(f => ({ ...f, dejado: true })),
+    [filasBase, dejados],
+  );
+  const dejadosHoy = useMemo(() => {
+    const inicio = new Date(); inicio.setHours(0, 0, 0, 0);
+    return listaDejados.filter(f => dejados[f.handle] >= inicio.getTime()).length;
+  }, [listaDejados, dejados]);
 
   const visibles = useMemo(() => {
     const term = q.trim().toLowerCase().replace(/^@/, '');
-    const lista = filas
+    const lista = (filtro === 'dejados' ? listaDejados : filas)
       .filter(f => {
         if (filtro === 'noMeSiguen' && !(f.loSigo && !f.meSigue)) return false;
         if (filtro === 'mutuos' && !(f.loSigo && f.meSigue)) return false;
@@ -144,9 +180,9 @@ export default function InstagramFollowers() {
       if (tipo === 'bool') return (Number(x) - Number(y)) * signo;
       return String(x).localeCompare(String(y), 'es') * signo;
     });
-  }, [filas, filtro, q, datos, orden]);
+  }, [filas, listaDejados, filtro, q, datos, orden]);
 
-  const pendientes = useMemo(() => visibles.filter(f => !datos[f.handle]).map(f => f.handle), [visibles, datos]);
+  const pendientes = useMemo(() => visibles.filter(f => !datos[f.handle] && !f.dejado).map(f => f.handle), [visibles, datos]);
 
   const traerDatos = async () => {
     if (corriendo.current) return;
@@ -182,8 +218,9 @@ export default function InstagramFollowers() {
   const detener = () => { corriendo.current = false; };
 
   const descargarCsv = () => {
-    const cab = ['usuario', 'perfil', 'me_sigue', 'lo_sigo', 'nombre', 'bio', 'web', 'seguidores', 'posts', 'datos'];
-    const filasCsv = visibles.map(f => [f.handle, igUrl(f.handle), f.meSigue ? 'si' : 'no', f.loSigo ? 'si' : 'no',
+    const cab = ['usuario', 'perfil', 'me_sigue', 'lo_sigo', 'deje_de_seguir', 'nombre', 'bio', 'web', 'seguidores', 'posts', 'datos'];
+    const filasCsv = visibles.map(f => [f.handle, igUrl(f.handle), f.meSigue ? 'si' : 'no', f.loSigo && !f.dejado ? 'si' : 'no',
+      f.dejado ? new Date(dejados[f.handle]).toLocaleString('es-AR') : '',
       valorDe(f, 'nombre'), valorDe(f, 'bio'), valorDe(f, 'web'), valorDe(f, 'seguidores') ?? '', valorDe(f, 'posts') ?? '', valorDe(f, 'estado')]);
     const texto = '﻿' + [cab, ...filasCsv].map(r => r.map(celdaCsv).join(',')).join('\r\n');
     const url = URL.createObjectURL(new Blob([texto], { type: 'text/csv;charset=utf-8' }));
@@ -197,7 +234,7 @@ export default function InstagramFollowers() {
   const ordenarPor = (col) => setOrden(o => (o.col === col ? { col, dir: o.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' }));
 
   const vacio = !data.seguidores.length && !data.seguidos.length;
-  const cuenta = { noMeSiguen: stats.noMeSiguen, mutuos: stats.mutuos, noSigo: stats.noSigo, todos: filas.length };
+  const cuenta = { noMeSiguen: stats.noMeSiguen, mutuos: stats.mutuos, noSigo: stats.noSigo, todos: filas.length, dejados: listaDejados.length };
   const traidos = Object.keys(datos).length;
   const profesionales = Object.values(datos).filter(d => d.ok).length;
 
@@ -218,12 +255,13 @@ export default function InstagramFollowers() {
 
       {!vacio && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             {[['Seguidores', stats.seguidores], ['Seguidos', stats.seguidos], ['Mutuos', stats.mutuos],
-              ['No me siguen', stats.noMeSiguen], ['No los sigo', stats.noSigo]].map(([l, n]) => (
+              ['No me siguen', stats.noMeSiguen], ['No los sigo', stats.noSigo],
+              ['Ya dejados', listaDejados.length, `hoy ${dejadosHoy}`]].map(([l, n, nota]) => (
               <div key={l} className="rounded-xl bg-fg/5 p-3">
                 <div className="text-2xl font-bold text-fg">{n.toLocaleString('es-AR')}</div>
-                <div className="text-xs text-fg-500">{l}</div>
+                <div className="text-xs text-fg-500">{l}{nota ? ` · ${nota}` : ''}</div>
               </div>
             ))}
           </div>
@@ -263,6 +301,10 @@ export default function InstagramFollowers() {
               {traidos} consultadas · {profesionales} profesionales. Se traen de a una por la API oficial; dejá esta pestaña abierta.
               Las cuentas personales no devuelven datos.
             </span>
+            <span className="w-full text-xs text-fg">
+              Seguimiento: dejaste de seguir a <b>{listaDejados.length}</b> cuentas (hoy {dejadosHoy}).
+              Tildá “Dejé de seguir” en cada fila después de hacerlo en Instagram; para deshacer, destildala en “Ya dejados”.
+            </span>
             {activo && progreso && (
               <p role="status" className="w-full text-sm text-fg">
                 {progreso.proxima == null
@@ -295,12 +337,19 @@ export default function InstagramFollowers() {
                       <a href={igUrl(f.handle)} target="_blank" rel="noopener noreferrer"
                         className="px-2 py-0.5 rounded-md bg-pink-600 hover:bg-pink-500 text-white text-xs font-medium">@{f.handle}</a>
                     </td>
+                    <td className="px-3 py-1.5 text-center">
+                      {(f.loSigo || f.dejado) && (
+                        <input type="checkbox" checked={f.dejado} onChange={e => marcarDejado(f.handle, e.target.checked)}
+                          aria-label={`Dejé de seguir a @${f.handle}`} title={f.dejado ? 'Destildá para devolverla a la lista' : 'Marcá cuando la dejes de seguir en Instagram'}
+                          className="h-4 w-4 cursor-pointer accent-pink-600" />
+                      )}
+                    </td>
                     <td className="px-3 py-1.5 whitespace-nowrap">
                       <span className={`text-xs px-2 py-0.5 rounded-md ${f.meSigue ? 'bg-green-500/15 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-500'}`}>
                         {f.meSigue ? 'Sí' : 'No'}
                       </span>
                     </td>
-                    <td className="px-3 py-1.5 whitespace-nowrap text-xs text-fg-500">{f.loSigo ? 'Sí' : 'No'}</td>
+                    <td className="px-3 py-1.5 whitespace-nowrap text-xs text-fg-500">{f.loSigo && !f.dejado ? 'Sí' : 'No'}</td>
                     <td className="px-3 py-1.5 text-fg whitespace-nowrap max-w-[14rem] truncate">{valorDe(f, 'nombre')}</td>
                     <td className="px-3 py-1.5 text-fg-500 min-w-[18rem] max-w-[28rem]">
                       <div className="line-clamp-2 text-xs">{valorDe(f, 'bio')}</div>
