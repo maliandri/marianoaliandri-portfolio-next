@@ -51,6 +51,9 @@ const seed = () => createFakeDb({
   'demanda_reportes/d1': { zona: 'Alto Valle', localidades: ['Neuquén'], createdAtMs: 1, top: [{ id: 'f', label: 'Farmacia', pos: 1, interes: 100, ejemplos: [LEAK] }] },
   'alertas/a1': { key: LEAK, total: 2, ultimaVez: 1 },
   'guiones/g1': { titulo: 'G', gancho: LEAK, tomas: [{ decir: 'a', mostrar: 'b' }], estado: 'pendiente', createdAtMs: 1 },
+  'mcp_ideas/i1': { idea: 'Una idea', estado: 'nuevo', creadoMs: 1 },
+  'mcp_gaps/g1': { pedido: 'Un pedido', herramientaSugerida: 'x', estado: 'nuevo', creadoMs: 1 },
+  'mcp_tool_calls/c1': { tool: 'guardar_idea', ok: false, error: LEAK, at: new Date() },
 });
 
 // Argumentos de ejemplo por tool (camino feliz y camino de error).
@@ -100,6 +103,11 @@ const ARGS = {
   save_demand_zone: [{ nombre: 'Comarca', localidades: [{ provincia: 'rio negro', localidad: 'el bolson' }] }, { nombre: 'X', localidades: [{ provincia: 'Marte', localidad: 'Y' }] }],
   get_automation_status: [{}],
   publish_ig_story: [{ tipo: 'imagen', url: 'https://ejemplo.com/a.png', dry_run: true }, { tipo: 'texto', texto: 'Hola' }],
+  registrar_faltante: [{ pedido: 'Mandar un WhatsApp a un cliente', herramienta_sugerida: 'send_whatsapp' }, { pedido: '' }],
+  guardar_idea: [{ idea: 'Bot de WhatsApp', categoria: 'herramienta', prioridad: 'alta' }, { idea: 'x', categoria: 'volando' }],
+  listar_ideas: [{}, { cursor: '%%' }],
+  actualizar_estado: [{ tipo: 'idea', id: 'i1', estado: 'hecho' }, { tipo: 'faltante', id: 'nope', estado: 'hecho' }],
+  resumen_aprendizaje: [{}, { dias: 7 }],
 };
 
 describe('servidor MCP — nada de secretos en las respuestas', () => {

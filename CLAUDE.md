@@ -584,7 +584,8 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 | `agente_runs` (+ subcolección `eventos`) | Corridas del agente de prospección: objetivo, estado (corriendo/listo/error/cortado), informe, borradores y cada paso en vivo | Solo Admin SDK (`src/lib/ai/agentRuns.js`) |
 | `alertas` | Una por clave de alerta: último envío, total y repeticiones suprimidas (tope 1 mail/hora) | Solo Admin SDK (`src/lib/alert.js`) |
 | `social_stats` | Una foto por red y día de los seguidores (`instagram_YYYY-MM-DD`), para ver el crecimiento | Solo Admin SDK (MCP `get_instagram_stats`) |
-| `mcp_rate` / `mcp_tool_calls` | Rate limiting y registro de cada llamada a una tool del MCP | Solo Admin SDK |
+| `mcp_rate` / `mcp_tool_calls` | Rate limiting y registro de cada llamada a una tool del MCP (args sin datos sensibles, `tipoError` conocido/interno) | Solo Admin SDK |
+| `mcp_gaps` / `mcp_ideas` | Autoaprendizaje del MCP: lo que el conector no pudo hacer (`pedido`, `herramientaSugerida`) e ideas sueltas (`idea`, `categoria`, `prioridad`); `estado` nuevo/en_desarrollo/hecho/descartado, `creadoMs` | Solo Admin SDK (tools de `tools/aprendizaje.js`) |
 
 **IMPORTANTE `entitlements/{uid}`**: el cliente NO puede escribirla (regla `write: if false`).
 El plan y el contador de busquedas solo los escribe el Admin SDK desde el server. Esto evita que
@@ -791,8 +792,16 @@ Las herramientas del sitio expuestas como **servidor MCP remoto** para usarlas d
 - **Nada de secretos**: cada respuesta pasa por `redactSecrets()` (`src/lib/mcp/redact.js`) y los errores
   internos salen como "Error interno"; `src/lib/mcp/noSecrets.test.js` corre todas las tools con
   valores centinela en las env vars.
-- **Registro**: cada llamada queda en `mcp_tool_calls` (tool, ok, ms, args resumidos).
-- **Tools** (37): presupuestos (desde 2026-10-28, `tools/presupuestos.js` + `src/lib/presupuestos.js`):
+- **Registro**: cada llamada queda en `mcp_tool_calls` (tool, ok, ms, args resumidos, `error` y `tipoError`
+  conocido/interno). `argsResumen` (`defineTool.js`) tapa los campos sensibles por nombre (email, teléfono, token,
+  texto, preview_url…) y cualquier valor que parezca un mail o un teléfono; los textos de más de 60 caracteres quedan
+  como su largo.
+- **Autoaprendizaje** (desde 2026-11-22, `tools/aprendizaje.js` + lógica pura en `src/lib/aprendizaje.js`):
+  `registrar_faltante` (Claude la llama cuando no puede cumplir un pedido → `mcp_gaps`), `guardar_idea` (→ `mcp_ideas`),
+  `listar_ideas`, `actualizar_estado` y `resumen_aprendizaje` (7 o 28 días: faltantes más pedidos, tools con errores
+  —mínimo 3 llamadas—, tools sin uso e ideas abiertas por prioridad). Las tools reciben `toolNames` en el contexto del
+  handler (nombres de todas las registradas) para calcular las que no se usan sin importar `register.js` (ciclo).
+- **Tools** (42): presupuestos (desde 2026-10-28, `tools/presupuestos.js` + `src/lib/presupuestos.js`):
   `list_budget_requests`, `get_budget_request`, `quote_budget_request` (monto + link de MercadoPago con
   `metadata.type: 'presupuesto'`; devuelve `whatsappUrl` con el mensaje escrito, no le escribe al cliente; `dry_run`) y
   `set_budget_status`; además `list_budget_services` (catálogo con precios efectivos), `create_budget` (arma un presupuesto

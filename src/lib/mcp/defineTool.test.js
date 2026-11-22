@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('firebase-admin/firestore', async () => (await import('@/test/fakeDb')).firestoreMock);
 import { z } from 'zod';
 import { createFakeDb } from '@/test/fakeDb';
-import { defineTool, registerTools, ToolError } from './defineTool';
+import { defineTool, registerTools, ToolError, argsResumen } from './defineTool';
 import { encodeCursor, decodeCursor } from './paginate';
 
 function fakeServer() {
@@ -46,7 +46,19 @@ describe('defineTool / registerTools', () => {
     expect(JSON.stringify(r)).not.toContain('sk-123');
     expect(r.content[0].text).toContain('Error interno');
     const log = Object.entries(db.docs).find(([k]) => k.startsWith('mcp_tool_calls/'))[1];
-    expect(log).toMatchObject({ ok: false });
+    expect(log).toMatchObject({ ok: false, tipoError: 'interno' });
+  });
+
+  it('un ToolError queda registrado como error conocido', async () => {
+    const { cb, db } = setup(async () => { throw new ToolError('no hay leads'); });
+    await cb({ a: 'x' }, ctx);
+    const log = Object.entries(db.docs).find(([k]) => k.startsWith('mcp_tool_calls/'))[1];
+    expect(log).toMatchObject({ ok: false, tipoError: 'conocido' });
+  });
+
+  it('pasa los nombres de todas las tools al handler', async () => {
+    const { cb } = setup(async (_a, c) => ({ summary: 'ok', data: { nombres: c.toolNames } }));
+    expect((await cb({ a: 'x' }, ctx)).structuredContent.nombres).toEqual(['probar_cosa']);
   });
 
   it('sin authInfo no corre', async () => {
@@ -64,6 +76,25 @@ describe('defineTool / registerTools', () => {
     const r = await cb({ a: 'x' }, ctx);
     expect(r.isError).toBe(true);
     expect(r.content[0].text).toContain('reintentá en');
+  });
+});
+
+describe('argsResumen (lo que se guarda en mcp_tool_calls)', () => {
+  it('tapa datos sensibles por nombre de campo y por contenido', () => {
+    expect(argsResumen({
+      email: 'ana@x.com', telefono: '2995551234', texto: 'Hola', preview_url: 'https://x', access_token: 'abc',
+      cliente: 'escribile a ana@x.com', contacto: '+54 9 299 555-1234',
+      id: 'a1', dias: 28, fecha: '2026-11-20', redes: ['facebook'], items: [{ nombre: 'x' }], vacio: '',
+    })).toEqual({
+      email: '<oculto>', telefono: '<oculto>', texto: '<oculto>', preview_url: '<oculto>', access_token: '<oculto>',
+      cliente: '<oculto>', contacto: '<oculto>',
+      id: 'a1', dias: 28, fecha: '2026-11-20', redes: ['facebook'], items: ['<objeto>'], vacio: '',
+    });
+  });
+
+  it('resume textos largos y listas grandes', () => {
+    const r = argsResumen({ pedido: 'x'.repeat(100), lista: Array.from({ length: 20 }, (_, i) => `l${i}`) });
+    expect(r).toEqual({ pedido: '<100 caracteres>', lista: '<20 items>' });
   });
 });
 

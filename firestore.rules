@@ -140,5 +140,19 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Autoaprendizaje del servidor MCP: registro de llamadas a las tools, faltantes (lo que el
+    // conector no pudo hacer) e ideas. Las escribe y lee SOLO el servidor con el Admin SDK, que
+    // ignora estas reglas; el cliente no tiene acceso. Firestore ya niega lo que no tiene regla:
+    // esto lo deja explícito.
+    match /mcp_tool_calls/{id} {
+      allow read, write: if false;
+    }
+    match /mcp_gaps/{id} {
+      allow read, write: if false;
+    }
+    match /mcp_ideas/{id} {
+      allow read, write: if false;
+    }
+
   }
 }

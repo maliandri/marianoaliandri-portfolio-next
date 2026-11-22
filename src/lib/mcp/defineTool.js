@@ -15,11 +15,30 @@ export function defineTool({ name, title, description, inputSchema, annotations,
 
 const errorResult = (text) => ({ isError: true, content: [{ type: 'text', text }] });
 
-// Resumen de los argumentos para el log: sin textos largos (pueden ser mails enteros).
-function argsResumen(args) {
+// Resumen de los argumentos para el log (mcp_tool_calls): sin datos sensibles ni textos largos.
+// Se tapa por nombre de campo (mails, teléfonos, tokens, textos a publicar) y por contenido
+// (cualquier valor que parezca un mail o un teléfono), y los textos largos quedan como su largo.
+const CAMPO_SENSIBLE = /^(.*_)?(email|mail|telefono|phone|tel|whatsapp|token|secret|password|clave|preview_url|texto|cuerpo|mensaje|dm)$/i;
+const PARECE_MAIL = /[^\s@]+@[^\s@]+\.[^\s@]+/;
+const pareceTelefono = (s) => /^[+\d\s().-]+$/.test(s) && s.replace(/\D/g, '').length >= 10;
+
+function valorResumido(v) {
+  if (typeof v === 'string') {
+    if (PARECE_MAIL.test(v) || pareceTelefono(v)) return '<oculto>';
+    return v.length > 60 ? `<${v.length} caracteres>` : v;
+  }
+  if (Array.isArray(v)) {
+    if (v.length > 10) return `<${v.length} items>`;
+    return v.map(x => (x && typeof x === 'object' ? '<objeto>' : valorResumido(x)));
+  }
+  if (v && typeof v === 'object') return '<objeto>';
+  return v;
+}
+
+export function argsResumen(args) {
   const out = {};
   for (const [k, v] of Object.entries(args || {})) {
-    out[k] = typeof v === 'string' && v.length > 60 ? `<${v.length} caracteres>` : v;
+    out[k] = CAMPO_SENSIBLE.test(k) && v != null && v !== '' ? '<oculto>' : valorResumido(v);
   }
   return out;
 }
@@ -33,6 +52,8 @@ async function logCall(db, entry) {
 }
 
 export function registerTools(server, tools, { getDb }) {
+  // Nombres de todas las tools registradas: los usa resumen_aprendizaje para ver cuáles no se usan.
+  const toolNames = tools.map(t => t.name);
   for (const tool of tools) {
     server.registerTool(tool.name, {
       title: tool.title,
@@ -56,7 +77,7 @@ export function registerTools(server, tools, { getDb }) {
 
       const t0 = Date.now();
       try {
-        const { summary, data, extraContent = [] } = await tool.handler(args || {}, { db, user, now: new Date() });
+        const { summary, data, extraContent = [] } = await tool.handler(args || {}, { db, user, now: new Date(), toolNames });
         await logCall(db, { tool: tool.name, ok: true, ms: Date.now() - t0, args: argsResumen(args) });
         // Claude (claude.ai/app) le pasa al modelo el `content`, no siempre el `structuredContent`:
         // sin el JSON acá, Claude solo veía el resumen (pasó con rank_rubros_by_demand: "devolvió 5").
@@ -70,7 +91,7 @@ export function registerTools(server, tools, { getDb }) {
       } catch (e) {
         const known = e instanceof ToolError;
         if (!known) console.error(`[mcp] ${tool.name} falló:`, e);
-        await logCall(db, { tool: tool.name, ok: false, ms: Date.now() - t0, args: argsResumen(args), error: redactSecrets(String(e.message).slice(0, 300)) });
+        await logCall(db, { tool: tool.name, ok: false, ms: Date.now() - t0, args: argsResumen(args), error: redactSecrets(String(e.message).slice(0, 300)), tipoError: known ? 'conocido' : 'interno' });
         return errorResult(known ? redactSecrets(e.message) : 'Error interno, revisá los logs.');
       }
     });
