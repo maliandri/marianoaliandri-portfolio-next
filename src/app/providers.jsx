@@ -16,6 +16,7 @@ import { installClickTracking, trackPaymentReturn } from '@/lib/track';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import Footer from '@/components/ui/Footer';
 import WhatsAppButton from '@/components/ui/WhatsAppButton';
+import AudienceSwitch from '@/components/home/AudienceSwitch';
 
 // Firebase-dependent components — deferred to keep Firebase out of the critical render path
 const AIChatBot   = dynamic(() => import('@/components/social/AIChatBot'),   { ssr: false, loading: () => null });
@@ -29,26 +30,14 @@ const RadarWeb = dynamic(() => import('@/components/tools/RadarWeb'), { ssr: fal
 const LabsTool = dynamic(() => import('@/components/tools/LabsTool'), { ssr: false });
 
 const TOOL_PATHS = ['/stats', '/ats', '/kpi', '/radarweb', '/labs', '/lead-finder-pro', '/analitica', '/herramientas', '/roi', '/web', '/tienda', '/presupuesto'];
-const NAV_LINKS = [
-  { label: 'Auditorías', href: '/auditorias' },
-  { label: 'Aprendé',    href: '/aprende' },
-  { label: 'Demanda',    href: '/demanda' },
-];
-const SERVICIOS = [
-  { label: 'IA para empresas',      href: '/ia-para',     icon: '🤖', desc: 'Tu sistema, conectado a la IA' },
-  { label: 'Tienda de servicios',   href: '/tienda',      icon: '🛒', desc: 'Sitios, sistemas y diseño' },
-  { label: 'Solicitar presupuesto', href: '/presupuesto', icon: '📝', desc: 'Para proyectos a medida' },
-];
-const HERRAMIENTAS_GRATIS = [
-  { label: 'Análisis de CV',  href: '/ats',      icon: '📄', desc: 'Evaluá tu CV contra filtros ATS' },
-  { label: 'Cotizador web',   href: '/web',      icon: '🌐', desc: 'Estimá el costo de tu sitio' },
-  { label: 'Calculadora ROI', href: '/roi',      icon: '📈', desc: 'Calculá el retorno de tu proyecto' },
-  { label: 'Radar KPI',       href: '/kpi',      icon: '📊', desc: 'KPIs de tu negocio en un radar' },
-  { label: 'Radar Web',       href: '/radarweb', icon: '🔍', desc: 'Auditá la presencia online' },
-];
-const PRODUCTOS_SAAS = [
-  { label: 'Lead Finder Pro',    href: '/lead-finder-pro', icon: '🎯', desc: 'Encontrá negocios locales con datos de contacto' },
-  { label: 'Analítica Regional', href: '/analitica',       icon: '📊', desc: 'Rubros más buscados en tu zona' },
+// El selector de audiencia (AudienceSwitch) cubre IA / Sitios web / Devs / Herramientas;
+// "Más" junta el contenido y las páginas de compra que no son de una sola audiencia.
+const MAS = [
+  { label: 'Aprendé',              href: '/aprende',     icon: '📚', desc: 'Notas cortas sobre IA y sistemas para negocios' },
+  { label: 'Auditorías',           href: '/auditorias',  icon: '🔎', desc: 'Informes SEO de negocios por rubro y ciudad' },
+  { label: 'Demanda por zona',     href: '/demanda',     icon: '📈', desc: 'Los rubros más buscados en Google por zona' },
+  { label: 'Tienda',               href: '/tienda',      icon: '🛒', desc: 'Armá tu proyecto y mirá el precio' },
+  { label: 'Preguntas frecuentes', href: '/faq',         icon: '❓', desc: '¿Cuánto cuesta? ¿Cuánto tarda?' },
 ];
 export const TOOLS = [
   { label: 'Lead Finder Pro', href: '/lead-finder-pro', icon: '🎯', desc: 'Para devs: encontrá negocios sin sitio o con SEO débil' },
@@ -119,7 +108,8 @@ function ScrambleLogo({ onClick }) {
       <span className="font-mono font-bold text-base tracking-tight text-white">
         {chars.join('')}
       </span>
-      <span className="font-mono font-bold text-base tracking-tight text-indigo-400">
+      {/* En celular el ".com.ar" no entra al lado del carrito y el tema: se oculta debajo de sm */}
+      <span className="hidden sm:inline font-mono font-bold text-base tracking-tight text-indigo-400">
         {LOGO_SUFFIX}
       </span>
     </Link>
@@ -212,37 +202,38 @@ function Navbar({ pathname }) {
         {/* Logo */}
         <ScrambleLogo onClick={close} />
 
-        {/* Nav links — desktop */}
-        <div className="hidden md:flex items-center gap-1">
-          {NAV_LINKS.map(({ label, href }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                pathname === href || (href !== '/' && pathname.startsWith(href))
-                  ? 'text-indigo-400 bg-indigo-600/10'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
-          <NavDropdown label="Servicios" items={SERVICIOS} pathname={pathname} />
-          <NavDropdown label="Herramientas" items={HERRAMIENTAS_GRATIS} pathname={pathname} footerLink={{ href: '/herramientas', label: 'Ver todas las herramientas →' }} />
-          <NavDropdown label="Productos" items={PRODUCTOS_SAAS} pathname={pathname} />
+        {/* Selector de audiencia + "Más" — desktop (desde lg: con el selector no entra en tablet) */}
+        <div className="hidden lg:flex items-center gap-2">
+          <AudienceSwitch />
+          <NavDropdown label="Más" items={MAS} pathname={pathname} />
         </div>
 
         {/* Right side */}
         <div className="flex items-center gap-2">
+          {/* Tienda siempre a mano, a la izquierda del tema y del mismo alto (48px) */}
+          <Link
+            href="/tienda/"
+            aria-label="Tienda"
+            title="Tienda"
+            className="w-12 h-12 rounded-full bg-gray-800 border border-gray-700 shadow-lg hover:shadow-xl hover:border-indigo-500/60 transition-all duration-300 flex items-center justify-center text-white"
+          >
+            {/* Carrito */}
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" aria-hidden>
+              <circle cx="9" cy="20" r="1.4" />
+              <circle cx="18" cy="20" r="1.4" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.5 3.5h2.6l2.4 11.2a1.5 1.5 0 001.5 1.2h8.6a1.5 1.5 0 001.5-1.1L21 7.5H6" />
+            </svg>
+          </Link>
           <ThemeToggle />
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <AuthButton />
           </div>
-          <AIChatBot />
-          {/* Hamburger — mobile */}
+          {/* En /tienda el asistente propio de la tienda reemplaza al chat del sitio */}
+          {pathname !== '/tienda' && <AIChatBot />}
+          {/* Hamburger — mobile y tablet */}
           <button
             onClick={() => setOpen(p => !p)}
-            className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-white/5 transition-colors"
+            className="lg:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-white/5 transition-colors"
             aria-label="Menú"
           >
             <span className={`block w-5 h-0.5 bg-white transition-transform duration-200 ${open ? 'rotate-45 translate-y-2' : ''}`} />
@@ -254,23 +245,9 @@ function Navbar({ pathname }) {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden border-t border-white/8 bg-[#0a0a0a] px-3 py-3 flex flex-col max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
-          {/* Flat links */}
-          <div className="flex gap-1 mb-1">
-            {NAV_LINKS.map(({ label, href }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={close}
-                className="flex-1 text-center px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-              >
-                {label}
-              </Link>
-            ))}
-          </div>
-          <MobileSection title="Servicios" items={SERVICIOS} onNavigate={close} />
-          <MobileSection title="Herramientas gratuitas" items={HERRAMIENTAS_GRATIS} onNavigate={close} />
-          <MobileSection title="Productos" items={PRODUCTOS_SAAS} onNavigate={close} />
+        <div className="lg:hidden border-t border-white/8 bg-[#0a0a0a] px-3 py-3 flex flex-col max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
+          <AudienceSwitch variant="inline" onNavigate={close} />
+          <MobileSection title="Más" items={MAS} onNavigate={close} />
           <div className="pt-3 mt-2 border-t border-white/8">
             <AuthButton inline onNavigate={close} />
           </div>
@@ -324,7 +301,7 @@ function AppChromeInner({ children }) {
   useEffect(() => installClickTracking(), []);
 
   return (
-    <div className="App font-sans min-h-screen text-fg bg-page transition-colors duration-500 relative overflow-x-hidden">
+    <div className="App font-sans min-h-screen text-fg bg-page transition-colors duration-500 relative overflow-x-clip">
 
       <Suspense fallback={null}><ScreenshotHider /></Suspense>
 

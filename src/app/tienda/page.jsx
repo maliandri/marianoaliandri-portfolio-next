@@ -1,4 +1,5 @@
 import TiendaServicios from '@/components/tienda/TiendaServicios';
+import { display, mono } from '@/components/iaPara/fonts';
 import { getDb } from '@/lib/firebase-admin';
 import { catalogoEfectivo, agruparCatalogo, sinPrecios } from '@/lib/tienda';
 import { cargarCatalogo } from '@/lib/tiendaCheckout';
@@ -9,12 +10,12 @@ import { cargarCatalogo } from '@/lib/tiendaCheckout';
 export const revalidate = 300;
 
 export const metadata = {
-  title: 'Tienda | Armá tu web y pagá online',
-  description: 'Elegí las piezas de tu sitio (base, secciones, e-commerce, MercadoPago, dominio, SEO), iniciá sesión con Google para ver el total en pesos y pagá la seña o pedí presupuesto.',
+  title: 'Tienda | Elegí lo que necesita tu negocio y pedí presupuesto',
+  description: 'Marcá lo que necesita tu negocio (web, tienda online, cobros, turnos, IA), un asistente te explica cada cosa y pedís tu presupuesto con una charla por Meet o WhatsApp.',
   alternates: { canonical: 'https://marianoaliandri.com.ar/tienda/' },
   openGraph: {
     title: 'Tienda | Mariano Aliandri',
-    description: 'Armá tu proyecto web pieza por pieza y pagalo con MercadoPago.',
+    description: 'Marcá lo que necesita tu negocio y pedí tu presupuesto a medida.',
     url: 'https://marianoaliandri.com.ar/tienda/',
     images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
   },
@@ -42,13 +43,13 @@ export default async function TiendaPage() {
     })),
   };
   return (
-    <main className="min-h-screen bg-page pt-28">
+    <main className={`min-h-screen bg-page pt-28 ${display.variable} ${mono.variable}`}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
-      <header className="max-w-6xl mx-auto px-4 mb-10">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent-primary">Tienda</p>
-        <h1 className="mt-3 text-4xl md:text-5xl font-bold tracking-tight text-fg [text-wrap:balance]">Armá tu web pieza por pieza</h1>
+      <header className="max-w-7xl mx-auto px-4 mb-8">
+        <p className="font-[family-name:var(--font-ia-mono)] text-xs uppercase tracking-[0.2em] text-accent-primary">Tienda</p>
+        <h1 className="mt-3 font-[family-name:var(--font-ia-display)] text-4xl md:text-5xl font-extrabold tracking-tight text-fg [text-wrap:balance]">¿Qué necesita tu negocio?</h1>
         <p className="mt-4 max-w-2xl text-lg text-fg-400">
-          Marcá lo que necesitás: cada pieza se suma sin repetirse con otra. Iniciá sesión con Google para ver los precios y el total en pesos, y pagá la seña con MercadoPago o pedí presupuesto.
+          Marcá lo que te interese y te explico cada cosa. Después lo charlamos (por Meet o WhatsApp) y te paso el presupuesto cerrado.
         </p>
       </header>
       <TiendaServicios catalogo={catalogo} />

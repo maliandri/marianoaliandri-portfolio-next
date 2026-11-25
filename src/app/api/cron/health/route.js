@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { checkInstagram, checkMercadoPago, checkLinkedIn } from '@/lib/healthCheck';
+import { checkInstagram, checkMercadoPago, checkLinkedIn, checkGoogleCalendar } from '@/lib/healthCheck';
 import { getDb } from '@/lib/firebase-admin';
 import { sendAlert } from '@/lib/alert';
 
@@ -13,7 +13,8 @@ export async function GET(request) {
 
   const checks = {};
   const linkedin = () => checkLinkedIn({ db: getDb() });
-  for (const [name, fn] of [['instagram', checkInstagram], ['mercadopago', checkMercadoPago], ['linkedin', linkedin]]) {
+  const gcal = () => checkGoogleCalendar({ db: getDb() });
+  for (const [name, fn] of [['instagram', checkInstagram], ['mercadopago', checkMercadoPago], ['linkedin', linkedin], ['google_calendar', gcal]]) {
     try { checks[name] = await fn(); } catch (e) { checks[name] = { ok: false, problems: [`El chequeo falló: ${e.message}`] }; }
   }
 

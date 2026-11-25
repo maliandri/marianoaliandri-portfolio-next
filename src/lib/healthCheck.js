@@ -2,6 +2,7 @@
 // /api/cron/health/). Cada problema → alerta por mail (src/lib/alert.js). Pasó el 2026-10-26: el token
 // de Instagram cargado en Vercel era de corta duración y las historias dejaron de salir sin aviso.
 import { linkedinExpiry } from './linkedinClient.js';
+import { getCalendarAuth } from './googleCalendar.js';
 
 const GRAPH = 'https://graph.facebook.com/v23.0';
 export const WARN_DAYS = 7;
@@ -46,6 +47,17 @@ export async function checkMercadoPago({ env = process.env, fetchImpl = fetch } 
     headers: { Authorization: `Bearer ${env.MERCADOPAGO_ACCESS_TOKEN.trim()}` }, signal: AbortSignal.timeout(15000),
   }).catch(e => ({ ok: false, status: e.message }));
   return r.ok ? { ok: true, problems: [] } : { ok: false, problems: [`El token de MercadoPago no sirve (respuesta ${r.status}): no se puede cobrar.`] };
+}
+
+// Google Calendar (Meet de la venta por consulta): sin conexión la tienda no ofrece turnos.
+export async function checkGoogleCalendar({ db, auth = getCalendarAuth } = {}) {
+  try {
+    const a = await auth(db);
+    if (!a) return { ok: false, problems: ['Google Calendar no está conectado: la tienda no ofrece turnos de Meet. Conectar en admin → Presupuestos.'] };
+    return { ok: true, problems: [] };
+  } catch (e) {
+    return { ok: false, problems: [`Google Calendar dejó de responder (${String(e.message).slice(0, 80)}). Reconectar en admin → Presupuestos.`] };
+  }
 }
 
 // Conexión de LinkedIn del admin (la usan los informes de demanda para publicar el PDF): vence a los

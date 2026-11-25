@@ -39,10 +39,19 @@ export const FUNNELS = [
   {
     id: 'tienda', titulo: 'Tienda',
     pasos: [
+      // Venta por consulta (2026-11-25): marcan servicios, piden presupuesto y, si quieren, un Meet.
       { label: 'Entraron a /tienda', page: '/tienda' },
-      { label: 'Agregaron al carrito', event: 'add_to_cart' },
-      { label: 'Fueron a pagar', event: 'checkout_tienda' },
-      { label: 'Pagaron', event: 'compra_tienda' },
+      { label: 'Marcaron un servicio', event: 'add_to_cart' },
+      { label: 'Abrieron el pedido', event: 'abrir_solicitud' },
+      { label: 'Pidieron presupuesto', event: 'solicitud_presupuesto' },
+      { label: 'Pidieron Meet', event: 'meet_pedido' },
+    ],
+  },
+  {
+    id: 'presupuesto_cliente', titulo: 'Presupuesto enviado al cliente',
+    pasos: [
+      { label: 'Abrieron su presupuesto', event: 'ver_presupuesto' },
+      { label: 'Tocaron pagar', event: 'begin_checkout', page: '/tu-presupuesto' },
     ],
   },
   {

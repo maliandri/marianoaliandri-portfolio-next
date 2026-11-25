@@ -55,7 +55,10 @@ describe('presupuestos (MCP)', () => {
     const doc = (await db.collection('presupuestos').doc(r.data.id).get()).data();
     expect(doc).toMatchObject({ clientName: 'Carla', budgetARS: 470000, paymentLink: 'https://mpago.la/abc', source: 'mcp', status: 'reviewed' });
     expect(doc.items.map(i => i.label)).toEqual(['Landing Page', 'Base de datos en Supabase']);
-    expect(decodeURIComponent(r.data.whatsappUrl)).toContain('Link de pago: https://mpago.la/abc');
+    // Venta por consulta: el WhatsApp lleva el link del cliente (página con el botón de pago), no el de MP suelto.
+    expect(r.data.clienteUrl).toMatch(new RegExp(`/tu-presupuesto/${r.data.id}/\\?t=[\\w-]{24}$`));
+    expect(decodeURIComponent(r.data.whatsappUrl)).toContain(r.data.clienteUrl);
+    expect(decodeURIComponent(r.data.whatsappUrl)).not.toContain('Link de pago:');
   });
 
   it('create_budget sin email ni teléfono, o con ítem sin precio → error claro', async () => {
@@ -79,7 +82,9 @@ describe('presupuestos (MCP)', () => {
     expect(mail.attachments[0].filename).toMatch(/^presupuesto-P-.*\.pdf$/);
     expect(mail.attachments[0].content.subarray(0, 5).toString()).toBe('%PDF-');
     expect(mail.html).toContain('Cloudinary &lt;setup&gt;');
-    expect(mail.html).toContain('https://mpago.la/abc');
+    // Con token (lo creó create_budget), el botón del mail lleva a la página del cliente, que tiene el pago adentro.
+    expect(mail.html).toMatch(new RegExp(`/tu-presupuesto/${id}/\\?t=[\\w-]{24}`));
+    expect(mail.html).toContain('Ver mi presupuesto y pagar');
     expect((await db.collection('presupuestos').doc(id).get()).data().status).toBe('sent');
   });
 
@@ -94,7 +99,8 @@ describe('presupuestos (MCP)', () => {
     expect(res.mimeType).toBe('application/pdf');
     expect(Buffer.from(res.blob, 'base64').subarray(0, 5).toString()).toBe('%PDF-');
     expect(r.data.pdfUrl).toMatch(new RegExp(`/api/presupuesto/pdf/${id}/\\?t=[\\w-]{24}$`));
-    expect(decodeURIComponent(r.data.whatsappUrl)).toContain(`Presupuesto en PDF: ${r.data.pdfUrl}`);
+    expect(r.data.clienteUrl).toMatch(new RegExp(`/tu-presupuesto/${id}/\\?t=[\\w-]{24}$`));
+    expect(decodeURIComponent(r.data.whatsappUrl)).toContain(r.data.clienteUrl);
     const again = await getBudgetPdfTool.handler({ id }, { db });
     expect(again.data.pdfUrl).toBe(r.data.pdfUrl);
   });

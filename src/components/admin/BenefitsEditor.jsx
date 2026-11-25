@@ -22,6 +22,7 @@ export default function BenefitsEditor() {
   const [nueva, setNueva] = useState(false);
   const [msg, setMsg] = useState({ text: '', ok: true });
   const [precioDraft, setPrecioDraft] = useState({});
+  const [contexto, setContexto] = useState('');
 
   const flash = (text, ok = true) => { setMsg({ text, ok }); setTimeout(() => setMsg({ text: '', ok: true }), 3500); };
 
@@ -33,6 +34,7 @@ export default function BenefitsEditor() {
       if (!res.ok) throw new Error(d.error || 'Error');
       setItems(d.items || []);
       setFuente(d.fuente);
+      setContexto(d.contexto || '');
       setError('');
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
@@ -52,6 +54,11 @@ export default function BenefitsEditor() {
       flash(d.yaExistia ? 'Ya estaba cargado' : `Cargadas ${d.sembrados} piezas en Firestore`);
       await cargar();
     } catch (e) { flash(e.message, false); }
+  };
+
+  const guardarContexto = async () => {
+    try { await llamar('POST', { accion: 'contexto', texto: contexto }); flash('Contexto del asistente guardado'); }
+    catch (e) { flash(e.message, false); }
   };
 
   const guardarPrecio = async (s) => {
@@ -133,6 +140,12 @@ export default function BenefitsEditor() {
         </div>
       )}
 
+      <details className="rounded-xl border border-gray-200 dark:border-neutral-700 px-4 py-3">
+        <summary className="text-xs font-semibold text-gray-700 dark:text-gray-200 cursor-pointer">Contexto general del asistente de la tienda (cómo trabajás, sin precios)</summary>
+        <textarea rows={12} value={contexto} onChange={e => setContexto(e.target.value)} className={`${cajita} w-full mt-3 font-mono text-xs`} />
+        <button onClick={guardarContexto} className="mt-2 text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium">Guardar contexto</button>
+      </details>
+
       {editando && (
         <PiezaForm pieza={editando} nueva={nueva} categorias={[...new Set(items.map(i => i.categoria))]}
           onCancel={() => { setEditando(null); setNueva(false); }} onSave={guardarPieza} />
@@ -209,6 +222,45 @@ export default function BenefitsEditor() {
   );
 }
 
+// Ficha en criollo que usa el asistente de la tienda (venta por consulta). Sin montos de plata.
+const CAMPOS_FICHA = [
+  ['paraQue', 'Para qué sirve (qué gana el negocio)'],
+  ['ejemplo', 'Ejemplo concreto de un negocio'],
+  ['necesitoDeVos', 'Qué tiene que aportar el cliente'],
+  ['tiempo', 'Tiempo orientativo'],
+];
+function FichaForm({ ficha, onChange }) {
+  const f = ficha || { paraQue: '', ejemplo: '', necesitoDeVos: '', tiempo: '', faq: [] };
+  const faq = f.faq || [];
+  const set = (k, v) => onChange({ ...f, [k]: v });
+  const setFaq = (i, k, v) => set('faq', faq.map((p, j) => (j === i ? { ...p, [k]: v } : p)));
+  return (
+    <details className="md:col-span-2 rounded-xl border border-gray-200 dark:border-neutral-700 p-3" open={!ficha}>
+      <summary className="text-xs font-semibold text-gray-700 dark:text-gray-200 cursor-pointer">Ficha para el asistente (sin precios)</summary>
+      <div className="grid gap-2 mt-3 md:grid-cols-2">
+        {CAMPOS_FICHA.map(([k, l]) => (
+          <label key={k} className="text-xs text-gray-500 grid gap-1">{l}
+            <textarea rows={2} value={f[k] || ''} onChange={e => set(k, e.target.value)} className={cajita} />
+          </label>
+        ))}
+        <div className="md:col-span-2 grid gap-2">
+          <p className="text-xs text-gray-500">Preguntas frecuentes</p>
+          {faq.map((p, i) => (
+            <div key={i} className="grid gap-2 md:grid-cols-[1fr_2fr_auto]">
+              <input value={p.q} onChange={e => setFaq(i, 'q', e.target.value)} placeholder="Pregunta" className={cajita} />
+              <input value={p.a} onChange={e => setFaq(i, 'a', e.target.value)} placeholder="Respuesta" className={cajita} />
+              <button type="button" onClick={() => set('faq', faq.filter((_, j) => j !== i))} className="text-xs text-gray-400 hover:text-red-400">Quitar</button>
+            </div>
+          ))}
+          {faq.length < 8 && (
+            <button type="button" onClick={() => set('faq', [...faq, { q: '', a: '' }])} className="justify-self-start text-xs text-indigo-600 dark:text-indigo-400">+ Pregunta</button>
+          )}
+        </div>
+      </div>
+    </details>
+  );
+}
+
 function PiezaForm({ pieza, nueva, categorias, onCancel, onSave }) {
   const [p, setP] = useState({ ...pieza, requiere: (pieza.requiere || []).join(', ') });
   const set = (k, v) => setP(prev => ({ ...prev, [k]: v }));
@@ -244,6 +296,7 @@ function PiezaForm({ pieza, nueva, categorias, onCancel, onSave }) {
       <label className="text-xs text-gray-500 grid gap-1 md:col-span-2">Requiere (ids separados por coma; "a|b" = alguna de las dos)
         <input value={p.requiere} onChange={e => set('requiere', e.target.value)} placeholder="base_sitio, db_firestore|db_supabase" className={cajita} />
       </label>
+      <FichaForm ficha={p.ficha} onChange={(f) => set('ficha', f)} />
       <div className="md:col-span-2 flex flex-wrap items-center gap-5">
         <label className="text-xs text-gray-500 flex items-center gap-2"><input type="checkbox" checked={!!p.porUnidad} onChange={e => set('porUnidad', e.target.checked)} className="accent-indigo-600" /> Se pide por cantidad (ej. páginas extra)</label>
         <label className="text-xs text-gray-500 flex items-center gap-2"><input type="checkbox" checked={p.activo !== false} onChange={e => set('activo', e.target.checked)} className="accent-indigo-600" /> Activa en la tienda</label>

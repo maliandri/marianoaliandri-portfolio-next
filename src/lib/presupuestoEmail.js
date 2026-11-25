@@ -50,11 +50,13 @@ export function datosPresupuesto(id, d, now = new Date()) {
     quoteNumber: d.quoteNumber || `P-${id.slice(0, 6).toUpperCase()}`,
     today: fechaAR(emitido), validUntil: fechaAR(new Date(emitido.getTime() + validDays * 864e5)),
     cuotas: d.cuotas || null, paymentLink: d.paymentLink || null,
+    // Página del cliente (/tu-presupuesto/, ver src/lib/presupuestoCliente.js; se arma acá para no cerrar un ciclo de imports).
+    clienteUrl: d.pdfToken ? `https://marianoaliandri.com.ar/tu-presupuesto/${encodeURIComponent(id)}/?t=${encodeURIComponent(d.pdfToken)}` : null,
     totalUSD: r2(totals.totalUSD || 0), totalARS: Math.round(totals.totalARS || 0),
   };
 }
 
-export function buildHtml({ clientName, clientEmail, clientCompany, items, totals, ivaRate, showIVA, arsRate, notes, quoteNumber, validDays, today, validUntil, cuotas, paymentLink }) {
+export function buildHtml({ clientName, clientEmail, clientCompany, items, totals, ivaRate, showIVA, arsRate, notes, quoteNumber, validDays, today, validUntil, cuotas, paymentLink, clienteUrl }) {
   const hasDiscount = totals?.hasDiscount;
 
   const rows = items.map((item, i) => {
@@ -223,7 +225,9 @@ export function buildHtml({ clientName, clientEmail, clientCompany, items, total
       </table>
 
       ${cuotasSection}
-      ${paymentLink ? `<div style="margin:24px 0;text-align:center">
+      ${clienteUrl ? `<div style="margin:24px 0;text-align:center">
+        <a href="${esc(clienteUrl)}" style="display:inline-block;background:#4c01f9;color:#fff;font-weight:700;font-size:15px;padding:14px 28px;border-radius:10px;text-decoration:none">Ver mi presupuesto y pagar</a>
+      </div>` : paymentLink ? `<div style="margin:24px 0;text-align:center">
         <a href="${esc(paymentLink)}" style="display:inline-block;background:#009ee3;color:#fff;font-weight:700;font-size:15px;padding:14px 28px;border-radius:10px;text-decoration:none">Pagar con MercadoPago</a>
       </div>` : ''}
       ${notesSection}

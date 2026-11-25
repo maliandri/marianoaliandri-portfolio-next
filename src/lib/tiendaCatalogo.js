@@ -3,6 +3,7 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { catalogoEfectivo, normalizarItem, TIPOS } from '@/lib/tienda';
 import { CATALOGO, loadOverrides } from '@/lib/tiendaCheckout';
+import { CONTEXTO_GENERAL } from '@/data/tiendaFichas';
 
 const ID = /^[a-z0-9_]{2,40}$/;
 
@@ -16,6 +17,18 @@ export async function sembrarCatalogo(db) {
   const items = catalogoEfectivo(await loadOverrides(db));
   await Promise.all(items.map(s => db.collection(CATALOGO).doc(s.id).set({ ...aDoc(s), updatedAt: FieldValue.serverTimestamp() })));
   return { sembrados: items.length, yaExistia: false };
+}
+
+// Ficha en criollo que edita el admin: solo los campos conocidos, recortados; faq sin pares vacíos (máx. 8).
+const MAX_TXT = 1200;
+const txt = (v) => String(v ?? '').trim().slice(0, MAX_TXT);
+export function limpiarFicha(f) {
+  if (!f || typeof f !== 'object' || Array.isArray(f)) return null;
+  const faq = (Array.isArray(f.faq) ? f.faq : [])
+    .map(p => ({ q: txt(p?.q), a: txt(p?.a) }))
+    .filter(p => p.q && p.a)
+    .slice(0, 8);
+  return { paraQue: txt(f.paraQue), ejemplo: txt(f.ejemplo), necesitoDeVos: txt(f.necesitoDeVos), tiempo: txt(f.tiempo), faq };
 }
 
 // Valida y arma el doc de una pieza a partir de lo que manda el admin. Devuelve { id, doc } o { error }.
@@ -36,6 +49,9 @@ export function validarPieza(body = {}) {
     tipo: body.tipo, label, desc: String(body.desc || '').trim(), benefit: String(body.benefit || '').trim(),
     priceUSD: precio, requiere, porUnidad: body.porUnidad === true, activo: body.activo !== false, orden: body.orden,
   }));
+  // La ficha del doc es solo la que editó el admin; sin ella, la lectura cae a la semilla del código
+  // (normalizarItem), así no se congela una copia vieja en Firestore.
+  doc.ficha = limpiarFicha(body.ficha);
   return { id, doc };
 }
 
@@ -56,6 +72,21 @@ export async function actualizarCampos(db, id, campos = {}) {
   if (v.error) return v;
   await ref.set({ ...v.doc, updatedAt: FieldValue.serverTimestamp() });
   return { ok: true, id };
+}
+
+// Contexto general del asistente de la tienda: site_config/asistente_tienda.texto, con la semilla del código.
+export const CONTEXTO_DOC = ['site_config', 'asistente_tienda'];
+export async function cargarContexto(db) {
+  const snap = await db.collection(CONTEXTO_DOC[0]).doc(CONTEXTO_DOC[1]).get().catch(() => null);
+  const t = snap?.exists ? String(snap.data()?.texto || '').trim() : '';
+  return t || CONTEXTO_GENERAL;
+}
+export async function guardarContexto(db, texto) {
+  const t = String(texto || '').trim().slice(0, 8000);
+  if (t.length < 50) return { error: 'El contexto es muy corto' };
+  if (/US\$|\$\s?\d|\bUSD\b/i.test(t)) return { error: 'El contexto no puede tener montos de plata' };
+  await db.collection(CONTEXTO_DOC[0]).doc(CONTEXTO_DOC[1]).set({ texto: t, updatedAt: FieldValue.serverTimestamp() });
+  return { ok: true };
 }
 
 export async function borrarPieza(db, id) {

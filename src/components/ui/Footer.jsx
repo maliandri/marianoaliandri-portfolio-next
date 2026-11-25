@@ -8,9 +8,11 @@ export default function Footer() {
   const pathname = usePathname();
 
   const quickLinks = [
-    { name: 'Portfolio', href: '/#proyectos', type: 'scroll' },
-    { name: 'Servicios', href: '/#servicios', type: 'scroll' },
-    { name: 'Presupuesto', href: '/presupuesto', type: 'route' },
+    { name: 'IA para tu negocio', href: '/ia-para', type: 'route' },
+    { name: 'Sitios web', href: '/sitios-web', type: 'route' },
+    { name: 'Proyectos', href: '/sitios-web/#proyectos', type: 'route' },
+    { name: 'Para desarrolladores', href: '/desarrolladores', type: 'route' },
+    { name: 'Tienda y presupuesto', href: '/tienda', type: 'route' },
     { name: 'Analítica Regional', href: '/analitica', type: 'route' },
     { name: 'Preguntas frecuentes', href: '/faq', type: 'route' },
     { name: 'Contacto', href: '/#contact', type: 'scroll' },
@@ -93,7 +95,7 @@ export default function Footer() {
               Mariano Aliandri
             </h3>
             <p className="text-gray-600 dark:text-gray-400 text-sm">
-              Desarrollador Full Stack y Analista de Datos especializado en React, Python y soluciones empresariales.
+              Sistemas a medida conectados a la IA: tu negocio responde con sus datos en Claude, ChatGPT o Gemini. Desde Neuquén para todo el país.
             </p>
           </div>
 

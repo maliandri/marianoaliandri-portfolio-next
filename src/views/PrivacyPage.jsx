@@ -80,6 +80,9 @@ export default function PrivacyPage() {
             <p>
               We use essential cookies for authentication and session management. We may also use analytics cookies to understand how visitors interact with our website.
             </p>
+            <p className="mt-3">
+              In the store (/tienda) we keep, for up to 30 days and tied to an anonymous visit id, the services you select, the last question you ask the assistant and your approximate city (as reported by our hosting provider). We do not store your IP address. We use it to follow up on your request; your contact details are only stored if you send a budget request.
+            </p>
           </section>
 
           <section>

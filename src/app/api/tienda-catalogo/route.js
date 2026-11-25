@@ -5,7 +5,7 @@ import { getDb } from '@/lib/firebase-admin';
 import { requireAdmin } from '@/lib/adminAuth';
 import { catalogoEfectivo } from '@/lib/tienda';
 import { cargarCatalogo, CATALOGO, loadOverrides } from '@/lib/tiendaCheckout';
-import { sembrarCatalogo, guardarPieza, actualizarCampos, borrarPieza } from '@/lib/tiendaCatalogo';
+import { sembrarCatalogo, guardarPieza, actualizarCampos, borrarPieza, cargarContexto, guardarContexto } from '@/lib/tiendaCatalogo';
 
 // Catálogo de la tienda para el admin (con precios, activas e inactivas).
 //   GET                          → { items, fuente: 'firestore' | 'codigo' }
@@ -24,7 +24,7 @@ export async function GET(request) {
     const snap = await db.collection(CATALOGO).get();
     const fuente = snap.empty ? 'codigo' : 'firestore';
     const items = snap.empty ? catalogoEfectivo(await loadOverrides(db)) : await cargarCatalogo(db);
-    return Response.json({ items, fuente }, { headers: { 'Cache-Control': 'private, no-store' } });
+    return Response.json({ items, fuente, contexto: await cargarContexto(db) }, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (e) {
     console.error('[tienda-catalogo GET]', e.message);
     return Response.json({ error: 'No se pudo leer el catálogo' }, { status: 500 });
@@ -36,9 +36,13 @@ export async function POST(request) {
   if (auth.response) return auth.response;
   try {
     const body = await request.json().catch(() => ({}));
-    if (body?.accion !== 'sembrar') return Response.json({ error: 'Acción inválida' }, { status: 400 });
     const db = getDb();
     if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });
+    if (body?.accion === 'contexto') {
+      const r = await guardarContexto(db, body.texto);
+      return Response.json(r, { status: r.error ? 400 : 200 });
+    }
+    if (body?.accion !== 'sembrar') return Response.json({ error: 'Acción inválida' }, { status: 400 });
     const r = await sembrarCatalogo(db);
     refrescar();
     return Response.json(r);

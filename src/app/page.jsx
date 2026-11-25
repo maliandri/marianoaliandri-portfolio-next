@@ -1,12 +1,10 @@
-import HeroNew from '@/components/home/HeroNew';
-import NoticiasHome from '@/components/home/NoticiasHome';
-import ProyectosGrid from '@/components/home/ProyectosGrid';
-import CapabilitiesCarousel from '@/components/home/CapabilitiesCarousel';
-import Contact from '@/components/home/Contact';
+import HomeIA from '@/components/home/ia/HomeIA';
 
+// Home = audiencia "IA para tu negocio". El home anterior (sitios web) vive en /sitios-web/.
+// Spec: docs/superpowers/specs/2026-11-23-reposicionamiento-ia.md
 export const metadata = {
-  title: 'Mariano Aliandri | Sistemas a Medida y Desarrollo Web en Neuquén',
-  description: 'Desarrollo de sistemas a medida en la nube, con base de datos y backend, y sitios web que aparecen en Google. Trabajo desde Neuquén para negocios de la ciudad, el Comahue y todo el país.',
+  title: 'Mariano Aliandri | Sistemas a Medida Conectados a la IA en Neuquén',
+  description: 'Armo el sistema de tu negocio (obras, stock, turnos, clientes, cobros) y lo conecto a Claude, ChatGPT o Gemini: tu equipo pregunta y la IA responde con tus datos. Desde Neuquén para todo el país.',
   alternates: {
     canonical: 'https://marianoaliandri.com.ar/',
   },
@@ -31,10 +29,24 @@ const personSchema = {
     'https://github.com/maliandri',
   ],
   knowsAbout: [
+    'Inteligencia Artificial', 'Agentes de IA', 'Model Context Protocol (MCP)', 'Claude', 'ChatGPT', 'Gemini',
     'React', 'Next.js', 'Python', 'Power BI', 'Firebase', 'Node.js', 'Data Analytics', 'Full Stack Development',
     'Sistemas a Medida', 'Desarrollo Backend', 'Sistemas en la Nube', 'Bases de Datos',
   ],
   offers: [
+    {
+      '@type': 'Offer',
+      itemOffered: {
+        '@type': 'Service',
+        name: 'Sistemas Conectados a la IA',
+        description: 'Sistema propio del negocio conectado a Claude, ChatGPT o Gemini (servidor MCP a medida): el equipo consulta datos y la IA hace tareas con aprobación.',
+        url: 'https://marianoaliandri.com.ar/ia-para/',
+        areaServed: [
+          { '@type': 'City', name: 'Neuquén' },
+          { '@type': 'Country', name: 'Argentina' },
+        ],
+      },
+    },
     {
       '@type': 'Offer',
       itemOffered: {
@@ -109,13 +121,7 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
       />
       <main className="bg-page">
-        <HeroNew />
-        <NoticiasHome />
-        <ProyectosGrid />
-        <CapabilitiesCarousel />
-        <section id="contact" aria-label="Información de contacto">
-          <Contact />
-        </section>
+        <HomeIA />
       </main>
     </>
   );

@@ -1,16 +1,16 @@
 export const dynamic = 'force-dynamic';
 
 import { getDb } from '@/lib/firebase-admin';
-import { getUserFromRequest } from '@/lib/authServer';
+import { requireAdmin } from '@/lib/adminAuth';
 import { MODOS } from '@/lib/tienda';
 import { dolarOficialVenta } from '@/lib/dolar';
 import { cargarCatalogo, loadSenaPct } from '@/lib/tiendaCheckout';
 
-// Precios de la tienda: SOLO para quien inició sesión (idToken de Google en Authorization). Sin sesión → 401
-// y no sale ningún precio. Nunca cachear en la CDN: la respuesta es por usuario.
+// Precios de la tienda: SOLO para el admin (venta por consulta, 2026-11-25: los precios se charlan, nadie más los
+// ve). Nunca cachear en la CDN.
 export async function GET(request) {
-  const user = await getUserFromRequest(request).catch(() => null);
-  if (!user) return Response.json({ error: 'Iniciá sesión con Google para ver los precios' }, { status: 401, headers: { 'Cache-Control': 'private, no-store' } });
+  const auth = await requireAdmin(request).catch(() => ({ response: Response.json({ error: 'No autorizado' }, { status: 403 }) }));
+  if (auth.response) return auth.response;
   try {
     const db = getDb();
     const [catalogo, senaPct, dolar] = await Promise.all([

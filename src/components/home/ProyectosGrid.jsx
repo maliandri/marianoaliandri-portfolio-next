@@ -144,6 +144,43 @@ function ProyectoCard({ proyecto, index }) {
   );
 }
 
+
+// Variante polaroid (home de IA, referencia unseen.co): papel blanco, inclinada, pie manuscrito.
+// Las rotaciones las maneja framer-motion (transform), así no hay salto de layout.
+const TILTS = [-2.5, 1.8, -1.2, 2.4, -1.8, 1.2];
+
+function PolaroidCard({ proyecto, index }) {
+  const domainClean = proyecto.domain.replace(/^sc-domain:/, '');
+  const nombre = proyecto.descripcionCorta?.split('·')[0]?.trim() || domainClean;
+  const tilt = TILTS[index % TILTS.length];
+
+  return (
+    <motion.div
+      className="group bg-[#fbfaf7] p-3 pb-4 rounded-[3px] shadow-[0_18px_40px_-12px_rgba(0,0,0,0.35)] dark:shadow-[0_18px_40px_-12px_rgba(0,0,0,0.9)]"
+      initial={{ opacity: 0, y: 32, rotate: 0 }}
+      whileInView={{ opacity: 1, y: 0, rotate: tilt }}
+      whileHover={{ rotate: 0, scale: 1.03 }}
+      viewport={{ once: true }}
+      transition={{ type: 'spring', stiffness: 160, damping: 18, delay: index * 0.06 }}
+    >
+      <Link href={`/proyectos/${domainClean}`} className="block">
+        <div className="fx-rgb">
+          <ScreenshotImage src={proyecto.screenshotUrl} fallbackSrc={proyecto.screenshotFallbackUrl} domain={domainClean} />
+        </div>
+        <p className="font-[family-name:var(--font-hand)] text-[26px] leading-tight text-neutral-800 mt-3 px-1 truncate">
+          {nombre}
+        </p>
+      </Link>
+      <div className="flex items-center justify-between gap-3 px-1 mt-1 text-[11px] text-neutral-500 font-[family-name:var(--font-ia-mono)]">
+        <span>{formatNum(proyecto.clicks)} clicks · {formatNum(proyecto.impressions)} imp.</span>
+        <a href={proyecto.url} target="_blank" rel="noopener noreferrer" className="truncate hover:text-neutral-900 transition-colors" aria-label={`Ver ${domainClean}`}>
+          {domainClean} ↗
+        </a>
+      </div>
+    </motion.div>
+  );
+}
+
 function ProyectosChart({ proyectos }) {
   const data = [...proyectos]
     .sort((a, b) => (b.impressions || 0) - (a.impressions || 0))
@@ -194,7 +231,7 @@ function RangeSelector({ value, onChange }) {
   );
 }
 
-export default function ProyectosGrid() {
+export default function ProyectosGrid({ polaroid = false }) {
   const [rangeKey, setRangeKey] = useState('26d');
   const preset = RANGE_PRESETS.find(p => p.key === rangeKey) || RANGE_PRESETS[1];
   const { data: proyectos, isLoading, isError } = useProyectos(preset.days, preset.lag);
@@ -239,10 +276,12 @@ export default function ProyectosGrid() {
         )}
 
         {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${polaroid ? 'gap-x-8 gap-y-12 px-2' : 'gap-5'}`}>
           {isLoading
             ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-            : proyectos?.map((p, i) => <ProyectoCard key={p.domain} proyecto={p} index={i} />)
+            : proyectos?.map((p, i) => polaroid
+              ? <PolaroidCard key={p.domain} proyecto={p} index={i} />
+              : <ProyectoCard key={p.domain} proyecto={p} index={i} />)
           }
         </div>
 

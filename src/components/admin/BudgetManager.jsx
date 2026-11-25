@@ -52,6 +52,56 @@ function StatusBadge({ status }) {
   );
 }
 
+// Meet que pidió el cliente desde la tienda: aceptar crea el evento en el Google Calendar con link de Meet.
+const fechaArt = (iso) => new Date(iso).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+function MeetPanel({ budget }) {
+  const [meet, setMeet] = useState(budget.meet);
+  const [estado, setEstado] = useState({ cargando: false, error: '' });
+  const accion = async (a) => {
+    setEstado({ cargando: true, error: '' });
+    try {
+      const res = await adminFetch('/api/presupuesto/meet/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: budget.id, accion: a }) });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Error');
+      setMeet(m => ({ ...m, estado: a === 'aceptar' ? 'aceptado' : 'rechazado', meetUrl: d.meetUrl || m.meetUrl }));
+      setEstado({ cargando: false, error: '' });
+    } catch (e) { setEstado({ cargando: false, error: e.message }); }
+  };
+  const etiqueta = { pedido: 'Pedida — falta confirmar', aceptado: 'Confirmada', rechazado: 'Rechazada' }[meet.estado] || meet.estado;
+  return (
+    <section>
+      <h4 className="text-gray-400 text-xs uppercase tracking-wider mb-3">Reunión (Google Meet)</h4>
+      <div className="bg-[#111] border border-white/10 rounded-xl p-4 space-y-2 text-sm">
+        <p className="text-white capitalize">{meet.inicio ? fechaArt(meet.inicio) : '—'} <span className="text-gray-500 normal-case">(hora de Argentina)</span></p>
+        <p className="text-gray-400">Estado: <span className="text-white">{etiqueta}</span></p>
+        {meet.meetUrl && <p><a href={meet.meetUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 underline">{meet.meetUrl}</a></p>}
+        {meet.estado === 'pedido' && (
+          <div className="flex gap-2 pt-1">
+            <button disabled={estado.cargando} onClick={() => accion('aceptar')} className="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium disabled:opacity-50">
+              {estado.cargando ? 'Creando…' : 'Aceptar y crear Meet'}
+            </button>
+            <button disabled={estado.cargando} onClick={() => accion('rechazar')} className="text-xs px-3 py-1.5 rounded-lg border border-white/20 text-gray-300 hover:bg-white/5 disabled:opacity-50">Rechazar</button>
+          </div>
+        )}
+        {estado.error && <p className="text-red-400 text-xs">{estado.error}</p>}
+      </div>
+    </section>
+  );
+}
+
+// Conexión del Google Calendar de Mariano (para crear los Meet). El OAuth vuelve a /admin/?gcal=ok|error.
+function ConectarCalendario() {
+  const [info, setInfo] = useState(null);
+  useEffect(() => {
+    adminFetch('/api/google-calendar-auth/').then(r => r.json()).then(setInfo).catch(() => setInfo({ error: 'No se pudo consultar' }));
+  }, []);
+  if (!info) return null;
+  if (info.error) return <span className="text-xs text-amber-500" title={info.error}>Calendario: {info.error}</span>;
+  return info.conectado
+    ? <span className="text-xs text-emerald-500">📅 Calendario conectado</span>
+    : <a href={info.url} className="text-xs px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-medium">📅 Conectar Google Calendar</a>;
+}
+
 function BudgetDetail({ budget, onClose, onOpenInBuilder, onDelete }) {
   const [budgetUSD, setBudgetUSD] = useState(budget.budgetUSD || '');
   const [budgetARS, setBudgetARS] = useState(budget.budgetARS || '');
@@ -207,6 +257,37 @@ function BudgetDetail({ budget, onClose, onOpenInBuilder, onDelete }) {
               <h4 className="text-gray-400 text-xs uppercase tracking-wider mb-3">Descripción</h4>
               <div className="bg-[#111] border border-white/10 rounded-xl p-4 text-gray-300 text-sm leading-relaxed">
                 {budget.projectDescription}
+              </div>
+            </section>
+          )}
+
+          {/* Link para el cliente: página en criollo con el botón de pago (/tu-presupuesto/) */}
+          {budget.pdfToken && (() => {
+            const url = `https://marianoaliandri.com.ar/tu-presupuesto/${encodeURIComponent(budget.id)}/?t=${encodeURIComponent(budget.pdfToken)}`;
+            return (
+              <section>
+                <h4 className="text-gray-400 text-xs uppercase tracking-wider mb-3">Link para el cliente</h4>
+                <div className="bg-[#111] border border-white/10 rounded-xl p-3 flex items-center gap-2">
+                  <a href={url} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0 truncate text-indigo-400 text-xs">{url}</a>
+                  <button type="button" onClick={() => navigator.clipboard?.writeText(url)} className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shrink-0">Copiar</button>
+                </div>
+              </section>
+            );
+          })()}
+
+          {/* Reunión pedida desde la tienda (venta por consulta) */}
+          {budget.meet && budget.meet.estado !== 'sin_meet' && <MeetPanel budget={budget} />}
+
+          {/* Lo que charló con el asistente de la tienda */}
+          {Array.isArray(budget.chat) && budget.chat.length > 0 && (
+            <section>
+              <h4 className="text-gray-400 text-xs uppercase tracking-wider mb-3">Charla con el asistente ({budget.chat.length})</h4>
+              <div className="bg-[#111] border border-white/10 rounded-xl p-4 space-y-2 text-sm max-h-64 overflow-y-auto">
+                {budget.chat.map((m, i) => (
+                  <p key={i} className={m.rol === 'cliente' ? 'text-white' : 'text-gray-400'}>
+                    <span className="text-xs text-gray-500">{m.rol === 'cliente' ? 'Cliente' : 'Asistente'}:</span> {m.texto}
+                  </p>
+                ))}
               </div>
             </section>
           )}
@@ -535,7 +616,8 @@ export default function BudgetManager({ onOpenInBuilder }) {
               ⬇ Excel
             </button>
           )}
-          <a href="/presupuesto" target="_blank" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Ver formulario público →</a>
+          <ConectarCalendario />
+          <a href="/tienda/" target="_blank" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Ver tienda →</a>
         </div>
       </div>
 
