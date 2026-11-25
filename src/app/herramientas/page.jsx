@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import PlansSection from '@/components/leadfinderpro/PlansSection';
 import AnaliticaPlansSection from '@/components/analitica/AnaliticaPlansSection';
+import AudienceSwitch from '@/components/home/AudienceSwitch';
 
 export const metadata = {
   title: 'Herramientas',
@@ -32,6 +33,7 @@ export default function HerramientasPage() {
       <div className="max-w-6xl mx-auto px-4">
         {/* Header */}
         <div className="hero-glow mb-14">
+          <div className="mb-6"><AudienceSwitch variant="inline" /></div>
           <span className="text-xs font-semibold tracking-widest text-indigo-600 dark:text-indigo-400 uppercase">Todo en un lugar</span>
           <h1 className="text-4xl md:text-5xl font-black text-fg mt-3 mb-4"><span className="text-gradient">Herramientas</span></h1>
           <p className="text-fg-400 text-lg max-w-2xl">

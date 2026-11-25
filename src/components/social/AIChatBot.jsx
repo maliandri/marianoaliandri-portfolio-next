@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { CAPABILITIES } from '@/data/capabilities';
 import { useAuthUser } from '@/hooks/useAuthUser';
 
-const PRESUPUESTO_URL = 'https://marianoaliandri.com.ar/presupuesto';
+// Venta por consulta: el presupuesto se pide desde la tienda (marcás servicios, lo charlamos, te paso el precio).
+const PRESUPUESTO_URL = 'https://marianoaliandri.com.ar/tienda/';
 
 // Palabras clave por solución (matchea el texto libre del visitante con el catálogo)
 const KEYWORDS = {
@@ -72,8 +74,7 @@ function AIChatBot() {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(true);
-  const [needsLogin, setNeedsLogin] = useState(false);
-  const { getIdToken, login } = useAuthUser();
+  const { getIdToken } = useAuthUser();
   const messagesEndRef = useRef(null);
 
   const quickReplies = [
@@ -84,6 +85,14 @@ function AIChatBot() {
     { text: 'Precios' },
     { text: 'Contacto' },
   ];
+
+  // Cualquier botón del sitio puede abrir el chat con window.dispatchEvent(new Event('abrir-chat'))
+  // (lo usa el caso "Un chat que cotiza" del home).
+  useEffect(() => {
+    const abrir = () => setIsOpen(true);
+    window.addEventListener('abrir-chat', abrir);
+    return () => window.removeEventListener('abrir-chat', abrir);
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -137,27 +146,15 @@ function AIChatBot() {
     addUserMessage(message);
     setInputValue('');
     setShowQuickReplies(false);
-    setNeedsLogin(false);
     setIsTyping(true);
     try {
       const data = await askAI(message);
       addBotMessage(data.response);
-      setNeedsLogin(data.needsLogin === true);
     } catch {
       await simulateTyping(400);
       addBotMessage(getReply(message));
     } finally {
       setIsTyping(false);
-    }
-  };
-
-  const handleLogin = async () => {
-    try {
-      await login();
-      setNeedsLogin(false);
-      addBotMessage('¡Listo! Ya podés ver precios. Pedime de nuevo que te cotice el proyecto y te paso los números 🙂');
-    } catch {
-      addBotMessage('No pude iniciar sesión. Probá de nuevo, o pedí tu presupuesto sin cargo 👉 [acá](' + PRESUPUESTO_URL + ')');
     }
   };
 
@@ -196,12 +193,13 @@ function AIChatBot() {
     return processedText;
   };
 
-  return (
+  // Portal a <body>: el header tiene backdrop-blur y eso haría que "fixed" se ubique respecto del header.
+  return createPortal(
     <>
-      {/* Botón del chat - Header version */}
+      {/* Botón del chat — flotante abajo a la izquierda, a la altura del de WhatsApp */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className={`relative w-12 h-12 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${
+        className={`chatbot-floating-btn rounded-full shadow-lg transition-colors duration-300 flex items-center justify-center ${
           isOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-600 hover:bg-blue-700'
         }`}
         whileHover={{ scale: 1.1 }}
@@ -234,10 +232,11 @@ function AIChatBot() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fixed top-20 right-6 z-[65] w-96 h-[500px] max-h-[calc(100vh-10rem)] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed bottom-24 left-4 sm:left-6 z-[1001] w-[calc(100vw-2rem)] sm:w-96 h-[500px] max-h-[calc(100dvh-12rem)] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden max-md:bottom-[150px]"
+            style={{ transformOrigin: 'bottom left' }}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.3 }}
           >
             {/* Header */}
@@ -293,17 +292,6 @@ function AIChatBot() {
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
                   </div>
-                </motion.div>
-              )}
-
-              {needsLogin && !isTyping && (
-                <motion.div className="flex justify-start" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-                  <button
-                    onClick={handleLogin}
-                    className="px-3 py-2 text-sm font-semibold rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-500 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    Entrar con Google para ver precios
-                  </button>
                 </motion.div>
               )}
 
@@ -374,7 +362,8 @@ function AIChatBot() {
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </>,
+    document.body
   );
 }
 

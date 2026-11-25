@@ -5,6 +5,7 @@ import {
 } from '@/lib/presupuestos';
 import { calcularTotales, numeroPresupuesto, buildHtml, datosPresupuesto } from '@/lib/presupuestoEmail';
 import { generarPdfPresupuesto, pdfNombre, pdfUrl, tokenPdf } from '@/lib/presupuestoPdf';
+import { asegurarClienteUrl, urlCliente } from '@/lib/presupuestoCliente';
 import { agruparCatalogo } from '@/lib/tienda';
 import { cargarCatalogo } from '@/lib/tiendaCheckout';
 import { dolarOficialVenta } from '@/lib/dolar';
@@ -266,7 +267,7 @@ export const createBudgetTool = defineTool({
       montoLinkARS: conLink ? montoLink : null,
       createdAt: FieldValue.serverTimestamp(),
     });
-    const out = conLinks(p);
+    const out = conLinks({ ...p, clienteUrl: await asegurarClienteUrl(db, ref.id) });
     return {
       summary: `Presupuesto ${quoteNumber} para ${args.cliente} guardado (id ${ref.id}): ${montos}${p.linkPago ? ', con link de pago' : ''}. `
         + ['Para verlo en PDF: get_budget_pdf.', args.email && 'Por mail: send_budget_email.', out.whatsappUrl && 'Por WhatsApp: que Mariano toque whatsappUrl (o el de get_budget_pdf, que suma el link al PDF).'].filter(Boolean).join(' '),
@@ -328,8 +329,9 @@ export const getBudgetPdfTool = defineTool({
   async handler(args, { db, now = new Date() }) {
     const { snap, d, datos } = await presupuestoConMonto(db, args.id, now);
     const bytes = await generarPdfPresupuesto(datos);
-    const url = pdfUrl(args.id, await tokenPdf(snap.ref, d));
-    const p = { ...presupuestoResumen(args.id, d), pdfUrl: url };
+    const token = await tokenPdf(snap.ref, d);
+    const url = pdfUrl(args.id, token);
+    const p = { ...presupuestoResumen(args.id, d), pdfUrl: url, clienteUrl: urlCliente(args.id, token) };
     return {
       summary: `PDF del presupuesto ${datos.quoteNumber} (${d.clientName || args.id}), USD ${datos.totalUSD.toLocaleString('es-AR')}. `
         + `Link para descargar o compartir: ${url}`,

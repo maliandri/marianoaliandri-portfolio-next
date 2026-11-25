@@ -5,6 +5,7 @@
 // usarlo solo del lado del servidor.
 import { SERVICES } from '@/data/serviceCatalog';
 import { resolverDependencias } from '@/lib/tiendaDeps';
+import { FICHAS } from '@/data/tiendaFichas';
 
 export { PRODUCTOS_VIEJOS } from '@/data/tiendaRecetas';
 
@@ -32,6 +33,8 @@ export function normalizarItem(id, d = {}, orden = 0) {
     porUnidad: d.porUnidad === true,
     activo: d.activo !== false,
     orden: Number.isFinite(Number(d.orden)) ? Number(d.orden) : orden,
+    // Ficha en criollo para el asistente de la tienda: la del doc, o la semilla del código.
+    ficha: d.ficha && typeof d.ficha === 'object' ? d.ficha : (FICHAS[id] || null),
   };
 }
 

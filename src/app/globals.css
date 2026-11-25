@@ -162,11 +162,12 @@ body {
   font-family: var(--font-inter), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  /* clip (no hidden): hidden convierte al elemento en contenedor de scroll y rompe position: sticky */
+  overflow-x: clip;
 }
 
 html {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* ================================================================== */
@@ -749,6 +750,22 @@ html {
   }
 }
 
+/* Botón del chat: espejo de WhatsApp, abajo a la izquierda y a la misma altura */
+.chatbot-floating-btn {
+  position: fixed;
+  bottom: 25px;
+  left: 25px;
+  z-index: 999;
+  width: 56px;
+  height: 56px;
+}
+@media (max-width: 768px) {
+  .chatbot-floating-btn { bottom: 85px; left: 15px; width: 52px; height: 52px; }
+}
+@media (max-width: 480px) {
+  .chatbot-floating-btn { bottom: 85px; left: 10px; width: 48px; height: 48px; }
+}
+
 /* ================================================================== */
 /* FOOTER                                                             */
 /* ================================================================== */
@@ -970,3 +987,52 @@ html {
 }
 @media (min-width: 821px) { .sh-foot-mobile { display: none; } }
 @media (prefers-reduced-motion: reduce) { .app-shell * { transition: none !important; } }
+
+/* ================================================================== */
+/* EFECTOS "ANALÓGICOS" DEL HOME (referencia: unseen.co/world)        */
+/* Solo CSS. El grano es una capa fija que se mueve con transform     */
+/* (lo hace la GPU, no repinta nada); sin JS ni archivos extra.       */
+/* ================================================================== */
+
+.fx-grain::after {
+  content: '';
+  position: fixed;
+  inset: -48px;
+  z-index: 60;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  opacity: 0.06;
+  animation: fx-grain 0.9s steps(5) infinite;
+}
+.dark .fx-grain::after {
+  /* En oscuro el ruido va en blanco */
+  filter: invert(1);
+  opacity: 0.08;
+}
+@keyframes fx-grain {
+  0%   { transform: translate(0, 0); }
+  20%  { transform: translate(-22px, 14px); }
+  40%  { transform: translate(18px, -26px); }
+  60%  { transform: translate(-12px, 30px); }
+  80%  { transform: translate(26px, 8px); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Aberración cromática: bordes corridos en rojo y celeste, como foto de revista */
+.fx-rgb {
+  filter: drop-shadow(-1.5px 0 rgba(255, 40, 90, 0.55)) drop-shadow(1.5px 0 rgba(40, 170, 255, 0.55));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-grain::after { animation: none; }
+}
+
+/* Tienda en celular: la barra inferior propia ocupa el fondo; los flotantes suben para no taparla */
+@media (max-width: 1023px) {
+  body[data-barra-inferior] .whatsapp-floating-btn,
+  body[data-barra-inferior] .chatbot-floating-btn { bottom: calc(92px + env(safe-area-inset-bottom)); }
+}
+
+/* Conversación dentro del iPhone del home: sin barra de scroll visible (se desliza igual) */
+.telefono-chat::-webkit-scrollbar { display: none; }

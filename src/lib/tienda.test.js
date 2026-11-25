@@ -3,7 +3,7 @@ import { createFakeDb } from '@/test/fakeDb';
 import { catalogoEfectivo, agruparCatalogo, sinPrecios, normalizarItem, cotizar, validarCliente } from './tienda';
 import { resolverDependencias } from './tiendaDeps';
 import { dolarOficialVenta, _resetDolarCache } from './dolar';
-import { checkoutTienda, cargarCatalogo } from './tiendaCheckout';
+import { cargarCatalogo } from './tiendaCheckout';
 import { sembrarCatalogo, validarPieza, actualizarCampos } from './tiendaCatalogo';
 
 // Catálogo chico a mano para probar la cuenta sin depender de los precios reales del código.
@@ -140,7 +140,6 @@ const docsCatalogo = {
   'tienda_catalogo/base_sitio': { categoria: 'Base', tipo: 'base', label: 'Base del sitio', priceUSD: 150, requiere: [], orden: 0 },
   'tienda_catalogo/sec_portada': { categoria: 'Secciones', tipo: 'seccion', label: 'Portada', priceUSD: 50, requiere: ['base_sitio'], orden: 1 },
 };
-const user = { uid: 'u1', email: 'ana@mail.com' };
 
 describe('tienda: catálogo en Firestore', () => {
   it('lee tienda_catalogo; si está vacía cae al del código con los precios de service_benefits', async () => {
@@ -178,53 +177,5 @@ describe('tienda: catálogo en Firestore', () => {
     expect(await actualizarCampos(db, 'sec_portada', { priceUSD: 60 })).toMatchObject({ ok: true });
     expect(docs['tienda_catalogo/sec_portada']).toMatchObject({ priceUSD: 60, label: 'Portada', requiere: ['base_sitio'] });
     expect((await actualizarCampos(db, 'nada', { priceUSD: 1 })).error).toMatch(/no existe/);
-  });
-});
-
-describe('tienda: checkout', () => {
-  it('sin sesión no se cotiza ni se cobra', async () => {
-    const { db, writes } = createFakeDb(docsCatalogo);
-    const crearLink = vi.fn();
-    const r = await checkoutTienda(db, { servicios: ['sec_portada'], modo: 'sena', cliente }, { user: null, dolar: async () => ({ cotizacion: 1000 }), crearLink });
-    expect(r).toMatchObject({ status: 401 });
-    expect(crearLink).not.toHaveBeenCalled();
-    expect(writes).toHaveLength(0);
-  });
-
-  it('el monto lo calcula el servidor con el catálogo de Firestore (dependencias incluidas) y crea el link por la seña', async () => {
-    const { db } = createFakeDb(docsCatalogo);
-    const crearLink = vi.fn(async () => 'https://mp/pagar');
-    const r = await checkoutTienda(db, { servicios: ['sec_portada'], modo: 'sena', cliente, precio: 1 }, {
-      user, dolar: async () => ({ cotizacion: 1000 }), crearLink,
-    });
-    expect(r).toMatchObject({ status: 200, init_point: 'https://mp/pagar' });
-    const [p, monto, opts] = crearLink.mock.calls[0];
-    expect(monto).toBe(100000); // (150 base + 50 portada) × 50% × 1000
-    expect(opts.titulo).toMatch(/^Seña 50% - 2 servicios - Ana/);
-    expect(opts.metadata).toMatchObject({ origen: 'tienda', payment_mode: 'deposit', user_id: 'u1' });
-    const doc = (await db.collection('presupuestos').doc(r.id).get()).data();
-    expect(doc).toMatchObject({ origen: 'tienda', modoPago: 'sena', budgetUSD: 200, aPagarARS: 100000, paymentLink: 'https://mp/pagar', status: 'pending', userId: 'u1' });
-    expect(doc.servicioIds).toEqual(['sec_portada', 'base_sitio']);
-    expect(p.id).toBe(r.id);
-  });
-
-  it('la seña sigue el plan de pago del admin', async () => {
-    const { db } = createFakeDb({ ...docsCatalogo, 'site_config/payment_plan': { milestones: [{ label: 'Seña', pct: 30 }, { label: 'Final', pct: 70 }] } });
-    const crearLink = vi.fn(async () => 'https://mp/pagar');
-    await checkoutTienda(db, { servicios: ['base_sitio'], modo: 'sena', cliente }, { user, dolar: async () => ({ cotizacion: 1000 }), crearLink });
-    expect(crearLink.mock.calls[0][1]).toBe(45000);
-  });
-
-  it('pedir presupuesto no cobra ni pide cotización; sin dólar no se cobra', async () => {
-    const { db } = createFakeDb(docsCatalogo);
-    const crearLink = vi.fn();
-    const dolar = vi.fn(async () => { throw new Error('No se pudo obtener la cotización del dólar'); });
-    const r = await checkoutTienda(db, { servicios: ['base_sitio'], modo: 'presupuesto', cliente }, { user, dolar, crearLink });
-    expect(r.status).toBe(200);
-    expect(r.init_point).toBeUndefined();
-    expect(dolar).not.toHaveBeenCalled();
-    const sinDolar = await checkoutTienda(db, { servicios: ['base_sitio'], modo: 'total', cliente }, { user, dolar, crearLink });
-    expect(sinDolar.status).toBe(503);
-    expect(crearLink).not.toHaveBeenCalled();
   });
 });

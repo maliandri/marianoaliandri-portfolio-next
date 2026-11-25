@@ -1,5 +1,15 @@
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Carpeta del proyecto con la letra de unidad en mayúscula. En Windows, si la terminal abre el
+// proyecto como "d:\..." (VS Code lo hace), Turbopack resuelve `@import "tailwindcss"` desde "d:\",
+// no lo encuentra y abre un proceso de PostCSS tras otro (pasó el 2026-11-24: 234 procesos).
+// En Linux (Vercel) no hay letra de unidad y queda igual.
+const projectRoot = dirname(fileURLToPath(import.meta.url)).replace(/^[a-z]:/, d => d.toUpperCase());
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: { root: projectRoot },
   trailingSlash: true,
   // pdf-parse (analizador de CV) usa pdfjs por debajo, que necesita correr
   // fuera del bundle de webpack para resolver bien su worker en serverless.
@@ -29,6 +39,10 @@ const nextConfig = {
         destination: 'https://marianoaliandri.com.ar/:path*',
         permanent: true,
       },
+      // El pedido de presupuesto vive dentro de la tienda (con sesión): los links viejos a /presupuesto
+      // abren la tienda con "Pedir presupuesto" ya elegido.
+      { source: '/presupuesto', destination: '/tienda/?presupuesto=1', permanent: true },
+      { source: '/presupuesto/', destination: '/tienda/?presupuesto=1', permanent: true },
     ];
   },
   images: {

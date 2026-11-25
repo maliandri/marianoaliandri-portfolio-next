@@ -238,7 +238,31 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   galeria desde el admin (tab Proyectos → "Fotos y videos"), via `/api/proyectos/media`
   (POST crea, PATCH togglea `publicable`) reusando `cloudinaryService.js`. Cada card de
   `ProyectosGrid.jsx` en el home linkea a esta pagina.
-- **Tienda** (`/tienda`, rehecha 2026-10-28): el cliente arma su proyecto con los servicios de `src/data/serviceCatalog.js`
+- **Tienda — VENTA POR CONSULTA (vigente desde 2026-11-25; reemplaza lo que sigue sobre precios, seña y cobro directo).**
+  Spec `docs/superpowers/specs/2026-11-25-tienda-link-cliente-design.md`, plan `docs/superpowers/plans/2026-11-25-tienda-venta-por-consulta.md`.
+  - **Nadie ve precios en la tienda** (ni con sesión): `/api/tienda/precios/` es solo admin; el chat del sitio ya no tiene `cotizar`.
+    Los precios de `tienda_catalogo` los usan solo el admin, el armador de presupuestos y el MCP.
+  - `/tienda`: servicios agrupados por objetivo (`src/lib/tiendaGrupos.js`, por id con respaldo por categoría), cada uno con su
+    `benefit`; a la derecha un **asistente** (`src/components/tienda/Asistente.jsx`): al marcar explica al instante con la ficha
+    (`src/lib/tiendaExplicacion.js`, sin IA) y al escribir responde la IA (`/api/tienda/asistente/`, `src/lib/ai/tiendaAsistente.js`:
+    contexto sin precios + `sinMontos()`, herramientas ver_ficha/sumar_servicio/sacar_servicio). Fichas en criollo por servicio en
+    `src/data/tiendaFichas.js` (`tienda_catalogo/{id}.ficha` las pisa; editables en admin → Tienda); contexto general en
+    `site_config/asistente_tienda.texto`. El chat flotante del sitio no se monta en `/tienda`.
+  - **Solicitud** (`POST /api/tienda/` → `src/lib/tiendaSolicitud.js`, exige sesión): guarda en `presupuestos` (`origen/source: 'tienda'`,
+    `servicioIds`, `chat`, `meet: { estado: pedido|aceptado|rechazado|sin_meet, inicio, fin, eventId, meetUrl }`), SIN montos.
+  - **Meet**: turnos libres del Google Calendar de Mariano (`src/lib/meetSlots.js`, L–V 09–12 ART, 30 min, +24 h…14 días; config en
+    `site_config/meet`), `GET /api/tienda/horarios/`. Admin → Presupuestos: "Aceptar y crear Meet" (`POST /api/presupuesto/meet/`) crea el
+    evento con Meet e invita al cliente. OAuth de su cuenta: `/api/google-calendar-auth/` (botón "Conectar Google Calendar"),
+    refresh token en `integrations/google_calendar`; chequeo diario `checkGoogleCalendar`. Env: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+    (cliente OAuth "Tienda - Google Calendar (Meet)" del proyecto marianoaliandri-3b135, app publicada; redirects prod + localhost:3005).
+  - **Avisos a Telegram** (@maliandri_bot): `POST /api/tienda/sesion/` registra la visita anónima en `tienda_sesiones/{id}` (servicios,
+    última pregunta, ciudad de `x-vercel-ip-city`, SIN IP, TTL 30 días); un aviso por visita al marcar ≥2 servicios o preguntar, otro al pedir
+    presupuesto (`src/lib/tiendaSesion.js`, `src/lib/telegram.js`). Env: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
+  - **Link de pago para el cliente**: `/tu-presupuesto/<id>/?t=<pdfToken>` (`src/lib/presupuestoCliente.js`): "Hola <nombre> 👋", ítems con su
+    beneficio, total, botón de MercadoPago (`paymentLink`), WhatsApp, PDF; sin login; token malo → 404. Sale en el WhatsApp
+    (`mensajePresupuesto` con `clienteUrl`), en el mail (`presupuestoEmail.js`, si hay token) y en el admin / MCP (`clienteUrl`).
+  - `/presupuesto` redirige a `/tienda/?presupuesto=1`. El checkout directo (`checkoutTienda`) se borró.
+- **Tienda (histórico)** (`/tienda`, rehecha 2026-10-28): el cliente arma su proyecto con los servicios de `src/data/serviceCatalog.js`
   (el mismo catálogo del armador de presupuestos), ve el total en USD y en pesos, y elige **seña** (el primer hito del plan de
   pago de admin → Tienda, `site_config/payment_plan`; 50% si no hay plan), **pago total con 10% off**
   o **pedir presupuesto** (`src/components/tienda/TiendaServicios.jsx`). El monto lo calcula SIEMPRE el servidor

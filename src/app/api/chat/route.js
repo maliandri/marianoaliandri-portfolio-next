@@ -6,7 +6,7 @@ import { getDb } from '@/lib/firebase-admin';
 import { getUserFromRequest } from '@/lib/authServer';
 import { hitRateLimit } from '@/lib/mcp/rateLimit';
 import { conRespaldo } from '@/lib/ai/gemini';
-import { crearHerramientasChat, pidioLogin } from '@/lib/ai/chatTools';
+import { crearHerramientasChat } from '@/lib/ai/chatTools';
 import { historialAMensajes } from '@/lib/ai/chatHistory';
 
 const MARIANO_CONTEXT = `
@@ -69,11 +69,9 @@ REGLAS DE ORO:
 - **Menciona la consulta gratuita:** Es el mejor gancho para conseguir leads calificados.
 
 HERRAMIENTAS Y PRECIOS (importante):
-- Con \`ver_servicios\` ves las piezas reales de la tienda para recomendar (nunca inventes servicios ni ids). Llamala UNA sola vez por pregunta: trae el catálogo completo.
-- Con \`cotizar\` calculás el precio de un proyecto armado con esas piezas. Los PRECIOS son solo para quien inició sesión con Google.
-- Si \`cotizar\` devuelve requiereLogin: NO des ningún número ni rango. Decile amable que con un click entrando con Google ve los precios, y ofrecé alternativamente pedir presupuesto en https://marianoaliandri.com.ar/presupuesto/ .
-- Con la cotización en mano, resumila (total, y seña o pago total) y pasá el link de la tienda para que lo arme y lo pague. No inventes descuentos que la herramienta no devolvió.
-- Sin sesión y sin haber cotizado, si preguntan precios: "Los precios varían según alcance. Entrando con Google los ves en la tienda, o pedí presupuesto sin cargo."
+- Con \`ver_servicios\` ves los servicios reales de la tienda para recomendar (nunca inventes servicios ni ids). Llamala UNA sola vez por pregunta: trae el catálogo completo.
+- NUNCA des precios, rangos ni estimaciones de plata, aunque insistan. Mariano trabaja por consulta: el cliente marca lo que necesita en https://marianoaliandri.com.ar/tienda/ (ahí un asistente le explica cada cosa), pide presupuesto y lo charlan en una reunión corta (Meet o en persona). Recién ahí le pasa el precio cerrado.
+- Si preguntan cuánto sale: explicá que depende de lo que necesite y que se charla en la reunión, y ofrecé la tienda para marcar lo que busca.
 `;
 
 const MAX_MENSAJE = 1000;
@@ -142,7 +140,7 @@ export async function POST(request) {
       if (!rl.ok) {
         return Response.json({
           error: 'Demasiados mensajes',
-          response: 'Hablamos un montón por hoy 🙂. Para seguir, escribile directo a Mariano por WhatsApp al +54 299 541-4422 o pedí tu presupuesto en https://marianoaliandri.com.ar/presupuesto/',
+          response: 'Hablamos un montón por hoy 🙂. Para seguir, escribile directo a Mariano por WhatsApp al +54 299 541-4422 o marcá lo que necesitás en https://marianoaliandri.com.ar/tienda/',
         }, { status: 429 });
       }
     }
@@ -152,7 +150,7 @@ export async function POST(request) {
       model,
       system: MARIANO_CONTEXT,
       messages: [...historial, { role: 'user', content: message }],
-      tools: crearHerramientasChat({ db, user }),
+      tools: crearHerramientasChat({ db }),
       stopWhen: stepCountIs(5),
       maxOutputTokens: 800,
       temperature: 0.7,
@@ -168,7 +166,6 @@ export async function POST(request) {
     }
     return Response.json({
       success: true, response, leadCaptured: leadDetected.isLead,
-      needsLogin: !user && pidioLogin(result.steps),
     });
   } catch (error) {
     console.error('Error en chat:', error);
