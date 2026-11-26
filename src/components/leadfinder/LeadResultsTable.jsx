@@ -39,9 +39,10 @@ export function exportLeadsCSV(rows, t) {
   URL.revokeObjectURL(url);
 }
 
-export default function LeadResultsTable({ rows, perfil, t, onRetryProducts, retryDisabled }) {
+// acciones (solo admin): { header, render(neg) } suma una columna al final (ej. el botón de mail por Resend).
+export default function LeadResultsTable({ rows, perfil, t, onRetryProducts, retryDisabled, acciones = null }) {
   const headers = [t.tableHeaders[0], t.tableHeaders[1], t.colRubro, t.colWeb, 'SEO', t.colContacto, t.colUpdated,
-    ...(perfil === 'empresa' ? [t.colProducts] : []), '★', 'Maps'];
+    ...(perfil === 'empresa' ? [t.colProducts] : []), '★', 'Maps', ...(acciones ? [acciones.header] : [])];
 
   return (
     <div className="bg-card border border-fg/10 rounded-2xl overflow-hidden">
@@ -114,6 +115,7 @@ export default function LeadResultsTable({ rows, perfil, t, onRetryProducts, ret
                 <td className="px-3 py-2.5">
                   <a href={`https://www.google.com/maps/place/?q=place_id:${neg.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-fg-500 hover:text-fg">Maps</a>
                 </td>
+                {acciones && <td className="px-3 py-2.5">{acciones.render(neg)}</td>}
               </tr>
             ))}
           </tbody>
