@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120; // aprobar = resumen con Gemini + captura de Microlink + Make
 
-import { revalidatePath } from 'next/cache';
 import { getDb } from '@/lib/firebase-admin';
 import { requireAdmin } from '@/lib/adminAuth';
 import { listarBorradores, aprobarBorrador, descartarBorrador, ReviewError } from '@/lib/autoAuditReview';
@@ -37,8 +36,6 @@ export async function POST(request) {
     const networks = Array.isArray(body.networks) ? body.networks.filter(n => NETWORKS.includes(n)) : undefined;
     const excluir = Array.isArray(body.excluir) ? body.excluir.filter(x => typeof x === 'string') : [];
     const out = await aprobarBorrador(db, body.id, { redes: body.redes !== false, networks, excluir });
-    revalidatePath('/auditorias');
-    revalidatePath('/auditorias/[id]', 'page');
     return Response.json(out);
   } catch (e) {
     return Response.json({ error: e.message }, { status: e instanceof ReviewError ? 400 : 500 });

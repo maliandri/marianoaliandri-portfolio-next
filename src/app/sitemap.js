@@ -29,15 +29,8 @@ async function dynamicEntries() {
   if (!db) return [];
 
   const [auditorias, aprende, demanda, proyectos] = await Promise.all([
-    safe(async () => {
-      const snap = await db.collection('auditorias').orderBy('publishedAt', 'desc').limit(500).get();
-      return snap.docs.map(d => ({
-        url: `${BASE_URL}/auditorias/${d.id}/`,
-        lastModified: iso(d.data().publishedAt),
-        changeFrequency: 'monthly',
-        priority: 0.6,
-      }));
-    }),
+    // Las auditorías son privadas desde 2026-11-26 (link con clave): fuera del sitemap.
+    [],
     safe(async () => {
       const snap = await db.collection('contenidos').where('estado', '==', 'publicado').get();
       return snap.docs.map(d => ({
@@ -78,7 +71,6 @@ export default async function sitemap() {
     { url: `${BASE_URL}/sitios-web/`,  lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE_URL}/desarrolladores/`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/tienda/`,      lastModified: now, changeFrequency: 'weekly',  priority: 0.9 },
-    { url: `${BASE_URL}/auditorias/`,  lastModified: now, changeFrequency: 'weekly',  priority: 0.8 },
     { url: `${BASE_URL}/noticias/`,    lastModified: now, changeFrequency: 'daily',   priority: 0.7 },
     { url: `${BASE_URL}/aprende/`,     lastModified: now, changeFrequency: 'daily',   priority: 0.8 },
     { url: `${BASE_URL}/demanda/`,     lastModified: now, changeFrequency: 'weekly',  priority: 0.8 },

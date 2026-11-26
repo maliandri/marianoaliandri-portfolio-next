@@ -80,8 +80,7 @@ export default function ToolPage() {
           </section>
           <p className="text-sm text-gray-500 dark:text-gray-500">
             Mirá también el{' '}
-            <a href="/kpi" className="text-indigo-500 hover:underline">Radar de KPIs</a> o las{' '}
-            <a href="/auditorias" className="text-indigo-500 hover:underline">auditorías web</a>.
+            <a href="/kpi" className="text-indigo-500 hover:underline">Radar de KPIs</a>.
           </p>
         </div>
       </main>

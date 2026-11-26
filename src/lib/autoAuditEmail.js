@@ -1,6 +1,7 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { buildBizEmailDraft, renderBizEmailHtml, sendViaResend, validateGeneratedEmail } from '@/lib/bizEmail';
 import { checkBlocked, normalizeDomain, reserveSend, unsubscribeUrl } from '@/lib/emailGuards';
+import { linkInforme } from '@/lib/auditClave';
 
 // Envío automático del mail de auditoría a los negocios de un informe recién publicado.
 // Apagado por defecto (config.emailAuto). Frenos: lista de bajas y rebotes, un mail por negocio
@@ -33,12 +34,13 @@ async function mandarUno(db, neg, { tope, now }) {
   const bloqueo = await checkBlocked(db, { email, dominio });
   if (bloqueo) return { motivo: bloqueo };
 
-  const draft = await buildBizEmailDraft({ ...neg, email });
+  const auditLink = await linkInforme(db, neg.auditoriaId, neg.id).catch(() => null);
+  const draft = await buildBizEmailDraft({ ...neg, email }, { conInforme: !!auditLink });
   // Sin revisión humana: si el texto no pasa la red mínima, no sale.
   if (!validateGeneratedEmail(draft.emailText, neg.nombre)) return { motivo: 'texto_invalido' };
   const html = renderBizEmailHtml({
     nombre: neg.nombre, siteUrl: neg.siteUrl, seoScore: neg.seoScore, emailText: draft.emailText,
-    screenshotUrl: draft.screenshotUrl, extraServices: draft.extraServices, unsubscribeUrl: unsubscribeUrl(email),
+    screenshotUrl: draft.screenshotUrl, extraServices: draft.extraServices, unsubscribeUrl: unsubscribeUrl(email), auditLink,
   });
 
   const reserva = await reserveSend(db, { email, dominio, cap: tope, days: RECONTACT_DAYS, now, counter: COUNTER });

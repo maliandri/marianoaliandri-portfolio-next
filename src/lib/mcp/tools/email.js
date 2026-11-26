@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { FieldValue } from 'firebase-admin/firestore';
 import { buildBizEmailDraft, renderBizEmailHtml, sendViaResend, validateGeneratedEmail } from '@/lib/bizEmail';
+import { linkInforme } from '@/lib/auditClave';
 import { checkBlocked, lastContactAt, normalizeDomain, reserveSend, unsubscribeUrl } from '@/lib/emailGuards';
 import { getSearch } from '@/lib/leadSearchesStore';
 import { envInt } from '../config';
@@ -84,7 +85,8 @@ export const draftBusinessEmailTool = defineTool({
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   async handler(args, { db, user, now = new Date() }) {
     const neg = await findNegocio(db, user, args);
-    const d = await buildBizEmailDraft(neg);
+    const auditLink = await linkInforme(db, neg.auditoriaId, neg.placeId).catch(() => null);
+    const d = await buildBizEmailDraft(neg, { conInforme: !!auditLink });
     const bloqueo = await motivoBloqueo(db, neg, now);
     const ref = await db.collection(DRAFTS).add({
       uid: user.uid, ...neg, dominio: normalizeDomain(neg.siteUrl),
@@ -134,6 +136,7 @@ export const sendBusinessEmailTool = defineTool({
     } else {
       neg = await findNegocio(db, user, args);
     }
+    const auditLink = await linkInforme(db, neg.auditoriaId, neg.placeId).catch(() => null);
     if (args.email_text) {
       if (!validateGeneratedEmail(args.email_text, neg.nombre)) {
         throw new ToolError('El texto no pasa la revisión: tiene que nombrar al negocio, no tener marcadores sin completar y solo links de marianoaliandri.com.ar o wa.me.');
@@ -146,7 +149,7 @@ export const sendBusinessEmailTool = defineTool({
       return { summary: `No se envió a ${neg.email}: ${MOTIVO_TXT[bloqueo.motivo]}.`, data: { enviado: false, motivo: bloqueo.motivo, to: neg.email } };
     }
     if (!d?.subject) {
-      const built = await buildBizEmailDraft(neg, d?.emailText ? { providedText: d.emailText } : {});
+      const built = await buildBizEmailDraft(neg, { conInforme: !!auditLink, ...(d?.emailText ? { providedText: d.emailText } : {}) });
       d = { ...built, source: d?.source || built.source };
     }
     if (args.dry_run) {
@@ -155,7 +158,7 @@ export const sendBusinessEmailTool = defineTool({
     // Se arma antes de reservar: si falta EMAIL_UNSUBSCRIBE_SECRET falla sin gastar cupo.
     const html = renderBizEmailHtml({
       nombre: neg.nombre, siteUrl: neg.siteUrl, seoScore: neg.seoScore, emailText: d.emailText,
-      screenshotUrl: d.screenshotUrl, extraServices: d.extraServices, unsubscribeUrl: unsubscribeUrl(neg.email),
+      screenshotUrl: d.screenshotUrl, extraServices: d.extraServices, unsubscribeUrl: unsubscribeUrl(neg.email), auditLink,
     });
 
     const dominio = normalizeDomain(neg.siteUrl);

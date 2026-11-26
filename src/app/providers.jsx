@@ -34,7 +34,6 @@ const TOOL_PATHS = ['/stats', '/ats', '/kpi', '/radarweb', '/labs', '/lead-finde
 // "Más" junta el contenido y las páginas de compra que no son de una sola audiencia.
 const MAS = [
   { label: 'Aprendé',              href: '/aprende',     icon: '📚', desc: 'Notas cortas sobre IA y sistemas para negocios' },
-  { label: 'Auditorías',           href: '/auditorias',  icon: '🔎', desc: 'Informes SEO de negocios por rubro y ciudad' },
   { label: 'Demanda por zona',     href: '/demanda',     icon: '📈', desc: 'Los rubros más buscados en Google por zona' },
   { label: 'Tienda',               href: '/tienda',      icon: '🛒', desc: 'Armá tu proyecto y mirá el precio' },
   { label: 'Preguntas frecuentes', href: '/faq',         icon: '❓', desc: '¿Cuánto cuesta? ¿Cuánto tarda?' },
@@ -229,7 +228,7 @@ function Navbar({ pathname }) {
             <AuthButton />
           </div>
           {/* En /tienda el asistente propio de la tienda reemplaza al chat del sitio */}
-          {pathname !== '/tienda' && <AIChatBot />}
+          {pathname !== '/tienda' && !pathname.startsWith('/auditorias') && <AIChatBot />}
           {/* Hamburger — mobile y tablet */}
           <button
             onClick={() => setOpen(p => !p)}

@@ -59,7 +59,7 @@ describe('publish_audit_social', () => {
     imageIsReachable.mockResolvedValue({ ok: true, detail: '' });
     const { db, docs } = createFakeDb({ 'auditorias/a1': audit });
     await publishAuditSocialTool.handler({ id: 'a1', networks: ['facebook', 'instagram'] }, { db, user });
-    expect(postToMakeSocial.mock.calls[0][0]).toMatchObject({ type: 'service', networks: ['facebook', 'instagram'], link: 'https://marianoaliandri.com.ar/auditorias/a1' });
+    expect(postToMakeSocial.mock.calls[0][0]).toMatchObject({ type: 'service', networks: ['facebook', 'instagram'], link: expect.stringMatching(/^https:\/\/marianoaliandri\.com\.ar\/auditorias\/a1\/\?k=[\w-]+$/) });
     expect(docs['auditorias/a1'].publicadoVia).toBe('mcp');
     await expect(publishAuditSocialTool.handler({ id: 'a1', networks: ['facebook'] }, { db, user })).rejects.toThrow(/force/);
     await publishAuditSocialTool.handler({ id: 'a1', networks: ['facebook'], force: true }, { db, user });

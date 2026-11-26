@@ -1,9 +1,10 @@
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { callGemini } from '@/lib/geminiClient';
+import { nuevaClave } from '@/lib/auditClave';
 
 // Guarda una auditoría pública. Compartido por POST /api/auditorias (panel manual) y la
-// auditoría automática. Email se guarda para uso admin; dirección y teléfono se descartan.
+// auditoría automática. Email y WhatsApp se guardan para uso admin; dirección y fijo se descartan.
 export async function saveAuditoria({ title, config, results, stats, summary: providedSummary, useGemini = true }) {
   const db = getDb();
   if (!db) throw new Error('DB no disponible');
@@ -19,6 +20,9 @@ export async function saveAuditoria({ title, config, results, stats, summary: pr
     lon:          r.lon ?? null,
     siteUrl:      r.siteUrl,
     email:        r.email    || null,   // se guarda para envío admin, no se muestra en página pública
+    // Celular (WhatsApp) para mandarle el link de su auditoría desde el admin. Nunca sale en la
+    // página pública ni en el GET sin sesión de admin (ver /api/auditorias).
+    whatsapp:     r.whatsapp || null,
     seoScore:     r.seoScore,
     hasSitemap:   r.hasSitemap,
     hasRobots:    r.hasRobots,
@@ -65,8 +69,10 @@ El texto debe explicar qué significa un SEO débil para un negocio local, desta
     }
   }
 
+  const clave = nuevaClave(); // el informe es privado: solo se abre con ?k=<clave>
   const docRef = await db.collection('auditorias').add({
     title,
+    clave,
     config,
     results: storedResults,
     stats,
@@ -75,5 +81,5 @@ El texto debe explicar qué significa un SEO débil para un negocio local, desta
     createdAt:   FieldValue.serverTimestamp(),
   });
 
-  return { id: docRef.id, summary };
+  return { id: docRef.id, summary, clave };
 }

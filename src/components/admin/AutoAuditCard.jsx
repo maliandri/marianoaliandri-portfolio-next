@@ -5,6 +5,7 @@ import { useAuthUser } from '@/hooks/useAuthUser';
 import { CANTIDAD_DEFAULT, CANTIDAD_MIN, CANTIDAD_MAX, consumoMensual, busquedasDe, parseZona, RADIO_DEFAULT } from '@/lib/autoAudit';
 import { PLACES_LIMITS } from '@/data/placesFreeTier';
 import AutoAuditDrafts from './AutoAuditDrafts';
+import { abrirInforme } from '@/utils/abrirInforme';
 
 const RADIOS = [5, 10, 15, 20, 30, 40, 50];
 const opcionesRadio = (actual) => [...new Set([...RADIOS, actual].filter(Boolean))].sort((a, b) => a - b);
@@ -372,7 +373,7 @@ export default function AutoAuditCard() {
                   <span>{r.combo ? `${r.combo.rubro} · ${r.combo.ciudad}` : '—'}</span>
                   <span className="text-gray-500">{r.auditados ?? 0} sitios</span>
                   {r.createdAt && <span className="text-gray-400 text-xs">{new Date(r.createdAt).toLocaleString('es-AR')}</span>}
-                  {r.auditoriaId && <a className="text-indigo-600 underline text-xs" href={`/auditorias/${r.auditoriaId}`} target="_blank" rel="noreferrer">ver informe</a>}
+                  {r.auditoriaId && <button type="button" className="text-indigo-600 underline text-xs" onClick={() => abrirInforme(r.auditoriaId)}>ver informe</button>}
                   {r.borradorId && <span className="text-amber-700 dark:text-amber-400 text-xs">borrador para revisar</span>}
                   {r.error && <span className="text-xs text-red-600 dark:text-red-400">{r.error}</span>}
                   {r.intentos?.length > 0 && (

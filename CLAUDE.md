@@ -312,9 +312,21 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
     web floja); el DM de Instagram cita la frase real. Desde Keywords, "Buscar negocios de este rubro"
     abre el Lead Finder con `?zona=&rubro=` (admin: `sessionStorage.lf_prefill`).
   - Saca el @ de Instagram de cada negocio (`src/lib/instagramHandle.js`: links de la home/contacto o la web de Maps si es el perfil). En el admin, panel "Prospectos de Instagram" bajo los resultados + pantalla Marketing → Prospectos Instagram: DM sugerido por Gemini (`src/lib/igProspectos.js`), "Copiar y abrir chat" (ig.me/m/handle, marca contactado) y seguimiento en `ig_prospectos`. Los DMs se mandan a mano: nada de envío automático (Instagram banea).
-  - Listado publico de reportes SEO (`/auditorias`) — server component, lee Firestore directo
-  - Detalle de reporte (`/auditorias/[id]`) — full width, tabla ordenable por columna
-  - Tabla publica NO muestra email/telefono/direccion (privacidad)
+  - **Auditorías PRIVADAS como carta de venta (desde 2026-11-26)**: `/auditorias` (listado) redirige 308 a `/` y salió del
+    sitemap/footer/menú. Cada informe guarda `clave` (aleatoria, `src/lib/auditClave.js`) y solo abre con
+    `/auditorias/<id>/?k=<clave>` (sin clave → 404, `noindex`, render por pedido: ya no es ISR). Con `&para=<placeId>` saluda al
+    negocio, muestra su puesto contra la competencia (`posicionEnAuditoria`), lo que le falta y resalta su fila. Layout: informe en
+    3/4 + **asesor de ventas** en 1/4, sticky (`AsesorChat.jsx` → `POST /api/auditorias/asesor/`, `src/lib/ai/auditAsesor.js`, mismo
+    motor `conRespaldo` que la tienda, sin precios; explica Next.js, base de datos, agente, RAG, MCP; la tool `abrir_formulario` abre el
+    pedido en la pantalla → `POST /api/auditorias/solicitud/` guarda en `presupuestos` con `origen: 'auditoria'` y avisa por Telegram;
+    el primer mensaje del chat también avisa). Oferta y textos en `src/lib/auditPitch.js` (`SERVICIOS_OFERTA`, `auditoriaLink`,
+    `mensajeWhatsapp`). Admin → Auditorías: botón "WhatsApp/Link" por negocio con el link personal + mensaje editable (abre wa.me si
+    hay celular: `results[].whatsapp` se guarda desde 2026-11-26 vía `leadToAuditRow`). El mail a negocios lleva el botón "Ver la
+    auditoría que te preparé" (`linkInforme` → `auditLink` de `renderBizEmailHtml`; admin, automática y MCP). Posts de redes y MCP
+    usan `auditReportUrl(id, clave)`. `GET /api/auditorias` (listado y detalle con emails) es solo admin; sin admin solo devuelve
+    casos demo sin datos de contacto. Las auditorías viejas reciben su clave la primera vez que el admin o el MCP las listan
+    (`asegurarClave`). El chat flotante del sitio no se monta en `/auditorias/*`.
+  - Tabla del informe NO muestra email/telefono/direccion (privacidad)
   - Admin tab "Auditorias": lista/elimina, expande detalle con email visible
   - Boton "✉ Enviar" por negocio: Gemini genera email personalizado → Resend lo envia
     - From: `Mariano Aliandri <notificaciones@marianoaliandri.com.ar>`
@@ -645,7 +657,8 @@ Antes usaban `fetch(url_propia)` lo que causaba 404 intermitentes (el fetch HTTP
 antes de que el deploy estuviera listo). Regla: server components → Firebase Admin directo.
 
 ### Paginas publicas con ISR (Active CPU de Vercel, desde 2026-10-15)
-`/auditorias` (1 h), `/noticias` (15 min), `/auditorias/[id]`, `/noticias/[id]` (24 h) y
+(Las auditorías salieron de esta lista el 2026-11-26: ahora son privadas y se renderizan por pedido.)
+`/noticias` (15 min), `/noticias/[id]` (24 h) y
 `/proyectos/[domain]` (6 h) usan `export const revalidate` + `generateStaticParams() { return [] }`
 en vez de `force-dynamic`: antes corrian una funcion (Firestore + GSC) en cada visita/crawl y se
 comian el cupo de Active CPU compartido entre todos los proyectos de la cuenta. `/api/proyectos`

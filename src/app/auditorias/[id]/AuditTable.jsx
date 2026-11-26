@@ -73,7 +73,7 @@ function isOwnSite(url, ownDomains) {
   return h && ownDomains.some(d => h === d || h.endsWith('.' + d));
 }
 
-export default function AuditTable({ results, ownDomains = [], showEmail = false }) {
+export default function AuditTable({ results, ownDomains = [], showEmail = false, destacadoId = null }) {
   const [sortCol, setSortCol] = useState('seoScore');
   const [sortDir, setSortDir] = useState('asc');
   const cols = showEmail ? COLS : COLS.filter(c => !c.adminOnly);
@@ -122,11 +122,17 @@ export default function AuditTable({ results, ownDomains = [], showEmail = false
           <tbody className="divide-y divide-fg/5">
             {sorted.map((neg, i) => {
               const own = isOwnSite(neg.siteUrl, ownDomains);
+              const tuyo = destacadoId && neg.id === destacadoId; // el negocio al que se le mandó el link
               return (
-              <tr key={neg.id || i} className={`transition-colors ${own ? 'bg-indigo-500/[0.08] hover:bg-indigo-500/[0.14]' : `hover:bg-white/[0.05] ${i % 2 ? 'bg-white/[0.015]' : ''}`}`}>
-                <td className="px-4 py-3.5 text-fg-600 text-xs" style={{ boxShadow: `inset 3px 0 0 ${own ? '#6366f1' : bandColor(neg.seoScore)}` }}>{i + 1}</td>
+              <tr key={neg.id || i} className={`transition-colors ${tuyo ? 'bg-amber-400/[0.18] hover:bg-amber-400/[0.24]' : own ? 'bg-indigo-500/[0.08] hover:bg-indigo-500/[0.14]' : `hover:bg-white/[0.05] ${i % 2 ? 'bg-white/[0.015]' : ''}`}`}>
+                <td className="px-4 py-3.5 text-fg-600 text-xs" style={{ boxShadow: `inset ${tuyo ? 5 : 3}px 0 0 ${tuyo ? '#f59e0b' : own ? '#6366f1' : bandColor(neg.seoScore)}` }}>{i + 1}</td>
                 <td className="px-4 py-3 max-w-[220px]">
                   <div className="font-medium text-fg truncate" title={neg.nombre}>{neg.nombre}</div>
+                  {tuyo && (
+                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-400/25 text-amber-800 dark:text-amber-300 border border-amber-500/40">
+                      ● Tu negocio
+                    </span>
+                  )}
                   {own && (
                     <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
                       ★ Hecho por mí

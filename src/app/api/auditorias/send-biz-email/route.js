@@ -4,6 +4,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { requireAdmin } from '@/lib/adminAuth';
 import { buildBizEmailDraft, renderBizEmailHtml, sendViaResend } from '@/lib/bizEmail';
 import { checkBlocked, normalizeDomain, unsubscribeUrl } from '@/lib/emailGuards';
+import { linkInforme } from '@/lib/auditClave';
 
 // Botón "✉ Enviar" del admin. La lógica del mail vive en src/lib/bizEmail.js (compartida con el
 // servidor MCP). Acá solo se respeta la lista de bloqueo (bajas y rebotes); los frenos de
@@ -16,6 +17,7 @@ export async function POST(request) {
     const {
       nombre, siteUrl, email, seoScore, hasSitemap, hasRobots, metaDesc, hasOG,
       ciudad, tipo, auditoriaId, anuncios, plataforma,
+      negocioId,                     // id del negocio en el informe: el mail lleva su link personal
       preview,                       // true = solo generar el texto, no enviar
       emailText: providedText,       // texto ya generado/editado por el admin (opcional)
       screenshotUrl: providedShot,   // screenshot ya obtenido en el preview (opcional)
@@ -43,16 +45,17 @@ export async function POST(request) {
     }
 
     const neg = { nombre, siteUrl, seoScore, hasSitemap, hasRobots, metaDesc, hasOG, ciudad, tipo, anuncios, plataforma };
+    const auditLink = await linkInforme(db, auditoriaId, negocioId).catch(() => null);
     const { subject, emailText, source, screenshotUrl, extraServices } =
-      await buildBizEmailDraft(neg, { providedText, providedShot });
+      await buildBizEmailDraft(neg, { providedText, providedShot, conInforme: !!auditLink });
 
     // Modo preview: devolver el texto + screenshot sin enviar nada
     if (preview) {
-      return Response.json({ success: true, preview: true, emailText, screenshotUrl, source, extraServices });
+      return Response.json({ success: true, preview: true, emailText, screenshotUrl, source, extraServices, auditLink });
     }
 
     const html = renderBizEmailHtml({
-      nombre, siteUrl, seoScore, emailText, screenshotUrl, extraServices, unsubscribeUrl: unsubscribeUrl(email),
+      nombre, siteUrl, seoScore, emailText, screenshotUrl, extraServices, unsubscribeUrl: unsubscribeUrl(email), auditLink,
     });
     const { resendId } = await sendViaResend({ to: email, subject, html });
 
