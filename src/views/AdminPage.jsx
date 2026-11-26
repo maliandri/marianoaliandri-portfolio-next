@@ -546,7 +546,9 @@ export default function AdminPage() {
       onNavigate={(_, itemId) => goToTab(itemId)}
       searchable
       homeItemId="inicio"
-      mobilePrimary={['panel', 'marketing', 'herramientas']}
+      // Ids internos del menú (el nombre visible se edita en Sitio → Configurar interfaz): hoy "Marketing" = redes,
+      // "Herramientas" = marketing (Lead Finder, auditorías). Si un id no existe, se completa con las primeras secciones.
+      mobilePrimary={['panel', 'redes', 'marketing', 'herramientas']}
       footer={{
         initials: (username || 'MA').slice(0, 2).toUpperCase(),
         name: username || 'Admin',
