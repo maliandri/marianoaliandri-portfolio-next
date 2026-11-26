@@ -1,8 +1,8 @@
 export const dynamic = 'force-dynamic';
 import admin, { getDb } from '@/lib/firebase-admin';
 import { PLANS } from '@/data/plans';
+import { requireAdmin } from '@/lib/adminAuth';
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 // Los planes de Analítica (free/basico/full) son ids FIJOS -- los usan
 // /api/subscribe, /api/subscription-webhook y lib/entitlements.js para
@@ -42,10 +42,9 @@ export async function GET() {
 // POST admin-only — actualiza precio/límite de un plan existente (id fijo)
 export async function POST(request) {
   try {
-    const { adminPassword, id, price, limit } = await request.json();
-    if (adminPassword !== ADMIN_PASSWORD || !ADMIN_PASSWORD) {
-      return Response.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    const { id, price, limit } = await request.json();
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
     if (!EDITABLE_IDS.includes(id)) {
       return Response.json({ error: `id inválido — solo se puede editar: ${EDITABLE_IDS.join(', ')}` }, { status: 400 });
     }

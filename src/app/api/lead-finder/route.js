@@ -6,6 +6,7 @@ import { getUserFromRequest } from '@/lib/authServer';
 import { extractLatestLastmod } from '@/lib/sitemapUtils';
 import { extractInstagram, handleFromUrl } from '@/lib/instagramHandle';
 import { siteSignals } from '@/lib/siteSignals';
+import { isAdminEmail } from '@/lib/adminAuth';
 
 // Cuenta registrada (Firebase Auth) reconocida como admin para esta ruta interna.
 // No es un password aparte -- es la MISMA cuenta con la que Mariano se loguea en el
@@ -13,7 +14,6 @@ import { siteSignals } from '@/lib/siteSignals';
 // evita el gate de créditos de /api/lead-finder-pro/run).
 // Sin fallback hardcodeado: si ADMIN_EMAIL no está seteada en las env vars, la ruta
 // queda cerrada para todos en vez de aceptar un email fijo en el código.
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || null;
 
 // Caché de auditorías por placeId — evita re-pagar getDetails (Places API) por un
 // negocio ya auditado. El sitio propio (checkSite) es gratis, así que solo importa
@@ -401,7 +401,7 @@ export async function POST(request) {
   try { body = await request.json(); } catch { return fail('JSON inválido'); }
 
   const authUser = await getUserFromRequest(request);
-  if (!authUser || authUser.email !== ADMIN_EMAIL) return fail('No autorizado');
+  if (!authUser || !isAdminEmail(authUser.email)) return fail('No autorizado');
 
   const { action, apiKey: clientKey, ...params } = body;
   return runLeadFinderAction(action, params, clientKey);

@@ -1,6 +1,7 @@
 'use client';
 import { useState, useMemo, useRef } from 'react';
 import { PROVINCIAS_AR } from '@/data/localidadesAR';
+import { adminFetch } from '@/utils/adminFetch';
 
 const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const MAKE_WEBHOOK = 'https://hook.us2.make.com/574hhr7jtxm2rsn52ntkghpxohcdhjvi';
@@ -34,8 +35,6 @@ export default function KeywordAnalyticsPublisher() {
   const creds = useMemo(() => {
     if (typeof window === 'undefined') return {};
     return {
-      adminUsername: sessionStorage.getItem('adminUsername') || '',
-      adminPassword: sessionStorage.getItem('adminPassword') || '',
     };
   }, []);
 
@@ -45,7 +44,7 @@ export default function KeywordAnalyticsPublisher() {
     setData(null);
     setPublishStatus('idle');
     try {
-      const res = await fetch('/api/keyword-explorer', {
+      const res = await adminFetch('/api/keyword-explorer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ localidad, provincia, ...creds }),

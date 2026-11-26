@@ -1,18 +1,17 @@
 export const dynamic = 'force-dynamic';
 import admin, { getDb } from '@/lib/firebase-admin';
+import { requireAdmin } from '@/lib/adminAuth';
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 // Export/import masivo de la tienda via Excel.
-// POST { action: 'export' | 'import', adminPassword, rows? }
+// POST (admin) { action: 'export' | 'import', rows? }
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { action, adminPassword } = body;
+    const { action } = body;
 
-    if (adminPassword !== ADMIN_PASSWORD) {
-      return Response.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
 
     const db = getDb();
 

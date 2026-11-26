@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { ExchangeService } from '@/utils/exchangeService';
+import { adminFetch } from '@/utils/adminFetch';
 
 // Encabezados del Excel (orden de columnas) ↔ claves internas.
 const COLUMNS = [
@@ -25,15 +26,14 @@ export default function StoreExcelManager() {
   const [replaceAll, setReplaceAll] = useState(false);
   const fileRef = useRef(null);
 
-  const pass = () => sessionStorage.getItem('adminPassword');
 
   const download = async () => {
     setBusy(true); setMsg(''); setSummary(null);
     try {
-      const res = await fetch('/api/store-bulk', {
+      const res = await adminFetch('/api/store-bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'export', adminPassword: pass() }),
+        body: JSON.stringify({ action: 'export' }),
       });
       const d = await res.json();
       if (!res.ok || d.error) throw new Error(d.error || 'Error');
@@ -96,10 +96,10 @@ export default function StoreExcelManager() {
         `cargar los ${rows.length} del Excel en su lugar. Esto no se puede deshacer.\n\n¿Continuar?`
       )) { setBusy(false); if (fileRef.current) fileRef.current.value = ''; return; }
 
-      const res = await fetch('/api/store-bulk', {
+      const res = await adminFetch('/api/store-bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'import', adminPassword: pass(), rows, replace: replaceAll }),
+        body: JSON.stringify({ action: 'import', rows, replace: replaceAll }),
       });
       const d = await res.json();
       if (!res.ok || d.error) throw new Error(d.error || 'Error');
@@ -121,10 +121,10 @@ export default function StoreExcelManager() {
     if (!confirm('⚠️ Se van a BORRAR TODOS los productos de la tienda (compra y alquiler). Esto no se puede deshacer.\n\n¿Vaciar la tienda?')) return;
     setBusy(true); setMsg(''); setSummary(null);
     try {
-      const res = await fetch('/api/store-bulk', {
+      const res = await adminFetch('/api/store-bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'clear', adminPassword: pass() }),
+        body: JSON.stringify({ action: 'clear' }),
       });
       const d = await res.json();
       if (!res.ok || d.error) throw new Error(d.error || 'Error');

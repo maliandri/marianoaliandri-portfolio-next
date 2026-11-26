@@ -1,12 +1,8 @@
 export const dynamic = 'force-dynamic';
 
 import admin, { getDb } from '@/lib/firebase-admin';
+import { requireAdmin } from '@/lib/adminAuth';
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-
-function checkAuth(adminPassword) {
-  return adminPassword === ADMIN_PASSWORD && !!ADMIN_PASSWORD;
-}
 
 // GET — lista pública de planes activos (?all=1 para el admin, incluye inactivos)
 export async function GET(request) {
@@ -29,8 +25,9 @@ export async function GET(request) {
 // POST — crear plan nuevo
 export async function POST(request) {
   try {
-    const { adminPassword, plan } = await request.json();
-    if (!checkAuth(adminPassword)) return Response.json({ error: 'No autorizado' }, { status: 401 });
+    const { plan } = await request.json();
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
     if (!plan?.name) return Response.json({ error: 'El plan necesita un nombre' }, { status: 400 });
 
     const db = getDb();
@@ -56,8 +53,9 @@ export async function POST(request) {
 // PATCH — editar plan existente (id + campos a actualizar)
 export async function PATCH(request) {
   try {
-    const { adminPassword, id, plan } = await request.json();
-    if (!checkAuth(adminPassword)) return Response.json({ error: 'No autorizado' }, { status: 401 });
+    const { id, plan } = await request.json();
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
     if (!id) return Response.json({ error: 'id requerido' }, { status: 400 });
 
     const db = getDb();
@@ -82,13 +80,13 @@ export async function PATCH(request) {
   }
 }
 
-// DELETE — baja definitiva (?id=&adminPassword=)
+// DELETE — baja definitiva (?id=, admin)
 export async function DELETE(request) {
   try {
     const params = new URL(request.url).searchParams;
     const id = params.get('id');
-    const adminPassword = params.get('adminPassword');
-    if (!checkAuth(adminPassword)) return Response.json({ error: 'No autorizado' }, { status: 401 });
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
     if (!id) return Response.json({ error: 'id requerido' }, { status: 400 });
 
     const db = getDb();

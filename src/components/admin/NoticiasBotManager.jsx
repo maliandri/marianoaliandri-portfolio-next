@@ -6,7 +6,7 @@ import NoticiasResumen from './NoticiasResumen';
 import NoticiasFeed from './NoticiasFeed';
 import { useAuthUser } from '@/hooks/useAuthUser';
 
-const ADMIN_EMAIL_HINT = 'yo@marianoaliandri.com.ar';
+const ADMIN_EMAIL_HINT = 'marianoaliandri@gmail.com'; // la cuenta admin (ADMIN_EMAIL)
 
 const TABS = [
   ['resumen', 'Resumen'], ['notas', 'Notas'], ['topicos', 'Tópicos'], ['ajustes', 'Ajustes'],

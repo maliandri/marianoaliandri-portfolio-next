@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { buildUsageReport } from '@/lib/placesUsage';
 import { PLACES_LIMITS } from '@/data/placesFreeTier';
+import { adminFetch } from '@/utils/adminFetch';
 
 const MONTH_FMT = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const DAY_FMT = new Intl.DateTimeFormat('es-AR', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
@@ -50,10 +51,10 @@ export default function PlacesUsagePanel() {
   useEffect(() => {
     setLoading(true);
     setError('');
-    fetch('/api/places-usage/', {
+    adminFetch('/api/places-usage/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adminPassword: sessionStorage.getItem('adminPassword'), month }),
+      body: JSON.stringify({ month }),
     })
       .then(async r => {
         const data = await r.json();

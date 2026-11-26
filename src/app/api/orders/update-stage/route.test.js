@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/lib/firebase-admin', () => ({
   default: {
@@ -17,7 +17,10 @@ vi.mock('resend', () => ({
   Resend: vi.fn().mockImplementation(function () { return { emails: { send: mockResendSend } }; }),
 }));
 
+vi.mock('@/lib/adminAuth', () => ({ requireAdmin: vi.fn() }));
+
 import { getDb } from '@/lib/firebase-admin';
+import { requireAdmin } from '@/lib/adminAuth';
 import { POST } from './route.js';
 
 // Fake Firestore mínimo: soporta doc().get()/.set()/.update(), incluyendo arrayUnion (lo
@@ -56,35 +59,30 @@ function makeRequest(body) {
   return { json: async () => body };
 }
 
-const ORIGINAL_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-
 describe('POST /api/orders/update-stage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockResendSend.mockResolvedValue({ data: { id: 'email-1' } });
-    process.env.ADMIN_PASSWORD = 'secreto';
+    requireAdmin.mockResolvedValue({ user: { uid: 'admin' } });
   });
 
-  afterAll(() => {
-    process.env.ADMIN_PASSWORD = ORIGINAL_ADMIN_PASSWORD;
-  });
-
-  it('rechaza sin la contraseña de admin correcta (401)', async () => {
-    const res = await POST(makeRequest({ adminPassword: 'mala', orderId: 'o1', stage: 'en_desarrollo' }));
+  it('rechaza sin sesión de admin (401)', async () => {
+    requireAdmin.mockResolvedValue({ response: Response.json({ error: 'No autenticado' }, { status: 401 }) });
+    const res = await POST(makeRequest({ orderId: 'o1', stage: 'en_desarrollo' }));
     expect(res.status).toBe(401);
   });
 
   it('rechaza un stage inválido (400)', async () => {
     const { db } = createFakeDb();
     getDb.mockReturnValue(db);
-    const res = await POST(makeRequest({ adminPassword: 'secreto', orderId: 'o1', stage: 'volando' }));
+    const res = await POST(makeRequest({ orderId: 'o1', stage: 'volando' }));
     expect(res.status).toBe(400);
   });
 
   it('404 si el pedido no existe', async () => {
     const { db } = createFakeDb();
     getDb.mockReturnValue(db);
-    const res = await POST(makeRequest({ adminPassword: 'secreto', orderId: 'no-existe', stage: 'en_desarrollo' }));
+    const res = await POST(makeRequest({ orderId: 'no-existe', stage: 'en_desarrollo' }));
     expect(res.status).toBe(404);
   });
 
@@ -92,10 +90,10 @@ describe('POST /api/orders/update-stage', () => {
     const { db } = createFakeDb({ 'orders/o1': { stage: 'en_revision', customerEmail: 'c@example.com' } });
     getDb.mockReturnValue(db);
 
-    const repeat = await POST(makeRequest({ adminPassword: 'secreto', orderId: 'o1', stage: 'en_revision' }));
+    const repeat = await POST(makeRequest({ orderId: 'o1', stage: 'en_revision' }));
     expect(repeat.status).toBe(400);
 
-    const back = await POST(makeRequest({ adminPassword: 'secreto', orderId: 'o1', stage: 'en_desarrollo' }));
+    const back = await POST(makeRequest({ orderId: 'o1', stage: 'en_desarrollo' }));
     expect(back.status).toBe(400);
   });
 
@@ -103,7 +101,7 @@ describe('POST /api/orders/update-stage', () => {
     const { db, docs } = createFakeDb({ 'orders/o1': { stage: 'pago_confirmado', customerEmail: 'c@example.com' } });
     getDb.mockReturnValue(db);
 
-    const res = await POST(makeRequest({ adminPassword: 'secreto', orderId: 'o1', stage: 'entregado', note: 'Listo, ya está online' }));
+    const res = await POST(makeRequest({ orderId: 'o1', stage: 'entregado', note: 'Listo, ya está online' }));
 
     expect(res.status).toBe(200);
     expect(docs['orders/o1'].stage).toBe('entregado');
@@ -116,7 +114,7 @@ describe('POST /api/orders/update-stage', () => {
     getDb.mockReturnValue(db);
     process.env.RESEND_API_KEY = 'test-key';
 
-    await POST(makeRequest({ adminPassword: 'secreto', orderId: 'o1', stage: 'en_desarrollo' }));
+    await POST(makeRequest({ orderId: 'o1', stage: 'en_desarrollo' }));
 
     expect(mockResendSend).toHaveBeenCalledTimes(1);
     expect(mockResendSend.mock.calls[0][0].to).toBe('cliente@example.com');
@@ -127,7 +125,7 @@ describe('POST /api/orders/update-stage', () => {
     getDb.mockReturnValue(db);
     process.env.RESEND_API_KEY = 'test-key';
 
-    const res = await POST(makeRequest({ adminPassword: 'secreto', orderId: 'o1', stage: 'en_desarrollo' }));
+    const res = await POST(makeRequest({ orderId: 'o1', stage: 'en_desarrollo' }));
 
     expect(res.status).toBe(200);
     expect(docs['orders/o1'].stage).toBe('en_desarrollo');

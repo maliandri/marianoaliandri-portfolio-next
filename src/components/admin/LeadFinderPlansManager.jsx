@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import { adminFetch } from '@/utils/adminFetch';
 
 const SCOPE_LABEL = {
   localidad: { label: 'Localidad', className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400' },
@@ -17,10 +18,6 @@ const EMPTY_PLAN = {
   name: '', scope: 'localidad', billingType: 'subscription',
   priceARS: 0, credits: 0, description: '', active: true, order: 99,
 };
-
-function getAdminPassword() {
-  return typeof window !== 'undefined' ? sessionStorage.getItem('adminPassword') : '';
-}
 
 function fmtARS(n) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n || 0);
@@ -128,7 +125,7 @@ const LeadFinderPlansManager = forwardRef(function LeadFinderPlansManager(_props
 
   const load = () => {
     setLoading(true);
-    fetch('/api/leadfinder-plans?all=1')
+    adminFetch('/api/leadfinder-plans?all=1')
       .then(r => r.json())
       .then(data => setPlans(data.plans || []))
       .catch(e => setError(e.message))
@@ -141,12 +138,11 @@ const LeadFinderPlansManager = forwardRef(function LeadFinderPlansManager(_props
   const handleSave = async (form) => {
     setSaving(true);
     try {
-      const adminPassword = getAdminPassword();
       const isNew = editingId === 'new';
-      const res = await fetch('/api/leadfinder-plans', {
+      const res = await adminFetch('/api/leadfinder-plans', {
         method: isNew ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(isNew ? { adminPassword, plan: form } : { adminPassword, id: editingId, plan: form }),
+        body: JSON.stringify(isNew ? { plan: form } : { id: editingId, plan: form }),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Error guardando');
       setEditingId(null);
@@ -161,8 +157,7 @@ const LeadFinderPlansManager = forwardRef(function LeadFinderPlansManager(_props
   const handleDelete = async (plan) => {
     if (!confirm(`¿Eliminar el plan "${plan.name}"? Esta acción no se puede deshacer.`)) return;
     try {
-      const adminPassword = getAdminPassword();
-      const res = await fetch(`/api/leadfinder-plans?id=${plan.id}&adminPassword=${encodeURIComponent(adminPassword)}`, { method: 'DELETE' });
+      const res = await adminFetch(`/api/leadfinder-plans?id=${plan.id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error((await res.json()).error || 'Error eliminando');
       load();
     } catch (e) {
@@ -172,11 +167,10 @@ const LeadFinderPlansManager = forwardRef(function LeadFinderPlansManager(_props
 
   const toggleActive = async (plan) => {
     try {
-      const adminPassword = getAdminPassword();
-      await fetch('/api/leadfinder-plans', {
+      await adminFetch('/api/leadfinder-plans', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminPassword, id: plan.id, plan: { ...plan, active: !plan.active } }),
+        body: JSON.stringify({ id: plan.id, plan: { ...plan, active: !plan.active } }),
       });
       load();
     } catch (e) {

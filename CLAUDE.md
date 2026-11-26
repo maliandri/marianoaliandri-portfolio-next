@@ -49,7 +49,8 @@ src/
       search-console/   # GSC stats — dinamico via gscClient (sin SITES hardcodeado)
       proyectos/        # GET: GSC sites.list() + clicks/imp + Firestore desc + Microlink URLs
       send-email/       # Envio de emails via Nodemailer + Zoho
-      admin-login/      # Login del panel admin (ADMIN_USERNAME + ADMIN_PASSWORD_HASH)
+      admin-me/         # Puerta del panel admin: 200 si la sesión de Google es ADMIN_EMAIL (se entra solo con Google)
+      ai-keys/          # Comprobador de claves de IA (Gemini por modelo + Groq), admin
       reset-products/   # Resetea coleccion products en Firestore (requiere password)
       seed-rental/      # Seedea coleccion productos_alquiler en Firestore (POST, una vez)
       rental-data/      # GET /api/rental-data → todos los docs activos de productos_alquiler
@@ -212,8 +213,11 @@ GROQ_API_KEY                        ← Solo GitHub Actions (bot de noticias), N
                                        scripts/noticias-bot.mjs (modelo openai/gpt-oss-120b)
 
 # Admin
-ADMIN_USERNAME
-ADMIN_PASSWORD_HASH
+ADMIN_EMAIL                         ← LA cuenta admin (desde 2026-11-26: marianoaliandri@gmail.com). El panel /admin
+                                       se entra SOLO con Google; toda ruta de admin usa requireAdmin / isAdminEmail
+                                       (src/lib/adminAuth.js), y el MCP también. Cambiarla corta los tokens del MCP
+                                       (hay que reconectar el conector) y, sin ALERT_EMAIL, las alertas van ahí.
+                                       ADMIN_USERNAME / ADMIN_PASSWORD ya no se usan (se pueden borrar de Vercel).
 ```
 
 **ADVERTENCIA en Windows PowerShell**: `printf` no existe en PowerShell. Usar:

@@ -1,16 +1,15 @@
 export const dynamic = 'force-dynamic';
 import admin, { getDb } from '@/lib/firebase-admin';
+import { requireAdmin } from '@/lib/adminAuth';
 const db = getDb();
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 export async function POST(request) {
   try {
-    const { adminPassword, productId, updates } = await request.json();
+    const { productId, updates } = await request.json();
 
-    if (adminPassword !== ADMIN_PASSWORD) {
-      return Response.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
 
     await db.collection('products').doc(productId).update({
       ...updates,

@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import admin, { getDb } from '@/lib/firebase-admin';
+import { requireAdmin } from '@/lib/adminAuth';
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const VALID_TREES = ['admin', 'client'];
 
 // GET pública (el panel del cliente necesita leer su propio árbol sin ser admin).
@@ -31,10 +31,9 @@ export async function GET(request) {
 // POST admin-only — reemplaza el árbol completo de una vez (mismo patrón que leadfinder_plans).
 export async function POST(request) {
   try {
-    const { adminPassword, tree, sections, knownIds } = await request.json();
-    if (adminPassword !== ADMIN_PASSWORD || !ADMIN_PASSWORD) {
-      return Response.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    const { tree, sections, knownIds } = await request.json();
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
     if (!VALID_TREES.includes(tree)) return Response.json({ error: 'tree inválido (admin|client)' }, { status: 400 });
     if (!Array.isArray(sections)) return Response.json({ error: 'sections debe ser un array' }, { status: 400 });
 

@@ -1,4 +1,9 @@
 import { getUserFromRequest } from '@/lib/authServer';
+import { isAdminEmail } from '@/lib/mcp/config';
+
+// La cuenta admin es UNA: ADMIN_EMAIL (desde 2026-11-26, marianoaliandri@gmail.com). Toda ruta que necesite
+// saber si un usuario es admin usa esto, nunca un email escrito en el código.
+export { isAdminEmail };
 
 // Guard para rutas de admin. Devuelve { user } si el request trae un idToken de
 // Firebase válido cuyo email (verificado) coincide con ADMIN_EMAIL, o
@@ -10,10 +15,7 @@ export async function requireAdmin(request) {
     return { response: Response.json({ error: 'No autenticado' }, { status: 401 }) };
   }
 
-  const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
-  const isAdmin = adminEmail
-    && user.emailVerified
-    && (user.email || '').toLowerCase() === adminEmail;
+  const isAdmin = user.emailVerified && isAdminEmail(user.email);
   if (!isAdmin) {
     return { response: Response.json({ error: 'No autorizado' }, { status: 403 }) };
   }

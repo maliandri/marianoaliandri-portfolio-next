@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import { adminFetch } from '@/utils/adminFetch';
 
-function getAdminPassword() {
-  return typeof window !== 'undefined' ? sessionStorage.getItem('adminPassword') : '';
-}
 function fmtARS(n) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n || 0);
 }
@@ -15,7 +13,7 @@ const AnaliticaPlansEditor = forwardRef(function AnaliticaPlansEditor(_props, re
   const [saving, setSaving] = useState(null);
 
   const load = () =>
-    fetch('/api/analitica-plans')
+    adminFetch('/api/analitica-plans')
       .then(r => r.json())
       .then(data => {
         setPlans(data.plans || []);
@@ -33,12 +31,11 @@ const AnaliticaPlansEditor = forwardRef(function AnaliticaPlansEditor(_props, re
   const save = async (id) => {
     setSaving(id);
     try {
-      const adminPassword = getAdminPassword();
       const e = edits[id];
-      const res = await fetch('/api/analitica-plans', {
+      const res = await adminFetch('/api/analitica-plans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminPassword, id, price: e.price, limit: e.limit === '' ? null : e.limit }),
+        body: JSON.stringify({ id, price: e.price, limit: e.limit === '' ? null : e.limit }),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Error');
       load();

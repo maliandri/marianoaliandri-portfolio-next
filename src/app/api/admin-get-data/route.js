@@ -1,17 +1,14 @@
 export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/firebase-admin';
+import { requireAdmin } from '@/lib/adminAuth';
 const db = getDb();
 
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'mariano';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 export async function POST(request) {
   try {
-    const { username, password } = await request.json();
 
-    if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
-      return Response.json({ error: 'Credenciales inválidas' }, { status: 401 });
-    }
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
 
     const [usersSnapshot, ordersSnapshot, productsSnapshot] = await Promise.all([
       db.collection('users').get(),
