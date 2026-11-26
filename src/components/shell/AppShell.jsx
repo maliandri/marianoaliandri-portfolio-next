@@ -22,17 +22,42 @@ export default function AppShell({
   onNavigate,
   searchable = false,
   footer,
+  homeItemId = null,      // celular: item que abre el botón "Inicio" de la barra de abajo
+  mobilePrimary = [],     // celular: ids de secciones preferidas para la barra de abajo (el resto va a "Más")
   children,
 }) {
   const router = useRouter();
   const activeSection = sections.find(s => s.id === activeSectionId) || sections[0];
+  const [sheet, setSheet] = useState(null); // celular: null | id de sección | 'mas'
 
   const go = (section, item) => {
     const target = item || section.items[0];
     if (!target) return;
+    setSheet(null);
     if (target.href) router.push(target.href);
     else onNavigate?.(section.id, target.id);
   };
+
+  // --- Celular "como una app" (2026-11-26): barra de abajo con Inicio + secciones principales + "Más",
+  // y una hoja desde abajo con las pantallas de cada sección como íconos grandes.
+  const homeSection = homeItemId ? sections.find(s => s.items.some(i => i.id === homeItemId)) : null;
+  const lugares = homeSection ? 3 : 4;
+  const entranTodas = sections.length <= lugares + 1;
+  const preferidas = mobilePrimary.map(id => sections.find(s => s.id === id)).filter(Boolean);
+  const primarias = entranTodas ? sections : [...preferidas, ...sections.filter(s => !preferidas.includes(s))].slice(0, lugares);
+  const resto = sections.filter(s => !primarias.includes(s));
+  const conMas = resto.length > 0 || searchable;
+  const activeItem = activeSection?.items.find(i => i.id === activeItemId);
+  const enInicio = !!homeItemId && activeItemId === homeItemId;
+  const tocarSeccion = (s) => (s.items.length === 1 ? go(s) : setSheet(cur => (cur === s.id ? null : s.id)));
+  const hojaSeccion = sheet && sheet !== 'mas' ? sections.find(s => s.id === sheet) : null;
+
+  useEffect(() => {
+    if (!sheet) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setSheet(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [sheet]);
 
   const shellClass = [
     'app-shell',
@@ -98,15 +123,99 @@ export default function AppShell({
       </aside>
 
       <div className="sh-main">
-        {activeSection && (
+        {/* Celular: barra de arriba con la pantalla actual */}
+        <header className="sh-mtop">
+          <div className="sh-brand-logo">{brand?.logo || 'M'}</div>
+          <div className="min-w-0 flex-1">
+            <div className="sh-mtop-t">{enInicio ? (brand?.title || 'Inicio') : (activeItem?.label || activeSection?.label)}</div>
+            {!enInicio && activeSection && <div className="sh-mtop-s">{activeSection.label}</div>}
+          </div>
+          <div className="flex items-center gap-1">
+            {footer?.extra}
+            {footActions}
+          </div>
+        </header>
+
+        {activeSection && !enInicio && activeSection.items.length > 1 && (
           <FolderTabs
             items={activeSection.items}
             activeId={activeItemId}
             onSelect={item => go(activeSection, item)}
           />
         )}
+        {activeSection && enInicio && (
+          <div className="sh-desktop-only">
+            <FolderTabs items={activeSection.items} activeId={activeItemId} onSelect={item => go(activeSection, item)} />
+          </div>
+        )}
         <main className="sh-content">{children}</main>
       </div>
+
+      {/* Celular: barra de abajo */}
+      <nav className="sh-mbar" aria-label="Secciones">
+        {homeSection && (
+          <button type="button" className="sh-mbar-b" aria-current={enInicio && !sheet} onClick={() => go(homeSection, homeSection.items.find(i => i.id === homeItemId))}>
+            <AdminIcon id="inicio" fallback="🏠" size={21} />
+            <span>Inicio</span>
+          </button>
+        )}
+        {primarias.map(s => (
+          <button key={s.id} type="button" className="sh-mbar-b"
+            aria-current={sheet ? sheet === s.id : (!enInicio && s.id === activeSection?.id)}
+            aria-expanded={sheet === s.id} onClick={() => tocarSeccion(s)}>
+            <AdminIcon id={SECTION_ICON[s.id] || 'folder'} fallback={s.icon || '▸'} size={21} />
+            <span>{s.label}</span>
+          </button>
+        ))}
+        {conMas && (
+          <button type="button" className="sh-mbar-b"
+            aria-current={sheet ? sheet === 'mas' : (!enInicio && resto.some(s => s.id === activeSection?.id))}
+            aria-expanded={sheet === 'mas'} onClick={() => setSheet(cur => (cur === 'mas' ? null : 'mas'))}>
+            <span className="sh-mbar-mas" aria-hidden>•••</span>
+            <span>Más</span>
+          </button>
+        )}
+      </nav>
+
+      {/* Celular: hoja con las pantallas como íconos */}
+      {sheet && (
+        <div className="sh-sheet" role="dialog" aria-modal="true" aria-label={hojaSeccion ? hojaSeccion.label : 'Más'}>
+          <button type="button" className="sh-sheet-bg" aria-label="Cerrar" onClick={() => setSheet(null)} />
+          <div className="sh-sheet-panel">
+            <div className="sh-sheet-grip" aria-hidden />
+            {hojaSeccion ? (
+              <>
+                <div className="sh-sheet-t">{hojaSeccion.label}</div>
+                <Tiles section={hojaSeccion} activeItemId={activeItemId} onPick={go} />
+              </>
+            ) : (
+              <>
+                {searchable && <ShellSearch sections={sections} onPick={go} />}
+                {resto.map(s => (
+                  <div key={s.id} className="sh-sheet-sec">
+                    <div className="sh-sheet-t">{s.label}</div>
+                    <Tiles section={s} activeItemId={activeItemId} onPick={go} />
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Pantallas de una sección como íconos de app (hoja del celular y launcher del inicio).
+export function Tiles({ section, activeItemId, onPick, excluir = [] }) {
+  return (
+    <div className="sh-tiles">
+      {section.items.filter(i => !excluir.includes(i.id)).map(item => (
+        <button key={item.id} type="button" className="sh-tile" aria-current={item.id === activeItemId} onClick={() => onPick(section, item)}>
+          <span className="sh-tile-ic"><AdminIcon id={item.iconId || item.id} fallback={item.icon || '•'} size={22} /></span>
+          <span className="sh-tile-l">{item.label}</span>
+        </button>
+      ))}
     </div>
   );
 }

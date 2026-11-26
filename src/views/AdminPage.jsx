@@ -545,6 +545,8 @@ export default function AdminPage() {
       activeItemId={activeTab}
       onNavigate={(_, itemId) => goToTab(itemId)}
       searchable
+      homeItemId="inicio"
+      mobilePrimary={['panel', 'marketing', 'herramientas']}
       footer={{
         initials: (username || 'MA').slice(0, 2).toUpperCase(),
         name: username || 'Admin',
