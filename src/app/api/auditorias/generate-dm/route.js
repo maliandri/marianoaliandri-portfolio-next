@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { callGemini } from '@/lib/geminiClient';
+import { requireAdmin } from '@/lib/adminAuth';
 
 // Fallback escrito a mano si Gemini no está disponible.
 function buildTemplateDM({ nombre, ciudad, hasWebsite, nivelSeo }) {
@@ -14,6 +15,8 @@ function buildTemplateDM({ nombre, ciudad, hasWebsite, nivelSeo }) {
 // negocio auditado. El envío es siempre manual (Instagram no tiene API de DM en frío), esto
 // solo ahorra la redacción. Mismos datos que /api/auditorias/send-biz-email, formato distinto.
 export async function POST(request) {
+  const { response: noAdmin } = await requireAdmin(request);
+  if (noAdmin) return noAdmin;
   try {
     const body = await request.json();
     const { nombre, siteUrl, seoScore, hasSitemap, hasRobots, metaDesc, hasOG, ciudad, tipo } = body;

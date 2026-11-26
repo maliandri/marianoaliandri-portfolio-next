@@ -1,9 +1,12 @@
 export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/firebase-admin';
+import { requireAdmin } from '@/lib/adminAuth';
 
 // GET /api/sent-emails            → lista los últimos envíos
 // GET /api/sent-emails?id=<docId> → un envío puntual (con el cuerpo completo)
 export async function GET(request) {
+  const { response: noAdmin } = await requireAdmin(request);
+  if (noAdmin) return noAdmin;
   try {
     const db = getDb();
     if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });
@@ -47,6 +50,8 @@ export async function GET(request) {
 
 // DELETE /api/sent-emails  body: { id }
 export async function DELETE(request) {
+  const { response: noAdmin } = await requireAdmin(request);
+  if (noAdmin) return noAdmin;
   try {
     const db = getDb();
     if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });

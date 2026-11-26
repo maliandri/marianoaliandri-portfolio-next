@@ -67,7 +67,7 @@ export function AdminLog({ log }) {
 }
 
 // form = valor del formulario; tipoLabels = etiquetas de los tipos elegidos.
-export function PublishReport({ leads, form, tipoLabels, disabled }) {
+export function PublishReport({ leads, form, tipoLabels, disabled, onPublicado }) {
   const [modal, setModal] = useState(false);
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
@@ -116,6 +116,7 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
         setSavedId(auditoriaId);
         setSavedClave(clave);
         setSavedUrl(auditoriaLink(auditoriaId, null, clave));
+        onPublicado?.({ id: auditoriaId, clave });
       }
       const informeUrl = auditoriaLink(auditoriaId, null, clave);
 

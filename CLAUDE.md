@@ -307,6 +307,10 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
   - `cantidad` = leads a entregar; se examinan como máximo 3 × cantidad negocios.
   - Admin suma filtros, log, selector provincia → localidad y "Publicar informe" (solo leads con
     web y puntaje SEO, mínimo 3) + redes.
+  - Mails en el admin (desde 2026-11-26): por **Resend**, como en Auditorías: columna "Mail" con `SendAuditEmailButton`
+    (texto de Gemini editable) + "Enviar a todos los que no recibieron" (`admin/LeadMailAdmin.jsx`); si se publicó el
+    informe de esa búsqueda, cada mail lleva el link a su auditoría personal. El panel `MailBatchPanel` (mailto con CCO)
+    queda solo para el cliente de Lead Finder Pro.
   - Historial en `leadfinder_searches` con `origen: 'admin' | 'cliente'`.
   - **Cruce con "Rubros buscados"** (decisión 2026-10-23: incluido gratis en Lead Finder Pro): acción
     `rubroDemand` de `/api/lead-finder-pro/run` (`src/lib/rubroDemand.js`, mismo autocompletado de Google

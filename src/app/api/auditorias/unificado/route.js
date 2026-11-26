@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/firebase-admin';
 import { getSentEmailCounts } from '@/lib/sentEmailCounts';
+import { requireAdmin } from '@/lib/adminAuth';
 
 // Vista consolidada, solo para el admin: aplana los `results[]` de todos los
 // reportes de la colección `auditorias` en una sola lista de negocios, cada uno
@@ -8,7 +9,9 @@ import { getSentEmailCounts } from '@/lib/sentEmailCounts';
 // mandó el email de análisis SEO (colección `sent_emails`). No se usa para nada
 // público — el listado y detalle públicos siguen siendo /auditorias y
 // /auditorias/[id], que no cambian.
-export async function GET() {
+export async function GET(request) {
+  const { response: noAdmin } = await requireAdmin(request);
+  if (noAdmin) return noAdmin;
   try {
     const db = getDb();
     if (!db) return Response.json({ error: 'DB no disponible' }, { status: 500 });

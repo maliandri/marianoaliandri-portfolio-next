@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import SendAuditEmailButton from './SendAuditEmailButton';
 import { RUBROS, CATEGORIAS_RUBROS } from '@/data/rubros';
+import { adminFetch } from '@/utils/adminFetch';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const PAGE_SIZE = 50;
@@ -33,7 +34,7 @@ export default function AuditoriasUnificado() {
   // Solo llama setState dentro de la promesa (no sincrónicamente en el cuerpo del
   // efecto) — loading/error ya arrancan en su valor correcto por useState.
   const fetchData = useCallback(() => {
-    return fetch('/api/auditorias/unificado')
+    return adminFetch('/api/auditorias/unificado')
       .then(r => r.json())
       .then(d => {
         if (!Array.isArray(d)) throw new Error(d.error || 'Error al cargar');

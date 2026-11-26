@@ -437,7 +437,7 @@ function GenerateDMButton({ neg }) {
   const generate = async () => {
     setBusy(true); setErrorMsg(''); setCopied(false);
     try {
-      const resp = await fetch('/api/auditorias/generate-dm', {
+      const resp = await adminFetch('/api/auditorias/generate-dm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -619,7 +619,7 @@ function AuditoriaDetail({ id }) {
   }, []);
 
   useEffect(() => {
-    fetch('/api/auditorias/email-counts')
+    adminFetch('/api/auditorias/email-counts')
       .then(r => r.json())
       .then(d => setEmailCounts(d && typeof d === 'object' ? d : {}))
       .catch(() => {});

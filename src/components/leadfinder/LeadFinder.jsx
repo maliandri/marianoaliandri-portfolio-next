@@ -19,6 +19,7 @@ import LeadSearchHistory from './LeadSearchHistory';
 import MailBatchPanel from '@/components/leadfinderpro/MailBatchPanel';
 import { AdminFilters, AdminLog, PublishReport, applyAdminFilters, EMPTY_FILTERS } from './admin/LeadFinderAdminExtras';
 import InstagramProspects from './admin/InstagramProspects';
+import { LeadMailBulk, LeadMailButton, useEmailCounts } from './admin/LeadMailAdmin';
 
 const FORM_CLIENTE = { perfil: 'dev', producto: '', zonas: [], terminos: [], tipos: [], radioKm: 10, cantidad: 10 };
 const FORM_ADMIN = { ...FORM_CLIENTE, zonas: ['Neuquén, Argentina'], cantidad: 20 };
@@ -79,6 +80,10 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
 
   const [demanda, setDemanda] = useState({}); // ciudad → { porRubro, porTermino, top }
   const [porOportunidad, setPorOportunidad] = useState(true);
+  // Admin: informe publicado de ESTA búsqueda (los mails llevan el link personal) y contadores de envíos por mail.
+  const [informe, setInforme] = useState(null);
+  const informeId = informe && informe.searchKey === searchKey ? informe.id : null;
+  const mailCounts = useEmailCounts(isAdmin);
   const addDemanda = useCallback((ciudad, d) => setDemanda(m => ({ ...m, [ciudad]: d })), []);
 
   useEffect(() => {
@@ -285,7 +290,8 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
               <button onClick={() => exportLeadsCSV(leadsConDemanda, t)} className="px-4 py-2.5 bg-fg/5 hover:bg-fg/10 text-fg rounded-xl text-sm font-medium">{t.csvBtn}</button>
             )}
             {isAdmin && search.leads.length > 0 && (
-              <PublishReport key={searchKey} leads={search.leads} form={form} tipoLabels={tipoLabels} disabled={isRunning} />
+              <PublishReport key={searchKey} leads={search.leads} form={form} tipoLabels={tipoLabels} disabled={isRunning}
+                onPublicado={(inf) => setInforme({ ...inf, searchKey })} />
             )}
             {!canStart && !isRunning && form.zonas.length > 0 && !hasCriteria && <span className="text-xs text-fg-500">{t.needCriteria}</span>}
             {search.stop && !isRunning && !('QUOTA_EXCEEDED DISCARD_LIMIT NO_PLAN'.split(' ').includes(stopCode)) && <span className="text-xs text-red-500 ml-auto" role="alert">{search.stop.message}</span>}
@@ -318,13 +324,18 @@ export default function LeadFinder({ variant = 'cliente', lang = 'es', forceDark
           </details>
         )}
 
-        {emails.length > 0 && !isRunning && <MailBatchPanel emails={emails} userEmail={user?.email} t={t.mail} />}
+        {/* Admin: mails por Resend (como en Auditorías). Cliente de Lead Finder Pro: tandas mailto en su propio correo. */}
+        {isAdmin && search.leads.length > 0 && !isRunning && (
+          <LeadMailBulk leads={rows} auditoriaId={informeId} counts={mailCounts.counts} onSent={mailCounts.bump} />
+        )}
+        {!isAdmin && emails.length > 0 && !isRunning && <MailBatchPanel emails={emails} userEmail={user?.email} t={t.mail} />}
 
         {isAdmin && search.leads.length > 0 && (
           <AdminFilters rows={search.leads} filters={filters} setFilters={setFilters} shown={rows.length} />
         )}
 
-        {rows.length > 0 && <LeadResultsTable rows={rows} perfil={form.perfil} t={t} onRetryProducts={retryProducts} retryDisabled={isRunning} />}
+        {rows.length > 0 && <LeadResultsTable rows={rows} perfil={form.perfil} t={t} onRetryProducts={retryProducts} retryDisabled={isRunning}
+          acciones={isAdmin ? { header: 'Mail', render: (neg) => <LeadMailButton neg={neg} auditoriaId={informeId} counts={mailCounts.counts} onSent={mailCounts.bump} /> } : null} />}
 
         {isAdmin && !isRunning && search.leads.length > 0 && <InstagramProspects leads={rows} />}
 

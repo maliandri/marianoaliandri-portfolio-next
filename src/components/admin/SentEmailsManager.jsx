@@ -33,7 +33,7 @@ export default function SentEmailsManager() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res  = await fetch('/api/sent-emails');
+      const res  = await adminFetch('/api/sent-emails');
       const data = await res.json();
       setEmails(Array.isArray(data) ? data : []);
     } catch { setEmails([]); }
@@ -82,7 +82,7 @@ export default function SentEmailsManager() {
     if (!confirm(`¿Eliminar el registro del email a ${m.email}?`)) return;
     setBusy(m.id);
     try {
-      await fetch('/api/sent-emails', {
+      await adminFetch('/api/sent-emails', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: m.id }),
