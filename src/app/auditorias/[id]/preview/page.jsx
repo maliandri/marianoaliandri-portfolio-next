@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getDb } from '@/lib/firebase-admin';
 import AuditMapLoader from '../AuditMapLoader';
+import { claveValida } from '@/lib/auditClave';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,10 +23,12 @@ async function getAuditoria(id) {
   } catch { return null; }
 }
 
-export default async function AuditoriaPreviewPage({ params }) {
+// Privada como el informe (desde 2026-11-26): sin ?k=<clave> correcta, 404.
+export default async function AuditoriaPreviewPage({ params, searchParams }) {
   const { id } = await params;
+  const { k } = await searchParams;
   const a = await getAuditoria(id);
-  if (!a) notFound();
+  if (!a || !claveValida(a, k)) notFound();
 
   const results  = a.results || [];
   const ciudades = (a.config?.ciudades || []).join(' · ') || '';
