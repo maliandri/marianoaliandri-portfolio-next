@@ -5,6 +5,7 @@ import { hitRateLimit } from '@/lib/mcp/rateLimit';
 import { registrarSesion, textoAviso } from '@/lib/tiendaSesion';
 import { sendTelegram } from '@/lib/telegram';
 import { cargarCatalogo } from '@/lib/tiendaCheckout';
+import { linkAdminChat } from '@/lib/chatVivo';
 
 const ipDe = (request) => (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'sin-ip';
 const SITE = 'https://marianoaliandri.com.ar';
@@ -31,7 +32,11 @@ export async function POST(request) {
     }, {
       avisar: async (s) => {
         const labels = Object.fromEntries((await cargarCatalogo(db)).map(i => [i.id, i.label]));
-        await sendTelegram({ texto: textoAviso(s, { labels }), botones: [{ texto: 'Ver en el admin', url: `${SITE}/admin/` }] });
+        // "Entrar al chat" abre /admin/chat/tienda_<id>/: la charla de esta visita con el asistente, en vivo.
+        await sendTelegram({ texto: textoAviso(s, { labels }), botones: [
+          { texto: '💬 Entrar al chat', url: linkAdminChat(`tienda_${body?.id}`) },
+          { texto: 'Ver en el admin', url: `${SITE}/admin/` },
+        ] });
       },
     });
     return Response.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });

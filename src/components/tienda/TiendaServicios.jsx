@@ -9,6 +9,7 @@ import ListaServicios from './ListaServicios';
 import Asistente from './Asistente';
 import SolicitudForm from './SolicitudForm';
 import { useSesionTienda } from './useSesionTienda';
+import { useChatVivo } from '@/components/chatVivo/useChatVivo';
 
 // Tienda por consulta (2026-11-25): el cliente marca servicios explicados en criollo; el asistente de la derecha
 // explica cada cosa al instante (sin IA) y responde preguntas (IA, /api/tienda/asistente/); pide presupuesto con
@@ -51,6 +52,13 @@ export default function TiendaServicios({ catalogo = [] }) {
     setMensajes(m => [...m, msg('asistente', texto, extra)]);
     setNuevos(n => n + 1);
   }, []);
+
+  // Chat en vivo: la charla queda en chats_vivo/tienda_<visita>; si Mariano entra (link de Telegram) y escribe,
+  // sus mensajes aparecen acá.
+  const chatId = sesionId ? `tienda_${sesionId}` : null;
+  const [chatActivo, setChatActivo] = useState(false);
+  const avisoHumano = useRef(false);
+  const { avisarActividad } = useChatVivo({ chatId, activo: chatActivo, onMensaje: (t) => decir(`**Mariano:** ${t}`) });
 
   // ?servicios=a,b (links viejos / del chat) y ?presupuesto=1 (redirect de /presupuesto).
   useEffect(() => {
@@ -115,9 +123,16 @@ export default function TiendaServicios({ catalogo = [] }) {
       const res = await fetch('/api/tienda/asistente/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ mensaje: texto, historial: historial(), marcados: ids }),
+        body: JSON.stringify({ mensaje: texto, historial: historial(), marcados: ids, chatId }),
       });
+      setChatActivo(true);
+      avisarActividad();
       const d = await res.json().catch(() => ({}));
+      if (d.humano) {
+        // Mariano tomó el control: contesta él (llega por useChatVivo).
+        if (!avisoHumano.current) { avisoHumano.current = true; decir('Te está leyendo Mariano en persona, ya te contesta por acá 🙂'); }
+        return;
+      }
       for (const a of d.acciones || []) (a.accion === 'sumar' ? sumar(a.id, { explicar: false }) : sacar(a.id));
       decir(d.respuesta || 'No te entendí bien, ¿me lo decís de otra forma?');
     } catch {

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { SERVICIOS_OFERTA, WHATSAPP_MARIANO, whatsappUrl, mensajeDesdeInforme } from '@/lib/auditPitch';
 import { track } from '@/lib/track';
+import { useChatVivo, nuevoChatId } from '@/components/chatVivo/useChatVivo';
 
 // Chat de ventas al costado del informe privado (/api/auditorias/asesor/). El saludo llega armado
 // del servidor (sin IA). Cuando el cliente se interesa, la IA abre el formulario de presupuesto y el
@@ -34,6 +35,23 @@ export default function AsesorChat({ auditoriaId, clave, negocioId, negocioNombr
   const [enviado, setEnviado] = useState(false);
   const fin = useRef(null);
 
+  // Chat en vivo: un id por informe y pestaña (sessionStorage). Si Mariano entra desde Telegram y escribe,
+  // sus mensajes llegan acá.
+  const [chatId, setChatId] = useState(null);
+  const [chatActivo, setChatActivo] = useState(false);
+  const avisoHumano = useRef(false);
+  useEffect(() => {
+    const key = `chat_auditoria_${auditoriaId}_${negocioId || 'x'}`;
+    let v = null;
+    try { v = sessionStorage.getItem(key); } catch { /* sin storage */ }
+    if (!v) { v = nuevoChatId('auditoria'); try { sessionStorage.setItem(key, v); } catch { /* sin storage */ } }
+    setChatId(v);
+  }, [auditoriaId, negocioId]);
+  const { avisarActividad } = useChatVivo({
+    chatId, activo: chatActivo,
+    onMensaje: (t) => setMensajes(ms => [...ms, { id: nuevoId(), rol: 'asistente', texto: `**Mariano:** ${t}` }]),
+  });
+
   useEffect(() => { fin.current?.scrollIntoView({ block: 'end', behavior: 'smooth' }); }, [mensajes.length, escribiendo, form, enviado]);
 
   const abrirForm = (servicios = []) => setForm(f => ({ servicios: new Set([...(f?.servicios || []), ...servicios]) }));
@@ -50,9 +68,19 @@ export default function AsesorChat({ auditoriaId, clave, negocioId, negocioNombr
       const res = await fetch('/api/auditorias/asesor/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: auditoriaId, k: clave, para: negocioId, mensaje: msg, historial }),
+        body: JSON.stringify({ id: auditoriaId, k: clave, para: negocioId, chatId, mensaje: msg, historial }),
       });
+      setChatActivo(true);
+      avisarActividad();
       const d = await res.json().catch(() => ({}));
+      if (d.humano) {
+        // Mariano tomó el control: contesta él (llega por useChatVivo).
+        if (!avisoHumano.current) {
+          avisoHumano.current = true;
+          setMensajes(ms => [...ms, { id: nuevoId(), rol: 'asistente', texto: 'Te está leyendo Mariano en persona, ya te contesta por acá 🙂' }]);
+        }
+        return;
+      }
       setMensajes(ms => [...ms, { id: nuevoId(), rol: 'asistente', texto: d.respuesta || 'No pude responderte ahora, probá de nuevo en un ratito.' }]);
       if (d.formulario) abrirForm(d.formulario.servicios);
     } catch {
