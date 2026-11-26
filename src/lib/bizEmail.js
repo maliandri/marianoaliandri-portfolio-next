@@ -69,7 +69,7 @@ export async function getScreenshot(url) {
 
 // Plantilla escrita a mano — se usa como fallback cuando Gemini no está disponible.
 // Personaliza el cuerpo con los datos reales de cada negocio.
-export function buildTemplateEmail({ nombre, siteUrl, seoScore, ciudad, problemas, nivelSeo, dondePauta = '' }) {
+export function buildTemplateEmail({ nombre, siteUrl, seoScore, ciudad, problemas, nivelSeo, dondePauta = '', conInforme = false }) {
   const cleanUrl = (siteUrl || '').replace(/^https?:\/\/(www\.)?/, '').split(/[?#]/)[0].replace(/\/$/, '');
   const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 
@@ -89,7 +89,10 @@ export function buildTemplateEmail({ nombre, siteUrl, seoScore, ciudad, problema
 
   const cierre = `Si te interesa, respondé este mail y coordinamos una charla sin compromiso para revisarlo juntos y ver qué conviene priorizar.\n\nSaludos,\nMariano Aliandri`;
 
-  return [saludo, intro, analisis, detalle, impacto, cierre].join('\n\n');
+  const informe = conInforme
+    ? 'Les preparé un informe que compara su web con la de los otros negocios de la zona: lo abren con el botón de abajo. Ahí también les cuento qué más se puede hacer (web nueva, sistema propio, un bot que atiende, conectar el negocio a ChatGPT o Claude).'
+    : null;
+  return [saludo, intro, analisis, detalle, informe, impacto, cierre].filter(Boolean).join('\n\n');
 }
 
 const escapeAttr = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
@@ -125,7 +128,8 @@ export function validateGeneratedEmail(text, nombre) {
 
 // neg = { nombre, siteUrl, seoScore, hasSitemap, hasRobots, metaDesc, hasOG, ciudad, tipo, anuncios, plataforma }
 // Origen del cuerpo: editado por el admin > Gemini (si pasa la validación) > plantilla propia.
-export async function buildBizEmailDraft(neg, { providedText, providedShot } = {}) {
+// conInforme: el mail lleva el botón al informe privado de ese negocio (auditorias/<id>/?k=&para=).
+export async function buildBizEmailDraft(neg, { providedText, providedShot, conInforme = false } = {}) {
   const { nombre, siteUrl, seoScore, ciudad, tipo } = neg;
   const problemas = problemasSeo(neg);
   const nivel = nivelSeo(seoScore);
@@ -152,7 +156,8 @@ El email debe:
 - Mencionarles que analizaste su sitio web y encontraste oportunidades de mejora
 - Explicar en 2-3 oraciones simples (sin tecnicismos) qué impacto tiene el SEO débil en sus ventas/clientes
 - Mencionar específicamente los problemas encontrados, pero de forma accesible
-- Invitarlos a responder este email para coordinar una consulta sin compromiso
+${conInforme ? `- Contarles que les preparaste un informe que compara su web con la de los otros negocios de la zona, y que lo abren con el botón de abajo del mail (NO escribas ningún link)
+` : ''}- Invitarlos a responder este email para coordinar una consulta sin compromiso
 - Cerrar con tu nombre: Mariano Aliandri
 
 Tono: cercano, profesional, nunca agresivo ni spam. En español rioplatense (vos, no tú).
@@ -170,7 +175,7 @@ Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre pár
       emailText = null;
     }
     if (!emailText) {
-      emailText = buildTemplateEmail({ nombre, siteUrl, seoScore, ciudad, problemas, nivelSeo: nivel, dondePauta });
+      emailText = buildTemplateEmail({ nombre, siteUrl, seoScore, ciudad, problemas, nivelSeo: nivel, dondePauta, conInforme });
       source = 'template';
     }
   }
@@ -181,7 +186,7 @@ Solo el cuerpo del email, sin asunto ni firma extra. Saltos de línea entre pár
   return { subject: bizEmailSubject(nombre), emailText, source, screenshotUrl, extraServices };
 }
 
-export function renderBizEmailHtml({ nombre: rawNombre, siteUrl: rawSiteUrl, seoScore, emailText, screenshotUrl: rawShot, extraServices, unsubscribeUrl }) {
+export function renderBizEmailHtml({ nombre: rawNombre, siteUrl: rawSiteUrl, seoScore, emailText, screenshotUrl: rawShot, extraServices, unsubscribeUrl, auditLink }) {
   const nombre = escapeHtml(rawNombre);
   const siteUrl = escapeHtml(rawSiteUrl);
   const screenshotUrl = rawShot ? escapeHtml(rawShot) : rawShot;
@@ -231,6 +236,10 @@ export function renderBizEmailHtml({ nombre: rawNombre, siteUrl: rawSiteUrl, seo
   <!-- Body -->
   <div style="padding:32px 36px">
     ${bodyLines}
+    ${auditLink ? `<div style="margin:8px 0 24px;text-align:center">
+      <a href="${escapeAttr(auditLink)}" target="_blank" style="display:inline-block;background:#f59e0b;color:#111827;padding:15px 34px;border-radius:10px;text-decoration:none;font-weight:800;font-size:15px">📊 Ver la auditoría que te preparé</a>
+      <p style="margin:10px 0 0;font-size:12px;color:#9ca3af">Tu web comparada con los otros negocios de la zona. El link es solo para vos.</p>
+    </div>` : ''}
     ${extraServicesHtml}
     ${screenshotHtml}
     <div style="margin:24px 0 0;text-align:center">

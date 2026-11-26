@@ -74,9 +74,9 @@ export default function LeadFinderProLanding() {
 
       <div className="max-w-4xl mx-auto text-center">
         <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">Ejemplos reales</p>
-        <p className="text-fg-500 text-sm mb-6">Reportes ya publicados, del mismo tipo que vas a ver en la prueba gratuita.</p>
-        <Link href="/auditorias" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 text-sm font-medium transition-colors">
-          Ver auditorías públicas →
+        <p className="text-fg-500 text-sm mb-6">Reportes reales, del mismo tipo que vas a ver en la prueba gratuita.</p>
+        <Link href="/lead-finder-pro/demo" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 text-sm font-medium transition-colors">
+          Probá la demo →
         </Link>
       </div>
       </main>

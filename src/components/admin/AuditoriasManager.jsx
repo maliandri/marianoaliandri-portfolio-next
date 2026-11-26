@@ -5,6 +5,7 @@ import SendAuditEmailButton from './SendAuditEmailButton';
 import SenalesBadges from './SenalesBadges';
 import { buildAuditPublishPayload } from '@/lib/socialAuditPost';
 import { adminFetch } from '@/utils/adminFetch';
+import { auditoriaLink, mensajeWhatsapp, whatsappUrl } from '@/lib/auditPitch';
 
 function ScoreBadge({ score }) {
   if (score == null) return <span className="text-gray-500 text-xs">—</span>;
@@ -40,7 +41,7 @@ export default function AuditoriasManager() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res  = await fetch('/api/auditorias');
+      const res  = await adminFetch('/api/auditorias');
       const data = await res.json();
       setAuditorias(Array.isArray(data) ? data : []);
     } catch { setAuditorias([]); }
@@ -54,7 +55,7 @@ export default function AuditoriasManager() {
     setEditError('');
     setEditing({ id, title: '', summary: '', loading: true });
     try {
-      const res  = await fetch(`/api/auditorias?id=${id}`);
+      const res  = await adminFetch(`/api/auditorias?id=${id}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'No se pudo cargar');
       setEditing({ id, title: data.title || '', summary: data.summary || '', loading: false });
@@ -92,8 +93,8 @@ export default function AuditoriasManager() {
     const low      = a.stats?.lowSeoCount ?? 0;
     const avg      = a.stats?.avgSeoScore ?? '—';
     const pctLow   = total ? Math.round((low / total) * 100) : 0;
-    const reportUrl = `https://marianoaliandri.com.ar/auditorias/${a.id}`;
-    setPub({ id: a.id, title: a.title });
+    const reportUrl = auditoriaLink(a.id, null, a.clave);
+    setPub({ id: a.id, title: a.title, clave: a.clave || null });
     setPubCaption(
 `🔍 Analizamos ${total} sitios web en ${ciudades}
 
@@ -119,7 +120,7 @@ ${reportUrl}
       const res = await adminFetch('/api/publish-social', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildAuditPublishPayload({ caption: pubCaption, networks, auditoriaId: pub.id })),
+        body: JSON.stringify(buildAuditPublishPayload({ caption: pubCaption, networks, auditoriaId: pub.id, clave: pub.clave })),
       });
       const data = await res.json();
       if (!res.ok || data.success === false) throw new Error(data.error || 'Error al publicar');
@@ -279,7 +280,7 @@ ${reportUrl}
                     className="px-3 py-1.5 text-xs border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">
                     {expanded === a.id ? 'Menos' : 'Más'}
                   </button>
-                  <a href={`/auditorias/${a.id}`} target="_blank" rel="noopener noreferrer"
+                  <a href={auditoriaLink(a.id, null, a.clave)} target="_blank" rel="noopener noreferrer"
                     className="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
                     Ver
                   </a>
@@ -533,6 +534,74 @@ function GenerateDMButton({ neg }) {
   );
 }
 
+// Link personal del informe (?k=&para=) + mensaje listo para WhatsApp. Si el negocio tiene celular
+// (auditorías desde 2026-11-26) abre el chat directo; si no, se carga el número a mano o se copia.
+function MensajeLinkButton({ neg, auditoria }) {
+  const link = auditoriaLink(auditoria.id, neg.id, auditoria.clave);
+  const [open, setOpen] = useState(false);
+  const [texto, setTexto] = useState('');
+  const [numero, setNumero] = useState(neg.whatsapp || '');
+  const [copiado, setCopiado] = useState('');
+
+  const abrir = () => { setTexto(mensajeWhatsapp({ neg, auditoria, link })); setOpen(true); };
+  const copiar = async (que, valor) => {
+    try { await navigator.clipboard.writeText(valor); setCopiado(que); setTimeout(() => setCopiado(''), 1800); } catch { /* sin permiso */ }
+  };
+  const hayNumero = !!numero.replace(/\D/g, '');
+
+  return (
+    <>
+      <button onClick={abrir} title={`Link y mensaje para ${neg.nombre}`}
+        className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${neg.whatsapp
+          ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-500/20'
+          : 'bg-gray-100 text-gray-700 dark:bg-neutral-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-700'}`}>
+        {neg.whatsapp ? 'WhatsApp' : 'Link'}
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setOpen(false)}>
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 w-full max-w-lg max-h-[85vh] overflow-y-auto p-5 text-left" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">Mandarle su auditoría</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Para <strong>{neg.nombre}</strong></p>
+              </div>
+              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">✕</button>
+            </div>
+
+            <label className="text-xs font-medium text-gray-500">Link personal (privado: solo entra quien lo tenga)</label>
+            <div className="flex gap-2 mt-1 mb-3">
+              <input readOnly value={link} onFocus={e => e.target.select()}
+                className="flex-1 min-w-0 text-xs bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg px-2.5 py-2 text-gray-700 dark:text-gray-200" />
+              <button onClick={() => copiar('link', link)} className="px-3 text-xs rounded-lg bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200">{copiado === 'link' ? 'Copiado' : 'Copiar'}</button>
+              <a href={link} target="_blank" rel="noopener noreferrer" className="px-3 text-xs rounded-lg bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 grid place-items-center">Ver</a>
+            </div>
+
+            <label className="text-xs font-medium text-gray-500">Mensaje (podés editarlo)</label>
+            <textarea value={texto} onChange={e => setTexto(e.target.value)} rows={9}
+              className="w-full mt-1 text-sm bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl p-3 text-gray-700 dark:text-gray-200 leading-relaxed resize-y" />
+
+            <label className="text-xs font-medium text-gray-500 mt-3 block">WhatsApp del negocio {neg.whatsapp ? '(de Google Maps)' : '(no lo tenemos: cargalo a mano)'}</label>
+            <input value={numero} onChange={e => setNumero(e.target.value)} placeholder="+54 9 299 ..."
+              className="w-full mt-1 text-sm bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg px-2.5 py-2 text-gray-700 dark:text-gray-200" />
+
+            <div className="flex items-center justify-end gap-2 mt-4">
+              <button onClick={() => copiar('texto', texto)} disabled={!texto.trim()}
+                className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-xl disabled:opacity-40">
+                {copiado === 'texto' ? 'Copiado' : 'Copiar mensaje'}
+              </button>
+              <a href={hayNumero ? whatsappUrl(numero, texto) : undefined} target="_blank" rel="noopener noreferrer"
+                aria-disabled={!hayNumero}
+                className={`px-4 py-2 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 ${hayNumero ? '' : 'pointer-events-none opacity-50'}`}>
+                Abrir WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function AuditoriaDetail({ id }) {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
@@ -557,7 +626,7 @@ function AuditoriaDetail({ id }) {
   }, []);
 
   useEffect(() => {
-    fetch(`/api/auditorias?id=${id}`)
+    adminFetch(`/api/auditorias?id=${id}`)
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
@@ -592,7 +661,7 @@ function AuditoriaDetail({ id }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            auditoriaId: id,
+            auditoriaId: id, negocioId: neg.id || null,
             nombre: neg.nombre, siteUrl: neg.siteUrl, email: neg.email,
             seoScore: neg.seoScore, hasSitemap: neg.hasSitemap, hasRobots: neg.hasRobots,
             metaDesc: neg.metaDesc, hasOG: neg.hasOG, ciudad: neg.ciudad, tipo: neg.tipo,
@@ -675,7 +744,7 @@ function AuditoriaDetail({ id }) {
         <table className="min-w-full text-xs">
           <thead className="bg-gray-50 dark:bg-gray-800/40 sticky top-0 z-10">
             <tr className="border-b border-gray-200 dark:border-neutral-800">
-              {['Negocio', 'Ciudad', 'Sitio web', 'Score', 'Sitemap', 'Robots', 'Meta', 'OG', '★', 'Señales', 'Email', 'DM'].map(h => (
+              {['Negocio', 'Ciudad', 'Sitio web', 'Score', 'Sitemap', 'Robots', 'Meta', 'OG', '★', 'Señales', 'Link / WA', 'Email', 'DM'].map(h => (
                 <th key={h} className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 whitespace-nowrap">{h}</th>
               ))}
             </tr>
@@ -709,6 +778,7 @@ function AuditoriaDetail({ id }) {
                   {neg.rating ? `★ ${neg.rating}` : '—'}
                 </td>
                 <td className="px-3 py-2 min-w-[120px]"><SenalesBadges neg={neg} /></td>
+                <td className="px-3 py-2"><MensajeLinkButton neg={neg} auditoria={data} /></td>
                 <td className="px-3 py-2">
                   <SendAuditEmailButton
                     neg={neg}

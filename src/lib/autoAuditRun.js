@@ -24,9 +24,9 @@ const MAX_COMBO_ATTEMPTS = 3;
 
 // Historia de Instagram con la captura del informe en formato celular. Sale si Instagram está
 // entre las redes y hay IG_ACCESS_TOKEN / IG_USER_ID; un fallo no cambia el estado del post.
-async function publishAuditStory(auditoriaId, networks) {
+async function publishAuditStory(auditoriaId, networks, clave) {
   if (!networks?.includes('instagram') || !igCredsFromEnv()) return null;
-  const url = auditStoryScreenshotUrl(auditoriaId);
+  const url = auditStoryScreenshotUrl(auditoriaId, clave);
   // La primera vez Microlink renderiza la captura: se pide antes para que Instagram la encuentre lista.
   const image = await imageIsReachable(url);
   if (!image.ok) return { ok: false, error: `La captura para la historia no responde (Microlink): ${image.detail}` };
@@ -107,7 +107,7 @@ export async function publicarInforme({ combo, results, nowMs, useGemini = true,
   out.auditoriaId = saved.id;
   if (!redes) { out.estado = 'guardado'; return out; }
 
-  const { payload } = buildPost({ combo, stats, auditoriaId: saved.id, summary: saved.summary, networks });
+  const { payload } = buildPost({ combo, stats, auditoriaId: saved.id, clave: saved.clave, summary: saved.summary, networks });
   // Una sola imagen para todas las redes, dibujada acá (no una captura de la página): sale igual en
   // Instagram, Facebook y LinkedIn. Si no se puede armar, no se publica nada con una imagen distinta.
   let cardUrl;
@@ -129,7 +129,7 @@ export async function publicarInforme({ combo, results, nowMs, useGemini = true,
   }
   try {
     await postToMakeSocial(payload, { timeoutMs: 10000 });
-    const historia = await publishAuditStory(saved.id, payload.networks);
+    const historia = await publishAuditStory(saved.id, payload.networks, saved.clave);
     if (historia) out.historia = historia;
   } catch (e) {
     out.estado = 'post_fallido';

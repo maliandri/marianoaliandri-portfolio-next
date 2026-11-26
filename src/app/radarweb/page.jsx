@@ -81,14 +81,13 @@ export default function ToolPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-gray-800 dark:text-gray-200">¿En qué se diferencia de las auditorías?</h3>
-                <p className="text-gray-600 dark:text-gray-400">Radar Web es un chequeo instantáneo y visual; las <a href="/auditorias" className="text-indigo-500 hover:underline">auditorías SEO</a> son informes más completos de negocios locales.</p>
+                <p className="text-gray-600 dark:text-gray-400">Radar Web es un chequeo instantáneo y visual; las auditorías SEO son informes más completos de negocios locales.</p>
               </div>
             </div>
           </section>
           <p className="text-sm text-gray-500 dark:text-gray-500">
             ¿Necesitás un sitio nuevo?{' '}
-            <a href="/web" className="text-indigo-500 hover:underline">Cotizá tu sitio web</a> o revisá las{' '}
-            <a href="/auditorias" className="text-indigo-500 hover:underline">auditorías publicadas</a>.
+            <a href="/web" className="text-indigo-500 hover:underline">Cotizá tu sitio web</a>.
           </p>
 
           <div className="mt-8 p-5 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50 rounded-2xl">

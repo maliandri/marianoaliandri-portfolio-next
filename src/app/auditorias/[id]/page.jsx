@@ -5,16 +5,19 @@ import { getDb } from '@/lib/firebase-admin';
 import { getGSCAuth, getVerifiedSites } from '@/lib/gscClient';
 import AuditTable from './AuditTable';
 import AuditMapLoader from './AuditMapLoader';
-import AuditRequestForm from '@/components/audit/AuditRequestForm';
 import AuditPdfButton from '@/components/audit/AuditPdfButton';
 import SeoScoreChart from './SeoScoreChart';
+import AsesorChat from './AsesorChat';
+import { claveValida } from '@/lib/auditClave';
+import { SERVICIOS_OFERTA, posicionEnAuditoria } from '@/lib/auditPitch';
+import { saludoAsesor } from '@/lib/ai/auditAsesor';
+import { problemasSeo } from '@/lib/bizEmail';
 
-// ISR on-demand: cada informe se genera en su primera visita y queda en el CDN.
-// /api/auditorias lo invalida si se edita o se borra.
-export const revalidate = 86400;
-// Sin páginas en el build: lista vacía = cada una se genera en su primera visita
-// y queda cacheada (sin esto Next las renderiza en cada request).
-export async function generateStaticParams() { return []; }
+// Informe PRIVADO (desde 2026-11-26): solo se abre con ?k=<clave> (auditorias/{id}.clave); con
+// &para=<id del negocio> saluda a ese negocio, resalta su fila y el chat del costado le habla a él.
+// Ya no es una página pública ni está en el sitemap: se renderiza por pedido (lee la clave), sin ISR.
+// Son pocas visitas (los links que manda Mariano), así que no pesa en el Active CPU.
+export const dynamic = 'force-dynamic';
 
 // Dominios verificados en GSC = sitios del portfolio de Mariano (para destacarlos)
 async function getOwnDomains() {
@@ -42,19 +45,26 @@ const getAuditoria = cache(async (id) => {
   };
 });
 
-export async function generateMetadata({ params }) {
-  const { id } = await params;
+// La auditoría solo si la clave del link es la correcta (si no, 404 y no se filtra ni el título).
+async function getAuditoriaConClave(id, k) {
   const a = await getAuditoria(id);
-  if (!a) return { title: 'Auditoría no encontrada' };
-  const url = `https://marianoaliandri.com.ar/auditorias/${id}`;
+  return a && claveValida(a, k) ? a : null;
+}
+
+const NO_INDEX = { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false } };
+
+export async function generateMetadata({ params, searchParams }) {
+  const { id } = await params;
+  const { k } = await searchParams;
+  const a = await getAuditoriaConClave(id, k);
+  if (!a) return { title: 'Auditoría no encontrada', robots: NO_INDEX };
   const desc = `Reporte SEO de ${a.stats?.total} sitios web en ${(a.config?.ciudades || []).join(', ')}.`;
   return {
     title: `${a.title} | Auditorías Web`,
     description: desc,
-    alternates: { canonical: url },
+    robots: NO_INDEX,
     openGraph: {
       type: 'article',
-      url,
       title: `${a.title} | Auditorías Web`,
       description: desc,
       images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: a.title }],
@@ -67,9 +77,13 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
-export default async function AuditoriaDetailPage({ params }) {
+export default async function AuditoriaDetailPage({ params, searchParams }) {
   const { id } = await params;
-  const a = await getAuditoria(id);
+  const sp = await searchParams;
+  const k = typeof sp?.k === 'string' ? sp.k : '';
+  const para = typeof sp?.para === 'string' ? sp.para.slice(0, 200) : null;
+  const screenshot = sp?.screenshot === '1';
+  const a = await getAuditoriaConClave(id, k);
   if (!a) notFound();
 
   // Solo los campos que muestran la tabla, el mapa y el PDF: lo que se pasa a un componente de
@@ -93,12 +107,14 @@ export default async function AuditoriaDetailPage({ params }) {
     { key: 'medio', label: 'Mejorable (40–69)', color: '#f59e0b', n: scored.filter(r => r.seoScore >= 40 && r.seoScore < 70).length },
     { key: 'bueno', label: 'Aceptable (70+)',   color: '#22c55e', n: scored.filter(r => r.seoScore >= 70).length },
   ];
+
+  // Negocio al que se le mandó el link (?para=)
+  const neg = para ? results.find(r => r.id === para) || null : null;
+  const pos = neg ? posicionEnAuditoria(results, neg.id) : null;
+  const faltas = neg ? problemasSeo(neg) : [];
+  const conChat = !screenshot; // las capturas de Microlink (?screenshot=1) salen sin chat
   return (
     <main className="min-h-screen bg-page pt-24 pb-20 px-2 md:px-4">
-
-      <Link href="/auditorias" className="text-xs text-fg-600 hover:text-fg-400 transition-colors mb-6 inline-block">
-        ← Todas las auditorías
-      </Link>
 
       {/* Header */}
       <div className="mb-8">
@@ -130,6 +146,27 @@ export default async function AuditoriaDetailPage({ params }) {
           ))}
         </div>
       </div>
+
+      {/* Saludo personal: el informe que se le mandó a este negocio */}
+      {neg && (
+        <section className="mb-8 rounded-2xl border border-indigo-500/30 bg-indigo-600/[0.07] p-5 md:p-6">
+          <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">Preparado para vos</p>
+          <h2 className="text-2xl md:text-3xl font-black text-fg">Hola, {neg.nombre} 👋</h2>
+          <p className="text-fg-300 mt-2 max-w-3xl">
+            Analizamos cómo aparece tu web en Google al lado de los demás negocios de la zona.
+            {pos && <> Quedaste <strong className="text-fg">{pos.puesto}° de {pos.total}</strong>, con <strong className="text-fg">{pos.score}/100</strong>. El promedio es {pos.promedio} y el mejor tiene {pos.mejorScore}.</>}
+          </p>
+          {faltas.length > 0 && (
+            <ul className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-fg-400">
+              {faltas.map(f => <li key={f} className="flex gap-2"><span className="text-red-500" aria-hidden>✗</span><span>Tu web {f}</span></li>)}
+            </ul>
+          )}
+          <p className="text-sm text-fg-500 mt-3">Tu negocio está marcado en la tabla.{conChat && ' Al costado tenés un asistente para preguntar lo que quieras.'}</p>
+        </section>
+      )}
+
+      <div className={conChat ? 'lg:grid lg:grid-cols-4 lg:gap-6 lg:items-start' : ''}>
+      <div className={conChat ? 'lg:col-span-3 min-w-0' : ''}>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -185,23 +222,33 @@ export default async function AuditoriaDetailPage({ params }) {
         Evalúa sitemap (-25 si falta), robots.txt (-20), meta description (-25), Open Graph (-15) y antigüedad del sitio (-15 si más de 18 meses sin actualizar). Score 0–100: rojo = débil, amarillo = mejorable, verde = aceptable. Hacé click en los encabezados para ordenar.
       </div>
 
-      <AuditTable results={results} ownDomains={ownDomains} />
+      <AuditTable results={results} ownDomains={ownDomains} destacadoId={neg?.id || null} />
 
-      {/* CTA — Solicitar auditoría propia */}
-      <div className="mt-16 mb-8">
-        <div className="text-center mb-6">
-          <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">¿Tu sitio está en esta lista?</p>
-          <h2 className="text-2xl md:text-3xl font-black text-fg">
-            Pedí tu análisis gratuito
-          </h2>
-          <p className="text-fg-500 text-sm mt-2 max-w-md mx-auto">
-            Si tenés un negocio en Argentina, analizamos cómo aparece tu sitio en Google y te mandamos el informe sin costo.
-          </p>
+      {/* Qué se le puede hacer */}
+      <section className="mt-12 mb-8">
+        <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">{neg ? 'Lo que te puedo hacer' : 'Lo que se puede hacer'}</p>
+        <h2 className="text-2xl md:text-3xl font-black text-fg mb-2">Más que arreglar el SEO</h2>
+        <p className="text-fg-500 text-sm mb-6 max-w-2xl">Que la web aparezca en Google es el primer paso. Lo que sigue es que el negocio trabaje solo: datos ordenados, redes al día y respuestas a cualquier hora.</p>
+        <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {SERVICIOS_OFERTA.map(sv => (
+            <div key={sv.id} className="bg-card border border-fg/10 rounded-xl p-5">
+              <div className="text-2xl mb-2" aria-hidden>{sv.icon}</div>
+              <h3 className="font-bold text-fg leading-snug">{sv.titulo}</h3>
+              <p className="text-sm text-fg-400 mt-1.5 leading-relaxed">{sv.desc}</p>
+            </div>
+          ))}
         </div>
-        <div className="max-w-xl mx-auto">
-          <AuditRequestForm defaultSearchTerm={a.config?.term || ''} />
-        </div>
-      </div>
+      </section>
+
+      </div>{/* fin columna del informe */}
+
+      {conChat && (
+        <aside className="mt-10 lg:mt-0 lg:col-span-1 lg:sticky lg:top-24 h-[560px] lg:h-[calc(100vh-7rem)]" aria-label="Asistente">
+          <AsesorChat auditoriaId={a.id} clave={k} negocioId={neg?.id || null} negocioNombre={neg?.nombre || null}
+            saludo={saludoAsesor({ auditoria: a, negocioId: neg?.id || null })} />
+        </aside>
+      )}
+      </div>{/* fin grid */}
 
       <p className="text-center text-xs text-gray-700 mt-8">
         Auditoría realizada por{' '}

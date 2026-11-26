@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { revalidatePath } from 'next/cache';
 import { FieldValue } from 'firebase-admin/firestore';
 import { buildAuditReportDraft, MIN_SITIOS_INFORME } from '@/lib/auditReportDraft';
 import { saveAuditoria } from '@/lib/auditoriasStore';
@@ -14,6 +13,15 @@ import { defineTool, ToolError } from '../defineTool';
 import { decodeCursor, encodeCursor, pageArray } from '../paginate';
 import { getLeadJob } from '../leadJobs';
 import { listarBorradores, aprobarBorrador, descartarBorrador, ReviewError } from '@/lib/autoAuditReview';
+import { asegurarClave } from '@/lib/auditClave';
+import { auditoriaLink } from '@/lib/auditPitch';
+
+// Los informes son privados (?k=<clave>): toda URL que se le da a Claude lleva la clave.
+async function urlInforme(db, id, data) {
+  if (!id) return null;
+  const x = data || (await db.collection(COL).doc(id).get()).data();
+  return auditReportUrl(id, x ? await asegurarClave(db, id, x) : null);
+}
 
 const COL = 'auditorias';
 const NETWORKS = ['linkedin', 'instagram', 'facebook'];
@@ -41,14 +49,14 @@ export const listAuditsTool = defineTool({
     const c = decodeCursor(args.cursor);
     if (c?.p) q = q.startAfter(new Date(c.p));
     const snap = await q.limit(limit + 1).get();
-    const items = snap.docs.slice(0, limit).map(d => {
+    const items = await Promise.all(snap.docs.slice(0, limit).map(async d => {
       const x = d.data();
       return {
         id: d.id, titulo: x.title, ciudades: x.config?.ciudades || [], rubros: x.config?.tiposLabels || [],
         sitios: x.stats?.total ?? null, seoPromedio: x.stats?.avgSeoScore ?? null,
-        publicada: toIso(x.publishedAt), url: auditReportUrl(d.id), publicadaEnRedes: toIso(x.publicadoEn) || null,
+        publicada: toIso(x.publishedAt), url: await urlInforme(db, d.id, x), publicadaEnRedes: toIso(x.publicadoEn) || null,
       };
-    });
+    }));
     const nextCursor = snap.docs.length > limit ? encodeCursor({ p: items.at(-1).publicada }) : null;
     return { summary: `${items.length} auditorías${nextCursor ? ' (hay más)' : ''}.`, data: { items, nextCursor } };
   },
@@ -63,15 +71,17 @@ export const getAuditTool = defineTool({
   async handler(args, { db }) {
     const a = await loadAudit(db, args.id);
     const page = pageArray(a.results || [], { cursor: args.cursor, limit: args.limit ?? 20 });
+    const clave = await asegurarClave(db, a.id, a);
     const items = page.items.map(r => ({
       placeId: r.id, nombre: r.nombre, ciudad: r.ciudad || null, rubro: r.tipo || null,
-      web: r.siteUrl || null, seoScore: r.seoScore ?? null, email: r.email || null,
+      web: r.siteUrl || null, seoScore: r.seoScore ?? null, email: r.email || null, whatsapp: r.whatsapp || null,
       problemas: problemasSeo(r),
+      linkPersonal: auditoriaLink(a.id, r.id, clave),
     }));
     return {
       summary: `${a.title} — ${page.total} sitios, SEO promedio ${a.stats?.avgSeoScore ?? '—'}.`,
       data: {
-        id: a.id, titulo: a.title, resumen: a.summary || null, stats: a.stats || null, url: auditReportUrl(a.id),
+        id: a.id, titulo: a.title, resumen: a.summary || null, stats: a.stats || null, url: auditReportUrl(a.id, clave),
         publicadaEnRedes: toIso(a.publicadoEn) || null, items, nextCursor: page.nextCursor, total: page.total,
       },
     };
@@ -110,7 +120,7 @@ export const createAuditReportTool = defineTool({
 
     // Un reintento de Claude no publica un informe duplicado: se devuelve el que ya se armó.
     if (s.auditoriaId && (await db.collection(COL).doc(s.auditoriaId).get()).exists) {
-      const url = auditReportUrl(s.auditoriaId);
+      const url = await urlInforme(db, s.auditoriaId);
       return { summary: `Esta búsqueda ya tiene su informe publicado: ${url}`, data: { id: s.auditoriaId, url, yaExistia: true } };
     }
 
@@ -122,13 +132,11 @@ export const createAuditReportTool = defineTool({
       throw new ToolError(`Hacen falta al menos ${MIN_SITIOS_INFORME} leads con web y puntaje SEO; esta búsqueda tiene ${draft.stats.total}.`);
     }
     const title = args.title?.trim() || draft.title;
-    const { id } = await saveAuditoria({
+    const { id, clave } = await saveAuditoria({
       title, summary: args.summary?.trim() || draft.summary, results: draft.filas, stats: draft.stats, config: draft.config,
     });
     await sourceRef.set({ auditoriaId: id }, { merge: true });
-    revalidatePath('/auditorias');
-    revalidatePath('/auditorias/[id]', 'page');
-    const url = auditReportUrl(id);
+    const url = auditReportUrl(id, clave);
     return { summary: `Informe publicado: ${url}`, data: { id, url, titulo: title, stats: draft.stats } };
   },
 });
@@ -154,6 +162,7 @@ export const publishAuditSocialTool = defineTool({
       throw new ToolError(`Este informe ya se publicó en redes (${toIso(a.publicadoEn)}). Pasá force: true para publicarlo otra vez.`);
     }
     const caption = args.caption?.trim() || `${a.title}\n\n${a.summary || ''}`.trim();
+    const clave = await asegurarClave(db, a.id, a);
     // Make responde 200 aunque la imagen esté rota: la tarjeta se dibuja y se verifica antes de publicar.
     let cardUrl;
     try { cardUrl = await uploadAuditCard(db, a.id); } catch (e) { throw new ToolError(`${e.message}; no se publicó. Probá de nuevo en un rato.`); }
@@ -172,7 +181,7 @@ export const publishAuditSocialTool = defineTool({
     if (claim === 'en_curso') throw new ToolError('Este informe se está publicando ahora mismo; esperá un minuto y fijate con get_audit.');
     if (claim === 'ya_publicado') throw new ToolError('Este informe ya se publicó en redes. Pasá force: true para publicarlo otra vez.');
     try {
-      await postToMakeSocial({ ...buildAuditPublishPayload({ caption, networks: args.networks, auditoriaId: a.id }), imageUrl: cardUrl, url: cardUrl }, { timeoutMs: 10000 });
+      await postToMakeSocial({ ...buildAuditPublishPayload({ caption, networks: args.networks, auditoriaId: a.id, clave }), imageUrl: cardUrl, url: cardUrl }, { timeoutMs: 10000 });
     } catch (e) {
       await a.ref.update({ publicando: FieldValue.delete() });
       throw e;
@@ -180,7 +189,7 @@ export const publishAuditSocialTool = defineTool({
     await a.ref.update({ publicadoEn: FieldValue.serverTimestamp(), publicadoVia: 'mcp', publicadoRedes: args.networks, publicando: FieldValue.delete() });
     return {
       summary: `Enviado a Make para ${args.networks.join(', ')}. Make acepta el pedido antes de publicar: confirmá en las redes.`,
-      data: { enviado: true, networks: args.networks, url: auditReportUrl(a.id) },
+      data: { enviado: true, networks: args.networks, url: auditReportUrl(a.id, clave) },
     };
   },
 });
@@ -204,16 +213,16 @@ export const listAuditDraftsTool = defineTool({
   }),
   annotations: { readOnlyHint: true },
   async handler(args, { db }) {
-    const items = (await listarBorradores(db, { estado: args.estado || 'pendiente', limit: args.limit ?? 10 })).map(b => ({
+    const items = await Promise.all((await listarBorradores(db, { estado: args.estado || 'pendiente', limit: args.limit ?? 10 })).map(async b => ({
       id: b.id, estado: b.estado, rubro: b.rubro, zona: b.ciudad, localidades: b.localidades, creado: b.creado,
       busqueda: b.busqueda, stats: b.stats, redesPorDefecto: b.networks,
-      auditoriaId: b.auditoriaId, url: b.auditoriaId ? auditReportUrl(b.auditoriaId) : null, motivo: b.motivo,
+      auditoriaId: b.auditoriaId, url: await urlInforme(db, b.auditoriaId).catch(() => null), motivo: b.motivo,
       sitios: b.results.map(r => ({
         placeId: r.id, nombre: r.nombre, ciudad: r.ciudad || null, web: r.siteUrl || null, seoScore: r.seoScore ?? null,
         rating: r.rating ?? null, email: r.email || null,
         plataforma: r.plataforma ?? null, agencia: r.agencia ?? null, anuncios: r.anuncios ?? null,
       })),
-    }));
+    })));
     return { summary: `${items.length} borradores${args.estado && args.estado !== 'pendiente' ? '' : ' pendientes'}.`, data: { items } };
   },
 });
@@ -222,7 +231,7 @@ export const reviewAuditDraftTool = defineTool({
   name: 'review_audit_draft',
   title: 'Aprobar o descartar un borrador de auditoría',
   description:
-    'aprobar: PUBLICA el informe en marianoaliandri.com.ar/auditorias (sin los sitios de `excluir`) y, si '
+    'aprobar: guarda el informe (privado: se abre solo con el link que trae la clave) (sin los sitios de `excluir`) y, si '
     + 'publicar_redes no es false, lo anuncia en LinkedIn/Instagram/Facebook vía Make + historia de Instagram. '
     + 'descartar: no publica nada. Usá dry_run: true para ver cuántos sitios quedarían. Mínimo 3 sitios.',
   inputSchema: z.object({
@@ -247,9 +256,7 @@ export const reviewAuditDraftTool = defineTool({
     if (out.dryRun) {
       return { summary: `Prueba: saldría un informe de ${out.sitios} sitios${out.redes.length ? ` y posts en ${out.redes.join(', ')}` : ' sin posts'}.`, data: out };
     }
-    revalidatePath('/auditorias');
-    revalidatePath('/auditorias/[id]', 'page');
-    const url = auditReportUrl(out.auditoriaId);
+    const url = await urlInforme(db, out.auditoriaId);
     const redes = out.estado === 'ok' ? ' y enviado a Make para las redes' : out.estado === 'guardado' ? '' : ` — redes: ${out.error}`;
     return {
       summary: `Informe publicado (${out.sitios} sitios): ${url}${redes}.`,

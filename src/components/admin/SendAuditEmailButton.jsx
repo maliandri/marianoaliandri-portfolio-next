@@ -26,6 +26,7 @@ export default function SendAuditEmailButton({ neg, auditoriaId, sentCount = 0, 
 
   const payload = {
     auditoriaId,
+    negocioId:  neg.id || null,
     nombre:     neg.nombre,
     siteUrl:    neg.siteUrl,
     email:      neg.email,

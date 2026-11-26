@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { parseZona } from '@/lib/leadSearch';
 import { buildAuditPublishPayload } from '@/lib/socialAuditPost';
+import { auditoriaLink } from '@/lib/auditPitch';
 import { buildAuditReportDraft, MIN_SITIOS_INFORME } from '@/lib/auditReportDraft';
 import { adminFetch } from '@/utils/adminFetch';
 
@@ -77,6 +78,7 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
   const [url, setUrl] = useState(null);
   const [savedUrl, setSavedUrl] = useState(null); // informe ya guardado cuando falla la parte de redes
   const [savedId, setSavedId] = useState(null);
+  const [savedClave, setSavedClave] = useState(null); // el informe es privado: los links llevan ?k=
 
   const ciudades = form.zonas.map(z => parseZona(z).ciudad);
   const rubros = [...tipoLabels, ...form.terminos];
@@ -95,6 +97,7 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
     setBusy(true); setMsg('');
     try {
       let auditoriaId = savedId;
+      let clave = savedClave;
       // Si el informe ya se guardó (falló solo la parte de redes), no se duplica: solo se reintenta redes.
       if (!savedUrl || !auditoriaId) {
         const resp = await adminFetch('/api/auditorias', {
@@ -109,17 +112,19 @@ export function PublishReport({ leads, form, tipoLabels, disabled }) {
         const data = await resp.json();
         if (!resp.ok || !data.id) throw new Error(data.error || 'Error al publicar');
         auditoriaId = data.id;
+        clave = data.clave || null;
         setSavedId(auditoriaId);
-        setSavedUrl(`/auditorias/${auditoriaId}`);
+        setSavedClave(clave);
+        setSavedUrl(auditoriaLink(auditoriaId, null, clave));
       }
-      const informeUrl = `/auditorias/${auditoriaId}`;
+      const informeUrl = auditoriaLink(auditoriaId, null, clave);
 
       const networks = Object.keys(nets).filter(k => nets[k]);
       if (toSocial && networks.length) {
         const res = await adminFetch('/api/publish-social', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(buildAuditPublishPayload({ caption: `${title}\n\n${desc}`, networks, auditoriaId })),
+          body: JSON.stringify(buildAuditPublishPayload({ caption: `${title}\n\n${desc}`, networks, auditoriaId, clave })),
         });
         const pub = await res.json().catch(() => ({}));
         if (!res.ok || pub.success === false) {

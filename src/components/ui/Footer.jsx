@@ -26,7 +26,6 @@ export default function Footer() {
     { name: 'Radar KPI', href: '/kpi' },
     { name: 'Radar Web', href: '/radarweb' },
     { name: 'Estadísticas', href: '/stats' },
-    { name: 'Auditorías Web', href: '/auditorias' },
   ];
 
 

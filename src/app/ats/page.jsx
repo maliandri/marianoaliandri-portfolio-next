@@ -92,8 +92,7 @@ export default function ToolPage() {
           </section>
           <p className="text-sm text-gray-500 dark:text-gray-500">
             ¿Buscás mejorar la presencia digital de tu negocio?{' '}
-            <a href="/web" className="text-indigo-500 hover:underline">Cotizá tu sitio web</a> o mirá las{' '}
-            <a href="/auditorias" className="text-indigo-500 hover:underline">auditorías SEO</a>.
+            <a href="/web" className="text-indigo-500 hover:underline">Cotizá tu sitio web</a>.
           </p>
 
           <div className="mt-8 p-5 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50 rounded-2xl">

@@ -48,6 +48,7 @@ export function leadToAuditRow(lead) {
     id: lead.id, nombre: lead.nombre, ciudad: lead.ciudad, tipo: lead.tipo,
     lat: lead.lat ?? null, lon: lead.lon ?? null,
     siteUrl: lead.siteUrl, email: lead.email || null, seoScore: lead.seoScore,
+    whatsapp: lead.whatsapp || null, // celular para mandarle el link de su informe (solo admin)
     hasSitemap: lead.hasSitemap ?? null, hasRobots: lead.hasRobots ?? null,
     metaDesc: lead.metaDesc ?? null, hasOG: lead.hasOG ?? null,
     lastModified: lead.lastUpdated || lead.lastModified || null,

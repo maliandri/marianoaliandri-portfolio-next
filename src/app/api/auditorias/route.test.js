@@ -16,11 +16,41 @@ const req = (url, body) => ({ url, json: async () => body, headers: new Headers(
 describe('/api/auditorias', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('GET sigue siendo público', async () => {
+  it('GET ?id= sin admin: 404 si no es caso demo', async () => {
+    requireAdmin.mockResolvedValue(denied);
     getDb.mockReturnValue(createFakeDb({ 'auditorias/a': { title: 'T', publishedAt: null } }).db);
     const res = await GET(req('https://x/api/auditorias/?id=a'));
+    expect(res.status).toBe(404);
+  });
+
+  it('GET ?id= sin admin de un caso demo: sin email, WhatsApp ni clave', async () => {
+    requireAdmin.mockResolvedValue(denied);
+    getDb.mockReturnValue(createFakeDb({ 'auditorias/a': {
+      title: 'T', isDemoCase: true, publishedAt: null, clave: 'secreta',
+      results: [{ id: 'n1', nombre: 'N', seoScore: 50, email: 'x@y.com', whatsapp: '549299', agencia: 'Z' }],
+    } }).db);
+    const res = await GET(req('https://x/api/auditorias/?id=a'));
     expect(res.status).toBe(200);
-    expect(requireAdmin).not.toHaveBeenCalled();
+    const body = await res.json();
+    expect(body.results[0].nombre).toBe('N');
+    expect(body.results[0]).not.toHaveProperty('email');
+    expect(body.results[0]).not.toHaveProperty('whatsapp');
+    expect(body.results[0]).not.toHaveProperty('agencia');
+    expect(body).not.toHaveProperty('clave');
+  });
+
+  it('GET ?id= con admin devuelve todo y la clave', async () => {
+    requireAdmin.mockResolvedValue({ user: { uid: 'a' } });
+    getDb.mockReturnValue(createFakeDb({ 'auditorias/a': { title: 'T', publishedAt: null, results: [{ id: 'n1', email: 'x@y.com' }] } }).db);
+    const body = await (await GET(req('https://x/api/auditorias/?id=a'))).json();
+    expect(body.results[0].email).toBe('x@y.com');
+    expect(typeof body.clave).toBe('string');
+  });
+
+  it('GET listado exige admin', async () => {
+    requireAdmin.mockResolvedValue(denied);
+    getDb.mockReturnValue(createFakeDb({}).db);
+    expect((await GET(req('https://x/api/auditorias/'))).status).toBe(401);
   });
 
   it('POST, PATCH y DELETE exigen admin', async () => {

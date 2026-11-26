@@ -77,7 +77,7 @@ function Draft({ b, authFetch, onDone }) {
 
   const aprobar = () => send(
     { accion: 'aprobar', excluir: [...fuera], redes, networks },
-    d => `Publicado: /auditorias/${d.auditoriaId}${d.estado === 'post_fallido' ? ` — redes: ${d.error}` : ''}`,
+    d => `Informe guardado (privado: el link con clave está en Auditorías)${d.estado === 'post_fallido' ? ` — redes: ${d.error}` : ''}`,
   );
   const descartar = () => {
     const motivo = window.prompt('¿Por qué lo descartás? (opcional)', '');

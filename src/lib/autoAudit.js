@@ -131,7 +131,7 @@ function clip(text, max) {
 }
 
 // Post para redes: SOLO datos agregados, nunca nombres de negocios.
-export function buildPost({ combo, stats, auditoriaId, summary, networks }) {
+export function buildPost({ combo, stats, auditoriaId, clave, summary, networks }) {
   const { ciudad, rubro } = combo;
   const title = `Auditoría SEO de ${stats.total} sitios de ${rubro.label} en ${ciudad}`;
   const pctLow = stats.total ? Math.round((stats.lowSeoCount / stats.total) * 100) : 0;
@@ -145,7 +145,7 @@ export function buildPost({ combo, stats, auditoriaId, summary, networks }) {
   if (summary && String(summary).trim()) {
     lines.push('', clip(summary, SUMMARY_MAX));
   }
-  lines.push('', `Ver el informe completo: ${auditReportUrl(auditoriaId)}`);
+  lines.push('', `Ver el informe completo: ${auditReportUrl(auditoriaId, clave)}`);
   lines.push('', '#SEO #MarketingDigital #PresenciaDigital #NegociosLocales');
 
   return {
@@ -154,6 +154,7 @@ export function buildPost({ combo, stats, auditoriaId, summary, networks }) {
       caption: lines.join('\n'),
       networks: networks?.length ? networks : DEFAULT_NETWORKS,
       auditoriaId,
+      clave,
     }),
   };
 }
