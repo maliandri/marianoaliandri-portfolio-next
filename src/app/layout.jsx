@@ -1,13 +1,16 @@
 import './globals.css';
-import { Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 import Script from 'next/script';
 import { Providers } from './providers';
 
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
+// Tipografías guardadas en el repo (src/fonts, de fonts.gstatic.com, licencia OFL): bajarlas de Google en cada build
+// rompía el deploy de Vercel de forma intermitente (2026-11-26, "next/font/google queries have exactly one entry").
+const inter = localFont({
+  src: '../fonts/inter-latin.woff2',
+  weight: '400 700',
   display: 'swap',
   variable: '--font-inter',
+  fallback: ['system-ui', 'sans-serif'],
 });
 
 export const metadata = {
