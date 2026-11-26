@@ -48,12 +48,13 @@ import AppShell from '../components/shell/AppShell';
 import PageHeader from '../components/shell/PageHeader';
 import SubTabs from '../components/shell/SubTabs';
 import AdminHome from '../components/admin/AdminHome';
-import { Plus_Jakarta_Sans } from 'next/font/google';
+import localFont from 'next/font/local';
 import DashboardGrid from '../components/dashboard/DashboardGrid';
 import { adminFetch } from '../utils/adminFetch';
 import { useAuthUser } from '../hooks/useAuthUser';
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], display: 'swap' });
+// Guardada en el repo (src/fonts): bajarla de Google en cada build rompía el deploy a veces (2026-11-26).
+const jakarta = localFont({ src: '../fonts/plus-jakarta-sans-latin.woff2', weight: '400 800', display: 'swap' });
 
 // Navegación de 3 niveles (estilo almamod): 1º sidebar (secciones) · 2º pestañas arriba
 // (items de la sección) · 3º pestañas abajo (sub-items, solo si el item tiene "children").
