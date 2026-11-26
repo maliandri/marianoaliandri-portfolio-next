@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, serverTimestamp, increment } from 'firebase/firestore';
-import { db, firebaseQA } from '../utils/firebaseservice';
+import { db, firebaseQA, firebaseAuth } from '../utils/firebaseservice';
 import cloudinaryService from '../utils/cloudinaryService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import SocialMediaDashboard from '../components/social/SocialMediaDashboard';
@@ -36,6 +36,7 @@ import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAna
 import { ADMIN_NAV_DEFAULT } from '../data/adminNav';
 import { mergeNavWithDefaults } from '../lib/navMerge';
 import PlacesUsagePanel from '../components/admin/PlacesUsagePanel';
+import AiKeysPanel from '../components/admin/AiKeysPanel';
 import FunnelsPanel from '../components/admin/FunnelsPanel';
 import InstagramProspects from '../components/leadfinder/admin/InstagramProspects';
 import InstagramFollowers from '../components/admin/InstagramFollowers';
@@ -49,6 +50,8 @@ import SubTabs from '../components/shell/SubTabs';
 import AdminHome from '../components/admin/AdminHome';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import DashboardGrid from '../components/dashboard/DashboardGrid';
+import { adminFetch } from '../utils/adminFetch';
+import { useAuthUser } from '../hooks/useAuthUser';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], display: 'swap' });
 
@@ -99,9 +102,10 @@ function PresupuestosTab({ sub, onOpenNuevo }) {
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [verificando, setVerificando] = useState(false);
+  const { user: authUser, loading: authLoading, login: loginGoogle } = useAuthUser();
+  const username = authUser?.displayName || authUser?.email || '';
   const [loading, setLoading] = useState(false);
   const [activeGroup, setActiveGroup] = useState('panel');
   const [activeTab, setActiveTab] = useState('inicio');
@@ -112,7 +116,7 @@ export default function AdminPage() {
   // Config editable desde Sitio > Configurar Interfaz — si hay una guardada en
   // Firestore la usamos, si no seguimos con el default hardcodeado de arriba.
   useEffect(() => {
-    fetch('/api/nav-config?tree=admin')
+    adminFetch('/api/nav-config?tree=admin')
       .then(r => r.json())
       .then(data => {
         const merged = mergeNavWithDefaults(data.sections, ADMIN_NAV_DEFAULT, data.knownIds);
@@ -146,13 +150,34 @@ export default function AdminPage() {
 
   const router = useRouter();
 
-  // Check if already authenticated (session)
+  // Se entra SOLO con Google (desde 2026-11-26): la sesión de Firebase tiene que ser la cuenta ADMIN_EMAIL,
+  // y eso lo decide el servidor (/api/admin-me/). Todas las pantallas llaman a sus rutas con adminFetch.
   useEffect(() => {
-    const isAdmin = sessionStorage.getItem('adminAuth');
-    if (isAdmin === 'true') {
-      setIsAuthenticated(true);
+    if (authLoading) return;
+    if (!authUser) {
+      setIsAuthenticated(false);
+      sessionStorage.removeItem('adminAuth');
+      return;
     }
-  }, []);
+    let cancelado = false;
+    setVerificando(true);
+    adminFetch('/api/admin-me/')
+      .then(r => {
+        if (cancelado) return;
+        if (r.ok) {
+          sessionStorage.setItem('adminAuth', 'true'); // la leen KeywordExplorer y ProductQA para mostrar controles
+          setLoginError('');
+          setIsAuthenticated(true);
+        } else {
+          sessionStorage.removeItem('adminAuth');
+          setIsAuthenticated(false);
+          setLoginError(r.status === 403 ? `La cuenta ${authUser.email} no es la cuenta de administración.` : 'No se pudo verificar la sesión.');
+        }
+      })
+      .catch(() => { if (!cancelado) setLoginError('Error de conexión. Intentá de nuevo.'); })
+      .finally(() => { if (!cancelado) setVerificando(false); });
+    return () => { cancelado = true; };
+  }, [authLoading, authUser]);
 
   // Load data when authenticated — siempre via API route (Firebase Admin)
   useEffect(() => {
@@ -162,12 +187,10 @@ export default function AdminPage() {
       const loadData = async () => {
         setLoading(true);
         try {
-          const response = await fetch('/api/admin-get-data', {
+          const response = await adminFetch('/api/admin-get-data', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              username: sessionStorage.getItem('adminUsername'),
-              password: sessionStorage.getItem('adminPassword'),
             }),
           });
 
@@ -185,12 +208,10 @@ export default function AdminPage() {
           }
 
           // Load dashboard stats in background (non-blocking)
-          fetch('/api/dashboard-stats', {
+          adminFetch('/api/dashboard-stats', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              username: sessionStorage.getItem('adminUsername'),
-              password: sessionStorage.getItem('adminPassword'),
             }),
           }).then(r => r.ok ? r.json() : null).then(d => { if (d && !cancelled) setDashboardData(d); }).catch(() => {});
         } catch (error) {
@@ -208,40 +229,20 @@ export default function AdminPage() {
     }
   }, [isAuthenticated]);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     setLoginError('');
-    setLoading(true);
-
     try {
-      const response = await fetch('/api/admin-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (response.ok) {
-        sessionStorage.setItem('adminAuth', 'true');
-        sessionStorage.setItem('adminUsername', username);
-        sessionStorage.setItem('adminPassword', password);
-        setIsAuthenticated(true);
-      } else {
-        setLoginError('Usuario o contraseña incorrectos');
-      }
+      const r = await loginGoogle();
+      if (r && r.success === false && r.error) setLoginError(r.error);
     } catch {
-      setLoginError('Error de conexión. Intentá de nuevo.');
-    } finally {
-      setLoading(false);
+      setLoginError('No se pudo iniciar sesión con Google.');
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     sessionStorage.removeItem('adminAuth');
-    sessionStorage.removeItem('adminUsername');
-    sessionStorage.removeItem('adminPassword');
     setIsAuthenticated(false);
-    setUsername('');
-    setPassword('');
+    await firebaseAuth.logout();
   };
 
   const resetProducts = async () => {
@@ -253,11 +254,10 @@ export default function AdminPage() {
 
     try {
       setLoading(true);
-      const response = await fetch('/api/reset-products', {
+      const response = await adminFetch('/api/reset-products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminPassword: sessionStorage.getItem('adminPassword')
         })
       });
 
@@ -287,11 +287,10 @@ export default function AdminPage() {
 
     try {
       setLoading(true);
-      const response = await fetch('/api/update-all-descriptions', {
+      const response = await adminFetch('/api/update-all-descriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminPassword: sessionStorage.getItem('adminPassword')
         })
       });
 
@@ -353,11 +352,10 @@ export default function AdminPage() {
     const note = window.prompt(`Nota para el cliente sobre este cambio a "${ORDER_STAGES.find(s => s.id === stage)?.label}" (opcional, se incluye en el email):`, '') || '';
     try {
       setLoading(true);
-      const response = await fetch('/api/orders/update-stage', {
+      const response = await adminFetch('/api/orders/update-stage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminPassword: sessionStorage.getItem('adminPassword'),
           orderId: order.id,
           stage,
           note,
@@ -387,11 +385,10 @@ export default function AdminPage() {
         });
       } else {
         // PRODUCCIÓN: usar Netlify Function con Admin SDK
-        const response = await fetch('/api/update-product', {
+        const response = await adminFetch('/api/update-product', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            adminPassword: sessionStorage.getItem('adminPassword'),
             productId,
             updates
           })
@@ -422,12 +419,11 @@ export default function AdminPage() {
     try {
       // Borrado server-side: las reglas de Firestore son write:false para
       // `products`, asi que el SDK cliente da "permisos insuficientes".
-      const res = await fetch('/api/store-bulk', {
+      const res = await adminFetch('/api/store-bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'deleteOne',
-          adminPassword: sessionStorage.getItem('adminPassword'),
           id: productId,
         }),
       });
@@ -500,56 +496,29 @@ export default function AdminPage() {
           >
             <h1 className="text-xl font-bold mb-6" style={{ color: NAVY }}>Iniciar sesión</h1>
 
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-1.5" style={{ color: '#3d4a5c' }}>Usuario</label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  autoComplete="username"
-                  className={`w-full px-3.5 py-2.5 bg-white ${CUT_SM} text-sm focus:outline-none transition-colors`}
-                  style={{ border: `1px solid ${BORDER_CREAM}`, color: NAVY }}
-                  onFocus={e => e.target.style.borderColor = ACCENT}
-                  onBlur={e => e.target.style.borderColor = BORDER_CREAM}
-                  placeholder="Usuario"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-1.5" style={{ color: '#3d4a5c' }}>Contraseña</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  className={`w-full px-3.5 py-2.5 bg-white ${CUT_SM} text-sm focus:outline-none transition-colors`}
-                  style={{ border: `1px solid ${BORDER_CREAM}`, color: NAVY }}
-                  onFocus={e => e.target.style.borderColor = ACCENT}
-                  onBlur={e => e.target.style.borderColor = BORDER_CREAM}
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
+            <div className="space-y-4">
+              <p className="text-sm" style={{ color: '#6b7280' }}>Entrá con la cuenta de Google de administración.</p>
 
               {loginError && (
                 <div className={`${CUT_SM} px-3.5 py-2.5 text-sm`} style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626' }}>
                   {loginError}
+                  {authUser && (
+                    <button type="button" onClick={handleLogout} className="block mt-1.5 underline font-semibold">Cerrar esa sesión y entrar con otra cuenta</button>
+                  )}
                 </div>
               )}
 
               <button
-                type="submit"
-                disabled={loading}
-                className={`w-full py-3 ${CUT_SM} font-bold text-sm text-white transition-transform`}
-                style={{ background: loading ? '#9ca3af' : NAVY, cursor: loading ? 'not-allowed' : 'pointer' }}
-                onMouseEnter={e => { if (!loading) e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                type="button"
+                onClick={handleLogin}
+                disabled={authLoading || verificando}
+                className={`w-full py-3 ${CUT_SM} font-bold text-sm text-white flex items-center justify-center gap-2.5`}
+                style={{ background: authLoading || verificando ? '#9ca3af' : NAVY, cursor: authLoading || verificando ? 'not-allowed' : 'pointer' }}
               >
-                {loading ? 'Ingresando...' : 'Ingresar'}
+                <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.2-.1-2.3-.4-3.5z"/></svg>
+                {authLoading || verificando ? 'Verificando…' : 'Entrar con Google'}
               </button>
-            </form>
+            </div>
           </div>
 
           <button
@@ -735,6 +704,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'places-usage' && <PlacesUsagePanel />}
+        {activeTab === 'ai-keys' && <AiKeysPanel />}
 
         {activeTab === 'embudos' && <FunnelsPanel />}
 
@@ -1602,11 +1572,10 @@ function ProductCard({ product, onUpdate, onDelete, formatARS, compact = false }
   const addPexels = async () => {
     setAiBusy('pexels'); setAiMsg('');
     try {
-      const res = await fetch('/api/product-image-pexels', {
+      const res = await adminFetch('/api/product-image-pexels', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminPassword: sessionStorage.getItem('adminPassword'),
           id: product.id,
           name: product.name || product.title || '',
           category: product.category || '',
@@ -1937,8 +1906,7 @@ function AdminUsersPanel({ users, formatDate }) {
   useEffect(() => { setLocalUsers(users); }, [users]);
 
   useEffect(() => {
-    const adminPassword = sessionStorage.getItem('adminPassword');
-    fetch(`/api/admin-leadfinder-access?adminPassword=${encodeURIComponent(adminPassword)}`)
+    adminFetch(`/api/admin-leadfinder-access`)
       .then(r => r.json())
       .then(data => {
         setCompedUids(new Set(data.uids || []));
@@ -1959,11 +1927,10 @@ function AdminUsersPanel({ users, formatDate }) {
     setGrantingId(user.id);
     setActionResult(null);
     try {
-      const adminPassword = sessionStorage.getItem('adminPassword');
-      const res = await fetch('/api/admin-leadfinder-access', {
+      const res = await adminFetch('/api/admin-leadfinder-access', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminPassword, uid: user.id, credits: amount }),
+        body: JSON.stringify({ uid: user.id, credits: amount }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error');
@@ -1981,11 +1948,10 @@ function AdminUsersPanel({ users, formatDate }) {
     if (!isGranted && !confirm(`¿Dar acceso gratuito e ilimitado a Lead Finder Pro a ${user.displayName || user.email}?`)) return;
     setGrantingId(user.id);
     try {
-      const adminPassword = sessionStorage.getItem('adminPassword');
-      const res = await fetch('/api/admin-leadfinder-access', {
+      const res = await adminFetch('/api/admin-leadfinder-access', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminPassword, uid: user.id, grant: !isGranted }),
+        body: JSON.stringify({ uid: user.id, grant: !isGranted }),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Error');
       setCompedUids(prev => {

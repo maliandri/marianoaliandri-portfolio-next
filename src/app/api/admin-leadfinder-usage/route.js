@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/firebase-admin';
+import { requireAdmin } from '@/lib/adminAuth';
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 // Caps actuales configurados a mano en Google Cloud Console (Places API > Cuotas).
 // Si los cambiás ahí, actualizá también acá para que las barras reflejen el techo real.
@@ -15,10 +15,8 @@ function dateKey(d) { return d.toISOString().slice(0, 10); }
 
 export async function GET(request) {
   try {
-    const adminPassword = new URL(request.url).searchParams.get('adminPassword');
-    if (adminPassword !== ADMIN_PASSWORD || !ADMIN_PASSWORD) {
-      return Response.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
 
     const db = getDb();
     if (!db) return Response.json({ today: null, days: [], caps: CAPS });

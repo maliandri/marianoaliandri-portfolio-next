@@ -2,9 +2,8 @@ export const dynamic = 'force-dynamic';
 
 import { getDb } from '@/lib/firebase-admin';
 import { fetchGSC, fetchGA4 } from '@/lib/siteStats';
+import { requireAdmin } from '@/lib/adminAuth';
 
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 function unauthorized() {
   return Response.json({ error: 'No autorizado' }, { status: 401 });
@@ -12,9 +11,8 @@ function unauthorized() {
 
 export async function POST(request) {
   try {
-    const { username, password } = await request.json();
-    if (!ADMIN_USERNAME || !ADMIN_PASSWORD) return unauthorized();
-    if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) return unauthorized();
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
 
     const [noticiasResult, reelsResult, auditoriasResult, presupuestosResult, gscResult, ga4Result] =
       await Promise.allSettled([

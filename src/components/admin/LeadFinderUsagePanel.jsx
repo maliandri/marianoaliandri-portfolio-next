@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { adminFetch } from '@/utils/adminFetch';
 
 function Bar({ used, cap, color }) {
   const pct = cap ? Math.min(100, Math.round((used / cap) * 100)) : 0;
@@ -16,8 +17,7 @@ export default function LeadFinderUsagePanel() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const adminPassword = sessionStorage.getItem('adminPassword');
-    fetch(`/api/admin-leadfinder-usage?adminPassword=${encodeURIComponent(adminPassword)}`)
+    adminFetch(`/api/admin-leadfinder-usage`)
       .then(r => r.json())
       .then(d => { if (d.error) throw new Error(d.error); setData(d); })
       .catch(e => setError(e.message));

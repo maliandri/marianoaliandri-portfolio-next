@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
+import { requireAdmin } from '@/lib/adminAuth';
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 // Palabras clave por categoría para buscar una foto relevante en Pexels.
 const CATEGORY_QUERY = {
@@ -12,13 +12,12 @@ const CATEGORY_QUERY = {
 };
 
 // Busca una foto gratuita en Pexels y la guarda como imagen del producto.
-// POST { adminPassword, id, name, description, category, query? }
+// POST (admin) { id, name, description, category, query? }
 export async function POST(request) {
   try {
-    const { adminPassword, id, name = '', category = '', query } = await request.json();
-    if (adminPassword !== ADMIN_PASSWORD) {
-      return Response.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    const { id, name = '', category = '', query } = await request.json();
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
     if (!id) return Response.json({ error: 'Falta el ID del producto' }, { status: 400 });
 
     const apiKey = process.env.PEXELS_API_KEY;

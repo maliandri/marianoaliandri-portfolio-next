@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import admin, { getDb } from '@/lib/firebase-admin';
+import { requireAdmin } from '@/lib/adminAuth';
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const MAX_GIFT_CREDITS = 10000;
 
 // Otorga o revoca acceso gratuito ("comped") a Lead Finder Pro para un usuario puntual —
@@ -10,10 +10,9 @@ const MAX_GIFT_CREDITS = 10000;
 // la misma colección que va a leer el enforcement real de cuota una vez que exista.
 export async function POST(request) {
   try {
-    const { adminPassword, uid, grant, note, credits } = await request.json();
-    if (adminPassword !== ADMIN_PASSWORD || !ADMIN_PASSWORD) {
-      return Response.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    const { uid, grant, note, credits } = await request.json();
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
     if (!uid) return Response.json({ error: 'uid requerido' }, { status: 400 });
 
     const db = getDb();
@@ -59,10 +58,8 @@ export async function POST(request) {
 // GET — estado actual de todos los grants comped (para pintar el badge en la lista de usuarios)
 export async function GET(request) {
   try {
-    const adminPassword = new URL(request.url).searchParams.get('adminPassword');
-    if (adminPassword !== ADMIN_PASSWORD || !ADMIN_PASSWORD) {
-      return Response.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
     const db = getDb();
     const [compedSnap, creditsSnap] = await Promise.all([
       db.collection('leadfinder_entitlements').where('plan', '==', 'comped').get(),

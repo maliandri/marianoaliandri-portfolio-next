@@ -5,13 +5,11 @@ import { RUBROS } from '@/data/rubros';
 import { analyzeAll, rankAnalyzed } from '@/lib/rubroDemand';
 import { getUserFromRequest } from '@/lib/authServer';
 import { consumeSearch } from '@/lib/entitlements';
+import { isAdminEmail } from '@/lib/adminAuth';
 
 // Cuenta admin registrada (misma que /api/lead-finder) — sin límite de cuota acá.
 // El autocompletado de Google es gratis (sin riesgo de facturación como Places API),
 // así que el único motivo del límite es evitar abuso de terceros, no el costo.
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || null;
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 export async function POST(request) {
   try {
@@ -21,17 +19,8 @@ export async function POST(request) {
       return Response.json({ error: 'Falta la localidad' }, { status: 400 });
     }
 
-    // Bypass admin: si viene username/password del panel admin, saltear Firebase y cuota
-    const adminBypass =
-      ADMIN_USERNAME &&
-      ADMIN_PASSWORD &&
-      body.adminUsername === ADMIN_USERNAME &&
-      body.adminPassword === ADMIN_PASSWORD;
-
     let quota;
-    if (adminBypass) {
-      quota = { allowed: true, plan: 'admin', remaining: null };
-    } else {
+    {
       // 1) Autenticación: requiere idToken de Firebase (no se puede evadir desde el cliente)
       const user = await getUserFromRequest(request);
       if (!user) {
@@ -40,7 +29,7 @@ export async function POST(request) {
 
       // 2) Cuota: consume una búsqueda del plan del usuario (transacción atómica) —
       // salvo la cuenta admin, que no tiene límite.
-      const isAdmin = ADMIN_EMAIL && user.email === ADMIN_EMAIL;
+      const isAdmin = user.emailVerified && isAdminEmail(user.email);
       quota = isAdmin ? { allowed: true, plan: 'admin', remaining: null } : await consumeSearch(user.uid);
     }
     if (!quota.allowed) {

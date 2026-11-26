@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import admin, { getDb } from '@/lib/firebase-admin';
 import { Resend } from 'resend';
+import { requireAdmin } from '@/lib/adminAuth';
 
 // Ver docs/superpowers/specs/2026-09-22-area-cliente-design.md — Sección 3.
 const STAGES = ['pago_confirmado', 'en_desarrollo', 'en_revision', 'entregado'];
@@ -36,12 +37,9 @@ async function notifyCustomerOfStageChange(orderId, customerEmail, stage, note) 
 
 export async function POST(request) {
   try {
-    const { adminPassword, orderId, stage, note } = await request.json();
-    // Se lee acá adentro (no a nivel de módulo) para que el valor real de la env var se
-    // evalúe en cada request, mismo motivo que getDb() en payment-webhook/route.js.
-    if (!adminPassword || !process.env.ADMIN_PASSWORD || adminPassword !== process.env.ADMIN_PASSWORD) {
-      return Response.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    const { orderId, stage, note } = await request.json();
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
     if (!orderId) return Response.json({ error: 'orderId requerido' }, { status: 400 });
     if (!STAGES.includes(stage)) {
       return Response.json({ error: `stage debe ser uno de: ${STAGES.join(', ')}` }, { status: 400 });

@@ -18,7 +18,7 @@ const MAX_NEGOCIOS_OPTIONS = [20, 40, 60, 100];
 const DEFAULT_MAX_NEGOCIOS = 40;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const ADMIN_EMAIL_HINT = 'yo@marianoaliandri.com.ar';
+const ADMIN_EMAIL_HINT = 'marianoaliandri@gmail.com'; // la cuenta admin (ADMIN_EMAIL)
 
 // Paleta de status validada (dataviz skill) — mismos roles good/warning/critical,
 // nunca reusados como serie categórica. Coincide con los cortes de scoreColor

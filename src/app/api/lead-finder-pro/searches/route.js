@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { getUserFromRequest } from '@/lib/authServer';
 import { getDb } from '@/lib/firebase-admin';
 import { listSearches, getSearch, saveSearch, deleteSearch } from '@/lib/leadSearchesStore';
+import { isAdminEmail } from '@/lib/adminAuth';
 
 // Historial de búsquedas por cliente (lógica en src/lib/leadSearchesStore.js, compartida con el MCP).
 
@@ -35,7 +36,7 @@ export async function POST(request) {
   try { body = await request.json(); } catch { return Response.json({ error: 'JSON inválido' }, { status: 400 }); }
   if (!Array.isArray(body.results) || !body.results.length) return Response.json({ error: 'results vacío' }, { status: 400 });
 
-  const isAdmin = !!process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL;
+  const isAdmin = isAdminEmail(user.email);
   // `via` no se acepta desde el navegador: solo lo marca el servidor MCP.
   const { via: _via, ...fields } = body;
   const id = await saveSearch(db, user.uid, fields, { isAdmin });

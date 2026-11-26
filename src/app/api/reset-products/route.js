@@ -1,8 +1,8 @@
 export const dynamic = 'force-dynamic';
 import admin, { getDb } from '@/lib/firebase-admin';
+import { requireAdmin } from '@/lib/adminAuth';
 const db = getDb();
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 const products = [
   { id: 'roi-consulting', name: 'Consulta Personalizada ROI', description: 'Análisis de retorno de inversión personalizado', priceUSD: 100, category: 'consulting', serviceType: 'roi-calculator', active: true },
@@ -19,11 +19,8 @@ const products = [
 
 export async function POST(request) {
   try {
-    const { adminPassword } = await request.json();
-
-    if (adminPassword !== ADMIN_PASSWORD) {
-      return Response.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
 
     const productsSnapshot = await db.collection('products').get();
     await Promise.all(productsSnapshot.docs.map(doc => doc.ref.delete()));

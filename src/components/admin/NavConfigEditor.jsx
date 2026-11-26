@@ -4,12 +4,9 @@ import { useState, useEffect } from 'react';
 import { ADMIN_NAV_DEFAULT } from '@/data/adminNav';
 import { CLIENT_NAV_DEFAULT } from '@/data/clientNav';
 import { mergeNavWithDefaults, allNavIds } from '@/lib/navMerge';
+import { adminFetch } from '@/utils/adminFetch';
 
 const DEFAULTS = { admin: ADMIN_NAV_DEFAULT, client: CLIENT_NAV_DEFAULT };
-
-function getAdminPassword() {
-  return typeof window !== 'undefined' ? sessionStorage.getItem('adminPassword') : '';
-}
 
 function slugify(s) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `sec-${Date.now()}`;
@@ -41,7 +38,7 @@ export default function NavConfigEditor() {
 
   const load = (t) => {
     setLoading(true);
-    fetch(`/api/nav-config?tree=${t}`)
+    adminFetch(`/api/nav-config?tree=${t}`)
       .then(r => r.json())
       .then(data => setSections(mergeNavWithDefaults(data.sections, DEFAULTS[t], data.knownIds) || DEFAULTS[t]))
       .catch(() => setSections(DEFAULTS[t]))
@@ -124,11 +121,10 @@ export default function NavConfigEditor() {
     setSaving(true);
     setMsg(null);
     try {
-      const adminPassword = getAdminPassword();
-      const res = await fetch('/api/nav-config', {
+      const res = await adminFetch('/api/nav-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminPassword, tree, sections, knownIds: [...allNavIds(DEFAULTS[tree])] }),
+        body: JSON.stringify({ tree, sections, knownIds: [...allNavIds(DEFAULTS[tree])] }),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Error');
       setMsg({ type: 'ok', text: 'Guardado. El menú se actualiza en la próxima carga de página.' });

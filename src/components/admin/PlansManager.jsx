@@ -5,10 +5,7 @@ import * as XLSX from 'xlsx';
 import LeadFinderUsagePanel from './LeadFinderUsagePanel';
 import LeadFinderPlansManager from './LeadFinderPlansManager';
 import AnaliticaPlansEditor from './AnaliticaPlansEditor';
-
-function getAdminPassword() {
-  return typeof window !== 'undefined' ? sessionStorage.getItem('adminPassword') : '';
-}
+import { adminFetch } from '@/utils/adminFetch';
 
 const SHEET_LFP = 'Lead Finder Pro';
 const SHEET_ANA = 'Analitica';
@@ -46,7 +43,6 @@ export default function PlansManager() {
     if (!file) return;
     setImporting(true);
     setImportMsg(null);
-    const adminPassword = getAdminPassword();
     let created = 0, updated = 0, skipped = 0, errors = [];
 
     try {
@@ -69,18 +65,18 @@ export default function PlansManager() {
           if (!plan.name) { skipped++; continue; }
           try {
             if (row.id) {
-              const res = await fetch('/api/leadfinder-plans', {
+              const res = await adminFetch('/api/leadfinder-plans', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminPassword, id: row.id, plan }),
+                body: JSON.stringify({ id: row.id, plan }),
               });
               if (!res.ok) throw new Error((await res.json()).error);
               updated++;
             } else {
-              const res = await fetch('/api/leadfinder-plans', {
+              const res = await adminFetch('/api/leadfinder-plans', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminPassword, plan }),
+                body: JSON.stringify({ plan }),
               });
               if (!res.ok) throw new Error((await res.json()).error);
               created++;
@@ -97,11 +93,11 @@ export default function PlansManager() {
         for (const row of rows) {
           if (!ANALITICA_IDS.includes(row.id)) { skipped++; continue; }
           try {
-            const res = await fetch('/api/analitica-plans', {
+            const res = await adminFetch('/api/analitica-plans', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                adminPassword, id: row.id,
+                id: row.id,
                 price: Number(row.PrecioARS) || 0,
                 limit: row.Cuota === '' || row.Cuota === undefined ? null : Number(row.Cuota),
               }),

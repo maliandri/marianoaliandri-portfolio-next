@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardGrid from '@/components/dashboard/DashboardGrid';
 import DashboardPublisher from '@/components/dashboard/DashboardPublisher';
+import { adminFetch } from '../utils/adminFetch';
+import { useAuthUser } from '../hooks/useAuthUser';
 
 export default function DashboardPage() {
   const router  = useRouter();
@@ -12,26 +14,32 @@ export default function DashboardPage() {
   const [error, setError]     = useState(null);
   const [refreshedAt, setRefreshedAt] = useState(null);
 
+  const { user, loading: authLoading } = useAuthUser();
+
   function load() {
-    const username = sessionStorage.getItem('adminUsername');
-    const password = sessionStorage.getItem('adminPassword');
     setLoading(true);
     setError(null);
-    fetch('/api/dashboard-stats', {
+    adminFetch('/api/dashboard-stats', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({}),
     })
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(r => {
+        if (r.status === 401 || r.status === 403) { router.replace('/admin'); throw new Error('Iniciá sesión como admin'); }
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(d => { setData(d); setRefreshedAt(new Date()); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }
 
+  // Sesión de Google de la cuenta admin (la verifica el servidor); sin sesión, a la puerta del admin.
   useEffect(() => {
-    if (sessionStorage.getItem('adminAuth') !== 'true') { router.replace('/admin'); return; }
+    if (authLoading) return;
+    if (!user) { router.replace('/admin'); return; }
     load();
-  }, [router]);
+  }, [authLoading, user, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const now = refreshedAt
     ? refreshedAt.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })

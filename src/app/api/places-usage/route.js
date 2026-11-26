@@ -1,15 +1,14 @@
 export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/firebase-admin';
+import { requireAdmin } from '@/lib/adminAuth';
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 // Devuelve los contadores diarios de leadfinder_usage de un mes (YYYY-MM).
 export async function POST(request) {
   try {
-    const { adminPassword, month } = await request.json();
-    if (!ADMIN_PASSWORD || adminPassword !== ADMIN_PASSWORD) {
-      return Response.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    const { month } = await request.json();
+    const { response: noAdmin } = await requireAdmin(request);
+    if (noAdmin) return noAdmin;
     if (!/^\d{4}-\d{2}$/.test(month || '')) {
       return Response.json({ error: 'month inválido (YYYY-MM)' }, { status: 400 });
     }
