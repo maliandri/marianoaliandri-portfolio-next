@@ -8,7 +8,7 @@ import { conRespaldo } from '@/lib/ai/gemini';
 import { historialAMensajes } from '@/lib/ai/chatHistory';
 import { claveValida } from '@/lib/auditClave';
 import { contextoAsesor, herramientasAsesor, formularioDe, sinMontos } from '@/lib/ai/auditAsesor';
-import { sendTelegram } from '@/lib/telegram';
+import { registrarMensaje, avisarChat, idValido } from '@/lib/chatVivo';
 import { auditoriaLink } from '@/lib/auditPitch';
 
 const MAX_MENSAJE = 1000;
@@ -40,13 +40,27 @@ export async function POST(request) {
     const historial = historialAMensajes(crudo
       .map(m => ({ role: m?.rol === 'asistente' ? 'model' : 'user', parts: [{ text: String(m?.texto || '') }] })));
 
-    // Primer mensaje del cliente: aviso a Mariano (no bloquea la respuesta si falla).
-    if (!crudo.some(m => m?.rol === 'cliente')) {
-      const neg = (auditoria.results || []).find(r => r.id === negocioId);
-      sendTelegram({
+    // Chat en vivo: se guarda cada mensaje; si Mariano tomó el control, la IA no contesta (le llega a él).
+    const neg = (auditoria.results || []).find(r => r.id === negocioId);
+    const informeUrl = auditoriaLink(id, negocioId, auditoria.clave);
+    const chatId = idValido(body?.chatId) ? body.chatId : null;
+    let chat = { estado: 'ia', nuevo: !crudo.some(m => m?.rol === 'cliente') };
+    if (chatId) {
+      chat = await registrarMensaje(db, chatId, { rol: 'cliente', texto: mensaje }, {
+        origen: 'auditoria', titulo: neg?.nombre || auditoria.title || 'Auditoría', contexto: { auditoriaId: id, negocioId, url: informeUrl },
+      }).catch(() => chat);
+    }
+    if (chat.estado === 'humano') {
+      return Response.json({ respuesta: null, humano: true, formulario: null }, { headers: { 'Cache-Control': 'no-store' } });
+    }
+
+    // Primer mensaje del cliente: aviso a Mariano con el botón para entrar al chat (no bloquea la respuesta).
+    if (chat.nuevo && chatId) {
+      avisarChat({
+        id: chatId,
         texto: `💬 ${neg?.nombre || 'Alguien'} está hablando con el asistente de su auditoría (${auditoria.title || id}).\n\n"${mensaje.slice(0, 300)}"`,
-        botones: [{ texto: 'Ver el informe', url: auditoriaLink(id, negocioId, auditoria.clave) }],
-      }).catch(() => {});
+        extra: [{ texto: 'Ver el informe', url: informeUrl }],
+      });
     }
 
     const result = await conRespaldo((model, timeout) => generateText({
@@ -64,6 +78,7 @@ export async function POST(request) {
     const formulario = formularioDe(result.steps);
     const respuesta = sinMontos(result.text?.trim()
       || (formulario ? 'Genial. Dejame tu nombre y cómo te contactamos acá abajo, y Mariano te escribe hoy.' : '¿Me contás un poco más de tu negocio así te oriento?'));
+    if (chatId) await registrarMensaje(db, chatId, { rol: 'asistente', texto: respuesta }).catch(() => {});
     return Response.json({ respuesta, formulario }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
     console.error('[auditorias/asesor]', e?.message);

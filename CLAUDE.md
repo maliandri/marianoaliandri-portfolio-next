@@ -330,6 +330,12 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
     usan `auditReportUrl(id, clave)`. `GET /api/auditorias` (listado y detalle con emails) es solo admin; sin admin solo devuelve
     casos demo sin datos de contacto. Las auditorías viejas reciben su clave la primera vez que el admin o el MCP las listan
     (`asegurarClave`). El chat flotante del sitio no se monta en `/auditorias/*`.
+  - **Chat en vivo / tomar el control (desde 2026-11-26)**: las charlas del asistente de la tienda (`tienda_<visita>`) y del
+    asesor de la auditoría (`auditoria_<random>`, en sessionStorage) se guardan en `chats_vivo/{id}` + `mensajes`
+    (`src/lib/chatVivo.js`). Telegram trae el botón **"💬 Entrar al chat"** (aviso de la visita de la tienda y primer mensaje
+    del asesor) → `/admin/chat/<id>/` (login Google de admin, pensado para celular): ve la charla, "Tomar el control" /
+    "Devolver a la IA" y escribe (`/api/chat-vivo/admin/`). Con `estado: 'humano'` las rutas de IA no contestan
+    (`humano: true`) y el navegador del cliente trae lo de Mariano cada 5 s (`/api/chat-vivo/`, `useChatVivo`).
   - Tabla del informe NO muestra email/telefono/direccion (privacidad)
   - Admin tab "Auditorias": lista/elimina, expande detalle con email visible
   - Boton "✉ Enviar" por negocio: Gemini genera email personalizado → Resend lo envia
@@ -622,6 +628,7 @@ Siempre usar: `printf "VALUE" | vercel env add VAR production`
 | `reels` / `reels_config` | Reels renderizados (video, caption, tipo, fuente, estado, redes) y config (activo = publica solo, ultimoTipo) | Scripts de Actions / admin |
 | `guiones_semana` | Guiones de reels mandados cada lunes | Solo Admin SDK |
 | `agente_runs` (+ subcolección `eventos`) | Corridas del agente de prospección: objetivo, estado (corriendo/listo/error/cortado), informe, borradores y cada paso en vivo | Solo Admin SDK (`src/lib/ai/agentRuns.js`) |
+| `chats_vivo` (+ `mensajes`) | Charlas del asistente de la tienda y del asesor de auditorías: estado `ia`/`humano`, último mensaje; Mariano entra desde Telegram | Solo Admin SDK (`src/lib/chatVivo.js`) |
 | `alertas` | Una por clave de alerta: último envío, total y repeticiones suprimidas (tope 1 mail/hora) | Solo Admin SDK (`src/lib/alert.js`) |
 | `social_stats` | Una foto por red y día de los seguidores (`instagram_YYYY-MM-DD`), para ver el crecimiento | Solo Admin SDK (MCP `get_instagram_stats`) |
 | `mcp_rate` / `mcp_tool_calls` | Rate limiting y registro de cada llamada a una tool del MCP (args sin datos sensibles, `tipoError` conocido/interno) | Solo Admin SDK |
