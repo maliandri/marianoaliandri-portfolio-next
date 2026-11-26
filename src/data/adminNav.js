@@ -51,6 +51,7 @@ export const ADMIN_NAV_DEFAULT = [
     { id: 'agente-prospeccion', label: 'Agente de prospección', icon: '🧠' },
     { id: 'leads-map', label: 'Mapa de Leads', icon: '📍' },
     { id: 'places-usage', label: 'Consumo Google', icon: '📈' },
+    { id: 'ai-keys', label: 'Claves de IA', icon: '🔑' },
     { id: 'leadfinder-plans', label: 'Planes', icon: '💳' },
     { id: 'zonas', label: 'Zonas', icon: '🗺️' },
     { id: 'auditorias', label: 'Auditorías', icon: '📋' },

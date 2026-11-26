@@ -36,6 +36,7 @@ import { useLinkedInStatus, useLinkedInProfile, useLinkedInPosts, useLinkedInAna
 import { ADMIN_NAV_DEFAULT } from '../data/adminNav';
 import { mergeNavWithDefaults } from '../lib/navMerge';
 import PlacesUsagePanel from '../components/admin/PlacesUsagePanel';
+import AiKeysPanel from '../components/admin/AiKeysPanel';
 import FunnelsPanel from '../components/admin/FunnelsPanel';
 import InstagramProspects from '../components/leadfinder/admin/InstagramProspects';
 import InstagramFollowers from '../components/admin/InstagramFollowers';
@@ -735,6 +736,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'places-usage' && <PlacesUsagePanel />}
+        {activeTab === 'ai-keys' && <AiKeysPanel />}
 
         {activeTab === 'embudos' && <FunnelsPanel />}
 
