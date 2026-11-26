@@ -1,6 +1,7 @@
 'use client';
 
 import AdminIcon, { SECTION_ICON } from './AdminIcon';
+import { Tiles } from '../shell/AppShell';
 
 const SECTION_DESC = {
   panel: 'Métricas del sitio, ventas y visitas',
@@ -22,9 +23,9 @@ export default function AdminHome({ navTree, username, onGo }) {
 
   return (
     <div>
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-7">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-6 sm:mb-7">
         <div>
-          <h1 className="text-[28px] font-extrabold tracking-tight" style={{ color: 'var(--sh-ink)' }}>
+          <h1 className="text-[22px] sm:text-[28px] font-extrabold tracking-tight" style={{ color: 'var(--sh-ink)' }}>
             Hola, {name} 👋
           </h1>
           <p className="mt-1 first-letter:uppercase" style={{ color: 'var(--sh-muted)' }}>
@@ -37,8 +38,18 @@ export default function AdminHome({ navTree, username, onGo }) {
         </span>
       </div>
 
-      <div className="sh-eyebrow mb-3">Accesos rápidos</div>
-      <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
+      {/* Celular: todas las herramientas como íconos de app, agrupadas por sección */}
+      <div className="sm:hidden space-y-6">
+        {sections.map(s => (
+          <section key={s.id}>
+            <div className="sh-eyebrow mb-2.5">{s.label}</div>
+            <Tiles section={s} onPick={(_, item) => onGo(item.id)} />
+          </section>
+        ))}
+      </div>
+
+      <div className="sh-eyebrow mb-3 hidden sm:block">Accesos rápidos</div>
+      <div className="hidden sm:grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
         {sections.map(s => (
           <button
             key={s.id}

@@ -967,24 +967,62 @@ html {
 .sh-card { background: var(--sh-paper); border: 1px solid var(--sh-line); border-radius: 16px; box-shadow: var(--sh-shadow); }
 .sh-eyebrow { font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--sh-muted); }
 
+/* Pantallas como íconos de app (hoja del celular y launcher del inicio). */
+.sh-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 8px; }
+.sh-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 2px; border-radius: 14px; text-align: center; -webkit-tap-highlight-color: transparent; }
+.sh-tile-ic { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; background: var(--sh-paper); border: 1px solid var(--sh-line); color: var(--sh-accent-hi); box-shadow: var(--sh-shadow); transition: transform .12s; }
+.sh-tile:active .sh-tile-ic { transform: scale(.94); }
+.sh-tile[aria-current="true"] .sh-tile-ic { background: var(--sh-accent); border-color: var(--sh-accent); color: #fff; }
+.sh-tile-l { font-size: 11.5px; font-weight: 600; line-height: 1.2; color: var(--sh-ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+
+.sh-mtop, .sh-mbar, .sh-sheet { display: none; }
+
+/* Celular "como una app" (2026-11-26): sin columna lateral; barra de arriba con la pantalla actual, barra de
+   abajo fija con las secciones y una hoja desde abajo con las pantallas como íconos. */
 @media (max-width: 820px) {
   .app-shell { grid-template-columns: minmax(0, 1fr); }
-  .sh-side { position: sticky; top: 0; height: auto; min-width: 0; }
-  .sh-brand { margin: 0; border-radius: 0; padding: 10px 16px; background: var(--sh-navy); color: #fff; }
-  .sh-brand-logo { background: #fff; color: #12182b; width: 30px; height: 30px; }
-  .sh-brand-s { color: var(--sh-navy-text); }
-  .sh-search, .sh-label, .sh-foot-desktop { display: none; }
-  .sh-sections { display: flex; gap: 6px; overflow-x: auto; padding: 0 16px 10px; scrollbar-width: none; flex: none; }
-  .sh-sections::-webkit-scrollbar { display: none; }
-  .sh-sections li { flex-shrink: 0; }
-  .sh-sec { padding: 7px 12px; font-size: 12.5px; border: 1px solid var(--sh-navy-line); border-radius: 999px; gap: 7px; }
-  .sh-sec-count { display: none; }
-  .sh-strip-wrap { position: relative; }
-  .sh-strip { padding: 8px 16px 0; }
+  .sh-side, .sh-desktop-only { display: none; }
+
+  .sh-mtop { display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 30; padding: 10px 12px 10px 16px;
+    padding-top: max(10px, env(safe-area-inset-top)); background: var(--sh-navy); color: #fff; }
+  .sh-mtop .sh-brand-logo { width: 30px; height: 30px; background: #fff; color: #12182b; border-radius: 9px; font-size: 14px; }
+  .sh-mtop-t { font-weight: 800; font-size: 15px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sh-mtop-s { font-size: 11px; color: var(--sh-navy-text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sh-mtop .sh-ibtn { width: 38px; height: 38px; }
+
+  .sh-strip-wrap { position: sticky; top: calc(50px + env(safe-area-inset-top)); z-index: 20; }
+  .sh-strip { padding: 8px 12px 0; }
   .sh-ftab { padding: 9px 12px 10px; font-size: 12.5px; }
-  .sh-content { padding: 18px 16px 40px; }
+  .sh-content { padding: 16px 14px calc(96px + env(safe-area-inset-bottom)); }
   .sh-ph h1 { font-size: 20px; }
+  .sh-ph { margin-bottom: 16px; }
+  .sh-crumb { display: none; }
+
+  .sh-mbar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--sh-paper);
+    border-top: 1px solid var(--sh-line); padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    box-shadow: 0 -6px 24px rgba(18,24,43,.08); }
+  .sh-mbar-b { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 2px;
+    border-radius: 12px; color: var(--sh-muted); font-size: 10.5px; font-weight: 700; -webkit-tap-highlight-color: transparent; }
+  .sh-mbar-b span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sh-mbar-b[aria-current="true"] { color: var(--sh-accent-hi); background: var(--sh-accent-soft); }
+  .sh-mbar-mas { font-size: 15px; letter-spacing: 1px; line-height: 21px; height: 21px; }
+
+  .sh-sheet { display: block; position: fixed; inset: 0; z-index: 35; }
+  .sh-sheet-bg { position: absolute; inset: 0; width: 100%; background: rgba(8,12,24,.45); animation: sh-fade .15s ease-out; }
+  .sh-sheet-panel { position: absolute; left: 0; right: 0; bottom: calc(62px + env(safe-area-inset-bottom)); max-height: 72vh; overflow-y: auto;
+    background: var(--sh-cream); border-radius: 22px 22px 0 0; padding: 8px 16px 18px; box-shadow: 0 -12px 40px rgba(0,0,0,.25);
+    animation: sh-up .2s ease-out; overscroll-behavior: contain; }
+  .sh-sheet-grip { width: 38px; height: 4px; border-radius: 99px; background: var(--sh-line); margin: 2px auto 12px; }
+  .sh-sheet-t { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--sh-muted); margin: 2px 2px 12px; }
+  .sh-sheet-sec + .sh-sheet-sec { margin-top: 20px; }
+  .sh-sheet .sh-search { display: block; margin: 0 0 16px; }
+  .sh-sheet .sh-search input { background: var(--sh-paper); color: var(--sh-ink); border-color: var(--sh-line); padding: 11px 12px 11px 34px; font-size: 14px; }
+  .sh-sheet .sh-search input::placeholder { color: var(--sh-faint); }
+  .sh-sheet .sh-search kbd { display: none; }
+  .sh-sheet .sh-search > svg { color: var(--sh-faint); }
 }
+@keyframes sh-up { from { transform: translateY(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+@keyframes sh-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (min-width: 821px) { .sh-foot-mobile { display: none; } }
 @media (prefers-reduced-motion: reduce) { .app-shell * { transition: none !important; } }
 
