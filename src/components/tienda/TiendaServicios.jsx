@@ -21,7 +21,8 @@ const msg = (rol, texto, extra = {}) => ({ id: `m${++seq}`, rol, texto, ...extra
 const SALUDO = 'Hola 👋 Soy el asistente de Mariano. Marcá a la izquierda lo que te interese y te explico para qué sirve. Si no sabés por dónde arrancar, contame a qué se dedica tu negocio.';
 const SUGERENCIAS = ['Tengo un local y quiero vender online', '¿Cómo es el proceso?', '¿Cuánto tarda una web?'];
 
-export default function TiendaServicios({ catalogo = [] }) {
+// encabezado: título de la página; va arriba de la lista para que en la compu el asistente arranque arriba de todo.
+export default function TiendaServicios({ catalogo = [], encabezado = null }) {
   const items = useMemo(() => catalogo.flatMap(c => c.items), [catalogo]);
   const mapa = useMemo(() => new Map(items.map(s => [s.id, s])), [items]);
   const grupos = useMemo(() => agruparPorObjetivo(items), [items]);
@@ -191,13 +192,16 @@ export default function TiendaServicios({ catalogo = [] }) {
   );
 
   return (
+    // Compu: scrollea toda la página y el chat queda flotando a la derecha, entero dentro de la pantalla (arranca
+    // a la altura del título porque el encabezado va en la columna izquierda). Pedido de Mariano 2026-11-26.
     <div className="max-w-7xl mx-auto px-4 pb-28 lg:pb-16 grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] items-start">
       <div className="min-w-0">
+        {encabezado}
         <ListaServicios grupos={grupos} marcados={marcados} agregadosPor={agregadosPor} onToggle={toggle} onPreguntar={(s) => { preguntar(s); setHojaAbierta(true); }} onReceta={receta} />
       </div>
 
       {/* Escritorio: asistente fijo al costado */}
-      <aside className="hidden lg:block sticky top-20 h-[calc(100dvh-6rem)]">{asistente}</aside>
+      <aside className="hidden lg:block lg:sticky lg:top-24 lg:h-[calc(100dvh-7rem)]">{asistente}</aside>
 
       {/* Celular: barra inferior + asistente como hoja */}
       <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-card/95 backdrop-blur border-t border-fg/10 px-4 py-3 flex items-center gap-2"
