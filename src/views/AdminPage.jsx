@@ -101,6 +101,14 @@ function PresupuestosTab({ sub, onOpenNuevo }) {
   );
 }
 
+function pushAdminUrl(tabId, subId) {
+  const q = new URLSearchParams();
+  if (tabId && tabId !== 'inicio') q.set('tab', tabId);
+  if (subId) q.set('sub', subId);
+  const url = `/admin/${q.toString() ? `?${q}` : ''}`;
+  if (url !== window.location.pathname + window.location.search) window.history.pushState(null, '', url);
+}
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginError, setLoginError] = useState('');
@@ -128,13 +136,30 @@ export default function AdminPage() {
 
   // Navega a un tab resolviendo automáticamente su grupo (nivel 1) y su primer
   // sub-tab (nivel 3, si tiene). Único punto de entrada para cambiar de pantalla.
-  const goToTab = (tabId, subId) => {
+  // La pantalla va en la URL (?tab=&sub=) para que "atrás" del navegador o del celular se mueva
+  // entre pantallas del admin. Antes la URL era siempre /admin/ y "atrás" sacaba del panel a la
+  // página anterior del historial (ej. el área de cliente con el catálogo de Mood Fit).
+  const goToTab = (tabId, subId, { push = true } = {}) => {
     const loc = findNavLocation(navTree, tabId);
     if (!loc) return;
+    const sub = subId ?? loc.item.children?.[0]?.id ?? null;
     setActiveGroup(loc.group.id);
     setActiveTab(tabId);
-    setActiveSubTab(subId ?? loc.item.children?.[0]?.id ?? null);
+    setActiveSubTab(sub);
+    if (push) pushAdminUrl(tabId, sub);
   };
+
+  // Al entrar (o recargar) abre la pantalla de la URL, y "atrás"/"adelante" vuelven a la que corresponde.
+  useEffect(() => {
+    const applyUrl = () => {
+      const q = new URLSearchParams(window.location.search);
+      goToTab(q.get('tab') || 'inicio', q.get('sub') || undefined, { push: false });
+    };
+    applyUrl();
+    window.addEventListener('popstate', applyUrl);
+    return () => window.removeEventListener('popstate', applyUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navTree]);
 
   // Data states
   const [users, setUsers] = useState([]);
@@ -579,7 +604,7 @@ export default function AdminPage() {
             label={TAB_MAP[activeTab].label}
             items={(findNavLocation(navTree, activeTab)?.item.children || TAB_MAP[activeTab].children)}
             activeId={activeSubTab}
-            onSelect={setActiveSubTab}
+            onSelect={(id) => { setActiveSubTab(id); pushAdminUrl(activeTab, id); }}
           />
         )}
 

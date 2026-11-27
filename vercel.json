@@ -1,6 +1,6 @@
 {
   "git": {
-    "deploymentEnabled": { "main": true, "*": false }
+    "deploymentEnabled": { "main": true, "*": false, "**": false }
   },
   "crons": [
     { "path": "/api/analitica/refresh/", "schedule": "0 10 * * *" },
