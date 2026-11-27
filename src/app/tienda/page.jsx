@@ -43,16 +43,17 @@ export default async function TiendaPage() {
     })),
   };
   return (
-    <main className={`min-h-screen bg-page pt-28 ${display.variable} ${mono.variable}`}>
+    <main className={`min-h-screen bg-page pt-28 lg:pt-24 ${display.variable} ${mono.variable}`}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
-      <header className="max-w-7xl mx-auto px-4 mb-8">
+      <TiendaServicios catalogo={catalogo} encabezado={(
+      <header className="mb-8 lg:pt-2">
         <p className="font-[family-name:var(--font-ia-mono)] text-xs uppercase tracking-[0.2em] text-accent-primary">Tienda</p>
         <h1 className="mt-3 font-[family-name:var(--font-ia-display)] text-4xl md:text-5xl font-extrabold tracking-tight text-fg [text-wrap:balance]">¿Qué necesita tu negocio?</h1>
         <p className="mt-4 max-w-2xl text-lg text-fg-400">
           Marcá lo que te interese y te explico cada cosa. Después lo charlamos (por Meet o WhatsApp) y te paso el presupuesto cerrado.
         </p>
       </header>
-      <TiendaServicios catalogo={catalogo} />
+      )} />
     </main>
   );
 }
