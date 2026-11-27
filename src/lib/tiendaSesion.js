@@ -40,7 +40,7 @@ export function textoSolicitud(d = {}) {
   return lineas.join('\n');
 }
 
-const avisarTelegram = (texto) => sendTelegram({ texto, botones: [{ texto: 'Ver en el admin', url: `${SITE}/admin/` }] });
+const avisarTelegram = (texto) => sendTelegram({ texto, botones: [{ texto: 'Ver en el admin', url: `${SITE}/admin/?tab=presupuestos&sub=solicitudes` }] });
 
 // Registra la visita; si cruza el umbral por primera vez, avisa (fuera de la transacción, una sola vez).
 export async function registrarSesion(db, { id, servicios = [], ultimaPregunta = '', ciudad = '', ua = '' } = {}, {

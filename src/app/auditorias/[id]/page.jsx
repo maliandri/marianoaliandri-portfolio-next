@@ -8,6 +8,7 @@ import AuditMapLoader from './AuditMapLoader';
 import AuditPdfButton from '@/components/audit/AuditPdfButton';
 import SeoScoreChart from './SeoScoreChart';
 import AsesorChat from './AsesorChat';
+import AvisoVista from '@/components/AvisoVista';
 import { claveValida } from '@/lib/auditClave';
 import { SERVICIOS_OFERTA, posicionEnAuditoria } from '@/lib/auditPitch';
 import { saludoAsesor } from '@/lib/ai/auditAsesor';
@@ -115,6 +116,7 @@ export default async function AuditoriaDetailPage({ params, searchParams }) {
   const conChat = !screenshot; // las capturas de Microlink (?screenshot=1) salen sin chat
   return (
     <main className="min-h-screen bg-page pt-24 pb-20 px-2 md:px-4">
+      {conChat && <AvisoVista tipo="auditoria" id={id} k={k} para={para} />}
 
       {/* Header */}
       <div className="mb-8">

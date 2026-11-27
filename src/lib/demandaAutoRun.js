@@ -12,6 +12,7 @@ import {
 } from '@/lib/demandaReport';
 import { prepararPlacas, publicarDemanda } from '@/lib/demandaPublish';
 import { sendAlert } from '@/lib/alert';
+import { avisar } from '@/lib/avisos';
 
 const CONFIG = 'demanda_auto';
 const RUNS = 'demanda_auto_runs';
@@ -141,6 +142,9 @@ export async function runDemandaAuto({ force = false, zonaId = null, publicar = 
       .catch(e => console.error('[demanda-auto] no se pudo liberar el candado:', e.message));
   }
 
+  if (run.estado === 'ok' && run.reporteId) {
+    await avisar({ texto: `🔎 Se publicó el informe de demanda de ${zona.nombre}.`, url: `https://marianoaliandri.com.ar/demanda/${run.reporteId}/`, boton: 'Ver informe', silencioso: true });
+  }
   if (['error', 'sin_datos', 'post_fallido'].includes(run.estado)) {
     await sendAlert({
       key: `demanda:${run.estado}`,

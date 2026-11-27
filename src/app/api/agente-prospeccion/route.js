@@ -8,6 +8,7 @@ import { hitRateLimit } from '@/lib/mcp/rateLimit';
 import { correrAgenteProspeccion } from '@/lib/ai/prospectingAgent';
 import { crearRun, crearRegistrador, corridaActiva, leerRun, listarRuns } from '@/lib/ai/agentRuns';
 import { alertError } from '@/lib/alert';
+import { avisar } from '@/lib/avisos';
 
 // Solo admin.
 //  POST { objetivo }  → crea la corrida, arranca el agente en segundo plano y responde { runId } al instante.
@@ -41,6 +42,15 @@ export async function POST(request) {
       const r = await correrAgenteProspeccion({ db, user, objetivo, onEvento: reg.evento });
       reg.evento({ tipo: 'fin', texto: 'Terminó.' });
       await reg.cerrar({ estado: 'listo', texto: r.texto, borradores: r.borradores, pasos: r.pasos.length });
+      // Aviso con un botón "Enviar" por borrador listo (lo atiende /api/telegram-webhook/, con todos los frenos).
+      const listos = r.borradores.filter(b => b.draftId && !b.bloqueo).slice(0, 8);
+      await avisar({
+        texto: `🧠 Terminó el agente de prospección: ${listos.length} ${listos.length === 1 ? 'mail listo' : 'mails listos'} para aprobar.
+
+${String(r.texto || '').slice(0, 2500)}`,
+        filas: listos.map(b => [{ texto: `✉️ Enviar a ${String(b.to || '').slice(0, 40)}`, data: `mail_env:${b.draftId}` }]),
+        tab: 'agente-prospeccion',
+      });
     } catch (e) {
       reg.evento({ tipo: 'error', texto: e.message });
       await reg.cerrar({ estado: 'error', error: e.message }).catch(() => {});

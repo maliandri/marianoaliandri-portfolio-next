@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { requireAdmin } from '@/lib/adminAuth';
+import { avisar, botonWhatsapp } from '@/lib/avisos';
 
 export async function POST(request) {
   try {
@@ -78,6 +79,13 @@ export async function POST(request) {
       }),
     ]);
 
+    await avisar({
+      texto: [`📝 Pedido de presupuesto: ${clientName}${clientCompany ? ` (${clientCompany})` : ''}`,
+        `Servicios: ${selectedServices.join(', ')}`, projectDescription ? `"${String(projectDescription).slice(0, 300)}"` : '',
+        deadline ? `Plazo: ${deadline}` : '', clientEmail].filter(Boolean).join('\n'),
+      botones: [botonWhatsapp(clientPhone)].filter(Boolean),
+      tab: 'presupuestos', sub: 'solicitudes',
+    });
     return Response.json({ success: true, budgetId: docRef.id });
   } catch (error) {
     console.error('presupuesto error:', error);

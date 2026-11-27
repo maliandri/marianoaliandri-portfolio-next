@@ -67,6 +67,11 @@ export function createFakeDb(initialDocs = {}) {
         docs[path] = opts?.merge ? resolveFieldValues(data, prev) : resolveFieldValues(data, {});
         writes.push({ path, data, opts });
       },
+      async create(data) {
+        if (docs[path] !== undefined) throw new Error(`ALREADY_EXISTS: ${path}`);
+        docs[path] = resolveFieldValues(data, {});
+        writes.push({ path, data, opts: { create: true } });
+      },
       async update(data) {
         if (docs[path] === undefined) throw new Error(`NOT_FOUND: ${path}`);
         docs[path] = resolveFieldValues(data, docs[path]);

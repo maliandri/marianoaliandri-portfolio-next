@@ -11,6 +11,32 @@ import { auditStoryScreenshotUrl } from '@/lib/socialAuditPost';
 import { renderAuditCard } from '@/lib/auditCard';
 import { uploadPng } from '@/lib/cloudinaryServer';
 import { publishIgStory, igCredsFromEnv } from '../../scripts/igStoryClient.mjs';
+import { avisar } from '@/lib/avisos';
+
+// Aviso a Telegram del resultado de la corrida (2026-11-27): un lote para revisar trae los botones para
+// publicarlo o descartarlo desde el celular (los atiende /api/telegram-webhook/).
+function avisarCorrida(run) {
+  const que = run.combo ? `${run.combo.rubro} en ${run.combo.ciudad}` : '';
+  if (run.estado === 'en_revision' && run.borradorId) {
+    return avisar({
+      texto: `🤖 Auditoría automática para revisar: ${que}
+${run.auditados} sitios con web.`,
+      botones: [{ texto: '✅ Publicar', data: `aud_pub:${run.borradorId}` }, { texto: '🗑 Descartar', data: `aud_desc:${run.borradorId}` }],
+      tab: 'auto-auditoria',
+    });
+  }
+  if (run.auditoriaId) {
+    return avisar({ texto: `🤖 Se publicó la auditoría automática: ${que} (${run.auditados} sitios).`, tab: 'auditorias', silencioso: true });
+  }
+  if (run.estado === 'error' || run.estado === 'post_fallido') {
+    return avisar({ texto: `⚠️ Auditoría automática: ${run.estado}${que ? ` (${que})` : ''}\n${run.error || ''}`, tab: 'auto-auditoria' });
+  }
+  if (run.estado === 'sin_resultados') {
+    return avisar({ texto: `🤖 Auditoría automática sin resultados: ${que}. Se probará otra combinación.`, tab: 'auto-auditoria', silencioso: true });
+  }
+  return null;
+}
+
 
 const CONFIG_COLLECTION = 'auditoria_auto';
 const RUNS_COLLECTION = 'auditoria_auto_runs';
@@ -267,6 +293,7 @@ export async function runAutoAudit({
     } catch (e) {
       console.error('[auto-audit] no se pudo registrar el run:', e.message);
     }
+    if (!skipped) await avisarCorrida(run);
     const patch = { lock: { until: 0 } };
     const marcar = { ...descartadas };
     if (markRan && combo) marcar[comboKey(combo.ciudad, combo.rubro)] = nowMs;

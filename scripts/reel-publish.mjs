@@ -10,6 +10,7 @@ const { FieldValue } = await import('firebase-admin/firestore');
 const { uploadVideo } = await import('../src/lib/cloudinaryServer.js');
 const { publicarReel, REELS } = await import('../src/lib/reelPublish.js');
 const { sendAlert } = await import('../src/lib/alert.js');
+const { avisar } = await import('../src/lib/avisos.js');
 
 const metaPath = path.resolve('video', 'reel-meta.json');
 const mp4Path = path.resolve('video', 'out', 'reel.mp4');
@@ -30,8 +31,14 @@ try {
   if (cfg.activo === true) {
     const r = await publicarReel(db, ref.id);
     console.log('[reel] publicado', JSON.stringify(r.redes));
+    await avisar({ texto: `🎞️ Se publicó un reel: ${meta.titulo || meta.tipo}`, url: videoUrl, boton: 'Ver video', silencioso: true });
   } else {
     console.log(`[reel] guardado como borrador ${ref.id} (publicación automática apagada)`);
+    await avisar({
+      texto: `🎞️ Reel nuevo para revisar: ${meta.titulo || meta.tipo}`,
+      filas: [[{ texto: '▶️ Ver video', url: videoUrl }], [{ texto: '✅ Publicar en redes', data: `reel_pub:${ref.id}` }]],
+      tab: 'contenido-bot', sub: 'reels',
+    });
   }
   process.exit(0);
 } catch (e) {
