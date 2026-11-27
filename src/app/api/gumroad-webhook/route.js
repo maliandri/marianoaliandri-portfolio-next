@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import admin, { getDb } from '@/lib/firebase-admin';
 import { alertError } from '@/lib/alert';
+import { avisar } from '@/lib/avisos';
 
 // Webhook de Gumroad ("Ping") para los packs de créditos de Lead Finder Pro que se
 // venden en USD (complemento a MercadoPago/ARS, ver /api/payment-webhook). Configurar
@@ -130,6 +131,9 @@ export async function POST(request) {
       console.warn('[gumroad-webhook] venta ya procesada, se ignora:', saleId);
     } else {
       console.log('[gumroad-webhook] créditos acreditados:', { uid, buyerEmail, credits, saleId });
+      await avisar({ texto: `💰 Venta en Gumroad: US$ ${(priceCents / 100).toFixed(2)}
+Lead Finder Pro · ${credits} créditos
+${buyerEmail}`, tab: 'leadfinder-plans' });
     }
 
     return Response.json({ received: true });

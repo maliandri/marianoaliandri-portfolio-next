@@ -60,6 +60,7 @@ export async function POST(request) {
         id: chatId,
         texto: `💬 ${neg?.nombre || 'Alguien'} está hablando con el asistente de su auditoría (${auditoria.title || id}).\n\n"${mensaje.slice(0, 300)}"`,
         extra: [{ texto: 'Ver el informe', url: informeUrl }],
+        db,
       });
     }
 

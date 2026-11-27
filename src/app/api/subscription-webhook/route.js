@@ -6,6 +6,17 @@ import { PLANS } from '@/data/plans';
 import { verifyMpSignature } from '@/lib/mpWebhook';
 import admin, { getDb } from '@/lib/firebase-admin';
 import { alertError } from '@/lib/alert';
+import { avisarUnaVez } from '@/lib/avisos';
+
+// Aviso a Telegram cuando una suscripción se activa, se cancela o se pausa (una vez por estado).
+function avisarSuscripcion(producto, planId, status, preapprovalId, monto) {
+  const txt = { authorized: '🔁 Nueva suscripción activa', cancelled: '🚫 Se canceló una suscripción', paused: '⏸ Se pausó una suscripción' }[status];
+  if (!txt) return null;
+  return avisarUnaVez(`sub:${preapprovalId}:${status}`, {
+    texto: [txt, `${producto} · plan ${planId}`, monto ? `$ ${Math.round(monto).toLocaleString('es-AR')} por mes` : ''].filter(Boolean).join('\n'),
+    tab: 'suscripciones',
+  });
+}
 
 // Suscripciones de Lead Finder Pro usan external_reference "lfp:<uid>:<planId>" para
 // distinguirse de las de Analítica ("<uid>:<planId>"). El cupo mensual se resetea solo
@@ -82,6 +93,7 @@ export async function POST(request) {
       const [, uid, planId] = externalRef.split(':');
       if (!uid || !planId) return Response.json({ ok: true, notFound: true });
       await handleLeadFinderProSubscription(uid, planId, status, preapprovalId);
+      await avisarSuscripcion('Lead Finder Pro', planId, status, preapprovalId, sub?.auto_recurring?.transaction_amount);
       return Response.json({ ok: true, status, product: 'leadfinder-pro' });
     }
 
@@ -103,6 +115,7 @@ export async function POST(request) {
       await setPlan(uid, planId, { preapprovalId, status: 'pending', renewsAt: null });
     }
 
+    await avisarSuscripcion('Analítica', planId, status, preapprovalId, sub?.auto_recurring?.transaction_amount);
     return Response.json({ ok: true, status });
   } catch (e) {
     console.error('[subscription-webhook] ERROR:', e?.message);

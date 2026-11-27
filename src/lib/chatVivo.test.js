@@ -46,6 +46,7 @@ describe('chatVivo', () => {
   it('el aviso lleva el botón para entrar al chat y nunca tira', async () => {
     const send = vi.fn(async () => { throw new Error('caído'); });
     await avisarChat({ id: ID, texto: 'hola', send });
-    expect(send.mock.calls[0][0].botones[0]).toEqual({ texto: '💬 Entrar al chat', url: linkAdminChat(ID) });
+    expect(send.mock.calls[0][0].filas[0][0]).toEqual({ texto: '💬 Entrar al chat', url: linkAdminChat(ID) });
+    expect(send.mock.calls[0][0].filas[1].map(b => b.data)).toEqual(['chat_yo', 'chat_ia']);
   });
 });

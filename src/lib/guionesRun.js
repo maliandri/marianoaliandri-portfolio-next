@@ -9,6 +9,7 @@ import {
 import { generarConRespaldo, loadContenidoConfig, CONTENIDOS } from '@/lib/contenidoRun';
 import { statsAuditorias } from '@/lib/contenido';
 import { sendViaResend } from '@/lib/bizEmail';
+import { avisar } from '@/lib/avisos';
 
 export const GUIONES = 'guiones';
 const ADMIN_URL = 'https://marianoaliandri.com.ar/admin/';
@@ -70,6 +71,13 @@ export async function generarGuiones(db, { cantidad = 3, tema = '', formato = ''
       html: guionesHtml(guiones, { adminUrl: ADMIN_URL }),
     });
     enviado = true;
+  }
+  if (origen === 'cron') {
+    await avisar({
+      texto: `🎬 ${guiones.length} guiones de reels para grabar:
+${guiones.map(g => `• ${g.titulo || ''}`).join('\n')}`,
+      tab: 'contenido-bot', sub: 'guiones',
+    });
   }
   return { guiones: guiones.map((g, i) => ({ id: ids[i], ...g, estado: 'pendiente', proveedor })), proveedor, enviado };
 }

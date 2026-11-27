@@ -5,6 +5,17 @@ import crypto from 'crypto';
 import admin, { getDb } from '@/lib/firebase-admin';
 import { alertError, sendAlert } from '@/lib/alert';
 import { registrarPagoPresupuesto } from '@/lib/presupuestos';
+import { avisarUnaVez, pesos } from '@/lib/avisos';
+
+// Aviso a Telegram de cada pago aprobado (una sola vez por pago: MercadoPago reintenta el webhook).
+function avisarPago(p) {
+  const m = p.metadata || {};
+  const esCV = m.cvAnalysis ?? m.cv_analysis;
+  const tipo = esCV ? 'Análisis de CV' : m.type === 'leadfinder_plan' ? 'Lead Finder Pro' : m.type === 'presupuesto' ? 'Presupuesto' : m.user_id ? 'Tienda' : 'Pago';
+  const [tab, sub] = m.type === 'presupuesto' ? ['presupuestos', 'solicitudes'] : m.type === 'leadfinder_plan' ? ['leadfinder-plans'] : ['orders'];
+  const lineas = [`💰 Entró un pago: ${pesos(p.transaction_amount)}`, tipo, p.description, p.payer?.email].filter(Boolean);
+  return avisarUnaVez(`pago:${p.id}`, { texto: lineas.join('\n'), tab, sub });
+}
 
 
 function verifyWebhookSignature(rawBody, headers) {
@@ -219,6 +230,7 @@ export async function POST(request) {
 
       if (paymentData.status === 'approved') {
         const metadata = paymentData.metadata;
+        await avisarPago(paymentData);
         if (metadata?.cvAnalysis ?? metadata?.cv_analysis) {
           try { await sendCVAnalysisEmail(paymentData, baseUrl); } catch (e) { console.error(e); await alertError('payment-webhook:cv-email', 'Pago de CV aprobado pero no salió el mail', e, { paymentId: paymentData?.id }); }
           try { await saveCVOrder(paymentData); } catch (e) { console.error(e); await alertError('payment-webhook:cv-orden', 'Pago de CV aprobado sin orden guardada', e, { paymentId: paymentData?.id }); }
@@ -240,6 +252,7 @@ export async function POST(request) {
                 titulo: `Pagaron un presupuesto: ARS ${Number(paymentData.transaction_amount || 0).toLocaleString('es-AR')}`,
                 detalle: 'Entró un pago por MercadoPago y el presupuesto quedó como Aceptado.',
                 contexto: { presupuesto: metadata.presupuesto_id, pago: paymentData.id, pagador: paymentData.payer?.email },
+                telegram: false, // ya avisó avisarPago
               });
             }
           } catch (e) {

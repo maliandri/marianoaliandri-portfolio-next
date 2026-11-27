@@ -2,6 +2,15 @@ export const dynamic = 'force-dynamic';
 import crypto from 'crypto';
 import { getDb } from '@/lib/firebase-admin';
 import { alertError } from '@/lib/alert';
+import { avisar } from '@/lib/avisos';
+
+// Avisos a Telegram por mail a un negocio (solo cuando el estado avanza: cada uno sale una vez).
+const AVISO = {
+  opened: '👀 Abrió tu mail',
+  clicked: '🔥 Tocó un link de tu mail',
+  bounced: '↩️ Rebotó un mail',
+  complained: '🚫 Marcaron tu mail como spam',
+};
 
 // Mapa evento de Resend → estado que guardamos
 const EVENT_STATUS = {
@@ -69,6 +78,13 @@ export async function POST(request) {
     const shouldUpdate = FORCE.has(status) || (RANK[status] ?? 0) > (RANK[current] ?? -1);
     if (shouldUpdate) {
       await doc.ref.update({ status, statusUpdatedAt: new Date().toISOString() });
+      if (AVISO[status]) {
+        const d = doc.data();
+        await avisar({
+          texto: [`${AVISO[status]}: ${d.nombre || d.email || 'un negocio'}`, d.subject, d.siteUrl].filter(Boolean).join('\n'),
+          tab: 'emails',
+        });
+      }
     }
 
     return Response.json({ ok: true, status });

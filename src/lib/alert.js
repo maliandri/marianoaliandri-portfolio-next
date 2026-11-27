@@ -7,6 +7,7 @@
 import { getDb } from '@/lib/firebase-admin';
 import { redactSecrets } from '@/lib/mcp/redact';
 import { sendViaResend } from '@/lib/bizEmail';
+import { sendTelegram } from '@/lib/telegram';
 
 export const ALERT_INTERVAL_MS = 60 * 60 * 1000;
 
@@ -43,7 +44,16 @@ ${repetidas ? `<p style="color:#b45309">Se repitió ${repetidas} ${repetidas ===
 </div>`;
 }
 
-export async function sendAlert({ key, titulo, detalle, contexto } = {}, deps = {}) {
+// Versión corta para Telegram (2026-11-27): las alertas llegan también al celular.
+export function alertTexto({ titulo, detalle, contexto = {}, repetidas = 0 }) {
+  const ctx = Object.entries(contexto)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`.slice(0, 200));
+  return [`⚠️ ${titulo}`, String(detalle || '').slice(0, 1500), ...ctx,
+    repetidas ? `(se repitió ${repetidas} ${repetidas === 1 ? 'vez' : 'veces'} desde el último aviso)` : ''].filter(Boolean).join('\n\n');
+}
+
+export async function sendAlert({ key, titulo, detalle, contexto, telegram = true } = {}, deps = {}) {
   try {
     const to = process.env.ALERT_EMAIL || process.env.ADMIN_EMAIL;
     if (!to) return { sent: false, reason: 'sin destinatario' };
@@ -52,6 +62,7 @@ export async function sendAlert({ key, titulo, detalle, contexto } = {}, deps = 
     const claim = db ? await claimAlert(db, key || titulo, deps.now) : { send: true, repetidas: 0 };
     if (!claim.send) return { sent: false, reason: 'repetida' };
     const clean = redactSecrets({ titulo: String(titulo || 'Error'), detalle: String(detalle || ''), contexto: contexto || {} });
+    if (telegram) await Promise.resolve((deps.telegram ?? sendTelegram)({ texto: alertTexto({ ...clean, repetidas: claim.repetidas }) })).catch(() => {});
     await send({ to, subject: `[Alerta sitio] ${clean.titulo}`.slice(0, 150), html: alertHtml({ ...clean, repetidas: claim.repetidas }) });
     return { sent: true };
   } catch (e) {

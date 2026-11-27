@@ -14,6 +14,7 @@ import { postToMakeSocial } from '@/lib/makeSocial';
 import { getLinkedInAuth, publishDocumentPost } from '@/lib/linkedinClient';
 import { imagesToPdf } from '@/lib/demandaPublish';
 import { sendAlert } from '@/lib/alert';
+import { avisar } from '@/lib/avisos';
 import { dispararReel, textoReel } from '@/lib/reelDispatch';
 import { storyImageUrl, publishStory } from '@/lib/igStory';
 import { igCredsFromEnv } from '../../scripts/igStoryClient.mjs';
@@ -198,8 +199,18 @@ export async function runContenido({ force = false, serieId = null, tema = '', c
     const reel = conReel ? await dispararReel(ref.id) : null;
     const base = { id: ref.id, serie: serie.nombre, titulo: pieza.titulo, imagenes, tema: tema || null, deCola: !!deCola, ...(reel ? { reel: textoReel(reel) } : {}) };
 
-    if (!publicar) return { ...base, estado: 'borrador' };
+    if (!publicar) {
+      await avisar({
+        texto: `✍️ Pieza nueva para revisar (${serie.nombre}):
+${pieza.titulo}`,
+        botones: [{ texto: '✅ Publicar', data: `cont_pub:${ref.id}` }, ...(imagenes[0] ? [{ texto: 'Ver placa', url: imagenes[0] }] : [])],
+        tab: 'contenido-bot', sub: 'piezas',
+      });
+      return { ...base, estado: 'borrador' };
+    }
     const pub = await publicarContenido(db, ref.id);
+    await avisar({ texto: `✍️ Se publicó una pieza (${serie.nombre}):
+${pieza.titulo}`, tab: 'contenido-bot', sub: 'piezas', silencioso: true });
     return { ...base, estado: 'publicado', redes: pub.redes, error: pub.error };
   } catch (e) {
     await sendAlert({ key: 'contenido:error', titulo: `Bot de contenido: no salió la pieza (${serie.nombre})`, detalle: e.message });

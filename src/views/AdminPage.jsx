@@ -192,6 +192,7 @@ export default function AdminPage() {
         if (cancelado) return;
         if (r.ok) {
           sessionStorage.setItem('adminAuth', 'true'); // la leen KeywordExplorer y ProductQA para mostrar controles
+          try { localStorage.setItem('soyAdmin', '1'); } catch { /* sin storage */ } // AvisoVista: no avisar mis propias visitas
           setLoginError('');
           setIsAuthenticated(true);
         } else {

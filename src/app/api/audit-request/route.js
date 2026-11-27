@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { Resend } from 'resend';
+import { avisar, botonWhatsapp } from '@/lib/avisos';
 
 export async function POST(request) {
   try {
@@ -88,6 +89,11 @@ export async function POST(request) {
     });
 
     console.log('[audit-request] nueva solicitud:', ref.id, email);
+    await avisar({
+      texto: [`🔍 Pidieron una auditoría SEO: ${nombre}`, `${searchTerm} en ${localidad}, ${provincia}`, sitioWeb, email].filter(Boolean).join('\n'),
+      botones: [botonWhatsapp(telefono)].filter(Boolean),
+      tab: 'audit-requests',
+    });
     return Response.json({ success: true, id: ref.id });
 
   } catch (e) {

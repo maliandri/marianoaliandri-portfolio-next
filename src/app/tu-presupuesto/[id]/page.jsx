@@ -29,7 +29,7 @@ export default async function TuPresupuesto({ params, searchParams }) {
 
   return (
     <main className={`min-h-screen bg-page pt-28 pb-20 px-4 ${display.variable} ${mono.variable}`}>
-      <MedirVista id={id} />
+      <MedirVista id={id} t={t} />
       <article className="max-w-xl mx-auto">
         <p className="font-[family-name:var(--font-ia-mono)] text-xs uppercase tracking-[0.2em] text-fg-500">Presupuesto N° {v.numero}</p>
         <h1 className="mt-3 font-[family-name:var(--font-ia-display)] text-4xl font-extrabold text-fg">Hola{v.nombre ? ` ${v.nombre}` : ''} 👋</h1>
@@ -64,7 +64,7 @@ export default async function TuPresupuesto({ params, searchParams }) {
           {v.pagado ? (
             <p className="rounded-xl bg-emerald-600/10 border border-emerald-500/30 px-4 py-3 text-emerald-700 dark:text-emerald-300 font-semibold text-center">¡Recibimos tu pago! Ya arrancamos.</p>
           ) : v.linkPago ? (
-            <BotonPagar href={v.linkPago} id={id} className="rounded-xl bg-accent-primary text-white text-center font-semibold py-3.5 hover:opacity-90">Pagar con MercadoPago</BotonPagar>
+            <BotonPagar href={v.linkPago} id={id} t={t} className="rounded-xl bg-accent-primary text-white text-center font-semibold py-3.5 hover:opacity-90">Pagar con MercadoPago</BotonPagar>
           ) : null}
           <a href={duda} target="_blank" rel="noopener noreferrer" className="rounded-xl border border-fg/20 text-fg text-center font-semibold py-3 hover:border-fg/40">Tengo una duda (WhatsApp)</a>
           <a href={pdfUrl(id, d.pdfToken)} className="text-center text-sm text-fg-500 underline underline-offset-2">Descargar en PDF</a>

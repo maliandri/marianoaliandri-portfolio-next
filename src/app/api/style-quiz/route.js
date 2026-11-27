@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { avisar, botonWhatsapp } from '@/lib/avisos';
 
 export async function POST(request) {
   try {
@@ -43,6 +44,11 @@ export async function POST(request) {
       // No bloquear si el email falla
     }
 
+    await avisar({
+      texto: [`🎨 Respondieron el test de estilo: ${name}`, comment ? `"${String(comment).slice(0, 300)}"` : '', email].filter(Boolean).join('\n'),
+      botones: [botonWhatsapp(phone)].filter(Boolean),
+      tab: 'style-quiz',
+    });
     return Response.json({ success: true, id: docRef.id });
   } catch (error) {
     console.error('style-quiz POST error:', error);
