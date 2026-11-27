@@ -192,16 +192,16 @@ export default function TiendaServicios({ catalogo = [], encabezado = null }) {
   );
 
   return (
-    // Compu: todo entra en la pantalla (alto fijo bajo la barra del sitio). El chat queda entero y quieto a la
-    // derecha; lo único que scrollea es la columna de servicios (pedido de Mariano 2026-11-26).
-    <div className="max-w-7xl mx-auto px-4 pb-28 lg:pb-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] items-start lg:items-stretch lg:h-[calc(100dvh-6rem)]">
-      <div className="min-w-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-3 lg:pb-12 [scrollbar-gutter:stable]">
+    // Compu: scrollea toda la página y el chat queda flotando a la derecha, entero dentro de la pantalla (arranca
+    // a la altura del título porque el encabezado va en la columna izquierda). Pedido de Mariano 2026-11-26.
+    <div className="max-w-7xl mx-auto px-4 pb-28 lg:pb-16 grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] items-start">
+      <div className="min-w-0">
         {encabezado}
         <ListaServicios grupos={grupos} marcados={marcados} agregadosPor={agregadosPor} onToggle={toggle} onPreguntar={(s) => { preguntar(s); setHojaAbierta(true); }} onReceta={receta} />
       </div>
 
       {/* Escritorio: asistente fijo al costado */}
-      <aside className="hidden lg:block lg:h-full lg:min-h-0">{asistente}</aside>
+      <aside className="hidden lg:block lg:sticky lg:top-24 lg:h-[calc(100dvh-7rem)]">{asistente}</aside>
 
       {/* Celular: barra inferior + asistente como hoja */}
       <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-card/95 backdrop-blur border-t border-fg/10 px-4 py-3 flex items-center gap-2"
